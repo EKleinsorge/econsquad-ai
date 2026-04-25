@@ -1,0 +1,1 @@
+# econsquad-ai
