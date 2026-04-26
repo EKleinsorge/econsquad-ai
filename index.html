@@ -977,27 +977,103 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
     <!-- SIGN UP PANEL -->
     <div id="panel-signup">
-      <div class="modal-eyebrow">7-day free trial · No credit card required</div>
-      <h2 class="modal-h2">Hire your <span>squad</span></h2>
-      <div class="form-row">
-        <div class="form-field"><label>First name</label><input id="su-fname" type="text" placeholder="Sarah"></div>
-        <div class="form-field"><label>Last name</label><input id="su-lname" type="text" placeholder="Mitchell"></div>
+
+      <!-- STEP 1: Account details -->
+      <div id="su-step-1">
+        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+        <div class="modal-eyebrow">Step 1 of 3 — Create your account</div>
+        <h2 class="modal-h2">Hire your <span>squad</span></h2>
+        <div class="form-row">
+          <div class="form-field"><label>First name</label><input id="su-fname" type="text" placeholder="Sarah"></div>
+          <div class="form-field"><label>Last name</label><input id="su-lname" type="text" placeholder="Mitchell"></div>
+        </div>
+        <div class="form-field"><label>Work email</label><input id="su-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
+        <div class="form-field"><label>Password</label><input id="su-pass" type="password" placeholder="Min 8 characters"></div>
+        <div class="form-field"><label>Organization</label><input id="su-org" type="text" placeholder="City of Riverdale Economic Development"></div>
+        <div class="form-field"><label>Your role</label>
+          <select id="su-role">
+            <option>Economic Development Director</option>
+            <option>ED Manager</option>
+            <option>Business Development Manager</option>
+            <option>Grant Writer</option>
+            <option>ED Analyst</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button class="modal-btn" onclick="suNextStep(2)">Continue — choose your plan →</button>
+        <p class="modal-note">Already have an account? <span onclick="switchAuthTab('signin')" style="cursor:pointer;color:var(--lime);">Sign in</span></p>
       </div>
-      <div class="form-field"><label>Work email</label><input id="su-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
-      <div class="form-field"><label>Password</label><input id="su-pass" type="password" placeholder="Min 8 characters"></div>
-      <div class="form-field"><label>Organization</label><input id="su-org" type="text" placeholder="City of Riverdale Economic Development"></div>
-      <div class="form-field"><label>Your role</label>
-        <select id="su-role">
-          <option>Economic Development Director</option>
-          <option>ED Manager</option>
-          <option>Business Development Manager</option>
-          <option>Grant Writer</option>
-          <option>ED Analyst</option>
-          <option>Other</option>
-        </select>
+
+      <!-- STEP 2: Choose plan -->
+      <div id="su-step-2" style="display:none;">
+        <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
+        <div class="modal-eyebrow">Step 2 of 3 — Choose your plan</div>
+        <h2 class="modal-h2">Pick your <span>squad size</span></h2>
+
+        <!-- Billing toggle -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;">
+          <span id="su-lbl-m" style="font-size:13px;font-weight:600;color:#eef3fc;">Monthly</span>
+          <div onclick="suToggleBilling()" id="su-billing-toggle" style="width:44px;height:24px;background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);border-radius:12px;cursor:pointer;position:relative;">
+            <div id="su-billing-knob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#aaff3e;transition:transform .3s;"></div>
+          </div>
+          <span id="su-lbl-a" style="font-size:13px;font-weight:600;color:#6b7a96;">Annual <span style="font-size:10px;color:#aaff3e;background:rgba(170,255,62,0.1);padding:1px 6px;border-radius:8px;">2 months free</span></span>
+        </div>
+
+        <!-- Plan cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;">
+          <div id="su-plan-starter" onclick="suSelectPlan('starter')" style="border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(14,20,36,0.6);">
+            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Starter</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-starter-amt">$29</span><span style="font-size:12px;color:#6b7a96;" id="su-starter-per">/mo</span></div>
+            <div style="font-size:11px;color:#6b7a96;">6 specialists</div>
+          </div>
+          <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);">
+            <div style="font-size:9px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Most popular</div>
+            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Pro Squad</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$79</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
+            <div style="font-size:11px;color:#6b7a96;">All 18 specialists</div>
+          </div>
+        </div>
+        <button class="modal-btn" onclick="suNextStep(3)">Continue — add payment →</button>
+        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(1)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
       </div>
-      <button class="modal-btn" id="btn-signup" onclick="doSignup()">Start my 7-day free trial →</button>
-      <p class="modal-note">Already have an account? <span onclick="switchAuthTab('signin')" style="cursor:pointer;color:var(--lime);">Sign in</span></p>
+
+      <!-- STEP 3: Card details -->
+      <div id="su-step-3" style="display:none;">
+        <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
+        <div class="modal-eyebrow">Step 3 of 3 — Payment details</div>
+        <h2 class="modal-h2">Start your <span>free trial</span></h2>
+
+        <!-- Trust banner -->
+        <div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">🔒</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#aaff3e;">You won't be charged for 7 days</div>
+            <div style="font-size:11px;color:#6b7a96;">Cancel anytime before your trial ends and pay nothing. Ever.</div>
+          </div>
+        </div>
+
+        <!-- Selected plan summary -->
+        <div id="su-plan-summary" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#8a97b5;">Selected plan</span>
+          <span id="su-plan-label" style="font-size:13px;font-weight:700;color:#eef3fc;">Pro Squad · $79/mo</span>
+        </div>
+
+        <!-- Stripe card element -->
+        <div class="form-field">
+          <label>Card details</label>
+          <div id="stripe-card-element" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px;min-height:44px;"></div>
+          <div id="stripe-card-error" style="color:#ff8080;font-size:12px;margin-top:6px;display:none;"></div>
+        </div>
+
+        <button class="modal-btn" id="btn-start-trial" onclick="doSignup()">Start my free trial — $0 today →</button>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;">
+          <span style="font-size:11px;color:#4a5568;">Secured by</span>
+          <span style="font-size:12px;font-weight:700;color:#6b7a96;">Stripe</span>
+          <span style="font-size:11px;color:#4a5568;">· 256-bit encryption</span>
+        </div>
+        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(2)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
+      </div>
+
     </div>
 
     <!-- SIGN IN PANEL -->
@@ -1570,7 +1646,122 @@ function setLoading(btnId,loading){
   else if(btn.dataset.orig)btn.textContent=btn.dataset.orig;
 }
 
-/* ── SIGN UP ── */
+/* ── SIGNUP FLOW STATE ── */
+var suSelectedPlan='pro';
+var suBillingAnnual=false;
+var stripeElements=null;
+var stripeCardElement=null;
+
+function suToggleBilling(){
+  suBillingAnnual=!suBillingAnnual;
+  var knob=document.getElementById('su-billing-knob');
+  var lblM=document.getElementById('su-lbl-m');
+  var lblA=document.getElementById('su-lbl-a');
+  if(suBillingAnnual){
+    if(knob)knob.style.transform='translateX(20px)';
+    if(lblM)lblM.style.color='#6b7a96';
+    if(lblA)lblA.style.color='#eef3fc';
+    document.getElementById('su-starter-amt').textContent='$290';
+    document.getElementById('su-starter-per').textContent='/yr';
+    document.getElementById('su-pro-amt').textContent='$790';
+    document.getElementById('su-pro-per').textContent='/yr';
+  } else {
+    if(knob)knob.style.transform='translateX(0)';
+    if(lblM)lblM.style.color='#eef3fc';
+    if(lblA)lblA.style.color='#6b7a96';
+    document.getElementById('su-starter-amt').textContent='$29';
+    document.getElementById('su-starter-per').textContent='/mo';
+    document.getElementById('su-pro-amt').textContent='$79';
+    document.getElementById('su-pro-per').textContent='/mo';
+  }
+  suUpdatePlanSummary();
+}
+
+function suSelectPlan(plan){
+  suSelectedPlan=plan;
+  var starter=document.getElementById('su-plan-starter');
+  var pro=document.getElementById('su-plan-pro');
+  if(plan==='starter'){
+    starter.style.border='2px solid #aaff3e';
+    starter.style.background='rgba(170,255,62,0.05)';
+    pro.style.border='2px solid rgba(255,255,255,0.1)';
+    pro.style.background='rgba(14,20,36,0.6)';
+  } else {
+    pro.style.border='2px solid #aaff3e';
+    pro.style.background='rgba(170,255,62,0.05)';
+    starter.style.border='2px solid rgba(255,255,255,0.1)';
+    starter.style.background='rgba(14,20,36,0.6)';
+  }
+  suUpdatePlanSummary();
+}
+
+function suUpdatePlanSummary(){
+  var lbl=document.getElementById('su-plan-label');
+  if(!lbl)return;
+  var planName=suSelectedPlan==='starter'?'Starter':'Pro Squad';
+  var price=suSelectedPlan==='starter'?(suBillingAnnual?'$290/yr':'$29/mo'):(suBillingAnnual?'$790/yr':'$79/mo');
+  lbl.textContent=planName+' · '+price;
+}
+
+function suNextStep(n){
+  /* validate step 1 before moving to step 2 */
+  if(n===2){
+    var fname=document.getElementById('su-fname').value.trim();
+    var email=document.getElementById('su-email').value.trim();
+    var pass=document.getElementById('su-pass').value;
+    if(!fname||!email||!pass){showAuthMsg('Please fill in name, email and password.','error');return;}
+    if(pass.length<8){showAuthMsg('Password must be at least 8 characters.','error');return;}
+    clearAuthMsg();
+  }
+  /* mount Stripe card element when reaching step 3 */
+  if(n===3){
+    suUpdatePlanSummary();
+    clearAuthMsg();
+    setTimeout(mountStripeCard,100);
+  }
+  [1,2,3].forEach(function(i){
+    var s=document.getElementById('su-step-'+i);
+    if(s)s.style.display=i===n?'block':'none';
+  });
+}
+
+function mountStripeCard(){
+  if(!window.Stripe)return;
+  if(!stripeElements){
+    var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
+    stripeElements=s.elements({
+      appearance:{
+        theme:'night',
+        variables:{
+          colorPrimary:'#aaff3e',
+          colorBackground:'rgba(255,255,255,0.05)',
+          colorText:'#eef3fc',
+          colorDanger:'#ff8080',
+          fontFamily:'DM Sans, sans-serif',
+          borderRadius:'8px',
+        }
+      }
+    });
+    stripeCardElement=stripeElements.create('card',{
+      style:{
+        base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
+        invalid:{color:'#ff8080'}
+      }
+    });
+    /* store stripe instance for later */
+    window._stripeInstance=s;
+  }
+  var el=document.getElementById('stripe-card-element');
+  if(el&&el.children.length===0){
+    stripeCardElement.mount('#stripe-card-element');
+    stripeCardElement.on('change',function(e){
+      var err=document.getElementById('stripe-card-error');
+      if(err){err.textContent=e.error?e.error.message:'';err.style.display=e.error?'block':'none';}
+    });
+  }
+}
+
+/* ── SIGN UP — full flow with card ── */
 function doSignup(){
   var fname=document.getElementById('su-fname').value.trim();
   var lname=document.getElementById('su-lname').value.trim();
@@ -1578,21 +1769,81 @@ function doSignup(){
   var pass=document.getElementById('su-pass').value;
   var org=document.getElementById('su-org').value.trim();
   var role=document.getElementById('su-role').value;
+
   if(!fname||!email||!pass){showAuthMsg('Please fill in all required fields.','error');return;}
   if(pass.length<8){showAuthMsg('Password must be at least 8 characters.','error');return;}
-  setLoading('btn-signup',true);
-  document.getElementById('btn-signup').textContent='Creating your squad...';
-  supa.auth.signUp({
-    email:email,
-    password:pass,
-    options:{data:{full_name:fname+' '+lname,organization:org,job_title:role}}
-  }).then(function(res){
-    setLoading('btn-signup',false);
-    if(res.error){showAuthMsg(res.error.message,'error');return;}
-    /* show confirm email panel */
-    document.getElementById('panel-signup').style.display='none';
-    document.getElementById('panel-confirm').style.display='block';
-    document.getElementById('confirm-email').textContent=email;
+  if(!stripeCardElement){showAuthMsg('Card element not loaded. Please refresh.','error');return;}
+
+  var btn=document.getElementById('btn-start-trial');
+  if(btn){btn.disabled=true;btn.textContent='Setting up your squad...';}
+
+  /* Step 1: create Stripe payment method */
+  window._stripeInstance.createPaymentMethod({
+    type:'card',
+    card:stripeCardElement,
+    billing_details:{name:fname+' '+lname,email:email}
+  }).then(function(result){
+    if(result.error){
+      showAuthMsg(result.error.message,'error');
+      if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
+      return;
+    }
+
+    var paymentMethodId=result.paymentMethod.id;
+    var priceKey=(suSelectedPlan==='starter'?'starter':'pro')+'_'+(suBillingAnnual?'annual':'monthly');
+    var priceId=PRICE_IDS[priceKey];
+
+    /* Step 2: create Supabase account */
+    supa.auth.signUp({
+      email:email,
+      password:pass,
+      options:{data:{full_name:fname+' '+lname,organization:org,job_title:role}}
+    }).then(function(authRes){
+      if(authRes.error){
+        showAuthMsg(authRes.error.message,'error');
+        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
+        return;
+      }
+
+      var userId=authRes.data.user?authRes.data.user.id:'';
+
+      /* Step 3: call Edge Function to create Stripe subscription */
+      fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/create-subscription',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+SUPA_KEY,
+          'apikey':SUPA_KEY
+        },
+        body:JSON.stringify({
+          email:email,
+          paymentMethodId:paymentMethodId,
+          priceId:priceId,
+          userId:userId,
+          fullName:fname+' '+lname
+        })
+      }).then(function(r){return r.json();}).then(function(subRes){
+        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
+        if(subRes.error){
+          showAuthMsg('Payment setup failed: '+subRes.error,'error');
+          return;
+        }
+        /* Update user profile with stripe customer id and plan */
+        if(userId){
+          supa.from('profiles').update({
+            stripe_customer_id:subRes.customerId,
+            plan:suSelectedPlan,
+          }).eq('id',userId);
+        }
+        /* Show confirmation */
+        document.getElementById('panel-signup').style.display='none';
+        document.getElementById('panel-confirm').style.display='block';
+        document.getElementById('confirm-email').textContent=email;
+      }).catch(function(err){
+        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
+        showAuthMsg('Something went wrong. Please try again.','error');
+      });
+    });
   });
 }
 
@@ -1885,6 +2136,12 @@ var PAYMENT_LINKS={
   starter_annual: 'https://buy.stripe.com/test_fZudR890r1SQ0Er47F0RG03',
   pro_monthly:    'https://buy.stripe.com/test_fZubJ0ekLapm0Er7jR0RG04',
   pro_annual:     'https://buy.stripe.com/test_00wfZgekL8hebj50Vt0RG05',
+};
+var PRICE_IDS={
+  starter_monthly:'price_1TQTsTAdXRzmLVohLggANl4w',
+  starter_annual: 'price_1TQTsTAdXRzmLVohU2VbC7qW',
+  pro_monthly:    'price_1TQTucAdXRzmLVohzhADNHzi',
+  pro_annual:     'price_1TQTucAdXRzmLVohjuUJxfbC',
 };
 var billingAnnual=false;
 
