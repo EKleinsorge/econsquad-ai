@@ -2807,11 +2807,11 @@ function showFinalOutput(text){
       .replace(/^### (.+)$/gm,'<h4>$1</h4>')
       .replace(/^## (.+)$/gm,'<h3>$1</h3>')
       .replace(/^- (.+)$/gm,'<li>$1</li>')
-      .replace(/
+      .replace(/\n/g,'</p><p>')
 
-/g,'</p><p>')
-      .replace(/
-/g,'<br>');
+
+      .replace(/\n/g,'<br>');
+
     bodyEl.innerHTML='<div class="result-output">'+formatted+'</div>';
   }
 
