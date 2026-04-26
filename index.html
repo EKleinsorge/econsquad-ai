@@ -432,6 +432,26 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #custom-spec-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
 #custom-spec-modal.show{display:flex;}
 
+/* ===== SPECIALIST CHAT ===== */
+#specialist-chat-panel{display:flex !important;}
+.chat-msg{display:flex;gap:10px;align-items:flex-start;}
+.chat-msg.user{flex-direction:row-reverse;}
+.chat-bubble{max-width:80%;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.65;white-space:pre-wrap;}
+.chat-bubble.specialist{background:rgba(255,255,255,0.06);color:#dde4f0;border-radius:4px 14px 14px 14px;}
+.chat-bubble.user{background:rgba(170,255,62,0.12);color:#eef3fc;border:1px solid rgba(170,255,62,0.2);border-radius:14px 4px 14px 14px;}
+.chat-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;font-family:'Barlow',sans-serif;}
+.chat-typing{display:flex;gap:4px;align-items:center;padding:12px 16px;}
+.chat-dot{width:6px;height:6px;border-radius:50%;background:#6b7a96;animation:chatdot 1.2s infinite;}
+.chat-dot:nth-child(2){animation-delay:.2s;}
+.chat-dot:nth-child(3){animation-delay:.4s;}
+@keyframes chatdot{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+.result-output{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;font-size:13px;line-height:1.75;color:#c8d4e8;white-space:pre-wrap;font-family:'DM Sans',sans-serif;}
+.result-output h3{font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:8px;}
+.result-output h4{font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;color:#b8c8e0;margin:12px 0 6px;}
+.result-output strong{color:#eef3fc;}
+.result-output ul{margin:8px 0 8px 18px;}
+.result-output li{margin-bottom:4px;}
+
 </style>
 </head>
 <body>
@@ -943,17 +963,41 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div class="sec-hdr"><div><div class="sec-title" style="color:#82dcff;">Reporting & Compliance</div><div class="sec-sub">Annual reports and board presentations</div></div><span class="see-all">See all →</span></div>
           <div class="scroll-row" id="row-reporting"></div>
         </div>
-        <div class="result-panel">
+        <!-- SPECIALIST CHAT PANEL -->
+        <div id="specialist-chat-panel" style="display:none;background:rgba(8,12,24,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:16px;margin-bottom:20px;overflow:hidden;flex-direction:column;">
+
+          <!-- Chat header -->
+          <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(14,20,36,0.6);">
+            <div id="chat-orb" style="width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;"></div>
+            <div style="flex:1;">
+              <div id="chat-specialist-name" style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;"></div>
+              <div id="chat-specialist-role" style="font-size:11px;color:#6b7a96;"></div>
+            </div>
+            <button onclick="closeSpecialistChat()" style="background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;padding:4px;">✕</button>
+          </div>
+
+          <!-- Messages -->
+          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;max-height:420px;min-height:200px;scroll-behavior:smooth;">
+          </div>
+
+          <!-- Input area -->
+          <div style="padding:14px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:10px;align-items:flex-end;">
+            <textarea id="chat-input" placeholder="Type your response..." style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.5;transition:border-color .2s;" onkeydown="chatKeydown(event)" oninput="autoResizeChat(this)"></textarea>
+            <button onclick="sendChatMessage()" id="chat-send-btn" style="background:#aaff3e;color:#0a1a00;border:none;border-radius:10px;padding:10px 18px;font-family:'Barlow',sans-serif;font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0;height:44px;">Send</button>
+          </div>
+        </div>
+
+        <!-- Result panel (shows after chat produces output) -->
+        <div class="result-panel" id="result-panel" style="display:none;">
           <div class="result-hdr">
-            <div class="result-title-lbl" id="result-title">Mission results — Grant Writer Pro</div>
-            <div class="result-btns"><button class="act-btn">📋 Copy for Word</button><button class="act-btn">📄 Copy for Docs</button><button class="act-btn">💾 Save</button><button class="act-btn">✉️ Email me</button></div>
+            <div class="result-title-lbl" id="result-title">Mission results</div>
+            <div class="result-btns">
+              <button class="act-btn" onclick="copyResult()">📋 Copy</button>
+              <button class="act-btn" onclick="saveResult()">💾 Save to history</button>
+              <button class="act-btn" onclick="continueChat()">💬 Continue chat</button>
+            </div>
           </div>
-          <div class="result-body" id="result-body">
-            <h3>CDBG Economic Development Grant — Executive Summary Draft</h3>
-            <p>The City of Riverdale Economic Development Authority submits this application for $450,000 in CDBG funding to support expansion of the Riverdale Innovation District...</p>
-            <ul><li><strong>Project goal:</strong> Create 125 new FTE jobs over 36 months</li><li><strong>Target beneficiaries:</strong> Low-to-moderate income residents (68% LMI)</li><li><strong>Matching funds:</strong> $180,000 committed from the Regional Innovation Fund</li><li><strong>Key outcomes:</strong> $12M private investment leveraged, 3 anchor businesses retained</li></ul>
-            <div class="result-meta">✦ Generated in 8 sec · Est. manual time: 4.5 hrs · <span>Value recovered: $183.92</span></div>
-          </div>
+          <div class="result-body" id="result-body"></div>
         </div>
       </div>
 
@@ -1998,12 +2042,8 @@ function renderSquad(){
 }
 
 function deploy(id){
-  var s=squad.find(function(x){return x.id===id;});
-  if(!s)return;
-  var rt=document.getElementById('result-title');
-  var rb=document.getElementById('result-body');
-  if(rt)rt.textContent='Mission results — '+s.name;
-  if(rb)rb.innerHTML='<div style="color:var(--text2);font-style:italic;font-size:13px;padding:18px 0;text-align:center;">&#10022; <strong style="color:var(--lime);">'+s.name+'</strong> is standing by. Enter your mission prompt above to generate copy-ready results.</div>';
+  if(!currentUser){openAuth('signup');return;}
+  openSpecialistChat(id);
 }
 
 /* ===== STRIPE BILLING ===== */
@@ -2522,6 +2562,296 @@ function submitCustomSpec(){
     }
     if(document.getElementById('cs-description'))document.getElementById('cs-description').value='';
     if(document.getElementById('cs-usecase'))document.getElementById('cs-usecase').value='';
+  });
+}
+
+
+/* ===== SPECIALIST CHAT ENGINE ===== */
+var SPECIALIST_NAMES={
+  1: {name:'Gary',   emoji:'📝', greeting:"Hey, I'm Gary — your grant writer. I've helped communities secure millions in federal and state funding. Let's write something that gets funded. What type of project are you working on? (infrastructure, broadband, downtown revitalization, workforce, etc.)"},
+  2: {name:'Fiona',  emoji:'🔍', greeting:"Hi! I'm Fiona, your funding discovery specialist. I live and breathe grant databases so you don't have to. Tell me about your community and what you're trying to accomplish — I'll find the best funding matches for you."},
+  3: {name:'Rex',    emoji:'📋', greeting:"Rex here. I read RFPs so carefully that I once caught a buried eligibility requirement that saved a client from a rejected application. Paste the RFP text or key requirements, and tell me about your organization — I'll handle the response."},
+  4: {name:'Scott',  emoji:'📍', greeting:"Scott here — site selection is what I do. Every business attraction project lives or dies on site data quality. Tell me about the site you want evaluated — location, size, and what type of business you're trying to attract."},
+  5: {name:'Cara',   emoji:'📊', greeting:"Hi, I'm Cara! I build the comparison matrices that help businesses make location decisions. What sites or communities are you comparing, and what type of project is this for?"},
+  6: {name:'Blake',  emoji:'🤝', greeting:"Blake here — business retention is the foundation of economic development. The right survey questions unlock everything. What is the goal of this BRE survey? (annual check-in, industry-specific, crisis response, expansion identification, etc.)"},
+  7: {name:'Rita',   emoji:'📄', greeting:"Hi, I'm Rita! I turn BRE data into reports that actually get read — and acted on. Tell me about your BRE program — how many businesses did you visit, and what were the main themes you heard?"},
+  8: {name:'Ivan',   emoji:'📈', greeting:"Ivan here. Economic impact modeling is my art — I turn project announcements into numbers that make headlines and justify incentives. Tell me about the project — what is being built or expanded, and where?"},
+  9: {name:'Stella', emoji:'⭐', greeting:"Stella here. A great SWOT is a strategic mirror that reveals your real position — not just a list of obvious observations. Tell me about your community or organization and I'll build something genuinely useful."},
+  10:{name:'Marcus', emoji:'🎯', greeting:"Marcus here — market intelligence is how you win business attraction before your competitors know the prospect exists. What industry or sector are you trying to understand or target?"},
+  11:{name:'Ivy',    emoji:'💰', greeting:"Ivy here! I architect incentive packages that close deals without leaving money on the table. Tell me about the project — what is coming in, how big, and what are they asking for?"},
+  12:{name:'Ted',    emoji:'💵', greeting:"Ted here — I find tax credits that other advisors miss. We're talking real money. Tell me about the business — industry, location, and what they are planning to invest in."},
+  13:{name:'Parker', emoji:'📰', greeting:"Parker here — former journalist, current press release machine. I know what editors want and what gets picked up. What is the announcement? Give me the basics and I'll make it newsworthy."},
+  14:{name:'Suzie',  emoji:'📱', greeting:"Hey! I'm Suzie — social content is my thing. I know what stops the scroll on LinkedIn and what gets shared on Facebook. What is the news or story you want to share, and which platforms are you posting on?"},
+  15:{name:'Wade',   emoji:'👷', greeting:"Wade here. Workforce is the number one factor in business location decisions — and most ED organizations don't have data to tell their story well. What workforce question are you trying to answer? (gap analysis, prospect response, WIOA planning, training needs, etc.)"},
+  16:{name:'Tara',   emoji:'🎓', greeting:"Hi, I'm Tara! Talent availability is the question every serious prospect asks, and most communities can't answer it fast enough. What industry or occupation are you building a talent report for?"},
+  17:{name:'Annie',  emoji:'🏆', greeting:"Annie here! Annual reports are your biggest storytelling moment of the year — let's make it count. Tell me about your organization and your biggest wins this year. Don't be modest — I'll help you frame everything perfectly."},
+  18:{name:'Brett',  emoji:'📌', greeting:"Brett here. Board members are busy, skeptical, and data-driven. Your report needs to earn their confidence in the first 30 seconds. What do you need to report on? (quarterly update, project approval, budget review, strategic initiative, etc.)"}
+};
+
+var chatState={
+  specialistId:null,
+  messages:[],
+  isTyping:false,
+  lastOutput:null,
+  specialistColor:null,
+};
+
+function openSpecialistChat(id){
+  var s=squad.find(function(x){return x.id===id;});
+  if(!s)return;
+  var sp=SPECIALIST_NAMES[id];
+  if(!sp)return;
+
+  chatState.specialistId=id;
+  chatState.messages=[];
+  chatState.lastOutput=null;
+  chatState.specialistColor=s.color;
+
+  /* show chat panel, hide result panel */
+  var panel=document.getElementById('specialist-chat-panel');
+  var resultPanel=document.getElementById('result-panel');
+  if(panel)panel.style.display='flex';
+  if(resultPanel)resultPanel.style.display='none';
+
+  /* scroll to chat */
+  var scroller=document.querySelector('.scroll-area');
+  if(scroller){
+    setTimeout(function(){
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
+    },100);
+  }
+
+  /* set header */
+  var col=ORB_C[s.color];
+  var r=col.r;
+  var orbEl=document.getElementById('chat-orb');
+  if(orbEl){
+    orbEl.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+    orbEl.textContent=sp.emoji;
+  }
+  document.getElementById('chat-specialist-name').textContent=sp.name+' — '+s.name;
+  document.getElementById('chat-specialist-role').textContent=s.role;
+
+  /* clear messages */
+  document.getElementById('chat-messages').innerHTML='';
+  document.getElementById('chat-input').value='';
+
+  /* add opening message */
+  addChatMessage('specialist', sp.greeting);
+}
+
+function closeSpecialistChat(){
+  var panel=document.getElementById('specialist-chat-panel');
+  if(panel)panel.style.display='none';
+  chatState.specialistId=null;
+  chatState.messages=[];
+}
+
+function continueChat(){
+  var resultPanel=document.getElementById('result-panel');
+  var chatPanel=document.getElementById('specialist-chat-panel');
+  if(resultPanel)resultPanel.style.display='none';
+  if(chatPanel)chatPanel.style.display='flex';
+}
+
+function addChatMessage(role, text){
+  var sp=SPECIALIST_NAMES[chatState.specialistId]||{name:'AI',emoji:'✦'};
+  var col=chatState.specialistColor?ORB_C[chatState.specialistColor]:null;
+  var msgs=document.getElementById('chat-messages');
+  if(!msgs)return;
+
+  var wrapper=document.createElement('div');
+  wrapper.className='chat-msg '+(role==='user'?'user':'');
+
+  var avatar=document.createElement('div');
+  avatar.className='chat-avatar';
+  if(role==='specialist'){
+    avatar.textContent=sp.emoji;
+    if(col)avatar.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+')';
+  } else {
+    avatar.style.background='rgba(170,255,62,0.15)';
+    avatar.style.color='#aaff3e';
+    avatar.style.fontSize='10px';
+    var av=document.getElementById('user-avatar');
+    avatar.textContent=av?av.textContent:'Me';
+  }
+
+  var bubble=document.createElement('div');
+  bubble.className='chat-bubble '+(role==='user'?'user':'specialist');
+
+  /* render markdown-ish formatting */
+  var formatted=text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{1,3} (.+)$/gm,'<strong style="font-size:14px;display:block;margin-bottom:4px;">$1</strong>')
+    .replace(/^- (.+)$/gm,'• $1')
+    .replace(/
+/g,'<br>');
+  bubble.innerHTML=formatted;
+
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(bubble);
+  msgs.appendChild(wrapper);
+  msgs.scrollTop=msgs.scrollHeight;
+
+  /* track in messages array for API */
+  chatState.messages.push({role:role==='user'?'user':'assistant',content:text});
+}
+
+function showTyping(){
+  var msgs=document.getElementById('chat-messages');
+  if(!msgs)return;
+  var typing=document.createElement('div');
+  typing.className='chat-msg';
+  typing.id='chat-typing-indicator';
+  var sp=SPECIALIST_NAMES[chatState.specialistId]||{emoji:'✦'};
+  var col=chatState.specialistColor?ORB_C[chatState.specialistColor]:null;
+  var av=document.createElement('div');
+  av.className='chat-avatar';
+  av.textContent=sp.emoji;
+  if(col)av.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+')';
+  var dots=document.createElement('div');
+  dots.className='chat-bubble specialist chat-typing';
+  dots.innerHTML='<div class="chat-dot"></div><div class="chat-dot"></div><div class="chat-dot"></div>';
+  typing.appendChild(av);
+  typing.appendChild(dots);
+  msgs.appendChild(typing);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function hideTyping(){
+  var el=document.getElementById('chat-typing-indicator');
+  if(el)el.remove();
+}
+
+function chatKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+function autoResizeChat(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+}
+
+function sendChatMessage(){
+  var input=document.getElementById('chat-input');
+  if(!input||!input.value.trim()||chatState.isTyping)return;
+  var text=input.value.trim();
+  input.value='';
+  input.style.height='44px';
+
+  addChatMessage('user',text);
+  callSpecialist(text);
+}
+
+function callSpecialist(userMessage){
+  chatState.isTyping=true;
+  var btn=document.getElementById('chat-send-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='0.5';}
+  showTyping();
+
+  fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+SUPA_KEY,
+      'apikey':SUPA_KEY
+    },
+    body:JSON.stringify({
+      specialistId:chatState.specialistId,
+      messages:chatState.messages,
+      userId:currentUser?currentUser.id:null
+    })
+  }).then(function(r){return r.json();}).then(function(data){
+    hideTyping();
+    chatState.isTyping=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
+
+    if(data.error){
+      addChatMessage('specialist','I apologize — I ran into a technical issue. Please try again.');
+      return;
+    }
+
+    var reply=data.reply||'';
+    addChatMessage('specialist',reply);
+
+    /* check if this looks like a final output — long response with structured content */
+    if(reply.length>400&&(reply.includes('##')||reply.includes('**')||reply.includes('\n\n'))){
+      showFinalOutput(reply);
+    }
+  }).catch(function(err){
+    hideTyping();
+    chatState.isTyping=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
+    addChatMessage('specialist','Sorry, I had a connection issue. Please try again.');
+  });
+}
+
+function showFinalOutput(text){
+  chatState.lastOutput=text;
+  var s=squad.find(function(x){return x.id===chatState.specialistId;});
+  var sp=SPECIALIST_NAMES[chatState.specialistId];
+
+  /* show result panel below chat */
+  var resultPanel=document.getElementById('result-panel');
+  var titleEl=document.getElementById('result-title');
+  var bodyEl=document.getElementById('result-body');
+
+  if(titleEl)titleEl.textContent=(sp?sp.name+' — ':'')+( s?s.name:'')+ ' · Output ready';
+
+  if(bodyEl){
+    var formatted=text
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/^### (.+)$/gm,'<h4>$1</h4>')
+      .replace(/^## (.+)$/gm,'<h3>$1</h3>')
+      .replace(/^- (.+)$/gm,'<li>$1</li>')
+      .replace(/
+
+/g,'</p><p>')
+      .replace(/
+/g,'<br>');
+    bodyEl.innerHTML='<div class="result-output">'+formatted+'</div>';
+  }
+
+  if(resultPanel)resultPanel.style.display='block';
+
+  /* save to task history */
+  saveTaskToHistory(text);
+}
+
+function copyResult(){
+  if(!chatState.lastOutput)return;
+  navigator.clipboard.writeText(chatState.lastOutput).then(function(){
+    var btn=event.target;
+    btn.textContent='✅ Copied!';
+    setTimeout(function(){btn.textContent='📋 Copy';},2000);
+  });
+}
+
+function saveResult(){
+  saveTaskToHistory(chatState.lastOutput);
+  var btn=event.target;
+  btn.textContent='✅ Saved!';
+  setTimeout(function(){btn.textContent='💾 Save to history';},2000);
+}
+
+function saveTaskToHistory(output){
+  if(!currentUser||!chatState.specialistId)return;
+  var s=squad.find(function(x){return x.id===chatState.specialistId;});
+  if(!s)return;
+  supa.from('task_history').insert({
+    user_id:currentUser.id,
+    specialist_id:chatState.specialistId,
+    specialist_name:s.name,
+    specialist_color:s.color,
+    prompt:chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | '),
+    result:output,
+    hours_saved:s.save?(parseFloat(s.save.match(/[\d.]+/)?.[0])||2):2,
+  }).then(function(){
+    /* refresh stats */
+    setTimeout(loadUserStats,500);
   });
 }
 
