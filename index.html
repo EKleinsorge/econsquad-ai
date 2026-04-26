@@ -2796,8 +2796,22 @@ function openSpecialistChat(id){
     wrapper.className='chat-msg';
     var av=document.createElement('div');
     av.className='chat-avatar';
-    av.textContent=sp.emoji||'';
-    av.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+')';
+    av.style.cssText='width:32px;height:32px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;';
+    var greetUid='greet_'+id+'_'+Date.now();
+    var greetCv=document.createElement('canvas');
+    greetCv.width=32;greetCv.height=32;
+    greetCv.style.cssText='position:absolute;top:0;left:0;width:32px;height:32px;';
+    greetCv.setAttribute('data-dorb',greetUid);
+    var greetR=col.r;
+    var greetProtons=[];
+    for(var gpi=0;gpi<12;gpi++){greetProtons.push({inc:Math.random()*Math.PI,asc:Math.random()*Math.PI*2,angle:Math.random()*Math.PI*2,dir:Math.random()>0.5?1:-1,spd:(0.006+Math.random()*0.014)*0.2,orbit:8+Math.random()*3,size:1.5+Math.random()*3,alpha:0.06+Math.random()*0.14,pp:Math.random()*Math.PI*2,ps:0.018+Math.random()*0.022});}
+    dashOrbStates[greetUid]={protons:greetProtons,col:col,frame:0,energy:0.8,targetEnergy:0.8,slumPhase:Math.random()*Math.PI*2,slumSpd:0.004,gpPhase:Math.random()*Math.PI*2,gpSpd:0.007,sphereEl:null,sphBg:null,drawerSize:true};
+    var greetSph=document.createElement('div');
+    greetSph.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;z-index:2;background:radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+');';
+    dashOrbStates[greetUid].sphereEl=greetSph;
+    dashOrbStates[greetUid].sphBg='radial-gradient(circle at 36% 32%,rgba('+greetR[0]+','+greetR[1]+','+greetR[2]+',.16),rgba('+greetR[0]+','+greetR[1]+','+greetR[2]+',.06) 55%,rgba(0,0,0,.5))';
+    av.appendChild(greetCv);av.appendChild(greetSph);
+    if(!dashAnimRunning)runDashAnim();
     var bub=document.createElement('div');
     bub.className='chat-bubble specialist';
     bub.textContent=greetText;
