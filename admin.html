@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconSquad AI — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#06080f;color:#dde4f0;font-family:'DM Sans',sans-serif;min-height:100vh;}
+.admin-nav{background:rgba(8,12,24,0.98);border-bottom:1px solid rgba(255,255,255,0.08);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.admin-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#aaff3e;letter-spacing:.04em;}
+.admin-logout{background:none;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.admin-body{display:flex;min-height:calc(100vh - 56px);}
+.admin-sidebar{width:220px;background:rgba(8,12,24,0.6);border-right:1px solid rgba(255,255,255,0.06);padding:24px 0;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);}
+.sidebar-section{font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;padding:0 20px;margin-bottom:8px;margin-top:20px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:background .15s;font-size:13px;color:#8a97b5;border-left:2px solid transparent;}
+.sidebar-item:hover{background:rgba(255,255,255,0.04);color:#eef3fc;}
+.sidebar-item.active{background:rgba(170,255,62,0.06);color:#aaff3e;border-left-color:#aaff3e;}
+.admin-main{flex:1;padding:32px;overflow-y:auto;}
+.admin-section{display:none;}
+.admin-section.active{display:block;}
+.page-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:4px;}
+.page-sub{font-size:13px;color:#6b7a96;margin-bottom:28px;}
+.admin-card{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;margin-bottom:16px;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-box{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;}
+.stat-box-val{font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;}
+.stat-box-lbl{font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
+.btn-lime{background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 20px;border:none;border-radius:8px;cursor:pointer;}
+.btn-ghost{background:none;border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-danger{background:none;border:1px solid rgba(255,80,80,0.3);color:#ff8080;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);}
+td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:#b8c8e0;vertical-align:middle;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;}
+.badge-starter{background:rgba(100,175,255,0.15);color:#64afff;}
+.badge-pro{background:rgba(170,255,62,0.15);color:#aaff3e;}
+.badge-trial{background:rgba(245,197,66,0.15);color:#f5c542;}
+.badge-pending{background:rgba(245,197,66,0.15);color:#f5c542;}
+.badge-active{background:rgba(74,222,128,0.15);color:#4ade80;}
+input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:rgba(170,255,62,0.4);}
+label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-field{margin-bottom:14px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.modal-overlay.show{display:flex;}
+.modal-box{background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;width:600px;max-width:90vw;max-height:90vh;overflow-y:auto;}
+.color-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:6px;}
+#login-screen{position:fixed;inset:0;background:#06080f;display:flex;align-items:center;justify-content:center;z-index:9999;}
+.login-box{background:rgba(14,20,36,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:40px;width:380px;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;margin-bottom:6px;">EconSquad AI</div>
+    <div style="font-size:13px;color:#6b7a96;margin-bottom:28px;">Admin Panel — Authorized Access Only</div>
+    <div id="login-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-bottom:16px;"></div>
+    <div class="form-field" style="text-align:left;">
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="your@email.com">
+    </div>
+    <div class="form-field" style="text-align:left;margin-top:12px;">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="Password">
+    </div>
+    <button onclick="adminLogin()" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:20px;">Sign in to Admin →</button>
+  </div>
+</div>
+
+<!-- ADMIN NAV -->
+<nav class="admin-nav">
+  <div class="admin-logo">✦ EconSquad Admin</div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <span id="admin-user-email" style="font-size:12px;color:#6b7a96;"></span>
+    <button class="admin-logout" onclick="adminLogout()">Sign out</button>
+  </div>
+</nav>
+
+<div class="admin-body">
+  <!-- SIDEBAR -->
+  <div class="admin-sidebar">
+    <div class="sidebar-section">Dashboard</div>
+    <div class="sidebar-item active" onclick="showAdminSection('overview')">📊 Overview</div>
+    <div class="sidebar-section">Content</div>
+    <div class="sidebar-item" onclick="showAdminSection('specialists')">⚡ Specialists</div>
+    <div class="sidebar-item" onclick="showAdminSection('requests')">✦ Custom Requests</div>
+    <div class="sidebar-section">Users</div>
+    <div class="sidebar-item" onclick="showAdminSection('users')">👤 All Users</div>
+    <div class="sidebar-section">Settings</div>
+    <div class="sidebar-item" onclick="showAdminSection('settings')">⚙️ Plan Settings</div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="admin-main">
+
+    <!-- OVERVIEW -->
+    <div id="section-overview" class="admin-section active">
+      <div class="page-title">Overview</div>
+      <div class="page-sub">Your platform at a glance</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-box-val" id="ov-total-users">—</div><div class="stat-box-lbl">Total users</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="ov-active-trials">—</div><div class="stat-box-lbl">Active trials</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="ov-total-tasks">—</div><div class="stat-box-lbl">Tasks run</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="ov-custom-requests">—</div><div class="stat-box-lbl">Custom requests</div></div>
+      </div>
+      <div class="admin-card">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;margin-bottom:16px;">Recent signups</div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Signed up</th></tr></thead>
+          <tbody id="recent-users-table"><tr><td colspan="4" style="color:#4a5568;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SPECIALISTS -->
+    <div id="section-specialists" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">Specialists</div>
+          <div class="page-sub">Manage your AI specialist roster — names, descriptions, plan assignment</div>
+        </div>
+        <button class="btn-lime" onclick="openAddSpecialist()">+ Add Specialist</button>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Plan</th><th>Status</th><th>Hrs saved</th><th>Actions</th></tr></thead>
+          <tbody id="specialists-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CUSTOM REQUESTS -->
+    <div id="section-requests" class="admin-section">
+      <div class="page-title">Custom Specialist Requests</div>
+      <div class="page-sub">Users requesting custom-built AI specialists ($299 each)</div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>User</th><th>Description</th><th>Use Case</th><th>Price</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="requests-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="section-users" class="admin-section">
+      <div class="page-title">All Users</div>
+      <div class="page-sub">Everyone who has signed up for EconSquad AI</div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Plan</th><th>Tasks</th><th>Joined</th></tr></thead>
+          <tbody id="users-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="section-settings" class="admin-section">
+      <div class="page-title">Plan Settings</div>
+      <div class="page-sub">Control which specialists are on which plan. Starter users see only their assigned specialists.</div>
+      <div class="admin-card">
+        <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;margin-bottom:6px;">Starter Plan Specialists</div>
+        <div style="font-size:13px;color:#6b7a96;margin-bottom:16px;">Select exactly which specialists Starter users can access. Pro users always get all specialists.</div>
+        <div id="starter-specialist-list" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
+        <button class="btn-lime" style="margin-top:20px;" onclick="saveStarterPlan()">Save starter plan →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EDIT/ADD SPECIALIST MODAL -->
+<div class="modal-overlay" id="specialist-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;" id="spec-modal-title">Edit Specialist</div>
+      <button onclick="closeSpecModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="spec-edit-id">
+    <div class="form-grid">
+      <div class="form-field"><label>Name</label><input id="spec-name" type="text"></div>
+      <div class="form-field"><label>Role / Subtitle</label><input id="spec-role" type="text"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>Category</label>
+        <select id="spec-cat">
+          <option value="grants">Grants</option><option value="site">Site Selection</option>
+          <option value="bre">BRE</option><option value="data">Data & Impact</option>
+          <option value="incentives">Incentives</option><option value="marketing">Marketing</option>
+          <option value="workforce">Workforce</option><option value="reporting">Reporting</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Color</label>
+        <select id="spec-color">
+          <option value="gold">Gold (Grants)</option><option value="blue">Blue (Site)</option>
+          <option value="teal">Teal (BRE)</option><option value="purple">Purple (Data)</option>
+          <option value="lime">Lime (Incentives)</option><option value="coral">Coral (Marketing)</option>
+          <option value="steel">Steel (Workforce)</option><option value="slate">Slate (Reporting)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>Plan</label>
+        <select id="spec-plan">
+          <option value="starter">Starter</option>
+          <option value="pro">Pro</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Hours saved per use</label><input id="spec-hours" type="number" step="0.1"></div>
+    </div>
+    <div class="form-field"><label>Save time label (e.g. "Saves 4.5 hrs/use")</label><input id="spec-save" type="text"></div>
+    <div class="form-field"><label>Short description (shown on card)</label><textarea id="spec-desc" rows="2"></textarea></div>
+    <div class="form-field"><label>What I do (shown in hover tooltip)</label><textarea id="spec-whatido" rows="3"></textarea></div>
+    <div class="form-field"><label>Sample output preview</label><textarea id="spec-sample" rows="2"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+        <input type="checkbox" id="spec-isnew" style="width:auto;"> Mark as New
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+        <input type="checkbox" id="spec-islocked" style="width:auto;"> Locked (coming soon)
+      </label>
+    </div>
+    <div id="spec-modal-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-lime" onclick="saveSpecialist()" id="spec-save-btn">Save specialist →</button>
+      <button class="btn-ghost" onclick="closeSpecModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
+var ADMIN_EMAIL='eric@gslisolutions.com';
+var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+var adminUser=null;
+
+/* ── AUTH ── */
+window.addEventListener('load',function(){
+  supa.auth.getSession().then(function(res){
+    if(res.data&&res.data.session&&res.data.session.user){
+      checkAdminAccess(res.data.session.user);
+    }
+  });
+});
+
+function adminLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-pass').value;
+  if(email!==ADMIN_EMAIL){showLoginMsg('Access denied. Admin only.','error');return;}
+  supa.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+    if(res.error){showLoginMsg(res.error.message,'error');return;}
+    checkAdminAccess(res.data.user);
+  });
+}
+
+function checkAdminAccess(user){
+  if(user.email!==ADMIN_EMAIL){
+    showLoginMsg('Access denied. You are not an admin.','error');
+    supa.auth.signOut();
+    return;
+  }
+  adminUser=user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-user-email').textContent=user.email;
+  loadAllData();
+}
+
+function showLoginMsg(msg,type){
+  var el=document.getElementById('login-msg');
+  el.style.display='block';
+  el.style.background=type==='error'?'rgba(255,80,80,0.12)':'rgba(170,255,62,0.12)';
+  el.style.border='1px solid '+(type==='error'?'rgba(255,80,80,0.3)':'rgba(170,255,62,0.3)');
+  el.style.color=type==='error'?'#ff8080':'#aaff3e';
+  el.textContent=msg;
+}
+
+function adminLogout(){
+  supa.auth.signOut().then(function(){
+    document.getElementById('login-screen').style.display='flex';
+  });
+}
+
+/* ── NAVIGATION ── */
+function showAdminSection(name){
+  document.querySelectorAll('.admin-section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.sidebar-item').forEach(function(s){s.classList.remove('active');});
+  var sec=document.getElementById('section-'+name);
+  if(sec)sec.classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+/* ── LOAD ALL DATA ── */
+function loadAllData(){
+  loadOverview();
+  loadSpecialists();
+  loadRequests();
+  loadUsers();
+  loadStarterSettings();
+}
+
+/* ── OVERVIEW ── */
+function loadOverview(){
+  supa.from('profiles').select('*',{count:'exact'}).then(function(res){
+    document.getElementById('ov-total-users').textContent=res.count||0;
+    if(res.data){
+      var trials=res.data.filter(function(u){return u.plan==='trial'||u.plan==='starter';});
+      document.getElementById('ov-active-trials').textContent=trials.length;
+      var tbody=document.getElementById('recent-users-table');
+      var recent=res.data.slice(-10).reverse();
+      tbody.innerHTML=recent.map(function(u){
+        return '<tr><td>'+(u.full_name||'—')+'</td><td>'+u.email+'</td><td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td><td>'+new Date(u.created_at).toLocaleDateString()+'</td></tr>';
+      }).join('');
+    }
+  });
+  supa.from('task_history').select('*',{count:'exact'}).then(function(res){
+    document.getElementById('ov-total-tasks').textContent=res.count||0;
+  });
+  supa.from('specialist_requests').select('*',{count:'exact'}).then(function(res){
+    document.getElementById('ov-custom-requests').textContent=res.count||0;
+  });
+}
+
+/* ── SPECIALISTS ── */
+var allSpecs=[];
+function loadSpecialists(){
+  supa.from('specialists').select('*').order('sort_order').then(function(res){
+    allSpecs=res.data||[];
+    renderSpecialistsTable(allSpecs);
+    renderStarterSettings(allSpecs);
+  });
+}
+
+var CAT_COLORS_ADMIN={gold:'#ffd23c',blue:'#64afff',teal:'#32e1c8',purple:'#c88cff',lime:'#afff41',coral:'#ff9b41',steel:'#a5b9d2',slate:'#82dcff'};
+
+function renderSpecialistsTable(specs){
+  var tbody=document.getElementById('specialists-table');
+  tbody.innerHTML=specs.map(function(s){
+    var col=CAT_COLORS_ADMIN[s.color]||'#aaff3e';
+    return '<tr>'+
+      '<td style="color:#4a5568;">'+s.id+'</td>'+
+      '<td><strong style="color:#eef3fc;">'+s.name+'</strong></td>'+
+      '<td><span style="color:'+col+';">'+s.cat+'</span></td>'+
+      '<td><span class="badge badge-'+(s.plan==='starter'?'starter':'pro')+'">'+s.plan+'</span></td>'+
+      '<td>'+(s.is_active?'<span style="color:#4ade80;">Active</span>':'<span style="color:#6b7a96;">Inactive</span>')+'</td>'+
+      '<td style="color:#aaff3e;">'+s.hours_per_use+'h</td>'+
+      '<td><button class="btn-ghost" onclick="editSpecialist('+s.id+')" style="margin-right:6px;">Edit</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function editSpecialist(id){
+  var s=allSpecs.find(function(x){return x.id===id;});
+  if(!s)return;
+  document.getElementById('spec-modal-title').textContent='Edit Specialist';
+  document.getElementById('spec-edit-id').value=s.id;
+  document.getElementById('spec-name').value=s.name||'';
+  document.getElementById('spec-role').value=s.role||'';
+  document.getElementById('spec-cat').value=s.cat||'grants';
+  document.getElementById('spec-color').value=s.color||'gold';
+  document.getElementById('spec-plan').value=s.plan||'pro';
+  document.getElementById('spec-hours').value=s.hours_per_use||2;
+  document.getElementById('spec-save').value=s.save_time||'';
+  document.getElementById('spec-desc').value=s.description||'';
+  document.getElementById('spec-whatido').value=s.what_i_do||'';
+  document.getElementById('spec-sample').value=s.sample_output||'';
+  document.getElementById('spec-isnew').checked=s.is_new||false;
+  document.getElementById('spec-islocked').checked=s.is_locked||false;
+  document.getElementById('spec-modal-msg').style.display='none';
+  document.getElementById('specialist-modal').classList.add('show');
+}
+
+function openAddSpecialist(){
+  document.getElementById('spec-modal-title').textContent='Add New Specialist';
+  document.getElementById('spec-edit-id').value='';
+  ['spec-name','spec-role','spec-save','spec-desc','spec-whatido','spec-sample'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('spec-hours').value='2';
+  document.getElementById('spec-plan').value='pro';
+  document.getElementById('spec-isnew').checked=true;
+  document.getElementById('spec-islocked').checked=false;
+  document.getElementById('spec-modal-msg').style.display='none';
+  document.getElementById('specialist-modal').classList.add('show');
+}
+
+function closeSpecModal(){
+  document.getElementById('specialist-modal').classList.remove('show');
+}
+
+function saveSpecialist(){
+  var id=document.getElementById('spec-edit-id').value;
+  var btn=document.getElementById('spec-save-btn');
+  btn.textContent='Saving...';btn.disabled=true;
+
+  var data={
+    name:document.getElementById('spec-name').value.trim(),
+    role:document.getElementById('spec-role').value.trim(),
+    cat:document.getElementById('spec-cat').value,
+    color:document.getElementById('spec-color').value,
+    plan:document.getElementById('spec-plan').value,
+    hours_per_use:parseFloat(document.getElementById('spec-hours').value)||2,
+    save_time:document.getElementById('spec-save').value.trim(),
+    description:document.getElementById('spec-desc').value.trim(),
+    what_i_do:document.getElementById('spec-whatido').value.trim(),
+    sample_output:document.getElementById('spec-sample').value.trim(),
+    is_new:document.getElementById('spec-isnew').checked,
+    is_locked:document.getElementById('spec-islocked').checked,
+    updated_at:new Date().toISOString(),
+  };
+
+  var promise;
+  if(id){
+    promise=supa.from('specialists').update(data).eq('id',parseInt(id));
+  } else {
+    /* get next ID */
+    var maxId=allSpecs.reduce(function(m,s){return Math.max(m,s.id);},0);
+    data.id=maxId+1;
+    data.sort_order=maxId+1;
+    data.is_active=true;
+    promise=supa.from('specialists').insert(data);
+  }
+
+  promise.then(function(res){
+    btn.textContent='Save specialist →';btn.disabled=false;
+    if(res.error){
+      var msg=document.getElementById('spec-modal-msg');
+      msg.style.display='block';msg.style.background='rgba(255,80,80,0.12)';
+      msg.style.border='1px solid rgba(255,80,80,0.3)';msg.style.color='#ff8080';
+      msg.textContent=res.error.message;
+      return;
+    }
+    closeSpecModal();
+    loadSpecialists();
+  });
+}
+
+/* ── CUSTOM REQUESTS ── */
+function loadRequests(){
+  supa.from('specialist_requests').select('*').order('created_at',{ascending:false}).then(function(res){
+    var tbody=document.getElementById('requests-table');
+    var data=res.data||[];
+    if(!data.length){tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No requests yet</td></tr>';return;}
+    tbody.innerHTML=data.map(function(r){
+      return '<tr>'+
+        '<td>'+r.user_email+'</td>'+
+        '<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.description+'</td>'+
+        '<td>'+( r.use_case||'—')+'</td>'+
+        '<td style="color:#aaff3e;">$'+r.price+'</td>'+
+        '<td><span class="badge badge-'+r.status+'">'+r.status+'</span></td>'+
+        '<td>'+new Date(r.created_at).toLocaleDateString()+'</td>'+
+        '<td><button class="btn-ghost" onclick="markRequestDone(\''+r.id+'\')">Mark done</button></td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+function markRequestDone(id){
+  supa.from('specialist_requests').update({status:'completed'}).eq('id',id).then(function(){loadRequests();});
+}
+
+/* ── USERS ── */
+function loadUsers(){
+  supa.from('profiles').select('*').order('created_at',{ascending:false}).then(function(res){
+    var tbody=document.getElementById('users-table');
+    var data=res.data||[];
+    if(!data.length){tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">No users yet</td></tr>';return;}
+    tbody.innerHTML=data.map(function(u){
+      return '<tr>'+
+        '<td>'+(u.full_name||'—')+'</td>'+
+        '<td>'+u.email+'</td>'+
+        '<td>'+(u.organization||'—')+'</td>'+
+        '<td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td>'+
+        '<td style="color:#aaff3e;">—</td>'+
+        '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+/* ── STARTER PLAN SETTINGS ── */
+function renderStarterSettings(specs){
+  var container=document.getElementById('starter-specialist-list');
+  if(!container)return;
+  container.innerHTML=specs.map(function(s){
+    var col=CAT_COLORS_ADMIN[s.color]||'#aaff3e';
+    return '<label style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);">'+
+      '<input type="checkbox" data-spec-id="'+s.id+'" '+(s.plan==='starter'?'checked':'')+' style="width:auto;">'+
+      '<span style="color:'+col+';font-size:11px;font-weight:700;">'+s.name+'</span>'+
+    '</label>';
+  }).join('');
+}
+
+function loadStarterSettings(){
+  /* loaded via loadSpecialists */
+}
+
+function saveStarterPlan(){
+  var checkboxes=document.querySelectorAll('#starter-specialist-list input[type=checkbox]');
+  var updates=[];
+  checkboxes.forEach(function(cb){
+    updates.push(supa.from('specialists').update({plan:cb.checked?'starter':'pro'}).eq('id',parseInt(cb.dataset.specId)));
+  });
+  Promise.all(updates).then(function(){
+    alert('Starter plan saved! Changes are live immediately.');
+    loadSpecialists();
+  });
+}
+</script>
+</body>
+</html>

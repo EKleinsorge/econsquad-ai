@@ -401,6 +401,39 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #auth-modal .form-field{margin-bottom:14px;}
 #auth-modal .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
+/* ===== SPECIALIST HOVER TOOLTIP ===== */
+.spec-tooltip{
+  position:fixed;z-index:99999;
+  background:rgba(8,12,24,0.98);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:16px;padding:20px;width:300px;
+  box-shadow:0 16px 48px rgba(0,0,0,0.6);
+  backdrop-filter:blur(24px);
+  pointer-events:none;
+  opacity:0;transition:opacity .2s ease;
+}
+.spec-tooltip.show{opacity:1;}
+.spec-tooltip-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.spec-tooltip-name{font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;margin-bottom:4px;}
+.spec-tooltip-role{font-size:11px;color:#6b7a96;margin-bottom:12px;}
+.spec-tooltip-what{font-size:13px;color:#b8c8e0;line-height:1.6;margin-bottom:12px;}
+.spec-tooltip-sample{background:rgba(255,255,255,0.04);border-left:2px solid rgba(170,255,62,0.4);border-radius:0 8px 8px 0;padding:10px 12px;font-size:11px;color:#8a97b5;line-height:1.5;margin-bottom:14px;font-style:italic;}
+.spec-tooltip-footer{display:flex;align-items:center;justify-content:space-between;}
+.spec-tooltip-save{font-size:11px;color:#aaff3e;font-weight:700;}
+.spec-tooltip-cta{background:#aaff3e;color:#0a1a00;font-size:11px;font-weight:800;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Barlow',sans-serif;pointer-events:all;}
+
+/* ===== ARIA ROUTING MODAL ===== */
+#aria-routing-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#aria-routing-modal.show{display:flex;}
+.aria-routing-box{background:rgba(8,12,24,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:28px;width:500px;max-width:90vw;box-shadow:0 24px 64px rgba(0,0,0,0.6);}
+.aria-routing-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;color:#eef3fc;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;transition:border-color .2s;}
+.aria-routing-input:focus{border-color:rgba(170,255,62,0.4);}
+.aria-result-card{background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px;margin-top:16px;display:none;}
+
+/* ===== CUSTOM SPECIALIST MODAL ===== */
+#custom-spec-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#custom-spec-modal.show{display:flex;}
+
 </style>
 </head>
 <body>
@@ -462,7 +495,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <span id="user-initials">SM</span>
           </div>
           <!-- Profile dropdown -->
-          <div id="profile-menu" style="display:none;position:absolute;top:42px;right:0;background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px;min-width:200px;z-index:999;backdrop-filter:blur(24px);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+          <div id="profile-menu" style="display:none;position:absolute;top:42px;right:0;background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px;min-width:200px;z-index:99999;backdrop-filter:blur(24px);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
             <div id="profile-menu-header" style="padding:10px 12px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
               <div id="pm-name" style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#eef3fc;"></div>
               <div id="pm-email" style="font-size:11px;color:#6b7a96;margin-top:2px;"></div>
@@ -853,19 +886,20 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <div class="page active main dash-tab" id="home-tab">
         <div class="hero-dash">
           <div>
-            <h2><span class="hi">Good morning, Sarah!</span> Your squad is standing by.</h2>
-            <p>You've recovered <strong>61.5 hours</strong> this year — 8 full workdays back in your pocket. Top squad member last session: <strong>Grant Writer Pro</strong>. You're outperforming 88% of economic developers on the platform.</p>
+            <h2><span class="hi">Good morning, <span id="dash-greeting-name">there</span>!</span> Your squad is standing by.</h2>
+            <p>You've recovered <strong id="dash-hours-saved">0 hours</strong> this year — <span id="dash-days-saved">getting started</span>. <span id="dash-top-specialist" style="display:none;">Top squad member: <strong id="dash-top-name" style="color:var(--lime);"></strong>.</span> Your squad is ready to deploy.</p>
           </div>
           <div class="hero-btns">
             <button class="btn-primary">Deploy squad ↗</button>
-            <button class="btn-outline" onclick="toggleAria()">Ask ARIA</button>
+            <button class="btn-outline" onclick="openAriaRouting()">Ask ARIA ✦</button>
+            <button class="btn-outline" onclick="openCustomSpec()" style="border-color:rgba(170,255,62,0.3);color:#aaff3e;">+ Custom Specialist</button>
           </div>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-val">47</div><div class="stat-lbl">Missions this month</div><div class="stat-delta">↑ 23% vs last month</div></div>
-          <div class="stat-card"><div class="stat-val gold">14</div><div class="stat-lbl">Day streak</div><div class="stat-delta warn">🔥 Personal best</div></div>
-          <div class="stat-card"><div class="stat-val">18</div><div class="stat-lbl">Squad members active</div><div class="stat-delta">6 more on Pro+</div></div>
-          <div class="stat-card"><div class="stat-val green">98%</div><div class="stat-lbl">Mission success rate</div><div class="stat-delta">↑ Top 10% of users</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-missions">0</div><div class="stat-lbl">Missions this month</div><div class="stat-delta" id="stat-missions-delta">Getting started...</div></div>
+          <div class="stat-card"><div class="stat-val gold" id="stat-hours">0</div><div class="stat-lbl">Hours saved total</div><div class="stat-delta" id="stat-hours-delta">Based on your tasks</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-specialists">0</div><div class="stat-lbl">Specialists used</div><div class="stat-delta" id="stat-specialists-delta">Of 18 available</div></div>
+          <div class="stat-card"><div class="stat-val green" id="stat-days">0</div><div class="stat-lbl">Days on EconSquad</div><div class="stat-delta" id="stat-days-delta">Keep building momentum</div></div>
         </div>
         <div class="chips">
           <div class="chip active">Full squad</div><div class="chip">Grant writing</div><div class="chip">Site selection</div><div class="chip">Data & impact</div><div class="chip">Incentives</div><div class="chip">BRE</div><div class="chip">Marketing</div><div class="chip">Workforce</div>
@@ -1619,6 +1653,17 @@ function onSignedIn(user){
   if(pb)pb.textContent='⚡ Trial';
   /* load saved logo */
   setTimeout(loadSavedLogo,300);
+  /* load real user stats */
+  setTimeout(loadUserStats,400);
+  /* load specialist data from DB */
+  setTimeout(loadSpecialistData,200);
+  /* update greeting with real first name */
+  var greetEl=document.getElementById('dash-greeting-name');
+  if(greetEl){
+    var fullName=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:'';
+    var firstName=fullName?fullName.split(' ')[0]:user.email.split('@')[0];
+    greetEl.textContent=firstName;
+  }
   /* if user came from pricing page, launch checkout */
   if(window._pendingPlan){
     var p=window._pendingPlan;
@@ -2354,10 +2399,379 @@ function applyLogo(dataUrl){
   if(previewIcon)previewIcon.style.display='none';
 }
 
+
+/* ===== LIVE USER STATS ===== */
+function loadUserStats(){
+  if(!currentUser)return;
+
+  var userId=currentUser.id;
+  var now=new Date();
+  var monthStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+
+  /* Load task history for real stats */
+  supa.from('task_history')
+    .select('*')
+    .eq('user_id',userId)
+    .then(function(res){
+      var tasks=res.data||[];
+
+      /* missions this month */
+      var thisMonth=tasks.filter(function(t){return t.created_at>=monthStart;});
+      var missionCount=thisMonth.length;
+
+      /* total hours saved */
+      var totalHours=tasks.reduce(function(sum,t){return sum+(t.hours_saved||0);},0);
+
+      /* unique specialists used */
+      var specialists=new Set(tasks.map(function(t){return t.specialist_id;}));
+      var specCount=specialists.size;
+
+      /* most used specialist */
+      var specUsage={};
+      tasks.forEach(function(t){
+        if(t.specialist_name){
+          specUsage[t.specialist_name]=(specUsage[t.specialist_name]||0)+1;
+        }
+      });
+      var topSpec=Object.keys(specUsage).sort(function(a,b){return specUsage[b]-specUsage[a];})[0];
+
+      /* days since signup */
+      var createdAt=new Date(currentUser.created_at);
+      var daysSince=Math.floor((now-createdAt)/(1000*60*60*24));
+
+      /* update stat cards */
+      var sm=document.getElementById('stat-missions');
+      var sh=document.getElementById('stat-hours');
+      var ss=document.getElementById('stat-specialists');
+      var sd=document.getElementById('stat-days');
+      if(sm)sm.textContent=missionCount;
+      if(sh)sh.textContent=totalHours>0?totalHours.toFixed(1):0;
+      if(ss)ss.textContent=specCount;
+      if(sd)sd.textContent=daysSince;
+
+      /* update deltas */
+      var smd=document.getElementById('stat-missions-delta');
+      var shd=document.getElementById('stat-hours-delta');
+      var ssd=document.getElementById('stat-specialists-delta');
+      var sdd=document.getElementById('stat-days-delta');
+      if(smd)smd.textContent=missionCount===0?'Run your first mission!':missionCount+' tasks completed';
+      if(shd)shd.textContent=totalHours>0?'~$'+(totalHours*36).toFixed(0)+' value recovered':'Start saving time today';
+      if(ssd)ssd.textContent=specCount+' of 18 specialists deployed';
+      if(sdd)sdd.textContent=daysSince===0?'Welcome to your squad!':daysSince+' days and counting';
+
+      /* update greeting */
+      var hrs=document.getElementById('dash-hours-saved');
+      var dys=document.getElementById('dash-days-saved');
+      var topWrap=document.getElementById('dash-top-specialist');
+      var topName=document.getElementById('dash-top-name');
+      if(hrs)hrs.textContent=totalHours>0?totalHours.toFixed(1)+' hours':'0 hours';
+      if(dys){
+        if(totalHours>0){
+          var days=(totalHours/8).toFixed(1);
+          dys.textContent=days+' full workdays back in your pocket';
+        } else {
+          dys.textContent='deploy your first specialist to start saving time';
+        }
+      }
+      if(topSpec&&topWrap&&topName){
+        topWrap.style.display='inline';
+        topName.textContent=topSpec;
+      }
+    });
+}
+
+
+/* ===== SPECIALIST TOOLTIP ===== */
+var ttSpecData={};
+var ttTimeout=null;
+var ttCurrentId=null;
+
+var CAT_COLORS={
+  grants:'#ffd23c',site:'#64afff',bre:'#32e1c8',
+  data:'#c88cff',incentives:'#afff41',marketing:'#ff9b41',
+  workforce:'#a5b9d2',reporting:'#82dcff'
+};
+var CAT_NAMES={
+  grants:'Grant Writing & Funding',site:'Site Selection',bre:'Business Retention',
+  data:'Data & Impact',incentives:'Incentives',marketing:'Marketing',
+  workforce:'Workforce',reporting:'Reporting'
+};
+
+function showTooltip(el, specId){
+  var s=ttSpecData[specId];
+  if(!s)return;
+  var tt=document.getElementById('spec-tooltip');
+  if(!tt)return;
+  var catEl=document.getElementById('tt-cat');
+  var nameEl=document.getElementById('tt-name');
+  var roleEl=document.getElementById('tt-role');
+  var whatEl=document.getElementById('tt-what');
+  var sampleEl=document.getElementById('tt-sample');
+  var saveEl=document.getElementById('tt-save');
+  var col=CAT_COLORS[s.cat]||'#aaff3e';
+  if(catEl){catEl.textContent=CAT_NAMES[s.cat]||s.cat;catEl.style.color=col;}
+  if(nameEl)nameEl.textContent=s.name;
+  if(roleEl)roleEl.textContent=s.role;
+  if(whatEl)whatEl.textContent=s.what_i_do||s.description||'';
+  if(sampleEl)sampleEl.textContent='"'+( s.sample_output||'').slice(0,120)+'..."';
+  if(saveEl){saveEl.textContent=s.save_time||'';saveEl.style.color=col;}
+  tt.dataset.specId=specId;
+  /* position */
+  var rect=el.getBoundingClientRect();
+  var left=rect.right+12;
+  var top=rect.top;
+  if(left+310>window.innerWidth)left=rect.left-320;
+  if(top+300>window.innerHeight)top=window.innerHeight-310;
+  tt.style.left=left+'px';
+  tt.style.top=Math.max(10,top)+'px';
+  tt.classList.add('show');
+  ttCurrentId=specId;
+}
+
+function hideTooltip(){
+  var tt=document.getElementById('spec-tooltip');
+  if(tt)tt.classList.remove('show');
+  ttCurrentId=null;
+}
+
+function tooltipCTA(){
+  hideTooltip();
+  if(!currentUser){openAuth('signup');}
+  else{switchView('dashboard');}
+}
+
+/* attach tooltips to mkt cards */
+function attachTooltips(){
+  document.querySelectorAll('[data-morb]').forEach(function(cv){
+    var uid=cv.dataset.morb;
+    var specId=parseInt(uid.replace('mkt_',''));
+    var card=cv.closest('[data-morb]')||cv.parentElement.parentElement;
+    /* find the outer card div */
+    var cardEl=cv;
+    while(cardEl&&!cardEl.style.cssText.includes('width:148px')){
+      cardEl=cardEl.parentElement;
+      if(!cardEl||cardEl.tagName==='BODY')break;
+    }
+    if(cardEl){
+      cardEl.addEventListener('mouseenter',function(){
+        ttTimeout=setTimeout(function(){showTooltip(cardEl,specId);},400);
+      });
+      cardEl.addEventListener('mouseleave',function(){
+        clearTimeout(ttTimeout);
+        setTimeout(hideTooltip,200);
+      });
+    }
+  });
+}
+
+/* load specialists from Supabase into ttSpecData */
+function loadSpecialistData(){
+  supa.from('specialists').select('*').order('sort_order').then(function(res){
+    if(res.data){
+      res.data.forEach(function(s){
+        ttSpecData[s.id]=s;
+      });
+      /* rebuild squad from DB */
+      rebuildSquadFromDB(res.data);
+    }
+  });
+}
+
+function rebuildSquadFromDB(specs){
+  /* update squad array with latest data from DB */
+  specs.forEach(function(s){
+    var idx=squad.findIndex(function(x){return x.id===s.id;});
+    if(idx>=0){
+      squad[idx].name=s.name;
+      squad[idx].role=s.role;
+      squad[idx].save=s.save_time;
+      squad[idx].desc=s.description;
+      squad[idx].plan=s.plan;
+      squad[idx].locked=s.plan==='pro'&&(!currentUser);
+    }
+  });
+  /* attach tooltips after data loaded */
+  setTimeout(attachTooltips,500);
+}
+
+/* ===== ARIA ROUTING ===== */
+var ariaRecommendedId=null;
+
+function openAriaRouting(){
+  var m=document.getElementById('aria-routing-modal');
+  if(m)m.classList.add('show');
+  var result=document.getElementById('aria-result');
+  if(result)result.style.display='none';
+  var input=document.getElementById('aria-task-input');
+  if(input){input.value='';input.focus();}
+}
+function closeAriaRouting(){
+  var m=document.getElementById('aria-routing-modal');
+  if(m)m.classList.remove('show');
+}
+
+function ariaFindSpecialist(){
+  var input=document.getElementById('aria-task-input');
+  if(!input||!input.value.trim())return;
+  var task=input.value.trim();
+  var btn=document.getElementById('aria-find-btn');
+  if(btn){btn.textContent='ARIA is thinking...';btn.disabled=true;}
+
+  /* Build list of available specialists */
+  var specList=Object.values(ttSpecData).map(function(s){
+    return s.id+': '+s.name+' ('+s.cat+') — '+s.description;
+  }).join('
+');
+
+  /* Call Claude via Anthropic API to route to right specialist */
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': '',  /* handled by proxy */
+      'anthropic-version':'2023-06-01'
+    },
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:300,
+      system:'You are ARIA, the EconSquad AI assistant for economic developers. Given a task description and a list of available specialists, recommend the single BEST specialist. Respond ONLY with valid JSON in this exact format: {"id": NUMBER, "reason": "2-3 sentence explanation of why this specialist is perfect for this task"}',
+      messages:[{role:'user',content:'Task: '+task+'
+
+Available specialists:
+'+specList}]
+    })
+  }).then(function(r){return r.json();}).then(function(data){
+    if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
+    try{
+      var text=data.content&&data.content[0]?data.content[0].text:'';
+      var clean=text.replace(/```json|```/g,'').trim();
+      var rec=JSON.parse(clean);
+      var spec=ttSpecData[rec.id];
+      if(spec){
+        ariaRecommendedId=rec.id;
+        var col=CAT_COLORS[spec.cat]||'#aaff3e';
+        document.getElementById('aria-rec-name').textContent=spec.name;
+        document.getElementById('aria-rec-role').textContent=spec.role;
+        document.getElementById('aria-rec-reason').textContent=rec.reason;
+        var orb=document.getElementById('aria-rec-orb');
+        if(orb)orb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.8))';
+        document.getElementById('aria-result').style.display='block';
+      }
+    }catch(e){
+      /* fallback — find by keyword matching */
+      var best=arieFallbackMatch(task);
+      if(best){
+        ariaRecommendedId=best.id;
+        document.getElementById('aria-rec-name').textContent=best.name;
+        document.getElementById('aria-rec-role').textContent=best.role;
+        document.getElementById('aria-rec-reason').textContent='Based on your task, '+best.name+' is your best match. '+best.description;
+        document.getElementById('aria-result').style.display='block';
+      }
+    }
+  }).catch(function(){
+    if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
+    var best=ariaFallbackMatch(task);
+    if(best){
+      ariaRecommendedId=best.id;
+      document.getElementById('aria-rec-name').textContent=best.name;
+      document.getElementById('aria-rec-role').textContent=best.role;
+      document.getElementById('aria-rec-reason').textContent='Based on your task, '+best.name+' is your best match. '+best.description;
+      document.getElementById('aria-result').style.display='block';
+    }
+  });
+}
+
+function ariaFallbackMatch(task){
+  var t=task.toLowerCase();
+  var specs=Object.values(ttSpecData);
+  var keywords={
+    1:['grant','narrative','cdbg','eda','write'],
+    2:['find','search','funding','opportunity','discover'],
+    3:['rfp','response','proposal','bid'],
+    4:['site','score','location','rank','evaluate'],
+    5:['compare','comparison','sites','competing'],
+    6:['bre','survey','retention','expansion','business'],
+    7:['bre report','retention report','visit'],
+    8:['impact','jobs','wages','tax revenue','economic'],
+    9:['swot','strategy','strengths','weaknesses'],
+    11:['incentive','package','tif','abatement'],
+    12:['tax credit','wotc','opportunity zone'],
+    13:['press release','announcement','media'],
+    14:['social','linkedin','twitter','facebook','content'],
+    15:['workforce','labor','skills','training'],
+    16:['talent','workers','availability'],
+    17:['annual report','year end','impact report'],
+    18:['board report','stakeholder','quarterly'],
+  };
+  var best=null,bestScore=0;
+  specs.forEach(function(s){
+    var kws=keywords[s.id]||[];
+    var score=kws.filter(function(k){return t.includes(k);}).length;
+    if(score>bestScore){bestScore=score;best=s;}
+  });
+  return best||specs[0];
+}
+
+function deployFromAria(){
+  closeAriaRouting();
+  if(!currentUser){openAuth('signup');return;}
+  /* scroll to specialist in dashboard */
+  switchView('dashboard');
+  setTimeout(function(){
+    var card=document.querySelector('[data-sid="'+ariaRecommendedId+'"]');
+    if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.click();}
+  },400);
+}
+
+/* ===== CUSTOM SPECIALIST ===== */
+function openCustomSpec(){
+  if(!currentUser){openAuth('signup');return;}
+  var m=document.getElementById('custom-spec-modal');
+  if(m)m.classList.add('show');
+}
+function closeCustomSpec(){
+  var m=document.getElementById('custom-spec-modal');
+  if(m)m.classList.remove('show');
+}
+
+function submitCustomSpec(){
+  var desc=document.getElementById('cs-description').value.trim();
+  var usecase=document.getElementById('cs-usecase').value.trim();
+  if(!desc){
+    var msg=document.getElementById('custom-spec-msg');
+    if(msg){msg.style.display='block';msg.style.background='rgba(255,80,80,0.12)';msg.style.border='1px solid rgba(255,80,80,0.3)';msg.style.color='#ff8080';msg.textContent='Please describe what your specialist should do.';}
+    return;
+  }
+  var btn=document.getElementById('cs-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Submitting...';}
+  supa.from('specialist_requests').insert({
+    user_id:currentUser.id,
+    user_email:currentUser.email,
+    user_name:currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email,
+    description:desc,
+    use_case:usecase,
+    price:299
+  }).then(function(res){
+    if(btn){btn.disabled=false;btn.textContent='Request my custom specialist →';}
+    var msg=document.getElementById('custom-spec-msg');
+    if(msg){
+      msg.style.display='block';
+      msg.style.background='rgba(170,255,62,0.1)';
+      msg.style.border='1px solid rgba(170,255,62,0.3)';
+      msg.style.color='#aaff3e';
+      msg.textContent='Request submitted! We will review and reach out within 24 hours.';
+    }
+    if(document.getElementById('cs-description'))document.getElementById('cs-description').value='';
+    if(document.getElementById('cs-usecase'))document.getElementById('cs-usecase').value='';
+  });
+}
+
 /* ===== INIT ===== */
 renderSquad();
 calcMktROI();
 calcROI();
+/* load specialist data for marketing tooltips */
+loadSpecialistData();
 
 /* ===== ANIMATED LOGO ORB ===== */
 (function(){
@@ -2448,6 +2862,75 @@ calcROI();
 
 </script>
 
+
+
+<!-- ARIA ROUTING MODAL -->
+<div id="aria-routing-modal">
+  <div class="aria-routing-box">
+    <button onclick="closeAriaRouting()" style="float:right;background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#aaff3e,#3effa0);display:flex;align-items:center;justify-content:center;font-size:18px;">✦</div>
+      <div>
+        <div style="font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;">Ask ARIA</div>
+        <div style="font-size:12px;color:#6b7a96;">Tell me what you need — I'll find your specialist</div>
+      </div>
+    </div>
+    <textarea id="aria-task-input" class="aria-routing-input" rows="3" placeholder="e.g. I need to write a grant for a broadband infrastructure project in my county..."></textarea>
+    <button onclick="ariaFindSpecialist()" id="aria-find-btn" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:12px;">Find my specialist →</button>
+    <div id="aria-result" class="aria-result-card">
+      <div style="font-size:11px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">ARIA recommends</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div id="aria-rec-orb" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;"></div>
+        <div>
+          <div id="aria-rec-name" style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;"></div>
+          <div id="aria-rec-role" style="font-size:11px;color:#6b7a96;"></div>
+        </div>
+      </div>
+      <div id="aria-rec-reason" style="font-size:13px;color:#b8c8e0;line-height:1.6;margin-bottom:14px;"></div>
+      <button id="aria-rec-btn" onclick="deployFromAria()" style="background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;">Deploy this specialist →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM SPECIALIST MODAL -->
+<div id="custom-spec-modal">
+  <div class="aria-routing-box">
+    <button onclick="closeCustomSpec()" style="float:right;background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
+    <div style="font-family:'Barlow',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:6px;">Create Me A Specialist ✦</div>
+    <div style="font-size:13px;color:#6b7a96;margin-bottom:20px;">Tell us what you need — we'll build a custom AI specialist trained specifically for your workflow. <strong style="color:#aaff3e;">$299 one-time fee.</strong></div>
+    <div id="custom-spec-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;"></div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">What should this specialist do?</label>
+      <textarea id="cs-description" class="aria-routing-input" rows="3" placeholder="e.g. I need a specialist that writes USDA Rural Development grant applications specifically for rural broadband projects..."></textarea>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">What's your main use case?</label>
+      <input id="cs-usecase" type="text" class="aria-routing-input" style="width:100%;padding:10px 14px;" placeholder="e.g. Rural broadband grant writing, quarterly reporting, prospect outreach...">
+    </div>
+    <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:#8a97b5;">Custom Specialist Build</span>
+        <span style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;">$299</span>
+      </div>
+      <div style="font-size:11px;color:#6b7a96;margin-top:4px;">One-time fee · Delivered within 5 business days · Unlimited revisions</div>
+    </div>
+    <button onclick="submitCustomSpec()" id="cs-submit-btn" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:13px;border:none;border-radius:10px;cursor:pointer;">Request my custom specialist →</button>
+    <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:10px;">We'll review your request and reach out within 24 hours</p>
+  </div>
+</div>
+
+<!-- SPECIALIST HOVER TOOLTIP -->
+<div id="spec-tooltip" class="spec-tooltip">
+  <div class="spec-tooltip-cat" id="tt-cat"></div>
+  <div class="spec-tooltip-name" id="tt-name"></div>
+  <div class="spec-tooltip-role" id="tt-role"></div>
+  <div class="spec-tooltip-what" id="tt-what"></div>
+  <div class="spec-tooltip-sample" id="tt-sample"></div>
+  <div class="spec-tooltip-footer">
+    <span class="spec-tooltip-save" id="tt-save"></span>
+    <button class="spec-tooltip-cta" id="tt-cta" onclick="tooltipCTA()">Try it free →</button>
+  </div>
+</div>
 
 </body>
 </html>
