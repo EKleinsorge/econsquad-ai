@@ -2334,27 +2334,38 @@ function tooltipCTA(){
 
 /* attach tooltips to mkt cards */
 function attachTooltips(){
-  /* attach to every card in the mkt-squad scroll strip */
   var el=document.getElementById('mkt-squad');
   if(!el)return;
   var cards=el.querySelectorAll('.spec-preview');
   cards.forEach(function(card){
-    /* get spec id from the canvas data-morb attribute inside the card */
     var cv=card.querySelector('[data-morb]');
     if(!cv)return;
     var uid=cv.dataset.morb;
     var specId=parseInt(uid.replace('mkt_',''));
     if(!specId)return;
-    /* remove old listeners by cloning */
     card.addEventListener('mouseenter',function(){
       clearTimeout(ttTimeout);
       ttTimeout=setTimeout(function(){showTooltip(card,specId);},350);
     });
     card.addEventListener('mouseleave',function(){
       clearTimeout(ttTimeout);
-      setTimeout(hideTooltip,150);
+      /* long grace period so user can move mouse onto tooltip */
+      ttTimeout=setTimeout(hideTooltip,600);
     });
   });
+
+  /* keep tooltip visible when mouse is over it */
+  var tt=document.getElementById('spec-tooltip');
+  if(tt){
+    tt.addEventListener('mouseenter',function(){
+      clearTimeout(ttTimeout);
+    });
+    tt.addEventListener('mouseleave',function(){
+      ttTimeout=setTimeout(hideTooltip,200);
+    });
+    /* make tooltip pointer-events active so it's hoverable */
+    tt.style.pointerEvents='all';
+  }
 }
 
 /* load specialists from Supabase into ttSpecData */
