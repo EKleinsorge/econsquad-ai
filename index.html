@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EconSquad AI — Your Specialist Team, On Demand</title>
 <style>
@@ -706,11 +707,25 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="mkt-section" id="sec-pricing">
         <div class="section-eyebrow">Pricing</div>
         <h2 class="section-h2">Pick your squad size. <span>Scale anytime.</span></h2>
-        <p class="section-sub" style="margin-bottom:36px;">Every plan includes a 7-day free trial. No credit card required to start.</p>
+        <p class="section-sub">Every plan includes a 7-day free trial. Card required — cancel before trial ends and you won't be charged.</p>
+
+        <!-- BILLING TOGGLE -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:24px 0 36px;">
+          <span id="lbl-monthly" style="font-size:14px;font-weight:600;color:#eef3fc;">Monthly</span>
+          <div onclick="toggleBilling()" id="billing-toggle" style="width:52px;height:28px;background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);border-radius:14px;cursor:pointer;position:relative;transition:background .3s;">
+            <div id="billing-knob" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#aaff3e;transition:transform .3s;"></div>
+          </div>
+          <span id="lbl-annual" style="font-size:14px;font-weight:600;color:#6b7a96;">Annual <span style="background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:4px;">2 months free</span></span>
+        </div>
+
         <div class="pricing-grid">
+          <!-- STARTER -->
           <div class="price-card">
             <div class="price-tier">Starter</div>
-            <div class="price-amount"><span class="sym">$</span>29<span class="per">/mo</span></div>
+            <div class="price-amount" id="price-starter">
+              <span class="sym">$</span><span id="starter-amt">29</span><span class="per" id="starter-per">/mo</span>
+            </div>
+            <div id="starter-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $58/year</div>
             <div class="price-desc">Perfect for solo economic developers getting started with AI assistance.</div>
             <hr class="price-divider">
             <ul class="price-features">
@@ -721,12 +736,18 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li><span class="xx">✗</span> Team workspace</li>
               <li><span class="xx">✗</span> Advanced analytics</li>
             </ul>
-            <button class="price-btn outline" onclick="openAuth('signup')">Start free trial</button>
+            <button class="price-btn outline" onclick="startCheckout('starter')">Start 7-day free trial</button>
+            <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
+
+          <!-- PRO SQUAD -->
           <div class="price-card featured">
             <div class="price-popular">Most popular</div>
             <div class="price-tier">Pro Squad</div>
-            <div class="price-amount"><span class="sym">$</span>79<span class="per">/mo</span></div>
+            <div class="price-amount" id="price-pro">
+              <span class="sym">$</span><span id="pro-amt">79</span><span class="per" id="pro-per">/mo</span>
+            </div>
+            <div id="pro-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $158/year</div>
             <div class="price-desc">The full squad experience. Everything an economic developer needs to dominate their workload.</div>
             <hr class="price-divider">
             <ul class="price-features">
@@ -737,8 +758,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li class="on"><span class="ck">✓</span> History & saved results</li>
               <li class="on"><span class="ck">✓</span> Priority support</li>
             </ul>
-            <button class="price-btn" onclick="openAuth('signup')">Start free trial</button>
+            <button class="price-btn" onclick="startCheckout('pro')">Start 7-day free trial</button>
+            <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
+
+          <!-- ENTERPRISE -->
           <div class="price-card">
             <div class="price-tier">Enterprise</div>
             <div class="price-amount" style="font-size:28px;padding-top:8px;">Custom</div>
@@ -752,7 +776,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li class="on"><span class="ck">✓</span> Custom GPT specialists</li>
               <li class="on"><span class="ck">✓</span> Dedicated onboarding</li>
             </ul>
-            <button class="price-btn outline">Contact us</button>
+            <button class="price-btn outline" onclick="contactEnterprise()">Contact us</button>
+            <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Volume pricing available</p>
           </div>
         </div>
       </section>
@@ -1470,18 +1495,23 @@ window.addEventListener('load',function(){
 
 function onSignedIn(user){
   closeAuth();
-  /* update avatar initials */
   var av=document.getElementById('user-avatar');
   if(av){
     var nm=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:user.email;
     var parts=nm.split(' ');
     av.textContent=parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():nm.slice(0,2).toUpperCase();
+    av.title='Signed in as '+user.email+' — click to sign out';
   }
-  /* update plan badge */
   var pb=document.querySelector('.plan-badge');
-  if(pb)pb.textContent='⚡ Pro Squad';
-  /* switch to dashboard */
-  switchView('dashboard');
+  if(pb)pb.textContent='⚡ Trial';
+  /* if user came from pricing page, launch checkout */
+  if(window._pendingPlan){
+    var p=window._pendingPlan;
+    window._pendingPlan=null;
+    setTimeout(function(){launchStripeCheckout(p);},600);
+  } else {
+    switchView('dashboard');
+  }
 }
 
 function onSignedOut(){
@@ -1848,6 +1878,104 @@ function deploy(id){
   if(rt)rt.textContent='Mission results — '+s.name;
   if(rb)rb.innerHTML='<div style="color:var(--text2);font-style:italic;font-size:13px;padding:18px 0;text-align:center;">&#10022; <strong style="color:var(--lime);">'+s.name+'</strong> is standing by. Enter your mission prompt above to generate copy-ready results.</div>';
 }
+
+/* ===== STRIPE BILLING ===== */
+var STRIPE_PK='pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h';
+var PRICE_IDS={
+  starter_monthly:'price_1TQTsTAdXRzmLVohLggANl4w',
+  starter_annual: 'price_1TQTsTAdXRzmLVohU2VbC7qW',
+  pro_monthly:    'price_1TQTucAdXRzmLVohzhADNHzi',
+  pro_annual:     'price_1TQTucAdXRzmLVohjuUJxfbC',
+};
+var billingAnnual=false;
+var stripeClient=null;
+
+function initStripe(){
+  if(!stripeClient&&window.Stripe)stripeClient=Stripe(STRIPE_PK);
+}
+
+function toggleBilling(){
+  billingAnnual=!billingAnnual;
+  var knob=document.getElementById('billing-knob');
+  var toggle=document.getElementById('billing-toggle');
+  var lblM=document.getElementById('lbl-monthly');
+  var lblA=document.getElementById('lbl-annual');
+  if(billingAnnual){
+    if(knob)knob.style.transform='translateX(24px)';
+    if(toggle)toggle.style.background='rgba(170,255,62,0.25)';
+    if(lblM)lblM.style.color='#6b7a96';
+    if(lblA)lblA.style.color='#eef3fc';
+    var sa=document.getElementById('starter-amt');var sp=document.getElementById('starter-per');
+    var pa=document.getElementById('pro-amt');var pp=document.getElementById('pro-per');
+    var ss=document.getElementById('starter-savings');var ps=document.getElementById('pro-savings');
+    if(sa)sa.textContent='290';if(sp)sp.textContent='/yr';if(ss)ss.style.display='block';
+    if(pa)pa.textContent='790';if(pp)pp.textContent='/yr';if(ps)ps.style.display='block';
+  } else {
+    if(knob)knob.style.transform='translateX(0)';
+    if(toggle)toggle.style.background='rgba(170,255,62,0.15)';
+    if(lblM)lblM.style.color='#eef3fc';
+    if(lblA)lblA.style.color='#6b7a96';
+    var sa=document.getElementById('starter-amt');var sp=document.getElementById('starter-per');
+    var pa=document.getElementById('pro-amt');var pp=document.getElementById('pro-per');
+    var ss=document.getElementById('starter-savings');var ps=document.getElementById('pro-savings');
+    if(sa)sa.textContent='29';if(sp)sp.textContent='/mo';if(ss)ss.style.display='none';
+    if(pa)pa.textContent='79';if(pp)pp.textContent='/mo';if(ps)ps.style.display='none';
+  }
+}
+
+function startCheckout(plan){
+  if(!currentUser){
+    window._pendingPlan=plan;
+    openAuth('signup');
+    return;
+  }
+  launchStripeCheckout(plan);
+}
+
+function launchStripeCheckout(plan){
+  initStripe();
+  if(!stripeClient){alert('Stripe not loaded. Please refresh and try again.');return;}
+  var priceKey=(plan==='starter'?'starter':'pro')+'_'+(billingAnnual?'annual':'monthly');
+  var priceId=PRICE_IDS[priceKey];
+  stripeClient.redirectToCheckout({
+    lineItems:[{price:priceId,quantity:1}],
+    mode:'subscription',
+    successUrl:'https://ekleinsorge.github.io/econsquad-ai?checkout=success',
+    cancelUrl:'https://ekleinsorge.github.io/econsquad-ai?checkout=cancelled',
+    customerEmail:currentUser?currentUser.email:'',
+    subscriptionData:{trialPeriodDays:7},
+  }).then(function(result){
+    if(result.error)alert(result.error.message);
+  });
+}
+
+function contactEnterprise(){
+  window.location.href='mailto:hello@econsquadai.com?subject=Enterprise%20Plan%20Inquiry&body=Hi%2C%20I%27m%20interested%20in%20the%20Enterprise%20plan%20for%20EconSquad%20AI.';
+}
+
+function showCheckoutSuccess(){
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(10,20,10,0.97);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-size:14px;font-weight:700;padding:14px 28px;border-radius:12px;z-index:9999;font-family:Barlow,sans-serif;';
+  toast.textContent='\uD83C\uDF89 Welcome to EconSquad AI! Your squad is ready.';
+  document.body.appendChild(toast);
+  setTimeout(function(){if(toast.parentNode)toast.remove();},5000);
+  switchView('dashboard');
+}
+
+/* handle checkout return & pending plan after signup */
+window.addEventListener('load',function(){
+  initStripe();
+  var params=new URLSearchParams(window.location.search);
+  if(params.get('checkout')==='success'){
+    if(currentUser)supa.from('profiles').update({plan:'pro'}).eq('id',currentUser.id);
+    showCheckoutSuccess();
+  } else if(params.get('checkout')==='cancelled'){
+    setTimeout(function(){scrollToSection('sec-pricing');},500);
+  }
+});
+
+/* called from onSignedIn when pending plan exists */
+var _origOnSignedIn=null;
 
 /* ===== INIT ===== */
 renderSquad();
