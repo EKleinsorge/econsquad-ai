@@ -2965,21 +2965,24 @@ function callSpecialist(userMessage){
   if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   showTyping();
 
-  fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer '+SUPA_KEY,
-      'apikey':SUPA_KEY
-    },
-    body:JSON.stringify({
-      specialistId:chatState.specialistId,
+  (function(){
+    var payload={
+      specialistId:Number(chatState.specialistId),
       messages:chatState.messages.map(function(m){
-        return {role:m.role, content:String(m.content||'')};
+        return {role:String(m.role),content:String(m.content||'')};
       }),
-      userId:currentUser?currentUser.id:null
-    })
-  }).then(function(r){return r.json();}).then(function(data){
+      userId:currentUser?String(currentUser.id):''
+    };
+    var bodyStr=JSON.stringify(payload);
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPA_KEY
+      },
+      body:bodyStr
+    });
+  })().then(function(r){return r.json();}).then(function(data){
     hideTyping();
     chatState.isTyping=false;
     if(btn){btn.disabled=false;btn.style.opacity='1';}
