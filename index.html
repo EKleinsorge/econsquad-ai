@@ -2636,8 +2636,24 @@ function openSpecialistChat(id){
   document.getElementById('chat-messages').innerHTML='';
   document.getElementById('chat-input').value='';
 
-  /* add opening message */
-  addChatMessage('specialist', sp.greeting);
+  /* add opening message — display only, don't add to API messages array */
+  var greetText=sp.greeting||('Hi! I am '+sp.name+'. How can I help?');
+  var msgs=document.getElementById('chat-messages');
+  if(msgs){
+    var wrapper=document.createElement('div');
+    wrapper.className='chat-msg';
+    var col=chatState.specialistColor?ORB_C[chatState.specialistColor]:null;
+    var av=document.createElement('div');
+    av.className='chat-avatar';
+    av.textContent=sp.emoji||'✦';
+    if(col)av.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+')';
+    var bub=document.createElement('div');
+    bub.className='chat-bubble specialist';
+    bub.textContent=greetText;
+    wrapper.appendChild(av);wrapper.appendChild(bub);
+    msgs.appendChild(wrapper);
+    msgs.scrollTop=msgs.scrollHeight;
+  }
 }
 
 function closeSpecialistChat(){
@@ -2694,7 +2710,9 @@ function addChatMessage(role, text){
   msgs.scrollTop=msgs.scrollHeight;
 
   /* track in messages array for API */
-  chatState.messages.push({role:role==='user'?'user':'assistant',content:text});
+  /* sanitize content before storing — remove any chars that break JSON */
+  var cleanText = String(text||'').replace(/[\u0000-\u001F\u007F-\u009F]/g,' ');
+  chatState.messages.push({role:role==='user'?'user':'assistant',content:cleanText});
 }
 
 function showTyping(){
@@ -2761,7 +2779,9 @@ function callSpecialist(userMessage){
     },
     body:JSON.stringify({
       specialistId:chatState.specialistId,
-      messages:chatState.messages,
+      messages:chatState.messages.map(function(m){
+        return {role:m.role, content:String(m.content||'')};
+      }),
       userId:currentUser?currentUser.id:null
     })
   }).then(function(r){return r.json();}).then(function(data){
