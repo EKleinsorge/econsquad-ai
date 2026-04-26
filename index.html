@@ -2,8 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://js.stripe.com/v3/"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EconSquad AI — Your Specialist Team, On Demand</title>
 <style>
@@ -1170,6 +1168,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <script>
 
 /* ===== BACKGROUND CANVAS ===== */
@@ -2415,62 +2415,19 @@ function ariaFindSpecialist(){
   }).join('
 ');
 
-  /* Call Claude via Anthropic API to route to right specialist */
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': '',  /* handled by proxy */
-      'anthropic-version':'2023-06-01'
-    },
-    body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:300,
-      system:'You are ARIA, the EconSquad AI assistant for economic developers. Given a task description and a list of available specialists, recommend the single BEST specialist. Respond ONLY with valid JSON in this exact format: {"id": NUMBER, "reason": "2-3 sentence explanation of why this specialist is perfect for this task"}',
-      messages:[{role:'user',content:'Task: '+task+'
-
-Available specialists:
-'+specList}]
-    })
-  }).then(function(r){return r.json();}).then(function(data){
-    if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
-    try{
-      var text=data.content&&data.content[0]?data.content[0].text:'';
-      var clean=text.replace(/```json|```/g,'').trim();
-      var rec=JSON.parse(clean);
-      var spec=ttSpecData[rec.id];
-      if(spec){
-        ariaRecommendedId=rec.id;
-        var col=CAT_COLORS[spec.cat]||'#aaff3e';
-        document.getElementById('aria-rec-name').textContent=spec.name;
-        document.getElementById('aria-rec-role').textContent=spec.role;
-        document.getElementById('aria-rec-reason').textContent=rec.reason;
-        var orb=document.getElementById('aria-rec-orb');
-        if(orb)orb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.8))';
-        document.getElementById('aria-result').style.display='block';
-      }
-    }catch(e){
-      /* fallback — find by keyword matching */
-      var best=arieFallbackMatch(task);
-      if(best){
-        ariaRecommendedId=best.id;
-        document.getElementById('aria-rec-name').textContent=best.name;
-        document.getElementById('aria-rec-role').textContent=best.role;
-        document.getElementById('aria-rec-reason').textContent='Based on your task, '+best.name+' is your best match. '+best.description;
-        document.getElementById('aria-result').style.display='block';
-      }
-    }
-  }).catch(function(){
-    if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
-    var best=ariaFallbackMatch(task);
-    if(best){
-      ariaRecommendedId=best.id;
-      document.getElementById('aria-rec-name').textContent=best.name;
-      document.getElementById('aria-rec-role').textContent=best.role;
-      document.getElementById('aria-rec-reason').textContent='Based on your task, '+best.name+' is your best match. '+best.description;
-      document.getElementById('aria-result').style.display='block';
-    }
-  });
+  /* Keyword-based specialist routing */
+  if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
+  var best=ariaFallbackMatch(task);
+  if(best){
+    ariaRecommendedId=best.id;
+    var col=CAT_COLORS[best.cat]||'#aaff3e';
+    document.getElementById('aria-rec-name').textContent=best.name;
+    document.getElementById('aria-rec-role').textContent=best.role;
+    document.getElementById('aria-rec-reason').textContent='Based on your task description, '+best.name+' is your best match. '+best.description;
+    var orb=document.getElementById('aria-rec-orb');
+    if(orb)orb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.8))';
+    document.getElementById('aria-result').style.display='block';
+  }
 }
 
 function ariaFallbackMatch(task){
