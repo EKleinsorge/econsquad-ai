@@ -1366,6 +1366,7 @@ var squad=[
 ];
 
 /* ===== MARKETING SQUAD PREVIEW ===== */
+window.addEventListener('DOMContentLoaded',function(){
 (function(){
   var el=document.getElementById('mkt-squad');
   if(!el)return;
@@ -1572,6 +1573,7 @@ var squad=[
 
   if(!mktAnimRunning)mktAnimLoop();
 })();
+});
 
 /* ===== ROI CALCULATORS ===== */
 function calcMktROI(){
@@ -2767,11 +2769,12 @@ function submitCustomSpec(){
 }
 
 /* ===== INIT ===== */
-renderSquad();
-calcMktROI();
-calcROI();
-/* load specialist data for marketing tooltips */
-loadSpecialistData();
+window.addEventListener('DOMContentLoaded',function(){
+  renderSquad();
+  calcMktROI();
+  calcROI();
+  loadSpecialistData();
+});
 
 /* ===== ANIMATED LOGO ORB ===== */
 (function(){
