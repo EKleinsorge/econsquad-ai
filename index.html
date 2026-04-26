@@ -2334,25 +2334,26 @@ function tooltipCTA(){
 
 /* attach tooltips to mkt cards */
 function attachTooltips(){
-  document.querySelectorAll('[data-morb]').forEach(function(cv){
+  /* attach to every card in the mkt-squad scroll strip */
+  var el=document.getElementById('mkt-squad');
+  if(!el)return;
+  var cards=el.querySelectorAll('.spec-preview');
+  cards.forEach(function(card){
+    /* get spec id from the canvas data-morb attribute inside the card */
+    var cv=card.querySelector('[data-morb]');
+    if(!cv)return;
     var uid=cv.dataset.morb;
     var specId=parseInt(uid.replace('mkt_',''));
-    var card=cv.closest('[data-morb]')||cv.parentElement.parentElement;
-    /* find the outer card div */
-    var cardEl=cv;
-    while(cardEl&&!cardEl.style.cssText.includes('width:148px')){
-      cardEl=cardEl.parentElement;
-      if(!cardEl||cardEl.tagName==='BODY')break;
-    }
-    if(cardEl){
-      cardEl.addEventListener('mouseenter',function(){
-        ttTimeout=setTimeout(function(){showTooltip(cardEl,specId);},400);
-      });
-      cardEl.addEventListener('mouseleave',function(){
-        clearTimeout(ttTimeout);
-        setTimeout(hideTooltip,200);
-      });
-    }
+    if(!specId)return;
+    /* remove old listeners by cloning */
+    card.addEventListener('mouseenter',function(){
+      clearTimeout(ttTimeout);
+      ttTimeout=setTimeout(function(){showTooltip(card,specId);},350);
+    });
+    card.addEventListener('mouseleave',function(){
+      clearTimeout(ttTimeout);
+      setTimeout(hideTooltip,150);
+    });
   });
 }
 
@@ -2370,7 +2371,6 @@ function loadSpecialistData(){
 }
 
 function rebuildSquadFromDB(specs){
-  /* update squad array with latest data from DB */
   specs.forEach(function(s){
     var idx=squad.findIndex(function(x){return x.id===s.id;});
     if(idx>=0){
@@ -2382,8 +2382,8 @@ function rebuildSquadFromDB(specs){
       squad[idx].locked=s.plan==='pro'&&(!currentUser);
     }
   });
-  /* attach tooltips after data loaded */
-  setTimeout(attachTooltips,500);
+  /* attach tooltips — wait for mkt cards to be in DOM */
+  setTimeout(attachTooltips,800);
 }
 
 /* ===== ARIA ROUTING ===== */
