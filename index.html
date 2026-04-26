@@ -1880,19 +1880,15 @@ function deploy(id){
 }
 
 /* ===== STRIPE BILLING ===== */
-var STRIPE_PK='pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h';
-var PRICE_IDS={
-  starter_monthly:'price_1TQTsTAdXRzmLVohLggANl4w',
-  starter_annual: 'price_1TQTsTAdXRzmLVohU2VbC7qW',
-  pro_monthly:    'price_1TQTucAdXRzmLVohzhADNHzi',
-  pro_annual:     'price_1TQTucAdXRzmLVohjuUJxfbC',
+var PAYMENT_LINKS={
+  starter_monthly:'https://buy.stripe.com/test_bJe28qb8z9li1IvbA70RG02',
+  starter_annual: 'https://buy.stripe.com/test_fZudR890r1SQ0Er47F0RG03',
+  pro_monthly:    'https://buy.stripe.com/test_fZubJ0ekLapm0Er7jR0RG04',
+  pro_annual:     'https://buy.stripe.com/test_00wfZgekL8hebj50Vt0RG05',
 };
 var billingAnnual=false;
-var stripeClient=null;
 
-function initStripe(){
-  if(!stripeClient&&window.Stripe)stripeClient=Stripe(STRIPE_PK);
-}
+function initStripe(){}
 
 function toggleBilling(){
   billingAnnual=!billingAnnual;
@@ -1933,20 +1929,16 @@ function startCheckout(plan){
 }
 
 function launchStripeCheckout(plan){
-  initStripe();
-  if(!stripeClient){alert('Stripe not loaded. Please refresh and try again.');return;}
-  var priceKey=(plan==='starter'?'starter':'pro')+'_'+(billingAnnual?'annual':'monthly');
-  var priceId=PRICE_IDS[priceKey];
-  stripeClient.redirectToCheckout({
-    lineItems:[{price:priceId,quantity:1}],
-    mode:'subscription',
-    successUrl:'https://ekleinsorge.github.io/econsquad-ai?checkout=success',
-    cancelUrl:'https://ekleinsorge.github.io/econsquad-ai?checkout=cancelled',
-    customerEmail:currentUser?currentUser.email:'',
-    subscriptionData:{trialPeriodDays:7},
-  }).then(function(result){
-    if(result.error)alert(result.error.message);
-  });
+  var linkKey=(plan==='starter'?'starter':'pro')+'_'+(billingAnnual?'annual':'monthly');
+  var url=PAYMENT_LINKS[linkKey];
+  /* append prefill email and redirect params */
+  var sep=url.indexOf('?')>=0?'&':'?';
+  if(currentUser&&currentUser.email){
+    url+=sep+'prefilled_email='+encodeURIComponent(currentUser.email);
+    sep='&';
+  }
+  url+=sep+'client_reference_id='+(currentUser?currentUser.id:'guest');
+  window.location.href=url;
 }
 
 function contactEnterprise(){
