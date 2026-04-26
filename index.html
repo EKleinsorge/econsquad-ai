@@ -1919,6 +1919,37 @@ function completeSignup(){closeAuth();if(currentUser)switchView('dashboard');}
 var dashOrbStates={};
 var dashAnimRunning=false;
 
+function initDrawerOrb(uid,colorKey){
+  var col=ORB_C[colorKey];
+  var protons=[];
+  for(var i=0;i<16;i++){
+    protons.push({
+      inc:Math.random()*Math.PI,
+      asc:Math.random()*Math.PI*2,
+      angle:Math.random()*Math.PI*2,
+      dir:Math.random()>0.5?1:-1,
+      spd:(0.006+Math.random()*0.014)*0.2,
+      /* orbit 12-16px from center — safe for 48px canvas (max=24) */
+      orbit:12+Math.random()*4,
+      size:2+Math.random()*4,
+      alpha:0.06+Math.random()*0.14,
+      pp:Math.random()*Math.PI*2,
+      ps:0.018+Math.random()*0.022,
+    });
+  }
+  dashOrbStates[uid]={
+    protons:protons,col:col,frame:0,
+    energy:0,targetEnergy:0,
+    slumPhase:Math.random()*Math.PI*2,
+    slumSpd:0.0038+Math.random()*0.0014,
+    gpPhase:Math.random()*Math.PI*2,
+    gpSpd:0.007+Math.random()*0.002,
+    sphereEl:null,sphBg:null,
+    /* flag so drawDashOrb uses 48px canvas center */
+    drawerSize:true,
+  };
+}
+
 function initDashOrb(uid,colorKey){
   var col=ORB_C[colorKey];
   var protons=[];
@@ -1952,7 +1983,9 @@ function initDashOrb(uid,colorKey){
 function drawDashOrb(canvas,uid){
   var st=dashOrbStates[uid];
   if(!st||!canvas)return;
-  var ctx=canvas.getContext('2d'),sz=96,cx=48,cy=48;
+  var sz=st.drawerSize?48:96;
+  var cx=sz/2,cy=sz/2;
+  var ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,sz,sz);
   st.frame++;
   var f=st.frame,col=st.col,r=col.r;
@@ -2728,7 +2761,8 @@ function openSpecialistChat(id){
     cv.width=48;cv.height=48;
     cv.style.cssText='position:absolute;top:0;left:0;width:48px;height:48px;';
     cv.setAttribute('data-dorb',uid);
-    initDashOrb(uid,s.color);
+    /* init with smaller orbits for 48px canvas */
+    initDrawerOrb(uid,s.color);
     dashOrbStates[uid].targetEnergy=0.7;
     orbEl.appendChild(cv);
     var sph=document.createElement('div');
@@ -2809,8 +2843,28 @@ function addChatMessage(role, text){
   var avatar=document.createElement('div');
   avatar.className='chat-avatar';
   if(role==='specialist'){
-    avatar.textContent=sp.emoji;
-    if(col)avatar.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+')';
+    /* animated mini orb avatar */
+    avatar.style.cssText='width:32px;height:32px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;';
+    var msgUid='msg_'+chatState.specialistId+'_'+Date.now();
+    var msgCv=document.createElement('canvas');
+    msgCv.width=32;msgCv.height=32;
+    msgCv.style.cssText='position:absolute;top:0;left:0;width:32px;height:32px;';
+    msgCv.setAttribute('data-dorb',msgUid);
+    /* init tiny orb */
+    var msgCol=col||ORB_C['gold'];
+    var msgR=msgCol.r;
+    var msgProtons=[];
+    for(var pi=0;pi<12;pi++){
+      msgProtons.push({inc:Math.random()*Math.PI,asc:Math.random()*Math.PI*2,angle:Math.random()*Math.PI*2,dir:Math.random()>0.5?1:-1,spd:(0.006+Math.random()*0.014)*0.2,orbit:8+Math.random()*3,size:1.5+Math.random()*3,alpha:0.06+Math.random()*0.14,pp:Math.random()*Math.PI*2,ps:0.018+Math.random()*0.022});
+    }
+    dashOrbStates[msgUid]={protons:msgProtons,col:msgCol,frame:0,energy:0.8,targetEnergy:0.8,slumPhase:Math.random()*Math.PI*2,slumSpd:0.004,gpPhase:Math.random()*Math.PI*2,gpSpd:0.007,sphereEl:null,sphBg:null,drawerSize:true};
+    var msgSph=document.createElement('div');
+    msgSph.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;z-index:2;background:radial-gradient(circle at 36% 32%,'+msgCol.hi+','+msgCol.mid+' 48%,'+msgCol.lo+');';
+    dashOrbStates[msgUid].sphereEl=msgSph;
+    dashOrbStates[msgUid].sphBg='radial-gradient(circle at 36% 32%,rgba('+msgR[0]+','+msgR[1]+','+msgR[2]+',.16),rgba('+msgR[0]+','+msgR[1]+','+msgR[2]+',.06) 55%,rgba(0,0,0,.5))';
+    avatar.appendChild(msgCv);
+    avatar.appendChild(msgSph);
+    if(!dashAnimRunning)runDashAnim();
   } else {
     avatar.style.background='rgba(170,255,62,0.15)';
     avatar.style.color='#aaff3e';
