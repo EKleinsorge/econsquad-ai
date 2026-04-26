@@ -2412,8 +2412,7 @@ function ariaFindSpecialist(){
   /* Build list of available specialists */
   var specList=Object.values(ttSpecData).map(function(s){
     return s.id+': '+s.name+' ('+s.cat+') — '+s.description;
-  }).join('
-');
+  }).join('\n');
 
   /* Keyword-based specialist routing */
   if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
