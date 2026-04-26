@@ -42,7 +42,7 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;}
 .btn-lime:hover{opacity:.88;transform:translateY(-1px);}
 .plan-badge{background:var(--lime);color:#1a3300;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;font-family:'Barlow',sans-serif;}
-.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;overflow:hidden;}
 
 /* PAGE SWITCHER */
 .page-switcher{display:flex;gap:8px;padding:8px 40px;background:rgba(6,8,15,0.75);border-bottom:1px solid rgba(255,255,255,0.05);}
@@ -456,7 +456,44 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
       <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;" class="nav-ctas">
         <span class="plan-badge">⚡ Pro Squad</span>
-        <div class="avatar" id="user-avatar" title="Sign out" onclick="doSignout()" style="cursor:pointer;" title="Click to sign out">SM</div>
+        <div style="position:relative;">
+          <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
+            <img id="user-logo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
+            <span id="user-initials">SM</span>
+          </div>
+          <!-- Profile dropdown -->
+          <div id="profile-menu" style="display:none;position:absolute;top:42px;right:0;background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px;min-width:200px;z-index:999;backdrop-filter:blur(24px);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+            <div id="profile-menu-header" style="padding:10px 12px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
+              <div id="pm-name" style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#eef3fc;"></div>
+              <div id="pm-email" style="font-size:11px;color:#6b7a96;margin-top:2px;"></div>
+              <div id="pm-plan" style="font-size:10px;color:#aaff3e;font-weight:700;text-transform:uppercase;margin-top:4px;letter-spacing:.06em;"></div>
+            </div>
+            <!-- Logo upload -->
+            <div style="padding:6px 4px;">
+              <label for="logo-upload" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <div style="width:32px;height:32px;border-radius:50%;border:1.5px dashed rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;" id="logo-preview-sm">
+                  <img id="logo-preview-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="">
+                  <span id="logo-preview-icon" style="font-size:14px;">🏙️</span>
+                </div>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#eef3fc;">Upload community logo</div>
+                  <div style="font-size:10px;color:#6b7a96;">PNG, JPG — appears in nav</div>
+                </div>
+                <input type="file" id="logo-upload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+              </label>
+              <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
+              <div onclick="showDashTab('mystats-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">📊</span>
+                <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
+              </div>
+              <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
+              <div onclick="doSignout()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,60,60,0.08)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">👋</span>
+                <span style="font-size:12px;color:#ff8080;">Sign out</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </nav>
 
@@ -1580,6 +1617,8 @@ function onSignedIn(user){
   }
   var pb=document.querySelector('.plan-badge');
   if(pb)pb.textContent='⚡ Trial';
+  /* load saved logo */
+  setTimeout(loadSavedLogo,300);
   /* if user came from pricing page, launch checkout */
   if(window._pendingPlan){
     var p=window._pendingPlan;
@@ -2225,6 +2264,95 @@ window.addEventListener('load',function(){
 
 /* called from onSignedIn when pending plan exists */
 var _origOnSignedIn=null;
+
+
+/* ===== PROFILE MENU & LOGO UPLOAD ===== */
+function toggleProfileMenu(){
+  var menu=document.getElementById('profile-menu');
+  if(!menu)return;
+  var isOpen=menu.style.display==='block';
+  menu.style.display=isOpen?'none':'block';
+  /* populate header with user info */
+  if(!isOpen&&currentUser){
+    var nm=currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email;
+    var org=currentUser.user_metadata&&currentUser.user_metadata.organization?currentUser.user_metadata.organization:'';
+    var pmn=document.getElementById('pm-name');
+    var pme=document.getElementById('pm-email');
+    var pmp=document.getElementById('pm-plan');
+    if(pmn)pmn.textContent=nm;
+    if(pme)pme.textContent=currentUser.email;
+    if(pmp)pmp.textContent='⚡ Trial — 7 days free';
+  }
+}
+
+/* close menu when clicking outside */
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('profile-menu');
+  var avatar=document.getElementById('user-avatar');
+  if(menu&&menu.style.display==='block'){
+    if(!menu.contains(e.target)&&!avatar.contains(e.target)){
+      menu.style.display='none';
+    }
+  }
+});
+
+function handleLogoUpload(input){
+  var file=input.files[0];
+  if(!file)return;
+  if(file.size>2*1024*1024){
+    alert('Image must be under 2MB');
+    return;
+  }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    /* show in nav avatar */
+    var logo=document.getElementById('user-logo');
+    var initials=document.getElementById('user-initials');
+    if(logo){logo.src=dataUrl;logo.style.display='block';}
+    if(initials)initials.style.display='none';
+    /* show in dropdown preview */
+    var previewImg=document.getElementById('logo-preview-img');
+    var previewIcon=document.getElementById('logo-preview-icon');
+    if(previewImg){previewImg.src=dataUrl;previewImg.style.display='block';}
+    if(previewIcon)previewIcon.style.display='none';
+    /* save to localStorage so it persists */
+    try{localStorage.setItem('econsquad_logo',dataUrl);}catch(e){}
+    /* save to Supabase profile */
+    if(currentUser){
+      supa.from('profiles').update({logo_url:dataUrl}).eq('id',currentUser.id);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadSavedLogo(){
+  /* try localStorage first for instant load */
+  try{
+    var saved=localStorage.getItem('econsquad_logo');
+    if(saved){applyLogo(saved);return;}
+  }catch(e){}
+  /* fall back to Supabase profile */
+  if(currentUser){
+    supa.from('profiles').select('logo_url').eq('id',currentUser.id).single().then(function(res){
+      if(res.data&&res.data.logo_url){
+        applyLogo(res.data.logo_url);
+        try{localStorage.setItem('econsquad_logo',res.data.logo_url);}catch(e){}
+      }
+    });
+  }
+}
+
+function applyLogo(dataUrl){
+  var logo=document.getElementById('user-logo');
+  var initials=document.getElementById('user-initials');
+  if(logo){logo.src=dataUrl;logo.style.display='block';}
+  if(initials)initials.style.display='none';
+  var previewImg=document.getElementById('logo-preview-img');
+  var previewIcon=document.getElementById('logo-preview-icon');
+  if(previewImg){previewImg.src=dataUrl;previewImg.style.display='block';}
+  if(previewIcon)previewIcon.style.display='none';
+}
 
 /* ===== INIT ===== */
 renderSquad();
