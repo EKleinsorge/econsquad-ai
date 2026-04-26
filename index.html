@@ -1585,7 +1585,7 @@ function doForgotPassword(){
   var email=document.getElementById('si-email').value.trim();
   if(!email){showAuthMsg('Enter your email above first.','error');return;}
   supa.auth.resetPasswordForEmail(email,{
-    redirectTo:window.location.origin+'/?reset=true'
+    redirectTo:'https://ekleinsorge.github.io/econsquad-ai'
   }).then(function(res){
     if(res.error){showAuthMsg(res.error.message,'error');}
     else{showAuthMsg('Password reset email sent! Check your inbox.','success');}
