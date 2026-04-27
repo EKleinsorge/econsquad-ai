@@ -29,12 +29,12 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .logo-icon svg{width:22px;height:22px;}
 .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
-.logo-text .econ{color:var(--text);}.logo-text .squad{color:var(--lime);}.logo-text .aitag{color:#fff;font-size:13px;font-weight:700;margin-left:2px;vertical-align:super;}
+.logo-text .econ{color:#ffffff;}.logo-text .squad{color:var(--lime);}.logo-text .ai{color:#ffffff;font-size:14px;font-weight:700;margin-left:1px;}
 .logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
 .nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
 .nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:color .2s;}
 .nav-links a:hover,.nav-links a.active{color:var(--lime);}
-.nav-ctas{display:flex;gap:10px;align-items:center;}
+.nav-ctas{display:flex;gap:10px;align-items:center;margin-left:auto;}
 .btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
 .btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);}
 .btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;}
@@ -724,7 +724,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           </div>
         </div>
         <div>
-          <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><span class="aitag">AI</span></div>
+          <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span> <span class="ai">AI</span></div>
           <div class="logo-sub">Less Work. More Impact.
           </div>
         </div>
@@ -748,11 +748,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <li><a onclick="showHistoryToast()">History</a></li>
         </ul>
       </div>
-      <div class="nav-ctas" id="nav-ctas-marketing">
+      <div class="nav-ctas" id="nav-ctas-marketing" style="margin-left:auto;">
         <button class="btn-ghost-sm" onclick="openAuth('signin')">Sign in</button>
         <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
       </div>
-      <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;" class="nav-ctas">
+      <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;margin-left:auto;" class="nav-ctas">
         <span id="level-badge" onclick="showDashTab('mystats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;margin-right:6px;" title="View your level">🎖️ Lvl 1 · Recruit</span><span class="plan-badge" id="plan-badge" onclick="openBillingModal()">⚡ Trial</span>
         <div style="position:relative;">
           <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
