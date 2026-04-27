@@ -1345,6 +1345,16 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <span id="su-plan-label" style="font-size:13px;font-weight:700;color:#eef3fc;">Pro Squad · $79/mo</span>
         </div>
 
+        <!-- Promo code -->
+        <div class="form-field" style="margin-bottom:14px;">
+          <label>Promo code <span style="color:#4a5568;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <div style="display:flex;gap:8px;">
+            <input id="su-promo" type="text" placeholder="Enter code (e.g. LAUNCH50)" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
+            <button type="button" onclick="applyPromoCode()" id="promo-apply-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;font-weight:700;padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;">Apply</button>
+          </div>
+          <div id="promo-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
+        </div>
+
         <!-- Stripe card element -->
         <div class="form-field">
           <label>Card details</label>
@@ -1916,7 +1926,8 @@ function doSignup(){
           paymentMethodId:paymentMethodId,
           priceId:priceId,
           userId:userId,
-          fullName:fname+' '+lname
+          fullName:fname+' '+lname,
+          couponId:activeCouponId||null
         })
       }).then(function(r){return r.json();}).then(function(subRes){
         if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
@@ -3528,6 +3539,73 @@ function confirmCancelTrial(){
     openStripePortal();
   }
 }
+
+
+/* ===== PROMO CODES ===== */
+var activePromoCode=null;
+var activeCouponId=null;
+
+/* Promo codes — manage these in Stripe Dashboard → Coupons
+   Format: {CODE: {label, discount, stripeCouponId}} */
+var PROMO_CODES={
+  'LAUNCH50':  {label:'50% off your first 3 months', discount:'50% off', coupon:'LAUNCH50'},
+  'EDPRO25':   {label:'25% off forever', discount:'25% off', coupon:'EDPRO25'},
+  'FREEMONTH': {label:'First month free', discount:'1 month free', coupon:'FREEMONTH'},
+  'WELCOME':   {label:'20% off your first year', discount:'20% off', coupon:'WELCOME'},
+};
+
+function applyPromoCode(){
+  var input=document.getElementById('su-promo');
+  var msg=document.getElementById('promo-msg');
+  var btn=document.getElementById('promo-apply-btn');
+  if(!input||!msg)return;
+
+  var code=input.value.trim().toUpperCase();
+  if(!code){
+    showPromoMsg('Enter a promo code first.','error');
+    return;
+  }
+
+  /* check against our code list */
+  var promo=PROMO_CODES[code];
+  if(promo){
+    activePromoCode=code;
+    activeCouponId=promo.coupon;
+    input.style.borderColor='rgba(170,255,62,0.4)';
+    input.disabled=true;
+    if(btn){btn.textContent='✓ Applied';btn.style.color='#aaff3e';btn.style.borderColor='rgba(170,255,62,0.3)';}
+    showPromoMsg('🎉 '+promo.label+' applied!','success');
+    /* update plan summary to show discount */
+    var lbl=document.getElementById('su-plan-label');
+    if(lbl)lbl.textContent=lbl.textContent+' · '+promo.discount;
+  } else {
+    activePromoCode=null;
+    activeCouponId=null;
+    input.style.borderColor='rgba(255,80,80,0.4)';
+    showPromoMsg('Invalid promo code. Please check and try again.','error');
+  }
+}
+
+function showPromoMsg(msg,type){
+  var el=document.getElementById('promo-msg');
+  if(!el)return;
+  el.style.display='block';
+  el.style.color=type==='error'?'#ff8080':'#aaff3e';
+  el.textContent=msg;
+}
+
+/* Allow Enter key on promo input */
+document.addEventListener('DOMContentLoaded',function(){
+  var promoInput=document.getElementById('su-promo');
+  if(promoInput){
+    promoInput.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();applyPromoCode();}
+    });
+    promoInput.addEventListener('input',function(){
+      this.value=this.value.toUpperCase();
+    });
+  }
+});
 
 /* ===== INIT ===== */
 renderSquad();
