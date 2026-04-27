@@ -3875,21 +3875,21 @@ function awardBadge(badgeId){
     if(res.error)return;
     earnedBadges[badgeId]=new Date().toISOString();
     updateBadgeCount();
-    showBadgeToast(badge);
+    showBadgeToast(badge,badgeId);
     /* check for MVP / ED of year */
     setTimeout(function(){checkEliteBadges();},1000);
   });
 }
 
 /* Show badge toast notification */
-function showBadgeToast(badge){
+function showBadgeToast(badge,badgeId){
   var existing=document.querySelector('.badge-toast');
   if(existing)existing.remove();
 
   var toast=document.createElement('div');
   toast.className='badge-toast';
   toast.innerHTML=
-    '<div class="badge-toast-icon">'+badge.icon+'</div>'+
+    '<div class="badge-toast-icon" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+renderBadgeIcon(badgeId,52)+'</div>'+
     '<div class="badge-toast-content">'+
       '<div class="badge-toast-label">🏆 Badge Unlocked!</div>'+
       '<div class="badge-toast-name">'+badge.name+'</div>'+
@@ -4021,12 +4021,16 @@ function renderBadgeShowcase(container){
         item.badge.desc+
       '</div>';
 
+      /* SVG icon */
+      var iconHtml=renderBadgeIcon(item.id, 56);
+      var typeLabel=(BADGE_SVG[item.id]?BADGE_SVG[item.id].type.toUpperCase():'');
+
       div.innerHTML=
         tipHtml+
-        '<span class="badge-icon">'+item.badge.icon+'</span>'+
+        '<div class="badge-icon" style="display:flex;align-items:center;justify-content:center;height:60px;margin-bottom:4px;">'+iconHtml+'</div>'+
         '<div class="badge-name">'+item.badge.name+'</div>'+
-        '<div class="badge-desc-sm">'+item.badge.desc+'</div>'+
-        (earned?'<div class="badge-earned-date">✓ Earned '+dateStr+'</div>':'<div style="font-size:9px;color:#4a5568;margin-top:4px;">Hover to see how</div>');
+        '<div style="font-size:8px;color:#4a5568;font-weight:700;letter-spacing:.06em;margin-bottom:2px;">'+typeLabel+'</div>'+
+        (earned?'<div class="badge-earned-date">✓ '+dateStr+'</div>':'<div style="font-size:9px;color:#4a5568;margin-top:2px;">Hover to see how</div>');
       grid.appendChild(div);
     });
     catDiv.appendChild(grid);
@@ -4175,6 +4179,155 @@ function switchStatsTab(tab, btn){
   }
   if(tab==='roi')calcROI();
   if(tab==='overview')loadUserStats();
+}
+
+
+/* ===== BADGE SVG ICONS ===== */
+/* Each icon is an SVG snippet rendered inside a 60x70 viewBox */
+/* Types: shield, medal, trophy, crown */
+var BADGE_SVG={
+
+  /* ── SHIELD template colors ── */
+  /* shield(color, innerPath) */
+
+  'first_deploy':   {type:'shield', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<polygon points="0,-14 3,-6 0,-10 -3,-6" fill="#aaff3e"/><line x1="0" y1="-10" x2="0" y2="4" stroke="#aaff3e" stroke-width="1.5"/><line x1="-5" y1="0" x2="5" y2="0" stroke="#aaff3e" stroke-width="1"/>'},
+
+  'squad_member':   {type:'shield', color:'#64afff', rgb:'100,175,255',
+    inner:'<circle cx="-7" cy="-4" r="4" fill="none" stroke="#64afff" stroke-width="1.3"/><circle cx="7" cy="-4" r="4" fill="none" stroke="#64afff" stroke-width="1.3"/><circle cx="0" cy="9" r="4" fill="none" stroke="#64afff" stroke-width="1.3"/><line x1="-7" y1="-4" x2="0" y2="9" stroke="#64afff" stroke-width="0.8"/><line x1="7" y1="-4" x2="0" y2="9" stroke="#64afff" stroke-width="0.8"/><line x1="-7" y1="-4" x2="7" y2="-4" stroke="#64afff" stroke-width="0.8"/>'},
+
+  'full_squad':     {type:'shield', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<circle cx="-8" cy="-6" r="3" fill="#aaff3e"/><circle cx="0" cy="-10" r="3" fill="#aaff3e"/><circle cx="8" cy="-6" r="3" fill="#aaff3e"/><circle cx="-4" cy="4" r="3" fill="#aaff3e"/><circle cx="4" cy="4" r="3" fill="#aaff3e"/><line x1="-8" y1="-6" x2="0" y2="-10" stroke="#aaff3e" stroke-width="0.7"/><line x1="0" y1="-10" x2="8" y2="-6" stroke="#aaff3e" stroke-width="0.7"/><line x1="-8" y1="-6" x2="-4" y2="4" stroke="#aaff3e" stroke-width="0.7"/><line x1="8" y1="-6" x2="4" y2="4" stroke="#aaff3e" stroke-width="0.7"/><line x1="-4" y1="4" x2="4" y2="4" stroke="#aaff3e" stroke-width="0.7"/>'},
+
+  'time_hacker':    {type:'medal', color:'#f5c542', rgb:'245,197,66',
+    inner:'<circle cx="0" cy="0" r="9" fill="none" stroke="#f5c542" stroke-width="1"/><line x1="0" y1="-7" x2="0" y2="0" stroke="#f5c542" stroke-width="1.5" stroke-linecap="round"/><line x1="0" y1="0" x2="5" y2="3" stroke="#f5c542" stroke-width="1.5" stroke-linecap="round"/>'},
+
+  'workday_winner': {type:'medal', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<rect x="-7" y="-8" width="14" height="13" rx="1.5" fill="none" stroke="#aaff3e" stroke-width="1"/><line x1="-3" y1="-10" x2="-3" y2="-6" stroke="#aaff3e" stroke-width="1.2"/><line x1="3" y1="-10" x2="3" y2="-6" stroke="#aaff3e" stroke-width="1.2"/><line x1="-7" y1="-4" x2="7" y2="-4" stroke="#aaff3e" stroke-width="0.8"/><rect x="-4" y="-2" width="3" height="3" rx="0.5" fill="#aaff3e"/><rect x="1" y="-2" width="3" height="3" rx="0.5" fill="#aaff3e"/>'},
+
+  'month_reclaimed':{type:'trophy', color:'#32e1c8', rgb:'50,225,200',
+    inner:'<path d="M-9,3 L-4,-6 L0,0 L4,-9 L9,0" fill="none" stroke="#32e1c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="0" r="2" fill="#32e1c8"/>'},
+
+  'time_lord':      {type:'trophy', color:'#c88cff', rgb:'200,140,255',
+    inner:'<circle cx="0" cy="-8" r="6" fill="none" stroke="#c88cff" stroke-width="1"/><line x1="0" y1="-13" x2="0" y2="-8" stroke="#c88cff" stroke-width="1.3" stroke-linecap="round"/><line x1="0" y1="-8" x2="4" y2="-5" stroke="#c88cff" stroke-width="1.3" stroke-linecap="round"/>'},
+
+  'funded':         {type:'medal', color:'#f5c542', rgb:'245,197,66',
+    inner:'<text x="0" y="5" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="700" fill="#f5c542">$</text>'},
+
+  'grant_machine':  {type:'shield', color:'#f5c542', rgb:'245,197,66',
+    inner:'<rect x="-8" y="-10" width="8" height="14" rx="1" fill="none" stroke="#f5c542" stroke-width="0.8" opacity="0.5"/><rect x="-4" y="-7" width="8" height="14" rx="1" fill="none" stroke="#f5c542" stroke-width="0.8" opacity="0.7"/><rect x="0" y="-4" width="8" height="14" rx="1.5" fill="rgba(13,20,37,1)" stroke="#f5c542" stroke-width="1.2"/><line x1="2" y1="0" x2="6" y2="0" stroke="#f5c542" stroke-width="1"/><line x1="2" y1="3" x2="6" y2="3" stroke="#f5c542" stroke-width="1"/>'},
+
+  'funding_finder': {type:'shield', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<circle cx="-2" cy="-2" r="8" fill="none" stroke="#aaff3e" stroke-width="1.5"/><line x1="4" y1="4" x2="9" y2="9" stroke="#aaff3e" stroke-width="2" stroke-linecap="round"/><text x="-4" y="2" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#aaff3e">$</text>'},
+
+  'rfp_slayer':     {type:'shield', color:'#ff8c6b', rgb:'255,140,107',
+    inner:'<rect x="-8" y="-12" width="10" height="14" rx="1.5" fill="none" stroke="#ff8c6b" stroke-width="1"/><line x1="-5" y1="-7" x2="-1" y2="-7" stroke="#ff8c6b" stroke-width="1"/><line x1="-5" y1="-4" x2="-1" y2="-4" stroke="#ff8c6b" stroke-width="1"/><path d="M4,2 L10,-5 L12,-3 L6,4 Z" fill="#ff8c6b"/>'},
+
+  'swot_master':    {type:'shield', color:'#c88cff', rgb:'200,140,255',
+    inner:'<line x1="0" y1="-12" x2="0" y2="10" stroke="#c88cff" stroke-width="1"/><line x1="-12" y1="-1" x2="12" y2="-1" stroke="#c88cff" stroke-width="1"/><text x="-6" y="-3" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#c88cff">S</text><text x="6" y="-3" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#c88cff">W</text><text x="-6" y="8" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#c88cff">O</text><text x="6" y="8" text-anchor="middle" font-family="sans-serif" font-size="7" fill="#c88cff">T</text>'},
+
+  'market_intel':   {type:'shield', color:'#64afff', rgb:'100,175,255',
+    inner:'<circle cx="0" cy="-1" r="10" fill="none" stroke="#64afff" stroke-width="1"/><circle cx="0" cy="-1" r="5" fill="none" stroke="#64afff" stroke-width="0.8"/><circle cx="0" cy="-1" r="2" fill="#64afff"/>'},
+
+  'impact_maker':   {type:'shield', color:'#32e1c8', rgb:'50,225,200',
+    inner:'<rect x="-11" y="4" width="5" height="9" rx="1" fill="#32e1c8" opacity="0.6"/><rect x="-4" y="-1" width="5" height="14" rx="1" fill="#32e1c8" opacity="0.8"/><rect x="3" y="-8" width="5" height="21" rx="1" fill="#32e1c8"/><line x1="-12" y1="13" x2="12" y2="13" stroke="#32e1c8" stroke-width="1.2"/>'},
+
+  'tax_sleuth':     {type:'shield', color:'#f5c542', rgb:'245,197,66',
+    inner:'<circle cx="-2" cy="-2" r="8" fill="none" stroke="#f5c542" stroke-width="1.5"/><line x1="4" y1="4" x2="9" y2="9" stroke="#f5c542" stroke-width="2" stroke-linecap="round"/><text x="-4" y="2" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#f5c542">$</text>'},
+
+  'bre_champion':   {type:'shield', color:'#32e1c8', rgb:'50,225,200',
+    inner:'<rect x="-10" y="-8" width="11" height="14" rx="1.5" fill="none" stroke="#32e1c8" stroke-width="1.2"/><circle cx="8" cy="-2" r="6" fill="rgba(13,20,37,1)" stroke="#32e1c8" stroke-width="1.2"/><path d="M4,-2 L7,1 L12,-4" fill="none" stroke="#32e1c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'},
+
+  'retention_pro':  {type:'shield', color:'#64afff', rgb:'100,175,255',
+    inner:'<rect x="-9" y="-10" width="18" height="20" rx="2" fill="none" stroke="#64afff" stroke-width="1.2"/><line x1="-5" y1="-5" x2="5" y2="-5" stroke="#64afff" stroke-width="1.2"/><line x1="-5" y1="-1" x2="5" y2="-1" stroke="#64afff" stroke-width="1"/><line x1="-5" y1="3" x2="5" y2="3" stroke="#64afff" stroke-width="1"/><line x1="-5" y1="7" x2="1" y2="7" stroke="#64afff" stroke-width="1"/>'},
+
+  'site_scout':     {type:'shield', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<path d="M0,-14 C-7,-14 -7,-5 -7,-2 C-7,5 0,12 0,12 C0,12 7,5 7,-2 C7,-5 7,-14 0,-14Z" fill="none" stroke="#aaff3e" stroke-width="1.5"/><circle cx="0" cy="-2" r="3.5" fill="#aaff3e"/>'},
+
+  'incentive_ace':  {type:'shield', color:'#c88cff', rgb:'200,140,255',
+    inner:'<polygon points="0,-13 3,-5 12,-5 5,0 8,9 0,4 -8,9 -5,0 -12,-5 -3,-5" fill="none" stroke="#c88cff" stroke-width="1.3"/><polygon points="0,-10 2,-4 8,-4 3,0 5,6 0,2 -5,6 -3,0 -8,-4 -2,-4" fill="#c88cff" opacity="0.25"/>'},
+
+  'press_ready':    {type:'shield', color:'#ff8c6b', rgb:'255,140,107',
+    inner:'<rect x="-9" y="-12" width="18" height="22" rx="2" fill="none" stroke="#ff8c6b" stroke-width="1.2"/><line x1="-5" y1="-6" x2="5" y2="-6" stroke="#ff8c6b" stroke-width="1.5"/><line x1="-5" y1="-2" x2="5" y2="-2" stroke="#ff8c6b" stroke-width="0.8"/><line x1="-5" y1="2" x2="5" y2="2" stroke="#ff8c6b" stroke-width="0.8"/><line x1="-5" y1="6" x2="0" y2="6" stroke="#ff8c6b" stroke-width="0.8"/>'},
+
+  'social_star':    {type:'shield', color:'#64afff', rgb:'100,175,255',
+    inner:'<polygon points="0,-13 3,-4 12,-4 5,2 8,11 0,5 -8,11 -5,2 -12,-4 -3,-4" fill="#64afff" opacity="0.9"/>'},
+
+  'board_ready':    {type:'shield', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<rect x="-9" y="-10" width="18" height="18" rx="2" fill="none" stroke="#aaff3e" stroke-width="1.2"/><path d="M-5,1 L-1,6 L7,-5" fill="none" stroke="#aaff3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'},
+
+  'annual_achiever':{type:'trophy', color:'#f5c542', rgb:'245,197,66',
+    inner:'<path d="M-7,-10 L-7,0 C-7,5 7,5 7,0 L7,-10 Z" fill="none" stroke="#f5c542" stroke-width="1.2"/><path d="M-7,-5 C-12,-5 -12,2 -7,2" fill="none" stroke="#f5c542" stroke-width="1"/><path d="M7,-5 C12,-5 12,2 7,2" fill="none" stroke="#f5c542" stroke-width="1"/><line x1="-3" y1="5" x2="3" y2="5" stroke="#f5c542" stroke-width="1.2"/><line x1="-5" y1="8" x2="5" y2="8" stroke="#f5c542" stroke-width="1.5"/>'},
+
+  'on_a_roll':      {type:'medal', color:'#ff8c6b', rgb:'255,140,107',
+    inner:'<path d="M0,-13 C-4,-7 -7,-1 -5,4 C-4,6 -2,8 0,8 C2,8 4,6 5,4 C7,-1 4,-7 0,-13Z" fill="none" stroke="#ff8c6b" stroke-width="1.5"/><path d="M0,-5 C-2,-1 -2,2 0,4 C2,2 2,-1 0,-5Z" fill="#ff8c6b" opacity="0.7"/>'},
+
+  'unstoppable':    {type:'trophy', color:'#ff8c6b', rgb:'255,140,107',
+    inner:'<path d="M-3,-22 C-5,-18 -7,-13 -5,-9" fill="none" stroke="#ff8c6b" stroke-width="1" opacity="0.6"/><path d="M0,-24 C-3,-17 -4,-10 -2,-6 C-1,-4 0,-3 0,-3 C0,-3 1,-4 2,-6 C4,-10 3,-17 0,-24Z" fill="none" stroke="#ff8c6b" stroke-width="1.3"/><path d="M3,-22 C5,-18 7,-13 5,-9" fill="none" stroke="#ff8c6b" stroke-width="1" opacity="0.6"/>'},
+
+  'roi_positive':   {type:'medal', color:'#aaff3e', rgb:'170,255,62',
+    inner:'<path d="M-8,5 L-4,-4 L0,1 L4,-9 L8,1" fill="none" stroke="#aaff3e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polygon points="5,-11 9,-11 9,-7" fill="#aaff3e"/>'},
+
+  'triple_return':  {type:'trophy', color:'#f5c542', rgb:'245,197,66',
+    inner:'<text x="0" y="-8" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#f5c542">3×</text>'},
+
+  'ten_x':          {type:'trophy', color:'#f5c542', rgb:'245,197,66',
+    inner:'<text x="0" y="-8" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#f5c542">10×</text>'},
+
+  'econsquad_mvp':  {type:'trophy', color:'#f5c542', rgb:'245,197,66',
+    inner:'<circle cx="0" cy="-22" r="6" fill="none" stroke="#f5c542" stroke-width="1.2"/><circle cx="0" cy="-22" r="2" fill="#f5c542"/><path d="M0,-30 L0,-28 M8,-28 L7,-26 M11,-22 L9,-22 M8,-16 L7,-18 M0,-14 L0,-16 M-8,-16 L-7,-18 M-11,-22 L-9,-22 M-8,-28 L-7,-26" stroke="#f5c542" stroke-width="1.2" stroke-linecap="round"/>'},
+
+  'ed_of_year':     {type:'crown', color:'#f5c542', rgb:'245,197,66',
+    inner:'<path d="M-10,-42 L-10,-32 L-5,-37 L0,-46 L5,-37 L10,-32 L10,-42 Z" fill="none" stroke="#f5c542" stroke-width="1.5"/><rect x="-11" y="-32" width="22" height="4" rx="1" fill="none" stroke="#f5c542" stroke-width="1.2"/><circle cx="-5" cy="-41" r="2" fill="#f5c542"/><circle cx="5" cy="-41" r="2" fill="#f5c542"/><circle cx="0" cy="-47" r="2.5" fill="#f5c542"/>'},
+};
+
+/* Render a badge SVG icon */
+function renderBadgeIcon(badgeId, size){
+  size=size||56;
+  var bi=BADGE_SVG[badgeId];
+  if(!bi)return '<span style="font-size:28px;">🏆</span>';
+  var half=size/2;
+  var col=bi.color;
+  var rgb=bi.rgb;
+  var opacity='0.12';
+
+  var shapePath='';
+  var shapeStroke=col;
+  var innerTranslateY=0;
+
+  if(bi.type==='shield'){
+    shapePath='M0,-30 L22,-20 L22,2 C22,18 12,28 0,34 C-12,28 -22,18 -22,2 L-22,-20 Z';
+    innerTranslateY=0;
+  } else if(bi.type==='medal'){
+    /* ribbon top + circle */
+    return '<svg width="'+size+'" height="'+size+'" viewBox="-30 -40 60 70" style="overflow:visible">'+
+      '<rect x="-8" y="-38" width="16" height="10" rx="2" fill="rgba('+rgb+',0.15)" stroke="'+col+'" stroke-width="1.2"/>'+
+      '<line x1="-4" y1="-28" x2="-10" y2="-22" stroke="'+col+'" stroke-width="1.5"/>'+
+      '<line x1="4" y1="-28" x2="10" y2="-22" stroke="'+col+'" stroke-width="1.5"/>'+
+      '<circle cx="0" cy="-6" r="18" fill="rgba('+rgb+',0.1)" stroke="'+col+'" stroke-width="2"/>'+
+      '<circle cx="0" cy="-6" r="13" fill="none" stroke="'+col+'" stroke-width="0.8" opacity="0.4"/>'+
+      '<g transform="translate(0,-6)">'+bi.inner+'</g>'+
+      '</svg>';
+  } else if(bi.type==='trophy'||bi.type==='crown'){
+    /* trophy cup shape */
+    var w=bi.type==='crown'?16:13;
+    var h=bi.type==='crown'?50:28;
+    return '<svg width="'+size+'" height="'+size+'" viewBox="-30 -55 60 75" style="overflow:visible">'+
+      '<path d="M-'+w+',-'+h+' L-'+w+',-8 C-'+w+',5 '+w+',5 '+w+',-8 L'+w+',-'+h+' Z" fill="rgba('+rgb+',0.12)" stroke="'+col+'" stroke-width="'+(bi.type==='crown'?'2.5':'1.8')+'"/>'+
+      '<path d="M-'+w+',-'+(h-12)+' C-'+(w+10)+',-'+(h-12)+' -'+(w+10)+',-8 -'+w+',-8" fill="none" stroke="'+col+'" stroke-width="1.4"/>'+
+      '<path d="M'+w+',-'+(h-12)+' C'+(w+10)+',-'+(h-12)+' '+(w+10)+',-8 '+w+',-8" fill="none" stroke="'+col+'" stroke-width="1.4"/>'+
+      '<line x1="-5" y1="5" x2="5" y2="5" stroke="'+col+'" stroke-width="1.2"/>'+
+      '<rect x="-9" y="5" width="18" height="5" rx="1" fill="none" stroke="'+col+'" stroke-width="1.3"/>'+
+      '<line x1="-11" y1="10" x2="11" y2="10" stroke="'+col+'" stroke-width="'+(bi.type==='crown'?'2':'1.6')+'"/>'+
+      bi.inner+
+      '</svg>';
+  }
+
+  return '<svg width="'+size+'" height="'+size+'" viewBox="-26 -34 52 72" style="overflow:visible">'+
+    '<path d="'+shapePath+'" fill="rgba('+rgb+','+opacity+')" stroke="'+col+'" stroke-width="2"/>'+
+    '<path d="M0,-22 L15,-14 L15,2 C15,13 8,20 0,25 C-8,20 -15,13 -15,2 L-15,-14 Z" fill="none" stroke="'+col+'" stroke-width="0.7" opacity="0.4"/>'+
+    bi.inner+
+    '</svg>';
 }
 
 /* ===== INIT ===== */
