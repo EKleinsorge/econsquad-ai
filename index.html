@@ -2356,15 +2356,12 @@ function expandDrawer(){
   drawer.classList.remove('wide','fullscreen');
   if(drawerState===1){
     drawer.classList.add('wide');
-    if(btn)btn.textContent='⤡';
-    if(btn)btn.title='Full screen';
+    if(btn)btn.textContent='⤡ Full screen';
   } else if(drawerState===2){
     drawer.classList.add('fullscreen');
-    if(btn)btn.textContent='⊠';
-    if(btn)btn.title='Restore';
+    if(btn)btn.textContent='⊠ Restore';
   } else {
-    if(btn)btn.textContent='⤢';
-    if(btn)btn.title='Expand';
+    if(btn)btn.textContent='⤢ Expand';
   }
   /* scroll to bottom of messages */
   setTimeout(function(){
@@ -3765,7 +3762,7 @@ loadSpecialistData();
       <div class="drawer-name" id="chat-specialist-name">Specialist</div>
       <div class="drawer-role" id="chat-specialist-role">EconSquad AI</div>
     </div>
-    <button onclick="expandDrawer()" id="drawer-expand-btn" title="Expand" style="background:none;border:none;color:#6b7a96;font-size:16px;cursor:pointer;padding:6px;border-radius:8px;transition:all .15s;margin-right:4px;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#eef3fc'" onmouseout="this.style.background='none';this.style.color='#6b7a96'">⤢</button>
+    <button onclick="expandDrawer()" id="drawer-expand-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#8a97b5;font-size:11px;font-weight:600;cursor:pointer;padding:5px 12px;border-radius:8px;transition:all .2s;margin-right:6px;font-family:'DM Sans',sans-serif;white-space:nowrap;" onmouseover="this.style.background='rgba(170,255,62,0.08)';this.style.borderColor='rgba(170,255,62,0.25)';this.style.color='#aaff3e'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='#8a97b5'">⤢ Expand</button>
     <button class="drawer-close" onclick="closeSpecialistChat()">✕</button>
   </div>
 
