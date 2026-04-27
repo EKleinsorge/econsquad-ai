@@ -4389,43 +4389,94 @@ var voiceRate=0.95;
 var voicePitch=1.05;
 
 /* Init speech recognition */
+var silenceTimer=null;
+var fullTranscript='';
+
 function initSpeechRecognition(){
   var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SpeechRec)return null;
   var rec=new SpeechRec();
-  rec.continuous=false;
-  rec.interimResults=true;
+  rec.continuous=true;      /* keep listening across pauses */
+  rec.interimResults=true;  /* show words as they come */
   rec.lang='en-US';
+  rec.maxAlternatives=1;
+
   rec.onstart=function(){
     isListening=true;
+    fullTranscript='';
     updateMicButton(true);
+    updateVoiceStatus('Listening...');
   };
+
   rec.onresult=function(e){
-    var transcript='';
-    for(var i=e.resultIndex;i<e.results.length;i++){
-      transcript+=e.results[i][0].transcript;
+    var interim='';
+    var final='';
+    for(var i=0;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        final+=e.results[i][0].transcript+' ';
+      } else {
+        interim+=e.results[i][0].transcript;
+      }
     }
+    /* accumulate final results */
+    if(final)fullTranscript=final;
+    var display=fullTranscript+interim;
     var inp=document.getElementById('chat-input');
-    if(inp)inp.value=transcript;
-    if(e.results[e.results.length-1].isFinal){
-      isListening=false;
-      updateMicButton(false);
-      /* auto-send on final result */
-      setTimeout(sendChatMessage,400);
-    }
+    if(inp)inp.value=display.trim();
+
+    /* reset silence timer — wait 2.5s of silence before auto-sending */
+    clearTimeout(silenceTimer);
+    silenceTimer=setTimeout(function(){
+      if(isListening&&fullTranscript.trim()){
+        stopListeningAndSend();
+      }
+    },2500);
   };
+
   rec.onerror=function(e){
+    clearTimeout(silenceTimer);
     isListening=false;
     updateMicButton(false);
+    updateVoiceStatus('Voice ON — mic or type');
     if(e.error==='not-allowed'){
       showVoiceError('Microphone access denied. Please allow mic access in your browser settings.');
+    } else if(e.error==='no-speech'){
+      /* no speech detected — just reset quietly */
     }
   };
+
   rec.onend=function(){
-    isListening=false;
-    updateMicButton(false);
+    /* if still flagged as listening, restart to keep continuous */
+    if(isListening){
+      try{rec.start();}catch(err){
+        isListening=false;
+        updateMicButton(false);
+        updateVoiceStatus('Voice ON — mic or type');
+      }
+    }
   };
+
   return rec;
+}
+
+function stopListeningAndSend(){
+  clearTimeout(silenceTimer);
+  isListening=false;
+  if(speechRecognition){
+    try{speechRecognition.stop();}catch(e){}
+  }
+  updateMicButton(false);
+  updateVoiceStatus('Voice ON — mic or type');
+  var inp=document.getElementById('chat-input');
+  var text=inp?inp.value.trim():'';
+  if(text){
+    setTimeout(sendChatMessage,200);
+  }
+}
+
+function updateVoiceStatus(msg){
+  var el=document.getElementById('voice-status');
+  if(el)el.textContent=msg;
 }
 
 /* Pick best available voice */
@@ -4558,16 +4609,26 @@ function toggleVoiceMode(){
   voiceEnabled=!voiceEnabled;
   var btn=document.getElementById('voice-toggle-btn');
   var label=document.getElementById('voice-toggle-label');
+  var status=document.getElementById('voice-status');
+  var replayBtn=document.getElementById('speaker-btn');
+  var stopBtn=document.getElementById('stop-btn');
   if(voiceEnabled){
     if(btn){btn.style.background='rgba(170,255,62,0.15)';btn.style.borderColor='rgba(170,255,62,0.4)';btn.style.color='#aaff3e';}
     if(label)label.textContent='Voice ON';
-    /* load all voices */
+    if(status)status.textContent='Voice ON — mic or type';
+    if(replayBtn)replayBtn.style.display='flex';
+    /* load voices then speak welcome */
     loadAllVoices();
-    speakText('Voice mode activated. I am ready to listen.');
+    setTimeout(function(){
+      speakText('Voice activated. I am ready.');
+    },600);
   } else {
     stopSpeaking();
     if(btn){btn.style.background='rgba(255,255,255,0.04)';btn.style.borderColor='rgba(255,255,255,0.1)';btn.style.color='#6b7a96';}
     if(label)label.textContent='Voice OFF';
+    if(status)status.textContent='Voice mode off';
+    if(replayBtn)replayBtn.style.display='none';
+    if(stopBtn)stopBtn.style.display='none';
   }
   try{localStorage.setItem('econsquad_voice',voiceEnabled?'1':'0');}catch(e){}
 }
@@ -4579,11 +4640,21 @@ function toggleMic(){
     return;
   }
   if(isListening){
-    if(speechRecognition)speechRecognition.stop();
+    /* manually stop and send */
+    stopListeningAndSend();
     return;
   }
+  /* stop any ongoing speech before listening */
+  if(voiceEnabled)stopSpeaking();
+  var inp=document.getElementById('chat-input');
+  if(inp)inp.value='';
+  fullTranscript='';
   speechRecognition=initSpeechRecognition();
-  if(speechRecognition)speechRecognition.start();
+  if(speechRecognition){
+    try{speechRecognition.start();}catch(e){
+      showVoiceError('Could not start microphone. Please try again.');
+    }
+  }
 }
 
 function updateMicButton(listening){
@@ -4603,15 +4674,26 @@ function updateMicButton(listening){
 }
 
 function updateSpeakerButton(speaking){
-  var btn=document.getElementById('speaker-btn');
-  if(!btn)return;
+  var replayBtn=document.getElementById('speaker-btn');
+  var stopBtn=document.getElementById('stop-btn');
+  var status=document.getElementById('voice-status');
+  if(!voiceEnabled)return;
   if(speaking){
-    btn.style.color='#aaff3e';
-    btn.title='Click to stop';
+    if(replayBtn)replayBtn.style.display='none';
+    if(stopBtn)stopBtn.style.display='flex';
+    if(status)status.textContent='Speaking...';
   } else {
-    btn.style.color='#6b7a96';
-    btn.title='Click to replay';
+    if(replayBtn)replayBtn.style.display='flex';
+    if(stopBtn)stopBtn.style.display='none';
+    if(status)status.textContent='Voice ON — mic or type';
   }
+}
+
+var lastSpokenText='';
+var lastSpokenSpecialist=null;
+
+function replayLastResponse(){
+  if(lastSpokenText)speakText(lastSpokenText,lastSpokenSpecialist);
 }
 
 function showVoiceError(msg){
@@ -5030,15 +5112,23 @@ loadSpecialistData();
     <!-- Voice toggle bar -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:10px;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <!-- Voice ON/OFF toggle -->
+        <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:10px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
           <span id="voice-toggle-label">Voice OFF</span>
         </button>
-        <button id="speaker-btn" onclick="stopSpeaking()" title="Stop speaking" style="background:none;border:none;color:#6b7a96;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:color .2s;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        <!-- Replay last response -->
+        <button id="speaker-btn" onclick="replayLastResponse()" title="Replay last response" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:10px;font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Replay
+        </button>
+        <!-- Stop speaking -->
+        <button id="stop-btn" onclick="stopSpeaking()" title="Stop speaking" style="display:none;align-items:center;gap:5px;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff8080;font-size:10px;font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          Stop
         </button>
       </div>
-      <div style="font-size:10px;color:#4a5568;">Speak or type your response</div>
+      <div id="voice-status" style="font-size:10px;color:#4a5568;">Voice mode off</div>
     </div>
 
     <div class="drawer-input-row">
