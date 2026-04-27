@@ -1236,8 +1236,71 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
 
       <div class="page main dash-tab" id="mystats-tab">
-        <div class="stats-page-header"><h1>My Stats & ROI</h1><p>Your squad's real impact — time saved, value recovered, and projected year-end earnings.</p>
-      <div id="badge-showcase-container" style="padding:20px 0 40px;"></div>
+        <!-- Sub-tab navigation -->
+        <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:24px;">
+          <button class="stats-subtab active" id="subtab-overview" onclick="switchStatsTab('overview',this)" style="background:none;border:none;border-bottom:2px solid #aaff3e;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;transition:all .2s;">Overview</button>
+          <button class="stats-subtab" id="subtab-badges" onclick="switchStatsTab('badges',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;transition:all .2s;">Badges <span id="badge-count-pill" style="background:rgba(170,255,62,0.12);color:#aaff3e;font-size:10px;padding:1px 7px;border-radius:10px;margin-left:4px;">0</span></button>
+          <button class="stats-subtab" id="subtab-roi" onclick="switchStatsTab('roi',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;transition:all .2s;">ROI Calculator</button>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div id="statsview-overview">
+          <div class="stats-page-header"><h1>My Stats</h1><p>Your squad's real impact — time saved, value recovered, missions completed.</p></div>
+          <!-- XP & Level card -->
+          <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div id="stat-level" style="font-family:'Barlow',sans-serif;font-size:32px;font-weight:900;color:#aaff3e;">Lvl 1</div>
+                <div>
+                  <div id="stat-level-title" style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;">🎖️ Recruit</div>
+                  <div id="stat-xp" style="font-size:12px;color:#6b7a96;margin-top:2px;">0 XP</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;color:#6b7a96;margin-bottom:4px;">Progress to next level</div>
+                <div id="xp-progress-label" style="font-size:11px;color:#8a97b5;">0% to Field Agent</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:8px;overflow:hidden;">
+              <div id="xp-progress-bar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#8a97b5,#64afff);transition:width 1s ease;"></div>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-val" id="stat-missions">0</div><div class="stat-lbl">Missions this month</div><div class="stat-delta" id="stat-missions-delta">Getting started...</div></div>
+            <div class="stat-card"><div class="stat-val gold" id="stat-hours">0</div><div class="stat-lbl">Hours saved total</div><div class="stat-delta" id="stat-hours-delta">Based on your tasks</div></div>
+            <div class="stat-card"><div class="stat-val" id="stat-specialists">0</div><div class="stat-lbl">Specialists used</div><div class="stat-delta" id="stat-specialists-delta">Of 18 available</div></div>
+            <div class="stat-card"><div class="stat-val green" id="stat-days">0</div><div class="stat-lbl">Days on EconSquad</div><div class="stat-delta" id="stat-days-delta">Keep building momentum</div></div>
+          </div>
+        </div>
+
+        <!-- BADGES TAB -->
+        <div id="statsview-badges" style="display:none;">
+          <div id="badge-showcase-container" style="padding:4px 0 40px;"></div>
+        </div>
+
+        <!-- ROI TAB -->
+        <div id="statsview-roi" style="display:none;">
+          <div class="stats-page-header"><h1>ROI Calculator</h1><p>See exactly how much your squad is earning back for you.</p></div>
+          <div class="roi-hero">
+            <h3>Squad ROI Calculator</h3>
+            <p>Enter your annual salary to see exactly how much your squad is earning back for you</p>
+            <div class="roi-salary-row">
+              <span class="roi-salary-label">Annual salary:</span>
+              <input class="roi-input" type="number" id="sal" value="85000" oninput="calcROI()">
+              <button class="btn-primary" style="padding:8px 14px;font-size:12px;" onclick="calcROI()">Recalculate</button>
+            </div>
+            <div class="roi-big-nums">
+              <div class="roi-big-card gold"><div class="rbv" id="r-saved">$0</div><div class="rbl">Value recovered<br>year to date</div></div>
+              <div class="roi-big-card lime"><div class="rbv" id="r-mult">0x</div><div class="rbl">Return on your<br>subscription</div></div>
+              <div class="roi-big-card green"><div class="rbv" id="r-proj">$0</div><div class="rbl">Projected<br>year-end value</div></div>
+              <div class="roi-big-card blue"><div class="rbv" id="r-hourly">$0</div><div class="rbl">Your effective<br>hourly rate</div></div>
+            </div>
+          </div>
+          <div class="savings-breakdown">
+            <div class="sb-card"><h4>Time savings breakdown</h4><div class="sb-row"><span class="sbn">Total hours saved</span><span class="sbv lime" id="sb-hours">0 hrs</span></div><div class="sb-row"><span class="sbn">Avg per session</span><span class="sbv">20 min</span></div><div class="sb-row"><span class="sbn">vs manual task time</span><span class="sbv">3.8 hrs avg</span></div><div class="sb-row"><span class="sbn">Workdays recovered</span><span class="sbv lime" id="sb-days">0 days</span></div></div>
+            <div class="sb-card"><h4>Subscription ROI</h4><div class="sb-row"><span class="sbn">Monthly cost</span><span class="sbv">$79/mo</span></div><div class="sb-row"><span class="sbn">Value recovered</span><span class="sbv lime" id="sb-saved">$0</span></div><div class="sb-row"><span class="sbn">Net gain</span><span class="sbv lime" id="sb-net">$0</span></div><div class="sb-row"><span class="sbn">Break-even day</span><span class="sbv" id="sb-breakeven">Day 1</span></div></div>
+          </div>
+        </div>
       </div>
         <div class="roi-hero">
           <h3>Squad ROI Calculator</h3>
@@ -3493,8 +3556,11 @@ showDashTab=function(tabId,el){
   if(tabId==='history-tab')loadHistory();
   if(tabId==='home-tab')loadUserStats();
   if(tabId==='mystats-tab'){
-    var bsc=document.getElementById('badge-showcase-container');
-    if(bsc)renderBadgeShowcase(bsc);
+    /* default to overview tab */
+    switchStatsTab('overview', document.getElementById('subtab-overview'));
+    /* update badge pill count */
+    var pill=document.getElementById('badge-count-pill');
+    if(pill)pill.textContent=Object.keys(earnedBadges).length||'0';
   }
 };
 
@@ -3783,6 +3849,9 @@ function updateBadgeCount(){
   var count=Object.keys(earnedBadges).length;
   var el=document.getElementById('badge-count-display');
   if(el)el.textContent=count+' / '+Object.keys(BADGES).length+' badges earned';
+  /* update pill in stats tab */
+  var pill=document.getElementById('badge-count-pill');
+  if(pill)pill.textContent=count||'0';
 }
 
 /* Award a badge */
@@ -4073,6 +4142,32 @@ function loadUserLevel(){
 function updateLastActive(){
   if(!currentUser)return;
   supa.from('profiles').update({updated_at:new Date().toISOString()}).eq('id',currentUser.id);
+}
+
+
+/* ===== STATS SUB-TABS ===== */
+function switchStatsTab(tab, btn){
+  /* hide all */
+  ['overview','badges','roi'].forEach(function(t){
+    var el=document.getElementById('statsview-'+t);
+    if(el)el.style.display='none';
+  });
+  /* show selected */
+  var sel=document.getElementById('statsview-'+tab);
+  if(sel)sel.style.display='block';
+  /* update buttons */
+  document.querySelectorAll('.stats-subtab').forEach(function(b){
+    b.style.borderBottomColor='transparent';
+    b.style.color='#6b7a96';
+  });
+  if(btn){btn.style.borderBottomColor='#aaff3e';btn.style.color='#aaff3e';}
+  /* load content */
+  if(tab==='badges'){
+    var bsc=document.getElementById('badge-showcase-container');
+    if(bsc)renderBadgeShowcase(bsc);
+  }
+  if(tab==='roi')calcROI();
+  if(tab==='overview')loadUserStats();
 }
 
 /* ===== INIT ===== */
