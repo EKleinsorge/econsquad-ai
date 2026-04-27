@@ -2988,11 +2988,15 @@ function callSpecialist(userMessage){
     if(btn){btn.disabled=false;btn.style.opacity='1';}
 
     if(data.error){
-      addChatMessage('specialist','I apologize — I ran into a technical issue. Please try again.');
+      addChatMessage('specialist','DEBUG ERROR: ' + data.error);
       return;
     }
 
     var reply=data.reply||'';
+    if(!reply){
+      addChatMessage('specialist','DEBUG: No reply in response. Raw: '+JSON.stringify(data).slice(0,200));
+      return;
+    }
     addChatMessage('specialist',reply);
 
     /* check if this looks like a final output — long response with structured content */
@@ -3003,7 +3007,7 @@ function callSpecialist(userMessage){
     hideTyping();
     chatState.isTyping=false;
     if(btn){btn.disabled=false;btn.style.opacity='1';}
-    addChatMessage('specialist','Sorry, I had a connection issue. Please try again.');
+    addChatMessage('specialist','DEBUG CATCH: ' + (err ? err.message : 'unknown'));
   });
 }
 
