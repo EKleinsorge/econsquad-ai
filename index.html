@@ -617,6 +617,39 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   #specialist-drawer,#specialist-drawer.wide{width:100vw;}
 }
 
+/* ===== BADGE SYSTEM ===== */
+.badge-toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);
+  background:rgba(8,14,28,0.97);border:1px solid rgba(170,255,62,0.35);
+  border-radius:16px;padding:16px 22px;z-index:99999;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 8px 40px rgba(170,255,62,0.15),0 2px 12px rgba(0,0,0,0.5);
+  transition:transform .5s cubic-bezier(0.34,1.56,0.64,1),opacity .5s ease;
+  opacity:0;min-width:300px;max-width:420px;
+  backdrop-filter:blur(20px);
+}
+.badge-toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.badge-toast-icon{font-size:36px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(255,255,255,.3));}
+.badge-toast-content{}
+.badge-toast-label{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
+.badge-toast-name{font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:2px;}
+.badge-toast-desc{font-size:12px;color:#8a97b5;line-height:1.4;}
+
+/* Badge showcase grid */
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-top:16px;}
+.badge-item{
+  background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;padding:16px 12px;text-align:center;
+  transition:transform .2s,border-color .2s;
+}
+.badge-item.earned{border-color:rgba(170,255,62,0.25);background:rgba(170,255,62,0.04);}
+.badge-item.earned:hover{transform:translateY(-3px);border-color:rgba(170,255,62,0.4);}
+.badge-item:not(.earned){filter:grayscale(1);opacity:.35;}
+.badge-icon{font-size:32px;margin-bottom:8px;display:block;}
+.badge-name{font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#eef3fc;line-height:1.3;margin-bottom:4px;}
+.badge-desc-sm{font-size:10px;color:#6b7a96;line-height:1.4;}
+.badge-earned-date{font-size:9px;color:#aaff3e;margin-top:4px;font-weight:700;}
+
 </style>
 </head>
 <body>
@@ -683,6 +716,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div id="pm-name" style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#eef3fc;"></div>
               <div id="pm-email" style="font-size:11px;color:#6b7a96;margin-top:2px;"></div>
               <div id="pm-plan" style="font-size:10px;color:#aaff3e;font-weight:700;text-transform:uppercase;margin-top:4px;letter-spacing:.06em;"></div>
+              <div id="pm-badges" style="font-size:11px;color:#f5c542;margin-top:2px;"></div>
             </div>
             <!-- Logo upload -->
             <div style="padding:6px 4px;">
@@ -1146,7 +1180,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
 
       <div class="page main dash-tab" id="mystats-tab">
-        <div class="stats-page-header"><h1>My Stats & ROI</h1><p>Your squad's real impact — time saved, value recovered, and projected year-end earnings.</p></div>
+        <div class="stats-page-header"><h1>My Stats & ROI</h1><p>Your squad's real impact — time saved, value recovered, and projected year-end earnings.</p>
+      <div id="badge-showcase-container" style="padding:20px 0 40px;"></div>
+      </div>
         <div class="roi-hero">
           <h3>Squad ROI Calculator</h3>
           <p>Enter your annual salary to see exactly how much your squad is earning back for you</p>
@@ -1679,6 +1715,8 @@ function onSignedIn(user){
   setTimeout(loadSpecialistData,200);
   /* update plan badge with days remaining */
   setTimeout(function(){updatePlanBadge(user);},600);
+  /* load badges */
+  setTimeout(loadBadges,700);
   /* update greeting with real first name */
   var greetEl=document.getElementById('dash-greeting-name');
   if(greetEl){
@@ -3240,7 +3278,10 @@ function saveTaskToHistory(output){
     prompt:userMsgs.slice(0,500),
     result:output,
     hours_saved:parseFloat((s.save||'2.0').replace(/[^0-9.]/g,''))||2,
-  }).then(function(){loadUserStats();});
+  }).then(function(){
+    loadUserStats();
+    setTimeout(runBadgeCheck,1000);
+  });
 }
 
 
@@ -3391,6 +3432,10 @@ showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
   if(tabId==='home-tab')loadUserStats();
+  if(tabId==='mystats-tab'){
+    var bsc=document.getElementById('badge-showcase-container');
+    if(bsc)renderBadgeShowcase(bsc);
+  }
 };
 
 
@@ -3608,6 +3653,240 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   }
 });
+
+
+/* ===== BADGE SYSTEM ===== */
+var BADGES={
+  /* Getting Started */
+  'first_deploy':   {icon:'🚀',name:'First Deployment',   desc:'Completed your first specialist task',        cat:'Getting Started'},
+  'squad_member':   {icon:'👥',name:'Squad Member',        desc:'Used 3 different specialists',                cat:'Getting Started'},
+  'full_squad':     {icon:'🏟️', name:'Full Squad',          desc:'Deployed all 18 specialists at least once',   cat:'Getting Started'},
+
+  /* Time Saved */
+  'time_hacker':    {icon:'⏱️', name:'Time Hacker',         desc:'Saved your first 10 hours',                  cat:'Time Saved'},
+  'workday_winner': {icon:'📅',name:'Workday Winner',      desc:'Saved 40 hours — a full work week',           cat:'Time Saved'},
+  'month_reclaimed':{icon:'🗓️', name:'Month Reclaimed',     desc:'Saved 160 hours — a full work month',        cat:'Time Saved'},
+  'time_lord':      {icon:'⚡',name:'Time Lord',           desc:'Saved 500 total hours with your squad',      cat:'Time Saved'},
+
+  /* Grant Writing */
+  'funded':         {icon:'💰',name:'Funded!',             desc:'Completed your first grant with Gary',        cat:'Grant Writing'},
+  'grant_machine':  {icon:'🏭',name:'Grant Machine',       desc:'Completed 10 grants with Gary',               cat:'Grant Writing'},
+  'funding_finder': {icon:'🔍',name:'Funding Finder',      desc:'Discovered grants with Fiona',                cat:'Grant Writing'},
+  'rfp_slayer':     {icon:'⚔️', name:'RFP Slayer',          desc:'Completed 5 RFP responses with Rex',         cat:'Grant Writing'},
+
+  /* Strategy & Data */
+  'swot_master':    {icon:'♟️', name:'SWOT Master',         desc:'Completed a SWOT analysis with Stella',      cat:'Strategy'},
+  'market_intel':   {icon:'🎯',name:'Market Intel',        desc:'Completed a market analysis with Marcus',     cat:'Strategy'},
+  'impact_maker':   {icon:'📊',name:'Impact Maker',        desc:'Calculated economic impact with Ivan',        cat:'Strategy'},
+  'tax_sleuth':     {icon:'🔎',name:'Tax Sleuth',          desc:'Found tax credits with Ted',                  cat:'Strategy'},
+
+  /* Business Development */
+  'bre_champion':   {icon:'🤝',name:'BRE Champion',        desc:'Completed 5 BRE surveys with Blake',         cat:'Business Dev'},
+  'retention_pro':  {icon:'🏆',name:'Retention Pro',       desc:'Wrote 3 BRE reports with Rita',               cat:'Business Dev'},
+  'site_scout':     {icon:'📍',name:'Site Scout',          desc:'Scored 3 sites with Scott',                   cat:'Business Dev'},
+  'incentive_ace':  {icon:'💎',name:'Incentive Ace',       desc:'Built an incentive package with Ivy',         cat:'Business Dev'},
+
+  /* Communications */
+  'press_ready':    {icon:'📰',name:'Press Ready',         desc:'Wrote 3 press releases with Parker',          cat:'Communications'},
+  'social_star':    {icon:'⭐',name:'Social Star',         desc:'Created 5 social packages with Suzie',        cat:'Communications'},
+  'board_ready':    {icon:'📋',name:'Board Ready',         desc:'Wrote 5 board reports with Brett',            cat:'Communications'},
+  'annual_achiever':{icon:'🏅',name:'Annual Achiever',     desc:'Completed an annual report with Annie',       cat:'Communications'},
+
+  /* Streaks */
+  'on_a_roll':      {icon:'🔥',name:'On A Roll',           desc:'Used your squad 5 days in a row',             cat:'Streaks'},
+  'unstoppable':    {icon:'💫',name:'Unstoppable',         desc:'Used your squad 30 days in a row',            cat:'Streaks'},
+
+  /* ROI Milestones */
+  'roi_positive':   {icon:'📈',name:'ROI Positive',        desc:'Your squad has paid for itself',               cat:'ROI'},
+  'triple_return':  {icon:'🎰',name:'Triple Return',       desc:'3x return on your subscription',              cat:'ROI'},
+  'ten_x':          {icon:'🚀',name:'10X Return',          desc:'10x return on your subscription',             cat:'ROI'},
+
+  /* Elite */
+  'econsquad_mvp':  {icon:'🥇',name:'EconSquad MVP',       desc:'Earned 10 badges',                            cat:'Elite'},
+  'ed_of_year':     {icon:'👑',name:'ED of the Year',      desc:'Earned every single badge',                   cat:'Elite'},
+};
+
+var earnedBadges={};
+
+/* Load badges from Supabase */
+function loadBadges(){
+  if(!currentUser)return;
+  supa.from('user_badges').select('*').eq('user_id',currentUser.id).then(function(res){
+    earnedBadges={};
+    (res.data||[]).forEach(function(b){earnedBadges[b.badge_id]=b.earned_at;});
+    /* update badge count in profile menu */
+    updateBadgeCount();
+  });
+}
+
+function updateBadgeCount(){
+  var count=Object.keys(earnedBadges).length;
+  var el=document.getElementById('badge-count-display');
+  if(el)el.textContent=count+' / '+Object.keys(BADGES).length+' badges earned';
+}
+
+/* Award a badge */
+function awardBadge(badgeId){
+  if(!currentUser||earnedBadges[badgeId])return; /* already earned */
+  var badge=BADGES[badgeId];
+  if(!badge)return;
+
+  /* save to Supabase */
+  supa.from('user_badges').insert({
+    user_id:currentUser.id,
+    badge_id:badgeId
+  }).then(function(res){
+    if(res.error)return;
+    earnedBadges[badgeId]=new Date().toISOString();
+    updateBadgeCount();
+    showBadgeToast(badge);
+    /* check for MVP / ED of year */
+    setTimeout(function(){checkEliteBadges();},1000);
+  });
+}
+
+/* Show badge toast notification */
+function showBadgeToast(badge){
+  var existing=document.querySelector('.badge-toast');
+  if(existing)existing.remove();
+
+  var toast=document.createElement('div');
+  toast.className='badge-toast';
+  toast.innerHTML=
+    '<div class="badge-toast-icon">'+badge.icon+'</div>'+
+    '<div class="badge-toast-content">'+
+      '<div class="badge-toast-label">🏆 Badge Unlocked!</div>'+
+      '<div class="badge-toast-name">'+badge.name+'</div>'+
+      '<div class="badge-toast-desc">'+badge.desc+'</div>'+
+    '</div>';
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.classList.add('show');},50);
+  setTimeout(function(){
+    toast.classList.remove('show');
+    setTimeout(function(){if(toast.parentNode)toast.remove();},600);
+  },4500);
+}
+
+/* Check badges after every task */
+function checkBadges(taskHistory,totalHours,specCounts){
+  if(!currentUser)return;
+
+  var totalTasks=taskHistory.length;
+  var uniqueSpecs=new Set(taskHistory.map(function(t){return t.specialist_id;})).size;
+
+  /* Getting Started */
+  if(totalTasks>=1)awardBadge('first_deploy');
+  if(uniqueSpecs>=3)awardBadge('squad_member');
+  if(uniqueSpecs>=18)awardBadge('full_squad');
+
+  /* Time Saved */
+  if(totalHours>=10)awardBadge('time_hacker');
+  if(totalHours>=40)awardBadge('workday_winner');
+  if(totalHours>=160)awardBadge('month_reclaimed');
+  if(totalHours>=500)awardBadge('time_lord');
+
+  /* Grant Writing — specialist IDs */
+  var garyCt=(specCounts[1]||0);
+  var fionaCt=(specCounts[2]||0);
+  var rexCt=(specCounts[3]||0);
+  if(garyCt>=1)awardBadge('funded');
+  if(garyCt>=10)awardBadge('grant_machine');
+  if(fionaCt>=1)awardBadge('funding_finder');
+  if(rexCt>=5)awardBadge('rfp_slayer');
+
+  /* Strategy */
+  if((specCounts[9]||0)>=1)awardBadge('swot_master');
+  if((specCounts[10]||0)>=1)awardBadge('market_intel');
+  if((specCounts[8]||0)>=1)awardBadge('impact_maker');
+  if((specCounts[12]||0)>=1)awardBadge('tax_sleuth');
+
+  /* Business Dev */
+  if((specCounts[6]||0)>=5)awardBadge('bre_champion');
+  if((specCounts[7]||0)>=3)awardBadge('retention_pro');
+  if((specCounts[4]||0)>=3)awardBadge('site_scout');
+  if((specCounts[11]||0)>=1)awardBadge('incentive_ace');
+
+  /* Communications */
+  if((specCounts[13]||0)>=3)awardBadge('press_ready');
+  if((specCounts[14]||0)>=5)awardBadge('social_star');
+  if((specCounts[18]||0)>=5)awardBadge('board_ready');
+  if((specCounts[17]||0)>=1)awardBadge('annual_achiever');
+
+  /* ROI — $29/mo = ~$1/day, each hour = ~$36 value */
+  var roiMultiple=totalHours*36/29;
+  if(roiMultiple>=1)awardBadge('roi_positive');
+  if(roiMultiple>=3)awardBadge('triple_return');
+  if(roiMultiple>=10)awardBadge('ten_x');
+}
+
+function checkEliteBadges(){
+  var count=Object.keys(earnedBadges).length;
+  if(count>=10)awardBadge('econsquad_mvp');
+  if(count>=Object.keys(BADGES).length-2)awardBadge('ed_of_year');
+}
+
+/* Call checkBadges after saving a task */
+function runBadgeCheck(){
+  if(!currentUser)return;
+  supa.from('task_history').select('*').eq('user_id',currentUser.id).then(function(res){
+    var tasks=res.data||[];
+    var totalHours=tasks.reduce(function(s,t){return s+(parseFloat(t.hours_saved)||0);},0);
+    var specCounts={};
+    tasks.forEach(function(t){specCounts[t.specialist_id]=(specCounts[t.specialist_id]||0)+1;});
+    checkBadges(tasks,totalHours,specCounts);
+  });
+}
+
+/* Badge showcase HTML */
+function renderBadgeShowcase(container){
+  if(!container)return;
+  /* Group by category */
+  var cats={};
+  Object.entries(BADGES).forEach(function(entry){
+    var id=entry[0],b=entry[1];
+    if(!cats[b.cat])cats[b.cat]=[];
+    cats[b.cat].push({id:id,badge:b});
+  });
+
+  container.innerHTML='';
+  var earnedCount=Object.keys(earnedBadges).length;
+  var totalCount=Object.keys(BADGES).length;
+
+  /* header */
+  var hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:20px;';
+  hdr.innerHTML='<div style="font-family:Barlow,sans-serif;font-size:22px;font-weight:900;color:#eef3fc;">My Badges</div>'+
+    '<div style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:800;padding:3px 10px;border-radius:10px;">'+earnedCount+' / '+totalCount+' earned</div>';
+  container.appendChild(hdr);
+
+  Object.entries(cats).forEach(function(catEntry){
+    var catName=catEntry[0],items=catEntry[1];
+    var catDiv=document.createElement('div');
+    catDiv.style.marginBottom='24px';
+    var catLabel=document.createElement('div');
+    catLabel.style.cssText='font-size:10px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;';
+    catLabel.textContent=catName;
+    catDiv.appendChild(catLabel);
+
+    var grid=document.createElement('div');
+    grid.className='badge-grid';
+
+    items.forEach(function(item){
+      var earned=earnedBadges[item.id];
+      var div=document.createElement('div');
+      div.className='badge-item'+(earned?' earned':'');
+      var dateStr=earned?new Date(earned).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      div.innerHTML=
+        '<span class="badge-icon">'+item.badge.icon+'</span>'+
+        '<div class="badge-name">'+item.badge.name+'</div>'+
+        '<div class="badge-desc-sm">'+item.badge.desc+'</div>'+
+        (earned?'<div class="badge-earned-date">Earned '+dateStr+'</div>':'');
+      grid.appendChild(div);
+    });
+    catDiv.appendChild(grid);
+    container.appendChild(catDiv);
+  });
+}
 
 /* ===== INIT ===== */
 renderSquad();
