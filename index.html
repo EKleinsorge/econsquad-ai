@@ -640,11 +640,48 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .badge-item{
   background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);
   border-radius:14px;padding:16px 12px;text-align:center;
-  transition:transform .2s,border-color .2s;
+  transition:transform .25s,border-color .25s,box-shadow .25s,opacity .25s,filter .25s;
+  position:relative;cursor:pointer;
 }
 .badge-item.earned{border-color:rgba(170,255,62,0.25);background:rgba(170,255,62,0.04);}
-.badge-item.earned:hover{transform:translateY(-3px);border-color:rgba(170,255,62,0.4);}
-.badge-item:not(.earned){filter:grayscale(1);opacity:.35;}
+.badge-item.earned:hover{
+  transform:translateY(-4px);
+  border-color:rgba(170,255,62,0.5);
+  box-shadow:0 8px 24px rgba(170,255,62,0.12);
+}
+.badge-item:not(.earned){filter:grayscale(1);opacity:.3;}
+.badge-item:not(.earned):hover{
+  filter:grayscale(0.3);
+  opacity:.75;
+  border-color:rgba(255,255,255,0.2);
+  box-shadow:0 4px 20px rgba(255,255,255,0.05);
+  transform:translateY(-2px);
+}
+
+/* Badge hover tooltip */
+.badge-item .badge-hover-tip{
+  position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  background:rgba(6,8,18,0.98);border:1px solid rgba(255,255,255,0.12);
+  border-radius:10px;padding:10px 14px;width:180px;
+  font-size:11px;color:#8a97b5;line-height:1.5;
+  opacity:0;pointer-events:none;
+  transition:opacity .2s ease;
+  z-index:100;white-space:normal;text-align:left;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.badge-item .badge-hover-tip::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:rgba(255,255,255,0.12);
+}
+.badge-item:hover .badge-hover-tip{opacity:1;}
+.badge-item:not(.earned) .badge-hover-tip .tip-status{
+  color:#f5c542;font-weight:700;font-size:10px;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;
+}
+.badge-item.earned .badge-hover-tip .tip-status{
+  color:#aaff3e;font-weight:700;font-size:10px;
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;
+}
 .badge-icon{font-size:32px;margin-bottom:8px;display:block;}
 .badge-name{font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#eef3fc;line-height:1.3;margin-bottom:4px;}
 .badge-desc-sm{font-size:10px;color:#6b7a96;line-height:1.4;}
@@ -3875,12 +3912,20 @@ function renderBadgeShowcase(container){
       var earned=earnedBadges[item.id];
       var div=document.createElement('div');
       div.className='badge-item'+(earned?' earned':'');
-      var dateStr=earned?new Date(earned).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      var dateStr=earned?new Date(earned).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+
+      /* hover tooltip */
+      var tipHtml='<div class="badge-hover-tip">'+
+        '<div class="tip-status">'+(earned?'✓ Earned '+dateStr:'🔒 Not Earned Yet')+'</div>'+
+        item.badge.desc+
+      '</div>';
+
       div.innerHTML=
+        tipHtml+
         '<span class="badge-icon">'+item.badge.icon+'</span>'+
         '<div class="badge-name">'+item.badge.name+'</div>'+
         '<div class="badge-desc-sm">'+item.badge.desc+'</div>'+
-        (earned?'<div class="badge-earned-date">Earned '+dateStr+'</div>':'');
+        (earned?'<div class="badge-earned-date">✓ Earned '+dateStr+'</div>':'<div style="font-size:9px;color:#4a5568;margin-top:4px;">Hover to see how</div>');
       grid.appendChild(div);
     });
     catDiv.appendChild(grid);
