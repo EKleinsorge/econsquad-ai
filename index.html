@@ -601,6 +601,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .hist-btn:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
 .hist-filter.active{background:rgba(170,255,62,0.12) !important;border-color:rgba(170,255,62,0.3) !important;color:#aaff3e !important;}
 
+/* ===== DRAWER EXPAND STATES ===== */
+#specialist-drawer.wide{width:780px;}
+#specialist-drawer.fullscreen{
+  width:100vw;height:100vh;top:0;right:0;
+  border-left:none;border-radius:0;
+}
+#specialist-drawer.fullscreen .drawer-messages{max-height:none;}
+@media(max-width:800px){
+  #specialist-drawer,#specialist-drawer.wide{width:100vw;}
+}
+
 </style>
 </head>
 <body>
@@ -2334,6 +2345,35 @@ window.addEventListener('load',function(){
 var _origOnSignedIn=null;
 
 
+
+/* ===== DRAWER EXPAND ===== */
+var drawerState=0; /* 0=normal, 1=wide, 2=fullscreen */
+function expandDrawer(){
+  var drawer=document.getElementById('specialist-drawer');
+  var btn=document.getElementById('drawer-expand-btn');
+  if(!drawer)return;
+  drawerState=(drawerState+1)%3;
+  drawer.classList.remove('wide','fullscreen');
+  if(drawerState===1){
+    drawer.classList.add('wide');
+    if(btn)btn.textContent='⤡';
+    if(btn)btn.title='Full screen';
+  } else if(drawerState===2){
+    drawer.classList.add('fullscreen');
+    if(btn)btn.textContent='⊠';
+    if(btn)btn.title='Restore';
+  } else {
+    if(btn)btn.textContent='⤢';
+    if(btn)btn.title='Expand';
+  }
+  /* scroll to bottom of messages */
+  setTimeout(function(){
+    var msgs=document.getElementById('chat-messages');
+    if(msgs)msgs.scrollTop=msgs.scrollHeight;
+  },350);
+}
+
+/* reset drawer size when closing */
 /* ===== PROFILE MENU & LOGO UPLOAD ===== */
 function toggleProfileMenu(){
   var menu=document.getElementById('profile-menu');
@@ -2443,11 +2483,11 @@ function loadUserStats(){
       var missionCount=thisMonth.length;
 
       /* total hours saved */
-      var totalHours=tasks.reduce(function(sum,t){return sum+(t.hours_saved||0);},0);
+      var totalHours=tasks.reduce(function(sum,t){return sum+(parseFloat(t.hours_saved)||0);},0);
 
       /* unique specialists used */
-      var specialists=new Set(tasks.map(function(t){return t.specialist_id;}));
-      var specCount=specialists.size;
+      var specSet=new Set(tasks.map(function(t){return t.specialist_id;}));
+      var specCount=specSet.size;
 
       /* most used specialist */
       var specUsage={};
@@ -2460,7 +2500,7 @@ function loadUserStats(){
 
       /* days since signup */
       var createdAt=new Date(currentUser.created_at);
-      var daysSince=Math.floor((now-createdAt)/(1000*60*60*24));
+      var daysSince=Math.max(0,Math.floor((now-createdAt)/(1000*60*60*24)));
 
       /* update stat cards */
       var sm=document.getElementById('stat-missions');
@@ -2886,6 +2926,8 @@ function closeSpecialistChat(){
   if(overlay){overlay.style.opacity='0';setTimeout(function(){overlay.style.display='none';},300);}
   chatState.specialistId=null;
   chatState.messages=[];
+  /* refresh stats so cards update immediately */
+  setTimeout(loadUserStats,500);
 }
 
 function continueChat(){
@@ -3333,6 +3375,7 @@ var _origShowDashTab=showDashTab;
 showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
+  if(tabId==='home-tab')loadUserStats();
 };
 
 /* ===== INIT ===== */
@@ -3722,6 +3765,7 @@ loadSpecialistData();
       <div class="drawer-name" id="chat-specialist-name">Specialist</div>
       <div class="drawer-role" id="chat-specialist-role">EconSquad AI</div>
     </div>
+    <button onclick="expandDrawer()" id="drawer-expand-btn" title="Expand" style="background:none;border:none;color:#6b7a96;font-size:16px;cursor:pointer;padding:6px;border-radius:8px;transition:all .15s;margin-right:4px;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#eef3fc'" onmouseout="this.style.background='none';this.style.color='#6b7a96'">⤢</button>
     <button class="drawer-close" onclick="closeSpecialistChat()">✕</button>
   </div>
 
