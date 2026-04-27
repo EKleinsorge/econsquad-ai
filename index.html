@@ -3241,27 +3241,56 @@ function renderHistory(items){
     var d=new Date(h.created_at);
     var dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
-    card.innerHTML=
-      '<div class="hist-card-header">'+
-        '<div class="hist-orb" style="background:radial-gradient(circle at 36% 32%,'+(col?col.hi:'#ffd23c')+','+(col?col.mid:'#f5c542')+');">'+
-          (getSpecialistEmoji(h.specialist_id)||'⚡')+
-        '</div>'+
-        '<div>'+
-          '<div class="hist-specialist">'+(h.specialist_name||'Specialist')+'</div>'+
-          '<div style="font-size:10px;color:#6b7a96;">'+(h.hours_saved?h.hours_saved+' hrs saved':'')+'</div>'+
-        '</div>'+
-        '<div class="hist-date">'+dateStr+'</div>'+
-      '</div>'+
-      (h.prompt?'<div class="hist-prompt"><strong style="color:#8a97b5;">You:</strong> '+escHtml(h.prompt.slice(0,120))+(h.prompt.length>120?'...':'')+'</div>':'')+
-      (h.result?'<div class="hist-output">'+escHtml(h.result.slice(0,200))+(h.result.length>200?'...':'')+'</div>':'')+
-      '<div class="hist-footer">'+
-        '<span class="hist-save">'+(h.hours_saved?'⏱ '+h.hours_saved+' hours saved':'')+'</span>'+
-        '<div class="hist-actions">'+
-          '<button class="hist-btn" onclick="copyHistoryItem(''+h.id+'')">📋 Copy</button>'+
-          '<button class="hist-btn" onclick="reopenHistoryItem(''+h.id+'')">↗ Reopen</button>'+
-        '</div>'+
-      '</div>';
+        var specName=h.specialist_name||'Specialist';
+    var hours=h.hours_saved?h.hours_saved+' hrs saved':'';
+    var prompt=h.prompt?h.prompt.slice(0,120)+(h.prompt.length>120?'...':''):'';
+    var result=h.result?h.result.slice(0,200)+(h.result.length>200?'...':''):'';
+    var colHi=col?col.hi:'#ffd23c';
+    var colMid=col?col.mid:'#f5c542';
 
+    var header=document.createElement('div');
+    header.className='hist-card-header';
+
+    var orb=document.createElement('div');
+    orb.className='hist-orb';
+    orb.style.background='radial-gradient(circle at 36% 32%,'+colHi+','+colMid+')';
+    orb.textContent=getSpecialistEmoji(h.specialist_id);
+
+    var nameDiv=document.createElement('div');
+    var n1=document.createElement('div');n1.className='hist-specialist';n1.textContent=specName;
+    var n2=document.createElement('div');n2.style.cssText='font-size:10px;color:#6b7a96;';n2.textContent=hours;
+    nameDiv.appendChild(n1);nameDiv.appendChild(n2);
+
+    var dateDiv=document.createElement('div');dateDiv.className='hist-date';dateDiv.textContent=dateStr;
+    header.appendChild(orb);header.appendChild(nameDiv);header.appendChild(dateDiv);
+    card.appendChild(header);
+
+    if(prompt){
+      var pDiv=document.createElement('div');pDiv.className='hist-prompt';
+      pDiv.innerHTML='<strong style="color:#8a97b5;">You:</strong> '+escHtml(prompt);
+      card.appendChild(pDiv);
+    }
+    if(result){
+      var rDiv=document.createElement('div');rDiv.className='hist-output';rDiv.textContent=result;
+      card.appendChild(rDiv);
+    }
+
+    var footer=document.createElement('div');footer.className='hist-footer';
+    var saveSpan=document.createElement('span');saveSpan.className='hist-save';
+    saveSpan.textContent=hours?'⏱ '+hours:'';
+    var actDiv=document.createElement('div');actDiv.className='hist-actions';
+
+    var copyBtn=document.createElement('button');
+    copyBtn.className='hist-btn';copyBtn.textContent='Copy';
+    copyBtn.onclick=(function(hid){return function(){copyHistoryItem(hid);};})(h.id);
+
+    var reopenBtn=document.createElement('button');
+    reopenBtn.className='hist-btn';reopenBtn.textContent='Reopen';
+    reopenBtn.onclick=(function(hid){return function(){reopenHistoryItem(hid);};})(h.id);
+
+    actDiv.appendChild(copyBtn);actDiv.appendChild(reopenBtn);
+    footer.appendChild(saveSpan);footer.appendChild(actDiv);
+    card.appendChild(footer);
     list.appendChild(card);
   });
 }
