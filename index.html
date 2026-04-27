@@ -1837,6 +1837,8 @@ function onSignedIn(user){
   setTimeout(function(){updatePlanBadge(user);},600);
   /* load badges */
   setTimeout(loadBadges,700);
+  /* load voice preference */
+  setTimeout(loadVoicePreference,800);
   /* load user level */
   setTimeout(loadUserLevel,900);
   /* update last active */
@@ -4376,6 +4378,198 @@ function applyLogoToggle(enabled){
   }
 }
 
+
+/* ===== VOICE SYSTEM ===== */
+var voiceEnabled=false;
+var isListening=false;
+var speechRecognition=null;
+var speechSynth=window.speechSynthesis;
+var ariaVoice=null;
+var voiceRate=0.95;
+var voicePitch=1.05;
+
+/* Init speech recognition */
+function initSpeechRecognition(){
+  var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRec)return null;
+  var rec=new SpeechRec();
+  rec.continuous=false;
+  rec.interimResults=true;
+  rec.lang='en-US';
+  rec.onstart=function(){
+    isListening=true;
+    updateMicButton(true);
+  };
+  rec.onresult=function(e){
+    var transcript='';
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      transcript+=e.results[i][0].transcript;
+    }
+    var inp=document.getElementById('chat-input');
+    if(inp)inp.value=transcript;
+    if(e.results[e.results.length-1].isFinal){
+      isListening=false;
+      updateMicButton(false);
+      /* auto-send on final result */
+      setTimeout(sendChatMessage,400);
+    }
+  };
+  rec.onerror=function(e){
+    isListening=false;
+    updateMicButton(false);
+    if(e.error==='not-allowed'){
+      showVoiceError('Microphone access denied. Please allow mic access in your browser settings.');
+    }
+  };
+  rec.onend=function(){
+    isListening=false;
+    updateMicButton(false);
+  };
+  return rec;
+}
+
+/* Pick best available voice */
+function pickBestVoice(){
+  var voices=speechSynth.getVoices();
+  if(!voices.length)return null;
+  /* preferred voices in order */
+  var preferred=[
+    'Samantha','Karen','Moira',         /* macOS female */
+    'Google UK English Female',          /* Chrome female */
+    'Microsoft Zira','Microsoft Eva',    /* Windows female */
+    'en-US-Neural2-F','en-US-Wavenet-F', /* Chrome neural */
+  ];
+  for(var i=0;i<preferred.length;i++){
+    var found=voices.find(function(v){return v.name.indexOf(preferred[i])!==-1;});
+    if(found)return found;
+  }
+  /* fallback: first en-US female */
+  var enFemale=voices.find(function(v){return v.lang==='en-US'&&v.name.toLowerCase().indexOf('female')!==-1;});
+  if(enFemale)return enFemale;
+  /* fallback: any en-US */
+  var enUS=voices.find(function(v){return v.lang==='en-US';});
+  if(enUS)return enUS;
+  return voices[0];
+}
+
+/* Speak text */
+function speakText(text){
+  if(!voiceEnabled||!speechSynth)return;
+  speechSynth.cancel();
+  /* strip markdown for cleaner speech */
+  var clean=text
+    .replace(/#{1,3} /g,'')
+    .replace(/\*\*(.*?)\*\*/g,'$1')
+    .replace(/\*(.*?)\*/g,'$1')
+    .replace(/^- /gm,'')
+    .replace(/\n\n/g,' ')
+
+/g,' ')
+    .replace(/\n/g,' ')
+
+    .replace(/[•→←↑↓]/g,'')
+    .trim();
+  /* limit to first 600 chars to avoid very long reads */
+  if(clean.length>600)clean=clean.slice(0,600)+'...';
+  var utt=new SpeechSynthesisUtterance(clean);
+  if(!ariaVoice)ariaVoice=pickBestVoice();
+  if(ariaVoice)utt.voice=ariaVoice;
+  utt.rate=voiceRate;
+  utt.pitch=voicePitch;
+  utt.volume=0.9;
+  utt.onstart=function(){updateSpeakerButton(true);};
+  utt.onend=function(){updateSpeakerButton(false);};
+  utt.onerror=function(){updateSpeakerButton(false);};
+  speechSynth.speak(utt);
+}
+
+/* Stop speaking */
+function stopSpeaking(){
+  if(speechSynth)speechSynth.cancel();
+  updateSpeakerButton(false);
+}
+
+/* Toggle voice mode */
+function toggleVoiceMode(){
+  voiceEnabled=!voiceEnabled;
+  var btn=document.getElementById('voice-toggle-btn');
+  var label=document.getElementById('voice-toggle-label');
+  if(voiceEnabled){
+    if(btn){btn.style.background='rgba(170,255,62,0.15)';btn.style.borderColor='rgba(170,255,62,0.4)';btn.style.color='#aaff3e';}
+    if(label)label.textContent='Voice ON';
+    /* load voices */
+    if(speechSynth.getVoices().length===0){
+      speechSynth.addEventListener('voiceschanged',function(){ariaVoice=pickBestVoice();},{once:true});
+    } else {
+      ariaVoice=pickBestVoice();
+    }
+    speakText('Voice mode activated. I am ready to listen.');
+  } else {
+    stopSpeaking();
+    if(btn){btn.style.background='rgba(255,255,255,0.04)';btn.style.borderColor='rgba(255,255,255,0.1)';btn.style.color='#6b7a96';}
+    if(label)label.textContent='Voice OFF';
+  }
+  try{localStorage.setItem('econsquad_voice',voiceEnabled?'1':'0');}catch(e){}
+}
+
+/* Toggle mic listening */
+function toggleMic(){
+  if(!window.SpeechRecognition&&!window.webkitSpeechRecognition){
+    showVoiceError('Voice input is not supported in this browser. Please use Chrome or Edge.');
+    return;
+  }
+  if(isListening){
+    if(speechRecognition)speechRecognition.stop();
+    return;
+  }
+  speechRecognition=initSpeechRecognition();
+  if(speechRecognition)speechRecognition.start();
+}
+
+function updateMicButton(listening){
+  var btn=document.getElementById('mic-btn');
+  if(!btn)return;
+  if(listening){
+    btn.style.background='rgba(255,80,80,0.2)';
+    btn.style.borderColor='rgba(255,80,80,0.5)';
+    btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff5050" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10c0 4 3 7 7 7s7-3 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    btn.title='Stop listening';
+  } else {
+    btn.style.background='rgba(255,255,255,0.04)';
+    btn.style.borderColor='rgba(255,255,255,0.1)';
+    btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a97b5" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10c0 4 3 7 7 7s7-3 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+    btn.title='Click to speak';
+  }
+}
+
+function updateSpeakerButton(speaking){
+  var btn=document.getElementById('speaker-btn');
+  if(!btn)return;
+  if(speaking){
+    btn.style.color='#aaff3e';
+    btn.title='Click to stop';
+  } else {
+    btn.style.color='#6b7a96';
+    btn.title='Click to replay';
+  }
+}
+
+function showVoiceError(msg){
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(20,8,8,0.97);border:1px solid rgba(255,80,80,0.4);color:#ff8080;font-size:12px;font-weight:600;padding:10px 20px;border-radius:10px;z-index:99999;font-family:sans-serif;max-width:340px;text-align:center;';
+  toast.textContent=msg;
+  document.body.appendChild(toast);
+  setTimeout(function(){if(toast.parentNode)toast.remove();},4000);
+}
+
+/* Load voice preference on sign in */
+function loadVoicePreference(){
+  try{
+    var saved=localStorage.getItem('econsquad_voice');
+    if(saved==='1')toggleVoiceMode();
+  }catch(e){}
+}
+
 /* ===== INIT ===== */
 renderSquad();
 calcMktROI();
@@ -4772,8 +4966,25 @@ loadSpecialistData();
 
   <!-- Input -->
   <div class="drawer-input-area">
+    <!-- Voice toggle bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="voice-toggle-btn" onclick="toggleVoiceMode()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:10px;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span id="voice-toggle-label">Voice OFF</span>
+        </button>
+        <button id="speaker-btn" onclick="stopSpeaking()" title="Stop speaking" style="background:none;border:none;color:#6b7a96;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:color .2s;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
+      </div>
+      <div style="font-size:10px;color:#4a5568;">Speak or type your response</div>
+    </div>
+
     <div class="drawer-input-row">
-      <textarea id="chat-input" placeholder="Type your response..." rows="1"
+      <button id="mic-btn" onclick="toggleMic()" title="Click to speak" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:0 12px;height:44px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a97b5" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10c0 4 3 7 7 7s7-3 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+      </button>
+      <textarea id="chat-input" placeholder="Type or speak your response..." rows="1"
         onkeydown="chatKeydown(event)" oninput="autoResizeChat(this)"></textarea>
       <button id="chat-send-btn" onclick="sendChatMessage()">Send</button>
     </div>
