@@ -39,7 +39,12 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);}
 .btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;}
 .btn-lime:hover{opacity:.88;transform:translateY(-1px);}
-.plan-badge{background:var(--lime);color:#1a3300;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;font-family:'Barlow',sans-serif;}
+.plan-badge{font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;font-family:'Barlow',sans-serif;cursor:pointer;transition:all .2s;}
+.plan-badge.trial{background:rgba(245,197,66,0.15);color:#f5c542;border:1px solid rgba(245,197,66,0.3);}
+.plan-badge.trial.urgent{background:rgba(255,80,80,0.15);color:#ff8080;border:1px solid rgba(255,80,80,0.3);animation:badgePulse 2s infinite;}
+.plan-badge.active{background:var(--lime);color:#1a3300;}
+.plan-badge.pro{background:rgba(170,255,62,0.15);color:#aaff3e;border:1px solid rgba(170,255,62,0.3);}
+@keyframes badgePulse{0%,100%{opacity:1;}50%{opacity:.6;}}
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;overflow:hidden;}
 
 /* PAGE SWITCHER */
@@ -666,7 +671,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
       </div>
       <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;" class="nav-ctas">
-        <span class="plan-badge">⚡ Pro Squad</span>
+        <span class="plan-badge" id="plan-badge" onclick="openBillingModal()">⚡ Trial</span>
         <div style="position:relative;">
           <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
             <img id="user-logo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
@@ -1662,6 +1667,8 @@ function onSignedIn(user){
   setTimeout(loadUserStats,400);
   /* load specialist data from DB */
   setTimeout(loadSpecialistData,200);
+  /* update plan badge with days remaining */
+  setTimeout(function(){updatePlanBadge(user);},600);
   /* update greeting with real first name */
   var greetEl=document.getElementById('dash-greeting-name');
   if(greetEl){
@@ -3375,6 +3382,153 @@ showDashTab=function(tabId,el){
   if(tabId==='home-tab')loadUserStats();
 };
 
+
+/* ===== PLAN BADGE & BILLING ===== */
+function updatePlanBadge(user){
+  if(!user)return;
+  var pb=document.getElementById('plan-badge');
+  if(!pb)return;
+
+  /* get trial info from profile */
+  supa.from('profiles').select('plan,trial_end,stripe_customer_id').eq('id',user.id).single().then(function(res){
+    if(!res.data)return;
+    var plan=res.data.plan||'trial';
+    var trialEnd=res.data.trial_end?new Date(res.data.trial_end):null;
+    var now=new Date();
+
+    if(plan==='trial'&&trialEnd){
+      var msLeft=trialEnd-now;
+      var daysLeft=Math.ceil(msLeft/(1000*60*60*24));
+
+      if(daysLeft>0){
+        pb.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' left in trial';
+        pb.className='plan-badge trial'+(daysLeft<=2?' urgent':'');
+      } else {
+        pb.textContent='Trial expired';
+        pb.className='plan-badge trial urgent';
+      }
+    } else if(plan==='starter'){
+      pb.textContent='⚡ Starter';
+      pb.className='plan-badge active';
+    } else if(plan==='pro'){
+      pb.textContent='⚡ Pro Squad';
+      pb.className='plan-badge pro';
+    } else {
+      pb.textContent='⚡ Trial';
+      pb.className='plan-badge trial';
+    }
+  });
+}
+
+function openBillingModal(){
+  var m=document.getElementById('billing-modal');
+  if(m)m.style.display='flex';
+  loadBillingDetails();
+}
+
+function closeBillingModal(){
+  var m=document.getElementById('billing-modal');
+  if(m)m.style.display='none';
+}
+
+/* close on overlay click */
+document.addEventListener('click',function(e){
+  var m=document.getElementById('billing-modal');
+  if(m&&m.style.display==='flex'&&e.target===m)closeBillingModal();
+});
+
+function loadBillingDetails(){
+  if(!currentUser)return;
+
+  supa.from('profiles').select('*').eq('id',currentUser.id).single().then(function(res){
+    if(!res.data)return;
+    var d=res.data;
+    var plan=d.plan||'trial';
+    var trialEnd=d.trial_end?new Date(d.trial_end):null;
+    var now=new Date();
+
+    /* plan name and status */
+    var nameEl=document.getElementById('billing-plan-name');
+    var statusEl=document.getElementById('billing-plan-status');
+    var badgeEl=document.getElementById('billing-plan-badge');
+    var trialBar=document.getElementById('billing-trial-bar');
+    var daysLeftEl=document.getElementById('billing-days-left');
+    var progressEl=document.getElementById('billing-trial-progress');
+    var trialMsgEl=document.getElementById('billing-trial-msg');
+    var cancelBtn=document.getElementById('billing-cancel-btn');
+    var upgradeBtn=document.getElementById('billing-upgrade-btn');
+
+    if(plan==='trial'&&trialEnd){
+      var msLeft=trialEnd-now;
+      var daysLeft=Math.max(0,Math.ceil(msLeft/(1000*60*60*24)));
+      var totalDays=7;
+      var pct=Math.min(100,Math.max(0,Math.round((1-(msLeft/(totalDays*24*60*60*1000)))*100)));
+
+      if(nameEl)nameEl.textContent='7-Day Free Trial';
+      if(statusEl)statusEl.textContent='Includes all Pro Squad features during your trial';
+      if(badgeEl){badgeEl.textContent=daysLeft+' days left';badgeEl.style.background='rgba(245,197,66,0.15)';badgeEl.style.color='#f5c542';badgeEl.style.border='1px solid rgba(245,197,66,0.3)';}
+      if(trialBar)trialBar.style.display='block';
+      if(daysLeftEl)daysLeftEl.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' remaining';
+      if(progressEl)progressEl.style.width=pct+'%';
+      if(daysLeft<=2&&progressEl)progressEl.style.background='linear-gradient(90deg,#ff8080,#f5c542)';
+      if(trialMsgEl){
+        if(daysLeft>0){
+          var billDate=trialEnd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+          trialMsgEl.textContent='Your card will be charged on '+billDate+'. Cancel anytime before then.';
+        } else {
+          trialMsgEl.textContent='Your trial has ended. Please update your payment method to continue.';
+          trialMsgEl.style.color='#ff8080';
+        }
+      }
+      if(cancelBtn)cancelBtn.style.display='block';
+
+    } else if(plan==='starter'){
+      if(nameEl)nameEl.textContent='Starter Plan';
+      if(statusEl)statusEl.textContent='$29/month — 6 specialist GPTs';
+      if(badgeEl){badgeEl.textContent='Active';badgeEl.style.background='rgba(170,255,62,0.15)';badgeEl.style.color='#aaff3e';badgeEl.style.border='1px solid rgba(170,255,62,0.3)';}
+      if(upgradeBtn)upgradeBtn.style.display='block';
+      if(cancelBtn)cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';
+
+    } else if(plan==='pro'){
+      if(nameEl)nameEl.textContent='Pro Squad Plan';
+      if(statusEl)statusEl.textContent='$79/month — All 18 specialists, unlimited tasks';
+      if(badgeEl){badgeEl.textContent='Active';badgeEl.style.background='rgba(170,255,62,0.15)';badgeEl.style.color='#aaff3e';badgeEl.style.border='1px solid rgba(170,255,62,0.3)';}
+      if(cancelBtn)cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';
+    }
+
+    /* features list */
+    var featuresEl=document.getElementById('billing-features');
+    if(featuresEl){
+      var features=plan==='starter'?
+        ['6 specialist GPTs','ARIA intelligence assistant','ROI calculator & tracking','Copy-ready outputs']:
+        ['All 18 specialist GPTs','ARIA intelligence briefings','Full ROI dashboard','History & saved results','Priority support','All future specialists included'];
+      featuresEl.innerHTML=features.map(function(f){
+        return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#b8c8e0;">'+
+          '<span style="color:#aaff3e;font-size:14px;">✓</span>'+f+'</div>';
+      }).join('');
+    }
+  });
+}
+
+function openStripePortal(){
+  /* Open Stripe customer portal */
+  /* For now link to Stripe billing page — full portal needs a backend endpoint */
+  window.open('https://billing.stripe.com/p/login/test_00g6pE6u11pEf044gg','_blank');
+}
+
+function openUpgradeFlow(){
+  closeBillingModal();
+  /* scroll to pricing */
+  scrollToSection('sec-pricing');
+}
+
+function confirmCancelTrial(){
+  if(confirm('Are you sure you want to cancel? You will lose access to all specialists at the end of your trial period.')){
+    /* Open Stripe portal for cancellation */
+    openStripePortal();
+  }
+}
+
 /* ===== INIT ===== */
 renderSquad();
 calcMktROI();
@@ -3779,6 +3933,58 @@ loadSpecialistData();
     <div class="drawer-hint">Press Enter to send · Shift+Enter for new line</div>
   </div>
 
+</div>
+
+<!-- BILLING & PLAN MODAL -->
+<div id="billing-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+  <div style="background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:32px;width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#eef3fc;">My Plan & Billing</div>
+      <button onclick="closeBillingModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+
+    <!-- Plan status card -->
+    <div id="billing-plan-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div id="billing-plan-name" style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;margin-bottom:4px;">Loading...</div>
+          <div id="billing-plan-status" style="font-size:13px;color:#6b7a96;"></div>
+        </div>
+        <div id="billing-plan-badge" style="padding:4px 14px;border-radius:20px;font-size:11px;font-weight:800;font-family:'Barlow',sans-serif;"></div>
+      </div>
+      <div id="billing-trial-bar" style="margin-top:16px;display:none;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:11px;color:#6b7a96;">Trial progress</span>
+          <span id="billing-days-left" style="font-size:11px;font-weight:700;color:#f5c542;"></span>
+        </div>
+        <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:6px;overflow:hidden;">
+          <div id="billing-trial-progress" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#aaff3e,#f5c542);transition:width .5s ease;"></div>
+        </div>
+        <div style="font-size:11px;color:#6b7a96;margin-top:8px;" id="billing-trial-msg"></div>
+      </div>
+    </div>
+
+    <!-- What's included -->
+    <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">What's included</div>
+      <div id="billing-features" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- Invoices -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Billing history</div>
+      <div id="billing-invoices">
+        <div style="font-size:13px;color:#4a5568;padding:12px 0;">No invoices yet — your first charge will appear here after your trial ends.</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button onclick="openStripePortal()" style="width:100%;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border-radius:10px;cursor:pointer;">Manage billing & payment method →</button>
+      <button onclick="openUpgradeFlow()" id="billing-upgrade-btn" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;padding:10px;border-radius:10px;cursor:pointer;display:none;">Upgrade to Pro Squad</button>
+      <button onclick="confirmCancelTrial()" id="billing-cancel-btn" style="width:100%;background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;padding:6px;">Cancel trial</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>
