@@ -1349,7 +1349,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div class="form-field" style="margin-bottom:14px;">
           <label>Promo code <span style="color:#4a5568;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
           <div style="display:flex;gap:8px;">
-            <input id="su-promo" type="text" placeholder="Enter code (e.g. LAUNCH50)" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
+            <input id="su-promo" type="text" placeholder="Enter promo code" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
             <button type="button" onclick="applyPromoCode()" id="promo-apply-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;font-weight:700;padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;">Apply</button>
           </div>
           <div id="promo-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
@@ -1840,7 +1840,7 @@ function mountStripeCard(){
         theme:'night',
         variables:{
           colorPrimary:'#aaff3e',
-          colorBackground:'rgba(255,255,255,0.05)',
+          colorBackground:'#0d1120',
           colorText:'#eef3fc',
           colorDanger:'#ff8080',
           fontFamily:'DM Sans, sans-serif',
@@ -3572,16 +3572,18 @@ function applyPromoCode(){
     activePromoCode=code;
     activeCouponId=promo.coupon;
     input.style.borderColor='rgba(170,255,62,0.4)';
-    input.disabled=true;
-    if(btn){btn.textContent='✓ Applied';btn.style.color='#aaff3e';btn.style.borderColor='rgba(170,255,62,0.3)';}
+    input.disabled=false;
+    if(btn){btn.textContent='Change';btn.style.color='#6b7a96';btn.style.borderColor='rgba(255,255,255,0.12)';}
     showPromoMsg('🎉 '+promo.label+' applied!','success');
-    /* update plan summary to show discount */
+    /* update plan summary */
+    suUpdatePlanSummary();
     var lbl=document.getElementById('su-plan-label');
-    if(lbl)lbl.textContent=lbl.textContent+' · '+promo.discount;
+    if(lbl&&!lbl.textContent.includes(promo.discount))lbl.textContent=lbl.textContent+' · '+promo.discount;
   } else {
     activePromoCode=null;
     activeCouponId=null;
     input.style.borderColor='rgba(255,80,80,0.4)';
+    if(btn){btn.textContent='Apply';btn.style.color='#8a97b5';btn.style.borderColor='rgba(255,255,255,0.12)';}
     showPromoMsg('Invalid promo code. Please check and try again.','error');
   }
 }
