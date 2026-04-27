@@ -741,7 +741,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
       </div>
       <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;" class="nav-ctas">
-        <span class="plan-badge" id="plan-badge" onclick="openBillingModal()">⚡ Trial</span>
+        <span id="level-badge" onclick="showDashTab('mystats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;margin-right:6px;" title="View your level">🎖️ Lvl 1 · Recruit</span><span class="plan-badge" id="plan-badge" onclick="openBillingModal()">⚡ Trial</span>
         <div style="position:relative;">
           <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
             <img id="user-logo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
@@ -1147,6 +1147,25 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <button class="btn-primary">Deploy squad ↗</button>
             <button class="btn-outline" onclick="openAriaRouting()">Ask ARIA ✦</button>
             <button class="btn-outline" onclick="openCustomSpec()" style="border-color:rgba(170,255,62,0.3);color:#aaff3e;">+ Custom Specialist</button>
+          </div>
+        </div>
+        <!-- XP & Level card -->
+        <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 20px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="stat-level" style="font-family:'Barlow',sans-serif;font-size:32px;font-weight:900;color:#aaff3e;">Lvl 1</div>
+              <div>
+                <div id="stat-level-title" style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;">🎖️ Recruit</div>
+                <div id="stat-xp" style="font-size:12px;color:#6b7a96;margin-top:2px;">0 XP</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:#6b7a96;margin-bottom:4px;">Progress to next level</div>
+              <div id="xp-progress-label" style="font-size:11px;color:#8a97b5;">0% to Field Agent</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:8px;overflow:hidden;">
+            <div id="xp-progress-bar" style="height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#8a97b5,#64afff);transition:width 1s ease;"></div>
           </div>
         </div>
         <div class="stats-grid">
@@ -1754,6 +1773,10 @@ function onSignedIn(user){
   setTimeout(function(){updatePlanBadge(user);},600);
   /* load badges */
   setTimeout(loadBadges,700);
+  /* load user level */
+  setTimeout(loadUserLevel,900);
+  /* update last active */
+  updateLastActive();
   /* update greeting with real first name */
   var greetEl=document.getElementById('dash-greeting-name');
   if(greetEl){
@@ -3860,6 +3883,8 @@ function checkEliteBadges(){
   var count=Object.keys(earnedBadges).length;
   if(count>=10)awardBadge('econsquad_mvp');
   if(count>=Object.keys(BADGES).length-2)awardBadge('ed_of_year');
+  /* refresh level after badge changes */
+  setTimeout(loadUserLevel,500);
 }
 
 /* Call checkBadges after saving a task */
@@ -3931,6 +3956,123 @@ function renderBadgeShowcase(container){
     catDiv.appendChild(grid);
     container.appendChild(catDiv);
   });
+}
+
+
+/* ===== LEVEL & XP SYSTEM ===== */
+var LEVELS=[
+  {level:1, title:'Recruit',            minXP:0,    icon:'🎖️', color:'#8a97b5'},
+  {level:2, title:'Field Agent',        minXP:100,  icon:'🔰', color:'#64afff'},
+  {level:3, title:'Specialist',         minXP:300,  icon:'⚡', color:'#32e1c8'},
+  {level:4, title:'Squad Leader',       minXP:700,  icon:'🎯', color:'#c88cff'},
+  {level:5, title:'Senior Analyst',     minXP:1500, icon:'📊', color:'#ffd23c'},
+  {level:6, title:'Economic Developer', minXP:3000, icon:'🏙️', color:'#ff9b41'},
+  {level:7, title:'Regional Director',  minXP:6000, icon:'🗺️', color:'#aaff3e'},
+  {level:8, title:'State Champion',     minXP:12000,icon:'🏆', color:'#f5c542'},
+  {level:9, title:'National Expert',    minXP:25000,icon:'⭐', color:'#ff6b6b'},
+  {level:10,title:'ED Legend',          minXP:50000,icon:'👑', color:'#aaff3e'},
+];
+
+var currentXP=0;
+var currentLevel=null;
+
+function calcXP(tasks,badges,hours,daysActive){
+  return Math.floor(
+    (tasks * 10) +
+    (badges * 50) +
+    (hours * 5) +
+    (daysActive * 2)
+  );
+}
+
+function getLevelFromXP(xp){
+  var lvl=LEVELS[0];
+  for(var i=0;i<LEVELS.length;i++){
+    if(xp>=LEVELS[i].minXP)lvl=LEVELS[i];
+    else break;
+  }
+  return lvl;
+}
+
+function getNextLevel(lvl){
+  return LEVELS.find(function(l){return l.level===lvl.level+1;})||null;
+}
+
+function updateLevelDisplay(xp){
+  currentXP=xp;
+  var lvl=getLevelFromXP(xp);
+  var prevLevel=currentLevel;
+  currentLevel=lvl;
+
+  /* level up notification */
+  if(prevLevel&&prevLevel.level<lvl.level){
+    showLevelUpToast(lvl);
+  }
+
+  /* update nav level badge */
+  var lb=document.getElementById('level-badge');
+  if(lb){
+    lb.textContent=lvl.icon+' Lvl '+lvl.level+' · '+lvl.title;
+    lb.style.color=lvl.color;
+    lb.style.borderColor=lvl.color.replace(')',',0.3)').replace('rgb','rgba');
+  }
+
+  /* update stats page */
+  var lv=document.getElementById('stat-level');
+  var lt=document.getElementById('stat-level-title');
+  var lx=document.getElementById('stat-xp');
+  if(lv)lv.textContent='Lvl '+lvl.level;
+  if(lt)lt.textContent=lvl.icon+' '+lvl.title;
+  if(lx)lx.textContent=xp.toLocaleString()+' XP';
+
+  /* update XP progress bar */
+  var nextLvl=getNextLevel(lvl);
+  var pb=document.getElementById('xp-progress-bar');
+  var pl=document.getElementById('xp-progress-label');
+  if(pb&&nextLvl){
+    var pct=Math.min(100,Math.round(((xp-lvl.minXP)/(nextLvl.minXP-lvl.minXP))*100));
+    pb.style.width=pct+'%';
+    pb.style.background='linear-gradient(90deg,'+lvl.color+','+nextLvl.color+')';
+    if(pl)pl.textContent=pct+'% to '+nextLvl.icon+' '+nextLvl.title+' ('+xp.toLocaleString()+' / '+nextLvl.minXP.toLocaleString()+' XP)';
+  } else if(pb){
+    pb.style.width='100%';
+    if(pl)pl.textContent='👑 Maximum Level Reached!';
+  }
+}
+
+function showLevelUpToast(lvl){
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);background:rgba(6,8,18,0.98);border:2px solid '+lvl.color+';border-radius:20px;padding:32px 40px;z-index:999999;text-align:center;box-shadow:0 0 60px '+lvl.color+'40;transition:transform .4s cubic-bezier(0.34,1.56,0.64,1),opacity .3s;opacity:0;';
+  toast.innerHTML=
+    '<div style="font-size:56px;margin-bottom:12px;">'+lvl.icon+'</div>'+
+    '<div style="font-size:12px;font-weight:800;color:'+lvl.color+';text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">Level Up!</div>'+
+    '<div style="font-family:Barlow,sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:6px;">'+lvl.title+'</div>'+
+    '<div style="font-size:13px;color:#8a97b5;">You reached Level '+lvl.level+'</div>';
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.style.transform='translate(-50%,-50%) scale(1)';toast.style.opacity='1';},50);
+  setTimeout(function(){toast.style.opacity='0';setTimeout(function(){if(toast.parentNode)toast.remove();},400);},4000);
+}
+
+function loadUserLevel(){
+  if(!currentUser)return;
+  var now=new Date();
+  var monthStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+
+  supa.from('task_history').select('*').eq('user_id',currentUser.id).then(function(res){
+    var tasks=res.data||[];
+    var totalHours=tasks.reduce(function(s,t){return s+(parseFloat(t.hours_saved)||0);},0);
+    var badgeCount=Object.keys(earnedBadges).length;
+    var createdAt=new Date(currentUser.created_at);
+    var daysActive=Math.max(1,Math.floor((now-createdAt)/(1000*60*60*24)));
+    var xp=calcXP(tasks.length,badgeCount,totalHours,daysActive);
+    updateLevelDisplay(xp);
+  });
+}
+
+/* Update last_active in profiles */
+function updateLastActive(){
+  if(!currentUser)return;
+  supa.from('profiles').update({updated_at:new Date().toISOString()}).eq('id',currentUser.id);
 }
 
 /* ===== INIT ===== */
