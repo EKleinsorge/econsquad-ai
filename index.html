@@ -581,6 +581,26 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #chat-send-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .drawer-hint{font-size:10px;color:#4a5568;text-align:center;margin-top:8px;}
 
+/* ===== HISTORY TAB ===== */
+.hist-card{
+  background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;padding:18px 20px;margin-bottom:12px;
+  cursor:pointer;transition:border-color .2s,transform .2s;
+}
+.hist-card:hover{border-color:rgba(170,255,62,0.2);transform:translateY(-2px);}
+.hist-card-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.hist-orb{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.hist-specialist{font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#eef3fc;}
+.hist-date{font-size:11px;color:#4a5568;margin-left:auto;}
+.hist-prompt{font-size:12px;color:#8a97b5;margin-bottom:10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.hist-output{font-size:12px;color:#6b7a96;background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.hist-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+.hist-save{font-size:11px;color:#aaff3e;font-weight:600;}
+.hist-actions{display:flex;gap:8px;}
+.hist-btn{background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.hist-btn:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
+.hist-filter.active{background:rgba(170,255,62,0.12) !important;border-color:rgba(170,255,62,0.3) !important;color:#aaff3e !important;}
+
 </style>
 </head>
 <body>
@@ -1183,6 +1203,36 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 </div>
 
 <!-- SIGN UP MODAL -->
+      <!-- HISTORY TAB -->
+      <div class="page main dash-tab" id="history-tab" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+          <div>
+            <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;">Mission History</h2>
+            <p style="font-size:13px;color:#6b7a96;margin-top:4px;">Every task your squad has completed for you</p>
+          </div>
+          <button onclick="loadHistory()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Refresh</button>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+          <button class="hist-filter active" onclick="filterHistory('all',this)" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">All</button>
+          <button class="hist-filter" onclick="filterHistory('grants',this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">Grants</button>
+          <button class="hist-filter" onclick="filterHistory('site',this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">Site Selection</button>
+          <button class="hist-filter" onclick="filterHistory('bre',this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">BRE</button>
+          <button class="hist-filter" onclick="filterHistory('data',this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">Data</button>
+          <button class="hist-filter" onclick="filterHistory('marketing',this)" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">Marketing</button>
+        </div>
+
+        <!-- History list -->
+        <div id="history-list">
+          <div style="text-align:center;padding:60px 20px;color:#4a5568;">
+            <div style="font-size:36px;margin-bottom:12px;">📋</div>
+            <div style="font-size:14px;font-weight:600;color:#6b7a96;">No missions yet</div>
+            <div style="font-size:12px;color:#4a5568;margin-top:6px;">Complete a task with any specialist to see it here</div>
+          </div>
+        </div>
+      </div>
+
 <div class="modal-overlay" id="auth-modal">
   <div class="modal-box">
     <button class="modal-close" onclick="closeAuth()">✕</button>
@@ -3122,19 +3172,139 @@ function saveTaskToHistory(output){
   if(!currentUser||!chatState.specialistId)return;
   var s=squad.find(function(x){return x.id===chatState.specialistId;});
   if(!s)return;
+  var sp=SPECIALIST_NAMES[chatState.specialistId];
+  var userMsgs=chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | ');
   supa.from('task_history').insert({
     user_id:currentUser.id,
     specialist_id:chatState.specialistId,
-    specialist_name:s.name,
+    specialist_name:sp?(sp.name+' — '+s.name):s.name,
     specialist_color:s.color,
-    prompt:chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | '),
+    category:s.cat||'',
+    prompt:userMsgs.slice(0,500),
     result:output,
-    hours_saved:s.save?(parseFloat(s.save.match(/[\d.]+/)?.[0])||2):2,
-  }).then(function(){
-    /* refresh stats */
-    setTimeout(loadUserStats,500);
+    hours_saved:parseFloat((s.save||'2.0').replace(/[^0-9.]/g,''))||2,
+  }).then(function(){loadUserStats();});
+}
+
+
+/* ===== HISTORY TAB ===== */
+var allHistory=[];
+var historyFilter='all';
+
+function loadHistory(){
+  if(!currentUser)return;
+  var list=document.getElementById('history-list');
+  if(list)list.innerHTML='<div style="text-align:center;padding:40px;color:#4a5568;">Loading your mission history...</div>';
+
+  supa.from('task_history')
+    .select('*')
+    .eq('user_id',currentUser.id)
+    .order('created_at',{ascending:false})
+    .then(function(res){
+      allHistory=res.data||[];
+      renderHistory(allHistory);
+    });
+}
+
+function filterHistory(cat,btn){
+  historyFilter=cat;
+  /* update button styles */
+  document.querySelectorAll('.hist-filter').forEach(function(b){
+    b.classList.remove('active');
+    b.style.background='rgba(255,255,255,0.04)';
+    b.style.borderColor='rgba(255,255,255,0.08)';
+    b.style.color='#6b7a96';
+  });
+  btn.classList.add('active');
+  /* filter */
+  var filtered=cat==='all'?allHistory:allHistory.filter(function(h){return h.specialist_color===cat||h.category===cat;});
+  renderHistory(filtered);
+}
+
+function renderHistory(items){
+  var list=document.getElementById('history-list');
+  if(!list)return;
+
+  if(!items||!items.length){
+    list.innerHTML='<div style="text-align:center;padding:60px 20px;"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:#6b7a96;">No missions yet</div><div style="font-size:12px;color:#4a5568;margin-top:6px;">Complete a task with any specialist to see it here</div></div>';
+    return;
+  }
+
+  list.innerHTML='';
+  items.forEach(function(h){
+    var col=ORB_C[h.specialist_color||'gold'];
+    var r=col?col.r:[255,210,60];
+    var card=document.createElement('div');
+    card.className='hist-card';
+
+    /* date formatting */
+    var d=new Date(h.created_at);
+    var dateStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    card.innerHTML=
+      '<div class="hist-card-header">'+
+        '<div class="hist-orb" style="background:radial-gradient(circle at 36% 32%,'+(col?col.hi:'#ffd23c')+','+(col?col.mid:'#f5c542')+');">'+
+          (getSpecialistEmoji(h.specialist_id)||'⚡')+
+        '</div>'+
+        '<div>'+
+          '<div class="hist-specialist">'+(h.specialist_name||'Specialist')+'</div>'+
+          '<div style="font-size:10px;color:#6b7a96;">'+(h.hours_saved?h.hours_saved+' hrs saved':'')+'</div>'+
+        '</div>'+
+        '<div class="hist-date">'+dateStr+'</div>'+
+      '</div>'+
+      (h.prompt?'<div class="hist-prompt"><strong style="color:#8a97b5;">You:</strong> '+escHtml(h.prompt.slice(0,120))+(h.prompt.length>120?'...':'')+'</div>':'')+
+      (h.result?'<div class="hist-output">'+escHtml(h.result.slice(0,200))+(h.result.length>200?'...':'')+'</div>':'')+
+      '<div class="hist-footer">'+
+        '<span class="hist-save">'+(h.hours_saved?'⏱ '+h.hours_saved+' hours saved':'')+'</span>'+
+        '<div class="hist-actions">'+
+          '<button class="hist-btn" onclick="copyHistoryItem(''+h.id+'')">📋 Copy</button>'+
+          '<button class="hist-btn" onclick="reopenHistoryItem(''+h.id+'')">↗ Reopen</button>'+
+        '</div>'+
+      '</div>';
+
+    list.appendChild(card);
   });
 }
+
+function escHtml(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getSpecialistEmoji(id){
+  var emojis={1:'📝',2:'🔍',3:'📋',4:'📍',5:'📊',6:'🤝',7:'📄',8:'📈',9:'⭐',10:'🎯',11:'💰',12:'💵',13:'📰',14:'📱',15:'👷',16:'🎓',17:'🏆',18:'📌'};
+  return emojis[id]||'⚡';
+}
+
+function copyHistoryItem(id){
+  var item=allHistory.find(function(h){return h.id===id;});
+  if(item&&item.result){
+    navigator.clipboard.writeText(item.result).then(function(){
+      showToastMsg('Copied to clipboard!');
+    });
+  }
+}
+
+function reopenHistoryItem(id){
+  var item=allHistory.find(function(h){return h.id===id;});
+  if(!item)return;
+  /* open specialist drawer with this specialist */
+  deploy(item.specialist_id);
+}
+
+function showToastMsg(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(8,20,8,0.97);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-size:13px;font-weight:700;padding:10px 24px;border-radius:10px;z-index:99999;font-family:Barlow,sans-serif;';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.remove();},2500);
+}
+
+/* load history when switching to history tab */
+var _origShowDashTab=showDashTab;
+showDashTab=function(tabId,el){
+  _origShowDashTab(tabId,el);
+  if(tabId==='history-tab')loadHistory();
+};
 
 /* ===== INIT ===== */
 renderSquad();
