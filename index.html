@@ -781,6 +781,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 </div>
                 <input type="file" id="logo-upload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
               </label>
+
+              <!-- Logo display toggle -->
+              <div id="logo-toggle-row" style="display:none;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#eef3fc;">Show community logo</div>
+                  <div style="font-size:10px;color:#6b7a96;">Replace EconSquad AI branding</div>
+                </div>
+                <div onclick="toggleLogoDisplay()" id="logo-toggle" style="width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+                  <div id="logo-toggle-knob" style="position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#6b7a96;transition:all .2s;"></div>
+                </div>
+              </div>
               <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
               <div onclick="showDashTab('mystats-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">📊</span>
@@ -1851,12 +1862,12 @@ function onSignedOut(){
   switchView('marketing');
   var av=document.getElementById('user-avatar');
   if(av)av.textContent='SM';
-  /* restore default logo */
-  var communityWrap=document.getElementById('community-logo-wrap');
-  var defaultWrap=document.getElementById('default-logo-wrap');
-  if(communityWrap)communityWrap.style.display='none';
-  if(defaultWrap)defaultWrap.style.display='flex';
-  try{localStorage.removeItem('econsquad_logo');}catch(e){}
+  /* restore default logo and reset toggle */
+  logoDisplayEnabled=false;
+  applyLogoToggle(false);
+  var toggleRow=document.getElementById('logo-toggle-row');
+  if(toggleRow)toggleRow.style.display='none';
+  try{localStorage.removeItem('econsquad_logo');localStorage.removeItem('econsquad_logo_display');}catch(e){}
 }
 
 /* ── modal open/close ── */
@@ -2636,13 +2647,19 @@ function applyLogo(dataUrl){
   if(previewImg){previewImg.src=dataUrl;previewImg.style.display='block';}
   if(previewIcon)previewIcon.style.display='none';
 
-  /* TOP LEFT — show community logo, hide EconSquad default */
-  var communityWrap=document.getElementById('community-logo-wrap');
-  var defaultWrap=document.getElementById('default-logo-wrap');
+  /* set community logo image src */
   var communityImg=document.getElementById('community-logo-img');
   if(communityImg)communityImg.src=dataUrl;
-  if(communityWrap)communityWrap.style.display='flex';
-  if(defaultWrap)defaultWrap.style.display='none';
+
+  /* show toggle row now that logo exists */
+  var toggleRow=document.getElementById('logo-toggle-row');
+  if(toggleRow)toggleRow.style.display='flex';
+
+  /* restore saved toggle state */
+  var savedDisplay='0';
+  try{savedDisplay=localStorage.getItem('econsquad_logo_display')||'0';}catch(e){}
+  logoDisplayEnabled=savedDisplay==='1';
+  applyLogoToggle(logoDisplayEnabled);
 }
 
 
@@ -4328,6 +4345,35 @@ function renderBadgeIcon(badgeId, size){
     '<path d="M0,-22 L15,-14 L15,2 C15,13 8,20 0,25 C-8,20 -15,13 -15,2 L-15,-14 Z" fill="none" stroke="'+col+'" stroke-width="0.7" opacity="0.4"/>'+
     bi.inner+
     '</svg>';
+}
+
+
+/* ===== LOGO DISPLAY TOGGLE ===== */
+var logoDisplayEnabled=false;
+
+function toggleLogoDisplay(){
+  logoDisplayEnabled=!logoDisplayEnabled;
+  applyLogoToggle(logoDisplayEnabled);
+  try{localStorage.setItem('econsquad_logo_display', logoDisplayEnabled?'1':'0');}catch(e){}
+}
+
+function applyLogoToggle(enabled){
+  var toggle=document.getElementById('logo-toggle');
+  var knob=document.getElementById('logo-toggle-knob');
+  var communityWrap=document.getElementById('community-logo-wrap');
+  var defaultWrap=document.getElementById('default-logo-wrap');
+
+  if(enabled){
+    if(toggle){toggle.style.background='rgba(170,255,62,0.25)';toggle.style.borderColor='rgba(170,255,62,0.4)';}
+    if(knob){knob.style.left='23px';knob.style.background='#aaff3e';}
+    if(communityWrap)communityWrap.style.display='flex';
+    if(defaultWrap)defaultWrap.style.display='none';
+  } else {
+    if(toggle){toggle.style.background='rgba(255,255,255,0.1)';toggle.style.borderColor='rgba(255,255,255,0.12)';}
+    if(knob){knob.style.left='3px';knob.style.background='#6b7a96';}
+    if(communityWrap)communityWrap.style.display='none';
+    if(defaultWrap)defaultWrap.style.display='flex';
+  }
 }
 
 /* ===== INIT ===== */
