@@ -697,40 +697,39 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
   <!-- STICKY TOP -->
   <div class="sticky-top">
-    <nav class="nav-bar" id="main-nav">
-      <div class="logo-mark" onclick="switchView('marketing')" style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+    <nav class="nav-bar" id="main-nav" style="display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:66px;gap:20px;">
 
-        <!-- Community logo (shown when uploaded) -->
+      <!-- LEFT: Logo -->
+      <div onclick="currentUser?showDashTab('home-tab',null):switchView('marketing')" style="display:flex;align-items:center;gap:12px;cursor:pointer;flex-shrink:0;">
+        <!-- Community logo -->
         <div id="community-logo-wrap" style="display:none;flex-direction:column;align-items:flex-start;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img id="community-logo-img" src="" alt="Logo" style="height:36px;max-width:140px;object-fit:contain;border-radius:6px;">
-          </div>
-          <div style="font-size:9px;color:#4a5568;letter-spacing:.06em;margin-top:2px;font-family:'DM Sans',sans-serif;">powered by <span style="color:#aaff3e;font-weight:700;">EconSquad AI</span></div>
+          <img id="community-logo-img" src="" alt="Logo" style="height:36px;max-width:140px;object-fit:contain;border-radius:6px;">
+          <div style="font-size:9px;color:#4a5568;margin-top:2px;font-family:'DM Sans',sans-serif;">powered by <span style="color:#aaff3e;font-weight:700;">EconSquad AI</span></div>
         </div>
-
-        <!-- Default EconSquad logo (shown when no community logo) -->
+        <!-- Default EconSquad logo -->
         <div id="default-logo-wrap" style="display:flex;align-items:center;gap:12px;">
           <div style="position:relative;width:42px;height:42px;flex-shrink:0;">
             <canvas id="logo-cv" width="42" height="42" style="position:absolute;top:0;left:0;width:42px;height:42px;"></canvas>
             <div id="logo-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;z-index:2;display:flex;align-items:center;justify-content:center;">
-            <svg style="width:16px;height:16px;" viewBox="0 0 22 22" fill="none">
-              <circle cx="11" cy="7" r="3.2" fill="rgba(15,30,0,0.88)"/>
-              <circle cx="5.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/>
-              <circle cx="16.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/>
-              <line x1="11" y1="7" x2="5.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
-              <line x1="11" y1="7" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
-              <line x1="5.5" y1="16" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
-            </svg>
+              <svg style="width:16px;height:16px;" viewBox="0 0 22 22" fill="none">
+                <circle cx="11" cy="7" r="3.2" fill="rgba(15,30,0,0.88)"/>
+                <circle cx="5.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/>
+                <circle cx="16.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/>
+                <line x1="11" y1="7" x2="5.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
+                <line x1="11" y1="7" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
+                <line x1="5.5" y1="16" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/>
+              </svg>
+            </div>
           </div>
-        </div>
-        <div>
-          <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span> <span class="ai">AI</span></div>
-          <div class="logo-sub">Less Work. More Impact.
+          <div>
+            <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span> <span class="ai">AI</span></div>
+            <div class="logo-sub">Less Work. More Impact.</div>
           </div>
         </div>
       </div>
-      <!-- Marketing nav -->
-      <div id="nav-marketing">
+
+      <!-- CENTER: Nav links (marketing only) -->
+      <div id="nav-marketing" style="flex:1;display:flex;justify-content:center;">
         <ul class="nav-links">
           <li><a onclick="scrollToSection('sec-how')">How it works</a></li>
           <li><a onclick="scrollToSection('sec-squad')">Specialists</a></li>
@@ -738,28 +737,31 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <li><a onclick="scrollToSection('sec-aria')">About ARIA</a></li>
         </ul>
       </div>
-      <!-- Dashboard nav -->
-      <div id="nav-dashboard" style="display:none;">
-        <ul class="nav-links">
-          <li><a class="active" id="dash-nav-home" onclick="showDashTab('home-tab',this)">Home</a></li>
-          <li><a id="dash-nav-squad" onclick="showDashTab('home-tab',this);setTimeout(function(){scrollToSection('row-grants')},100)">My Squad</a></li>
-          <li><a id="dash-nav-favs" onclick="showDashTab('home-tab',this);setTimeout(function(){scrollToSection('fav-row')},100)">Favorites</a></li>
-          <li><a id="dash-nav-stats" onclick="showDashTab('mystats-tab',this)">My Stats</a></li>
-          <li><a onclick="showHistoryToast()">History</a></li>
+
+      <!-- CENTER: Dashboard nav links (logged in only) -->
+      <div id="nav-dashboard" style="flex:1;display:none;justify-content:center;align-items:center;">
+        <ul class="nav-links" style="display:flex;gap:4px;list-style:none;margin:0;padding:0;">
+          <li><a id="dash-nav-home" onclick="showDashTab('home-tab',this)" style="cursor:pointer;">My Squad</a></li>
+          <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
+          <li><a id="dash-nav-stats" onclick="showDashTab('mystats-tab',this)" style="cursor:pointer;">My Stats</a></li>
+          <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
         </ul>
       </div>
-      <div class="nav-ctas" id="nav-ctas-marketing" style="margin-left:auto;">
+
+      <!-- RIGHT: CTAs — always right aligned -->
+      <div id="nav-ctas-marketing" class="nav-ctas" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
         <button class="btn-ghost-sm" onclick="openAuth('signin')">Sign in</button>
         <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
       </div>
-      <div id="nav-ctas-dashboard" style="display:none;gap:12px;align-items:center;margin-left:auto;" class="nav-ctas">
-        <span id="level-badge" onclick="showDashTab('mystats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;margin-right:6px;" title="View your level">🎖️ Lvl 1 · Recruit</span><span class="plan-badge" id="plan-badge" onclick="openBillingModal()">⚡ Trial</span>
+
+      <div id="nav-ctas-dashboard" class="nav-ctas" style="display:none;align-items:center;gap:10px;flex-shrink:0;">
+        <span id="level-badge" onclick="showDashTab('mystats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;white-space:nowrap;" title="View your level">🎖️ Lvl 1 · Recruit</span>
+        <span class="plan-badge" id="plan-badge" onclick="openBillingModal()" style="white-space:nowrap;">⚡ Trial</span>
         <div style="position:relative;">
           <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
             <img id="user-logo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
             <span id="user-initials">SM</span>
           </div>
-          <!-- Profile dropdown -->
           <div id="profile-menu" style="display:none;position:absolute;top:42px;right:0;background:rgba(8,12,24,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px;min-width:200px;z-index:99999;backdrop-filter:blur(24px);box-shadow:0 8px 32px rgba(0,0,0,0.4);">
             <div id="profile-menu-header" style="padding:10px 12px 8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;">
               <div id="pm-name" style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#eef3fc;"></div>
@@ -767,7 +769,6 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div id="pm-plan" style="font-size:10px;color:#aaff3e;font-weight:700;text-transform:uppercase;margin-top:4px;letter-spacing:.06em;"></div>
               <div id="pm-badges" style="font-size:11px;color:#f5c542;margin-top:2px;"></div>
             </div>
-            <!-- Logo upload -->
             <div style="padding:6px 4px;">
               <label for="logo-upload" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <div style="width:32px;height:32px;border-radius:50%;border:1.5px dashed rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;" id="logo-preview-sm">
@@ -794,6 +795,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           </div>
         </div>
       </div>
+
     </nav>
 
     <!-- Page switcher (dev helper) -->
@@ -1620,30 +1622,25 @@ function switchView(view){
   var navDash=document.getElementById('nav-dashboard');
   var navCtaMkt=document.getElementById('nav-ctas-marketing');
   var navCtaDash=document.getElementById('nav-ctas-dashboard');
-  var pillMkt=document.getElementById('pill-marketing');
-  var pillDash=document.getElementById('pill-dashboard');
   if(view==='marketing'){
     if(mkt)mkt.style.display='block';
     if(dash)dash.style.display='none';
-    if(navMkt)navMkt.style.display='block';
-    if(navDash)navDash.style.display='none';
-    if(navCtaMkt)navCtaMkt.style.display='flex';
-    if(navCtaDash)navCtaDash.style.display='none';
-    if(pillMkt)pillMkt.classList.add('active');
-    if(pillDash)pillDash.classList.remove('active');
+    if(navMkt){navMkt.style.display='flex';}
+    if(navDash){navDash.style.display='none';}
+    if(navCtaMkt){navCtaMkt.style.display='flex';}
+    if(navCtaDash){navCtaDash.style.display='none';}
   } else {
     if(mkt)mkt.style.display='none';
     if(dash)dash.style.display='block';
-    if(navMkt)navMkt.style.display='none';
-    if(navDash)navDash.style.display='block';
-    if(navCtaMkt)navCtaMkt.style.display='none';
-    if(navCtaDash)navCtaDash.style.display='flex';
-    if(pillMkt)pillMkt.classList.remove('active');
-    if(pillDash)pillDash.classList.add('active');
+    if(navMkt){navMkt.style.display='none';}
+    if(navDash){navDash.style.display='flex';}
+    if(navCtaMkt){navCtaMkt.style.display='none';}
+    if(navCtaDash){navCtaDash.style.display='flex';}
     var sa=document.querySelector('.scroll-area');
     if(sa)sa.scrollTop=0;
   }
 }
+
 
 function showDashTab(tabId,el){
   document.querySelectorAll('.dash-tab').forEach(function(t){t.style.display='none';});
