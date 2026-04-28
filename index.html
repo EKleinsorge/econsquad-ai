@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1119</title>
+<title>EconSquad AI v04.28.1124</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -752,7 +752,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       <!-- RIGHT: CTAs — always right aligned -->
       <div id="nav-ctas-marketing" class="nav-ctas" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <button class="btn-ghost-sm" onclick="openAuth('signin')">Sign in</button>
+        <button class="btn-ghost-sm" id="main-signin-btn" onclick="openAuth('signin');return false;">Sign in</button>
         <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
       </div>
 
@@ -4784,6 +4784,26 @@ function askAriaQuick(){
   /* Open ARIA modal with the question pre-filled */
   openAria(q);
 }
+
+
+/* ===== ENSURE SIGNIN BTN WORKS ===== */
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('main-signin-btn');
+  if(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      openAuth('signin');
+    });
+  }
+  var trialBtn = document.querySelector('.btn-lime[onclick*="signup"]');
+  if(trialBtn){
+    trialBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      openAuth('signup');
+    });
+  }
+});
 
 /* ===== INIT ===== */
 renderSquad();
