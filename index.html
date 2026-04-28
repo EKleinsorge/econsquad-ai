@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1131</title>
+<title>EconSquad AI v04.28.1140</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1250,152 +1250,6 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
       </div>
 
-<div class="modal-overlay" id="auth-modal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeAuth()">✕</button>
-
-    <!-- AUTH TABS -->
-    <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.08);">
-      <button id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;padding:10px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:#aaff3e;border-bottom:2px solid #aaff3e;cursor:pointer;transition:all .2s;">Create Account</button>
-      <button id="tab-signin" onclick="switchAuthTab('signin')" style="flex:1;background:none;border:none;padding:10px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:#6b7a96;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;">Sign In</button>
-    </div>
-
-    <!-- AUTH MESSAGE -->
-    <div id="auth-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;"></div>
-
-    <!-- SIGN UP PANEL -->
-    <div id="panel-signup">
-
-      <!-- STEP 1: Account details -->
-      <div id="su-step-1">
-        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-        <div class="modal-eyebrow">Step 1 of 3 — Create your account</div>
-        <h2 class="modal-h2">Hire your <span>squad</span></h2>
-        <div class="form-row">
-          <div class="form-field"><label>First name</label><input id="su-fname" type="text" placeholder="Sarah"></div>
-          <div class="form-field"><label>Last name</label><input id="su-lname" type="text" placeholder="Mitchell"></div>
-        </div>
-        <div class="form-field"><label>Work email</label><input id="su-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
-        <div class="form-field"><label>Password</label><input id="su-pass" type="password" placeholder="Min 8 characters"></div>
-        <div class="form-field"><label>Organization</label><input id="su-org" type="text" placeholder="City of Riverdale Economic Development"></div>
-        <div class="form-field"><label>Your role</label>
-          <select id="su-role">
-            <option>Economic Development Director</option>
-            <option>ED Manager</option>
-            <option>Business Development Manager</option>
-            <option>Grant Writer</option>
-            <option>ED Analyst</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <button class="modal-btn" onclick="suNextStep(2)">Continue — choose your plan →</button>
-        <p class="modal-note">Already have an account? <span onclick="switchAuthTab('signin')" style="cursor:pointer;color:var(--lime);">Sign in</span></p>
-      </div>
-
-      <!-- STEP 2: Choose plan -->
-      <div id="su-step-2" style="display:none;">
-        <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
-        <div class="modal-eyebrow">Step 2 of 3 — Choose your plan</div>
-        <h2 class="modal-h2">Pick your <span>squad size</span></h2>
-
-        <!-- Billing toggle -->
-        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;">
-          <span id="su-lbl-m" style="font-size:13px;font-weight:600;color:#eef3fc;">Monthly</span>
-          <div onclick="suToggleBilling()" id="su-billing-toggle" style="width:44px;height:24px;background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);border-radius:12px;cursor:pointer;position:relative;">
-            <div id="su-billing-knob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#aaff3e;transition:transform .3s;"></div>
-          </div>
-          <span id="su-lbl-a" style="font-size:13px;font-weight:600;color:#6b7a96;">Annual <span style="font-size:10px;color:#aaff3e;background:rgba(170,255,62,0.1);padding:1px 6px;border-radius:8px;">2 months free</span></span>
-        </div>
-
-        <!-- Plan cards -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;">
-          <div id="su-plan-starter" onclick="suSelectPlan('starter')" style="border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(14,20,36,0.6);">
-            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Starter</div>
-            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-starter-amt">$29</span><span style="font-size:12px;color:#6b7a96;" id="su-starter-per">/mo</span></div>
-            <div style="font-size:11px;color:#6b7a96;">6 specialists</div>
-          </div>
-          <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);">
-            <div style="font-size:9px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Most popular</div>
-            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Pro Squad</div>
-            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$79</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
-            <div style="font-size:11px;color:#6b7a96;">All 18 specialists</div>
-          </div>
-        </div>
-        <button class="modal-btn" onclick="suNextStep(3)">Continue — add payment →</button>
-        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(1)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
-      </div>
-
-      <!-- STEP 3: Card details -->
-      <div id="su-step-3" style="display:none;">
-        <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
-        <div class="modal-eyebrow">Step 3 of 3 — Payment details</div>
-        <h2 class="modal-h2">Start your <span>free trial</span></h2>
-
-        <!-- Trust banner -->
-        <div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">🔒</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#aaff3e;">You won't be charged for 7 days</div>
-            <div style="font-size:11px;color:#6b7a96;">Cancel anytime before your trial ends and pay nothing. Ever.</div>
-          </div>
-        </div>
-
-        <!-- Selected plan summary -->
-        <div id="su-plan-summary" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#8a97b5;">Selected plan</span>
-          <span id="su-plan-label" style="font-size:13px;font-weight:700;color:#eef3fc;">Pro Squad · $79/mo</span>
-        </div>
-
-        <!-- Promo code -->
-        <div class="form-field" style="margin-bottom:14px;">
-          <label>Promo code <span style="color:#4a5568;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
-          <div style="display:flex;gap:8px;">
-            <input id="su-promo" type="text" placeholder="Enter promo code" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
-            <button type="button" onclick="applyPromoCode()" id="promo-apply-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;font-weight:700;padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;">Apply</button>
-          </div>
-          <div id="promo-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
-        </div>
-
-        <!-- Stripe card element -->
-        <div class="form-field">
-          <label>Card details</label>
-          <div id="stripe-card-element" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px;min-height:44px;"></div>
-          <div id="stripe-card-error" style="color:#ff8080;font-size:12px;margin-top:6px;display:none;"></div>
-        </div>
-
-        <button class="modal-btn" id="btn-start-trial" onclick="doSignup()">Start my free trial — $0 today →</button>
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;">
-          <span style="font-size:11px;color:#4a5568;">Secured by</span>
-          <span style="font-size:12px;font-weight:700;color:#6b7a96;">Stripe</span>
-          <span style="font-size:11px;color:#4a5568;">· 256-bit encryption</span>
-        </div>
-        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(2)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
-      </div>
-
-    </div>
-
-    <!-- SIGN IN PANEL -->
-    <div id="panel-signin" style="display:none;">
-      <div class="modal-eyebrow">Welcome back</div>
-      <h2 class="modal-h2">Sign in to your <span>squad</span></h2>
-      <div class="form-field"><label>Email</label><input id="si-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
-      <div class="form-field"><label>Password</label><input id="si-pass" type="password" placeholder="Your password"></div>
-      <button class="modal-btn" id="btn-signin" onclick="doSignin()">Sign in to my squad →</button>
-      <p class="modal-note" style="margin-top:10px;"><span onclick="doForgotPassword()" style="cursor:pointer;color:var(--lime);">Forgot your password?</span></p>
-      <p class="modal-note">No account yet? <span onclick="switchAuthTab('signup')" style="cursor:pointer;color:var(--lime);">Start free trial</span></p>
-    </div>
-
-    <!-- EMAIL CONFIRM PANEL -->
-    <div id="panel-confirm" style="display:none;text-align:center;padding:20px 0;">
-      <div style="font-size:48px;margin-bottom:16px;">📬</div>
-      <h2 class="modal-h2">Check your <span>email</span></h2>
-      <p style="color:#6b7a96;font-size:14px;line-height:1.6;">We sent a confirmation link to<br><strong id="confirm-email" style="color:#eef3fc;"></strong></p>
-      <p style="color:#6b7a96;font-size:12px;margin-top:16px;">Click the link in that email to activate your account, then come back and sign in.</p>
-      <button class="modal-btn" style="margin-top:20px;" onclick="switchAuthTab('signin')">Go to sign in →</button>
-    </div>
-
-  </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
@@ -5266,6 +5120,153 @@ try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
       <button onclick="openUpgradeFlow()" id="billing-upgrade-btn" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;padding:10px;border-radius:10px;cursor:pointer;display:none;">Upgrade to Pro Squad</button>
       <button onclick="confirmCancelTrial()" id="billing-cancel-btn" style="width:100%;background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;padding:6px;">Cancel trial</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="auth-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+
+    <!-- AUTH TABS -->
+    <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <button id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;padding:10px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:#aaff3e;border-bottom:2px solid #aaff3e;cursor:pointer;transition:all .2s;">Create Account</button>
+      <button id="tab-signin" onclick="switchAuthTab('signin')" style="flex:1;background:none;border:none;padding:10px;font-family:Barlow,sans-serif;font-size:13px;font-weight:700;color:#6b7a96;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;">Sign In</button>
+    </div>
+
+    <!-- AUTH MESSAGE -->
+    <div id="auth-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;"></div>
+
+    <!-- SIGN UP PANEL -->
+    <div id="panel-signup">
+
+      <!-- STEP 1: Account details -->
+      <div id="su-step-1">
+        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+        <div class="modal-eyebrow">Step 1 of 3 — Create your account</div>
+        <h2 class="modal-h2">Hire your <span>squad</span></h2>
+        <div class="form-row">
+          <div class="form-field"><label>First name</label><input id="su-fname" type="text" placeholder="Sarah"></div>
+          <div class="form-field"><label>Last name</label><input id="su-lname" type="text" placeholder="Mitchell"></div>
+        </div>
+        <div class="form-field"><label>Work email</label><input id="su-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
+        <div class="form-field"><label>Password</label><input id="su-pass" type="password" placeholder="Min 8 characters"></div>
+        <div class="form-field"><label>Organization</label><input id="su-org" type="text" placeholder="City of Riverdale Economic Development"></div>
+        <div class="form-field"><label>Your role</label>
+          <select id="su-role">
+            <option>Economic Development Director</option>
+            <option>ED Manager</option>
+            <option>Business Development Manager</option>
+            <option>Grant Writer</option>
+            <option>ED Analyst</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <button class="modal-btn" onclick="suNextStep(2)">Continue — choose your plan →</button>
+        <p class="modal-note">Already have an account? <span onclick="switchAuthTab('signin')" style="cursor:pointer;color:var(--lime);">Sign in</span></p>
+      </div>
+
+      <!-- STEP 2: Choose plan -->
+      <div id="su-step-2" style="display:none;">
+        <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
+        <div class="modal-eyebrow">Step 2 of 3 — Choose your plan</div>
+        <h2 class="modal-h2">Pick your <span>squad size</span></h2>
+
+        <!-- Billing toggle -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0;">
+          <span id="su-lbl-m" style="font-size:13px;font-weight:600;color:#eef3fc;">Monthly</span>
+          <div onclick="suToggleBilling()" id="su-billing-toggle" style="width:44px;height:24px;background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);border-radius:12px;cursor:pointer;position:relative;">
+            <div id="su-billing-knob" style="position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#aaff3e;transition:transform .3s;"></div>
+          </div>
+          <span id="su-lbl-a" style="font-size:13px;font-weight:600;color:#6b7a96;">Annual <span style="font-size:10px;color:#aaff3e;background:rgba(170,255,62,0.1);padding:1px 6px;border-radius:8px;">2 months free</span></span>
+        </div>
+
+        <!-- Plan cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;">
+          <div id="su-plan-starter" onclick="suSelectPlan('starter')" style="border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(14,20,36,0.6);">
+            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Starter</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-starter-amt">$29</span><span style="font-size:12px;color:#6b7a96;" id="su-starter-per">/mo</span></div>
+            <div style="font-size:11px;color:#6b7a96;">6 specialists</div>
+          </div>
+          <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);">
+            <div style="font-size:9px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Most popular</div>
+            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Pro Squad</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$79</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
+            <div style="font-size:11px;color:#6b7a96;">All 18 specialists</div>
+          </div>
+        </div>
+        <button class="modal-btn" onclick="suNextStep(3)">Continue — add payment →</button>
+        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(1)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
+      </div>
+
+      <!-- STEP 3: Card details -->
+      <div id="su-step-3" style="display:none;">
+        <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
+        <div class="modal-eyebrow">Step 3 of 3 — Payment details</div>
+        <h2 class="modal-h2">Start your <span>free trial</span></h2>
+
+        <!-- Trust banner -->
+        <div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">🔒</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#aaff3e;">You won't be charged for 7 days</div>
+            <div style="font-size:11px;color:#6b7a96;">Cancel anytime before your trial ends and pay nothing. Ever.</div>
+          </div>
+        </div>
+
+        <!-- Selected plan summary -->
+        <div id="su-plan-summary" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#8a97b5;">Selected plan</span>
+          <span id="su-plan-label" style="font-size:13px;font-weight:700;color:#eef3fc;">Pro Squad · $79/mo</span>
+        </div>
+
+        <!-- Promo code -->
+        <div class="form-field" style="margin-bottom:14px;">
+          <label>Promo code <span style="color:#4a5568;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <div style="display:flex;gap:8px;">
+            <input id="su-promo" type="text" placeholder="Enter promo code" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
+            <button type="button" onclick="applyPromoCode()" id="promo-apply-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;font-weight:700;padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;">Apply</button>
+          </div>
+          <div id="promo-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
+        </div>
+
+        <!-- Stripe card element -->
+        <div class="form-field">
+          <label>Card details</label>
+          <div id="stripe-card-element" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px;min-height:44px;"></div>
+          <div id="stripe-card-error" style="color:#ff8080;font-size:12px;margin-top:6px;display:none;"></div>
+        </div>
+
+        <button class="modal-btn" id="btn-start-trial" onclick="doSignup()">Start my free trial — $0 today →</button>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;">
+          <span style="font-size:11px;color:#4a5568;">Secured by</span>
+          <span style="font-size:12px;font-weight:700;color:#6b7a96;">Stripe</span>
+          <span style="font-size:11px;color:#4a5568;">· 256-bit encryption</span>
+        </div>
+        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(2)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
+      </div>
+
+    </div>
+
+    <!-- SIGN IN PANEL -->
+    <div id="panel-signin" style="display:none;">
+      <div class="modal-eyebrow">Welcome back</div>
+      <h2 class="modal-h2">Sign in to your <span>squad</span></h2>
+      <div class="form-field"><label>Email</label><input id="si-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
+      <div class="form-field"><label>Password</label><input id="si-pass" type="password" placeholder="Your password"></div>
+      <button class="modal-btn" id="btn-signin" onclick="doSignin()">Sign in to my squad →</button>
+      <p class="modal-note" style="margin-top:10px;"><span onclick="doForgotPassword()" style="cursor:pointer;color:var(--lime);">Forgot your password?</span></p>
+      <p class="modal-note">No account yet? <span onclick="switchAuthTab('signup')" style="cursor:pointer;color:var(--lime);">Start free trial</span></p>
+    </div>
+
+    <!-- EMAIL CONFIRM PANEL -->
+    <div id="panel-confirm" style="display:none;text-align:center;padding:20px 0;">
+      <div style="font-size:48px;margin-bottom:16px;">📬</div>
+      <h2 class="modal-h2">Check your <span>email</span></h2>
+      <p style="color:#6b7a96;font-size:14px;line-height:1.6;">We sent a confirmation link to<br><strong id="confirm-email" style="color:#eef3fc;"></strong></p>
+      <p style="color:#6b7a96;font-size:12px;margin-top:16px;">Click the link in that email to activate your account, then come back and sign in.</p>
+      <button class="modal-btn" style="margin-top:20px;" onclick="switchAuthTab('signin')">Go to sign in →</button>
+    </div>
+
   </div>
 </div>
 </body>
