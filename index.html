@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1128</title>
+<title>EconSquad AI v04.28.1131</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -752,8 +752,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       <!-- RIGHT: CTAs — always right aligned -->
       <div id="nav-ctas-marketing" class="nav-ctas" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <button class="btn-ghost-sm" id="main-signin-btn" onclick="openAuth('signin');return false;">Sign in</button>
-        <button class="btn-lime" onclick="openAuth('signup')">Start free trial</button>
+        <button class="btn-ghost-sm" id="main-signin-btn" style="position:relative;z-index:9999999;" onclick="openAuth('signin')">Sign in</button>
+        <button class="btn-lime" style="position:relative;z-index:9999999;" onclick="openAuth('signup')">Start free trial</button>
       </div>
 
       <div id="nav-ctas-dashboard" class="nav-ctas" style="display:none;align-items:center;gap:10px;flex-shrink:0;">
@@ -4787,10 +4787,10 @@ function askAriaQuick(){
 
 
 /* ===== INIT ===== */
-renderSquad();
-calcMktROI();
-calcROI();
-loadSpecialistData();
+try{renderSquad();}catch(e){console.warn('renderSquad error:',e);}
+try{calcMktROI();}catch(e){console.warn('calcMktROI error:',e);}
+try{calcROI();}catch(e){console.warn('calcROI error:',e);}
+try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
 
 /* ===== MARKETING SQUAD PREVIEW ===== */
 (function(){
