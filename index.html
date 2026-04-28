@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1200</title>
+<title>EconSquad AI v04.28.1207</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1593,6 +1593,14 @@ function openAuth(tab){
   clone.id='auth-modal-active';
   clone.style.cssText='display:flex!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,0.8)!important;z-index:2147483647!important;align-items:center!important;justify-content:center!important;backdrop-filter:blur(8px)!important;';
   document.body.appendChild(clone);
+  /* rewire tab buttons and close button in the clone */
+  clone.querySelectorAll('.auth-tab').forEach(function(btn){
+    var oc=btn.getAttribute('onclick')||'';
+    if(oc.indexOf('signup')>-1)btn.onclick=function(){switchAuthTab('signup');};
+    else if(oc.indexOf('signin')>-1)btn.onclick=function(){switchAuthTab('signin');};
+  });
+  var cb=clone.querySelector('.modal-close');
+  if(cb)cb.onclick=function(){var m=document.getElementById('auth-modal-active');if(m)m.remove();};
   switchAuthTab(tab||'signup');
   clearAuthMsg();
 }
@@ -1601,21 +1609,30 @@ function closeAuth(){
   if(m)m.remove();
 }
 function switchAuthTab(tab){
-  var authRoot=document.getElementById('auth-modal-active')||document;
-  document.getElementById('panel-signup').style.display=tab==='signup'?'block':'none';
-  document.getElementById('panel-signin').style.display=tab==='signin'?'block':'none';
-  document.getElementById('panel-confirm').style.display='none';
-  var ts=document.getElementById('tab-signup');
-  var ti=document.getElementById('tab-signin');
+  /* work on cloned active modal if present */
+  var root=document.getElementById('auth-modal-active')||document;
+  var qid=function(id){return root.querySelector?root.querySelector('#'+id):document.getElementById(id);};
+  var qall=function(sel){return root.querySelectorAll?root.querySelectorAll(sel):document.querySelectorAll(sel);};
+
+  /* hide all panels */
+  ['su-step-1','su-step-2','su-step-3','signin-panel','confirm-panel'].forEach(function(id){
+    var el=qid(id);if(el)el.style.display='none';
+  });
+  qall('.auth-tab').forEach(function(t){t.classList.remove('active');});
+
   if(tab==='signup'){
-    ts.style.color='#aaff3e';ts.style.borderBottomColor='#aaff3e';
-    ti.style.color='#6b7a96';ti.style.borderBottomColor='transparent';
-  } else {
-    ti.style.color='#aaff3e';ti.style.borderBottomColor='#aaff3e';
-    ts.style.color='#6b7a96';ts.style.borderBottomColor='transparent';
+    var s1=qid('su-step-1');if(s1)s1.style.display='block';
+    var at=qall('.auth-tab');
+    at.forEach(function(t){if(t.getAttribute('onclick')&&t.getAttribute('onclick').indexOf('signup')>-1)t.classList.add('active');});
+  } else if(tab==='signin'){
+    var sp=qid('signin-panel');if(sp)sp.style.display='block';
+    var at2=qall('.auth-tab');
+    at2.forEach(function(t){if(t.getAttribute('onclick')&&t.getAttribute('onclick').indexOf('signin')>-1)t.classList.add('active');});
+  } else if(tab==='confirm'){
+    var cp=qid('confirm-panel');if(cp)cp.style.display='block';
   }
-  clearAuthMsg();
 }
+
 
 function showAuthMsg(msg,type){
   var el=document.getElementById('auth-msg');
@@ -1627,8 +1644,12 @@ function showAuthMsg(msg,type){
   el.textContent=msg;
 }
 function clearAuthMsg(){
-  var el=document.getElementById('auth-msg');
-  if(el)el.style.display='none';
+  var root=document.getElementById('auth-modal-active')||document;
+  var qid=function(id){return root.querySelector?root.querySelector('#'+id):document.getElementById(id);};
+  ['auth-msg','signin-msg'].forEach(function(id){
+    var el=qid(id);
+    if(el){el.textContent='';el.style.display='none';}
+  });
 }
 
 function setLoading(btnId,loading){
