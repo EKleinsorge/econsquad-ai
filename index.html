@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1210</title>
+<title>EconSquad AI v04.28.1214</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -388,21 +388,21 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .nav-links a{cursor:pointer;}
 
 /* ===== AUTH MODAL ===== */
-#auth-modal .modal-box{max-width:480px;}
-#auth-modal .form-field input,#auth-modal .form-field select{
+#auth-modal .modal-box, #auth-modal-active .modal-box{max-width:480px;}
+#auth-modal .form-field input, #auth-modal-active .form-field input,#auth-modal .form-field select, #auth-modal-active .form-field select{
   width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
   border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;
   font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;
 }
-#auth-modal .form-field input:focus,#auth-modal .form-field select:focus{
+#auth-modal .form-field input:focus, #auth-modal-active .form-field input:focus,#auth-modal .form-field select:focus, #auth-modal-active .form-field select:focus{
   border-color:rgba(170,255,62,0.4);
 }
-#auth-modal .form-field label{
+#auth-modal .form-field label, #auth-modal-active .form-field label{
   display:block;font-size:11px;font-weight:600;color:#6b7a96;
   text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;
 }
-#auth-modal .form-field{margin-bottom:14px;}
-#auth-modal .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+#auth-modal .form-field, #auth-modal-active .form-field{margin-bottom:14px;}
+#auth-modal .form-row, #auth-modal-active .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
 /* ===== SPECIALIST HOVER TOOLTIP ===== */
 .spec-tooltip{
@@ -1759,7 +1759,17 @@ function suNextStep(n){
   /* mount Stripe card element when reaching step 3 */
   if(n===3){
     suUpdatePlanSummary();
-    clearAuthMsg();
+    /* apply CSS to cloned modal since #auth-modal selectors won't match */
+  clone.querySelectorAll('input,select,textarea').forEach(function(inp){
+    inp.style.cssText='width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#eef3fc;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;display:block;';
+  });
+  clone.querySelectorAll('label').forEach(function(l){
+    l.style.cssText='display:block;font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;';
+  });
+  clone.querySelectorAll('.form-field').forEach(function(f){f.style.marginBottom='14px';});
+  var cloneBox=clone.querySelector('.modal-box');
+  if(cloneBox){cloneBox.style.maxHeight='88vh';cloneBox.style.overflowY='auto';}
+  clearAuthMsg();
     setTimeout(mountStripeCard,100);
   }
   [1,2,3].forEach(function(i){
