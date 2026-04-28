@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1218</title>
+<title>EconSquad AI v04.28.1247</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1770,6 +1770,15 @@ function suNextStep(n){
   var cloneBox=clone.querySelector('.modal-box');
   if(cloneBox){cloneBox.style.maxHeight='88vh';cloneBox.style.overflowY='auto';}
   clearAuthMsg();
+  /* Force panel visibility after switchAuthTab with !important */
+  setTimeout(function(){
+    var m2=document.getElementById('auth-modal-active');
+    if(!m2)return;
+    var psu=m2.querySelector('#panel-signup');
+    var psi=m2.querySelector('#panel-signin');
+    if(psu)psu.style.setProperty('display',tab==='signin'?'none':'block','important');
+    if(psi)psi.style.setProperty('display',tab==='signin'?'block':'none','important');
+  },30);
     setTimeout(mountStripeCard,100);
   }
   [1,2,3].forEach(function(i){
