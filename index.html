@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1124</title>
+<title>EconSquad AI v04.28.1128</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -48,7 +48,7 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;overflow:hidden;}
 
 /* PAGE SWITCHER */
-.page-switcher{display:none!important;display:flex;gap:8px;padding:8px 40px;background:rgba(6,8,15,0.75);border-bottom:1px solid rgba(255,255,255,0.05);}
+.page-switcher{display:none!important;pointer-events:none;gap:8px;padding:8px 40px;background:rgba(6,8,15,0.75);border-bottom:1px solid rgba(255,255,255,0.05);}
 .pg-pill{font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);color:var(--text2);transition:all .2s;font-family:'DM Sans',sans-serif;}
 .pg-pill:hover{border-color:var(--limeborder);color:var(--lime);}
 .pg-pill.active{background:var(--limedim);border-color:var(--limeborder);color:var(--lime);}
@@ -4785,25 +4785,6 @@ function askAriaQuick(){
   openAria(q);
 }
 
-
-/* ===== ENSURE SIGNIN BTN WORKS ===== */
-document.addEventListener('DOMContentLoaded', function(){
-  var btn = document.getElementById('main-signin-btn');
-  if(btn){
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      openAuth('signin');
-    });
-  }
-  var trialBtn = document.querySelector('.btn-lime[onclick*="signup"]');
-  if(trialBtn){
-    trialBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      openAuth('signup');
-    });
-  }
-});
 
 /* ===== INIT ===== */
 renderSquad();
