@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1207</title>
+<title>EconSquad AI v04.28.1210</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1594,14 +1594,42 @@ function openAuth(tab){
   clone.style.cssText='display:flex!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,0.8)!important;z-index:2147483647!important;align-items:center!important;justify-content:center!important;backdrop-filter:blur(8px)!important;';
   document.body.appendChild(clone);
   /* rewire tab buttons and close button in the clone */
-  clone.querySelectorAll('.auth-tab').forEach(function(btn){
-    var oc=btn.getAttribute('onclick')||'';
-    if(oc.indexOf('signup')>-1)btn.onclick=function(){switchAuthTab('signup');};
-    else if(oc.indexOf('signin')>-1)btn.onclick=function(){switchAuthTab('signin');};
+  var allCloneBtns=Array.from(clone.querySelectorAll('button'));
+  var tabBtns=allCloneBtns.filter(function(b){
+    var t=b.textContent.trim();
+    return t==='Create Account'||t==='Sign In';
   });
+  tabBtns.forEach(function(btn){
+    var text=btn.textContent.trim();
+    btn.onclick=function(){
+      tabBtns.forEach(function(t){t.style.borderBottom='2px solid transparent';t.style.color='#6b7a96';});
+      btn.style.borderBottom='2px solid #aaff3e';btn.style.color='#aaff3e';
+      clone.querySelectorAll('[id*="step"],[id*="panel"]').forEach(function(p){p.style.display='none';});
+      if(text==='Create Account'){
+        var s=clone.querySelector('#su-step-1');if(s)s.style.display='block';
+      } else {
+        var s=clone.querySelector('#signin-panel');if(s)s.style.display='block';
+      }
+    };
+  });
+  /* close button */
   var cb=clone.querySelector('.modal-close');
   if(cb)cb.onclick=function(){var m=document.getElementById('auth-modal-active');if(m)m.remove();};
-  switchAuthTab(tab||'signup');
+  /* show correct panel */
+  clone.querySelectorAll('[id*="step"],[id*="panel"]').forEach(function(p){p.style.display='none';});
+  if(tab==='signin'){
+    var sp=clone.querySelector('#signin-panel');if(sp)sp.style.display='block';
+    tabBtns.forEach(function(b){
+      if(b.textContent.trim()==='Sign In'){b.style.borderBottom='2px solid #aaff3e';b.style.color='#aaff3e';}
+      else{b.style.borderBottom='2px solid transparent';b.style.color='#6b7a96';}
+    });
+  } else {
+    var s1=clone.querySelector('#su-step-1');if(s1)s1.style.display='block';
+    tabBtns.forEach(function(b){
+      if(b.textContent.trim()==='Create Account'){b.style.borderBottom='2px solid #aaff3e';b.style.color='#aaff3e';}
+      else{b.style.borderBottom='2px solid transparent';b.style.color='#6b7a96';}
+    });
+  }
   clearAuthMsg();
 }
 function closeAuth(){
