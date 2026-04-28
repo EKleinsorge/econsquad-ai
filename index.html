@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1254</title>
+<title>EconSquad AI v04.28.1257</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1586,52 +1586,100 @@ function openAuth(tab){
   /* Remove any existing clone */
   var old=document.getElementById('auth-modal-active');
   if(old)old.remove();
-  /* Clone the auth modal and append directly to body */
-  var source=document.getElementById('auth-modal');
-  if(!source)return;
-  var clone=source.cloneNode(true);
-  clone.id='auth-modal-active';
-  clone.style.cssText='display:flex!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,0.8)!important;z-index:2147483647!important;align-items:center!important;justify-content:center!important;backdrop-filter:blur(8px)!important;';
-  document.body.appendChild(clone);
-  /* rewire tab buttons and close button in the clone */
-  var allCloneBtns=Array.from(clone.querySelectorAll('button'));
-  var tabBtns=allCloneBtns.filter(function(b){
-    var t=b.textContent.trim();
-    return t==='Create Account'||t==='Sign In';
+
+  /* Clone the source modal */
+  var src=document.getElementById('auth-modal');
+  if(!src)return;
+  var m=src.cloneNode(true);
+  m.id='auth-modal-active';
+
+  /* Position it fullscreen on top of everything */
+  m.style.cssText='display:flex!important;position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,0.82)!important;z-index:2147483647!important;align-items:center!important;justify-content:center!important;';
+
+  /* Style the modal box */
+  var box=m.querySelector('.modal-box');
+  if(box)box.style.cssText='background:#0d1428;border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:28px 32px;width:500px;max-width:94vw;max-height:90vh;overflow-y:auto;position:relative;box-sizing:border-box;';
+
+  /* Style inputs */
+  m.querySelectorAll('input,select').forEach(function(inp){
+    inp.style.cssText='width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:11px 14px;color:#eef3fc;font-size:14px;outline:none;box-sizing:border-box;display:block;font-family:inherit;';
   });
-  tabBtns.forEach(function(btn){
-    var text=btn.textContent.trim();
+  m.querySelectorAll('label').forEach(function(l){
+    l.style.cssText='display:block;font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;';
+  });
+  m.querySelectorAll('.form-field,.form-row').forEach(function(f){f.style.marginBottom='12px';});
+
+  /* EXPLICITLY set panel visibility - no switchAuthTab needed */
+  var psu=m.querySelector('#panel-signup');
+  var psi=m.querySelector('#panel-signin');
+  var pc=m.querySelector('#panel-confirm') || m.querySelector('#confirm-panel');
+
+  /* Hide everything first */
+  [psu,psi,pc].forEach(function(p){if(p)p.style.setProperty('display','none','important');});
+
+  if(tab==='signin'){
+    /* Show signin panel */
+    if(psi)psi.style.setProperty('display','block','important');
+  } else if(tab==='confirm'){
+    if(pc)pc.style.setProperty('display','block','important');
+  } else {
+    /* Show signup panel - step 1 */
+    if(psu){
+      psu.style.setProperty('display','block','important');
+      /* Make sure step 1 is visible, steps 2/3 hidden */
+      var s1=psu.querySelector('#su-step-1');
+      var s2=psu.querySelector('#su-step-2');
+      var s3=psu.querySelector('#su-step-3');
+      if(s1)s1.style.setProperty('display','block','important');
+      if(s2)s2.style.setProperty('display','none','important');
+      if(s3)s3.style.setProperty('display','none','important');
+    }
+  }
+
+  /* Style tab buttons */
+  var tabs=Array.from(m.querySelectorAll('button')).filter(function(b){
+    return b.textContent.trim()==='Create Account'||b.textContent.trim()==='Sign In';
+  });
+  tabs.forEach(function(btn){
+    var isActive=(tab==='signin'&&btn.textContent.trim()==='Sign In')||(tab!=='signin'&&btn.textContent.trim()==='Create Account');
+    btn.style.cssText='background:none;border:none;border-bottom:2px solid '+(isActive?'#aaff3e':'transparent')+';color:'+(isActive?'#aaff3e':'#6b7a96')+';font-size:14px;font-weight:700;padding:10px 20px;cursor:pointer;font-family:inherit;';
     btn.onclick=function(){
-      tabBtns.forEach(function(t){t.style.borderBottom='2px solid transparent';t.style.color='#6b7a96';});
-      btn.style.borderBottom='2px solid #aaff3e';btn.style.color='#aaff3e';
-      clone.querySelectorAll('[id*="step"],[id*="panel"]').forEach(function(p){p.style.display='none';});
-      if(text==='Create Account'){
-        var s=clone.querySelector('#su-step-1');if(s)s.style.display='block';
+      var tabName=btn.textContent.trim()==='Sign In'?'signin':'signup';
+      /* Update tab styles */
+      tabs.forEach(function(t){t.style.borderBottomColor='transparent';t.style.color='#6b7a96';});
+      btn.style.borderBottomColor='#aaff3e';btn.style.color='#aaff3e';
+      /* Show correct panel */
+      var ps=m.querySelector('#panel-signup');
+      var pn=m.querySelector('#panel-signin');
+      if(tabName==='signin'){
+        if(ps)ps.style.setProperty('display','none','important');
+        if(pn)pn.style.setProperty('display','block','important');
       } else {
-        var s=clone.querySelector('#signin-panel');if(s)s.style.display='block';
+        if(pn)pn.style.setProperty('display','none','important');
+        if(ps){
+          ps.style.setProperty('display','block','important');
+          var s1=ps.querySelector('#su-step-1');
+          if(s1)s1.style.setProperty('display','block','important');
+        }
       }
     };
   });
-  /* close button */
-  var cb=clone.querySelector('.modal-close');
-  if(cb)cb.onclick=function(){var m=document.getElementById('auth-modal-active');if(m)m.remove();};
-  /* show correct panel */
-  clone.querySelectorAll('[id*="step"],[id*="panel"]').forEach(function(p){p.style.display='none';});
-  if(tab==='signin'){
-    var sp=clone.querySelector('#signin-panel');if(sp)sp.style.display='block';
-    tabBtns.forEach(function(b){
-      if(b.textContent.trim()==='Sign In'){b.style.borderBottom='2px solid #aaff3e';b.style.color='#aaff3e';}
-      else{b.style.borderBottom='2px solid transparent';b.style.color='#6b7a96';}
-    });
-  } else {
-    var s1=clone.querySelector('#su-step-1');if(s1)s1.style.display='block';
-    tabBtns.forEach(function(b){
-      if(b.textContent.trim()==='Create Account'){b.style.borderBottom='2px solid #aaff3e';b.style.color='#aaff3e';}
-      else{b.style.borderBottom='2px solid transparent';b.style.color='#6b7a96';}
-    });
+
+  /* Close button */
+  var cb=m.querySelector('.modal-close');
+  if(cb){
+    cb.style.cssText='position:absolute;top:14px;right:16px;background:none;border:none;color:#6b7a96;font-size:22px;cursor:pointer;line-height:1;padding:4px;';
+    cb.onclick=function(){var a=document.getElementById('auth-modal-active');if(a)a.remove();};
   }
-  clearAuthMsg();
+
+  /* Click overlay to close */
+  m.addEventListener('click',function(e){if(e.target===m){var a=document.getElementById('auth-modal-active');if(a)a.remove();}});
+
+  /* Append to body */
+  document.body.appendChild(m);
 }
+
+
 function closeAuth(){
   var m=document.getElementById('auth-modal-active');
   if(m)m.remove();
