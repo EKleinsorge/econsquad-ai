@@ -3193,10 +3193,16 @@ function addChatMessage(role, text){
   msgs.appendChild(wrapper);
   msgs.scrollTop=msgs.scrollHeight;
 
-  /* track in messages array for API */
-  /* sanitize content before storing — remove any chars that break JSON */
-  var cleanText = String(text||'').replace(/[\u0000-\u001F\u007F-\u009F]/g,' ');
+  /* sanitize and store for API */
+  var cleanText = String(text||'').replace(/[ --]/g,' ');
   chatState.messages.push({role:role==='user'?'user':'assistant',content:cleanText});
+
+  /* speak specialist replies when voice mode is on */
+  if(role==='specialist' && voiceEnabled){
+    lastSpokenText=text;
+    lastSpokenSpecialist=chatState.specialistId;
+    setTimeout(function(){speakText(text, chatState.specialistId);}, 400);
+  }
 }
 
 function showTyping(){
