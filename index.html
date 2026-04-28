@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1103</title>
+<title>EconSquad AI v04.28.1110</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -328,7 +328,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .popup-btns{display:flex;gap:7px;margin-top:4px;}
 
 /* SIGN UP MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:900;align-items:center;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:999998;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:rgba(14,20,38,0.99);border:1px solid var(--limeborder);border-radius:20px;padding:36px 40px;width:480px;max-width:95vw;position:relative;}
 .modal-close{position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;}
@@ -1607,7 +1607,9 @@ function calcMktROI(){
   if(mm)mm.textContent=mult+'x';
 }
 function calcROI(){
-  var sal=parseFloat(document.getElementById('sal').value)||75000;
+  var salEl=document.getElementById('sal');
+  if(!salEl)return; /* ROI calculator not on current page */
+  var sal=parseFloat(salEl.value)||75000;
   var hr=sal/2080;var saved=hr*61.5;var proj=saved*2;
   var mult=Math.round(saved/429);var net=saved-429;
   var els={
