@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.103404.28.1014</title>
+<title>EconSquad AI v04.28.1049</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -4722,10 +4722,10 @@ var ariaWelcomeMessages=[
 ];
 
 var ariaStatMessages=[
-  function(stats){return 'You have saved <strong style="color:#aaff3e">'+stats.hours+' hours</strong> so far. At your salary that's <strong style="color:#f5c542">$'+stats.value+'</strong> recovered. Let's add more today.';},
-  function(stats){return 'You've completed <strong style="color:#aaff3e">'+stats.tasks+' missions</strong> with your squad. You're '+((stats.level&&stats.level.title)?'a <strong style="color:#aaff3e">'+stats.level.title+'</strong>':'building momentum')+'. Keep it up!';},
-  function(stats){return 'You're <strong style="color:#f5c542">'+stats.xpToNext+' XP away</strong> from your next level. One more mission could get you there!';},
-  function(stats){return stats.topSpec?'Your most used specialist is <strong style="color:#aaff3e">'+stats.topSpec+'</strong>. They're ready to go whenever you are.':'Ready to deploy your first specialist? I'll help you choose the right one.';},
+  function(s){return "You have saved <b style='color:#aaff3e'>"+s.hours+" hours</b> — value recovered: $"+s.value+". Keep deploying!";},
+  function(s){return "You completed <b style='color:#aaff3e'>"+s.tasks+" missions</b> with your squad. "+(s.level&&s.level.title?"Level: "+s.level.title:"")+". Great work!";},
+  function(s){return "Only <b style='color:#f5c542'>"+s.xpToNext+" XP</b> to your next level. One more mission gets you there!";},
+  function(s){return s.topSpec?"Top specialist: <b style='color:#aaff3e'>"+s.topSpec+"</b> — ready to deploy.":"Deploy your first specialist. Tell me what you need!";},
 ];
 
 function loadAriaWelcome(){
