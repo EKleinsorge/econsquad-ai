@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1140</title>
+<title>EconSquad AI v04.28.1151</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1584,13 +1584,22 @@ function onSignedOut(){
 /* ── modal open/close ── */
 function openAuth(tab){
   var m=document.getElementById('auth-modal');
-  if(m)m.classList.add('show');
+  if(m){
+    m.style.display='flex';
+    m.style.position='fixed';
+    m.style.inset='0';
+    m.style.background='rgba(0,0,0,0.75)';
+    m.style.backdropFilter='blur(8px)';
+    m.style.zIndex='9999999';
+    m.style.alignItems='center';
+    m.style.justifyContent='center';
+  }
   switchAuthTab(tab||'signup');
   clearAuthMsg();
 }
 function closeAuth(){
   var m=document.getElementById('auth-modal');
-  if(m)m.classList.remove('show');
+  if(m){m.style.display='none';}
 }
 function switchAuthTab(tab){
   document.getElementById('panel-signup').style.display=tab==='signup'?'block':'none';
