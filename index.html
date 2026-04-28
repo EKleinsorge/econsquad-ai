@@ -48,7 +48,7 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;overflow:hidden;}
 
 /* PAGE SWITCHER */
-.page-switcher{display:flex;gap:8px;padding:8px 40px;background:rgba(6,8,15,0.75);border-bottom:1px solid rgba(255,255,255,0.05);}
+.page-switcher{display:none!important;display:flex;gap:8px;padding:8px 40px;background:rgba(6,8,15,0.75);border-bottom:1px solid rgba(255,255,255,0.05);}
 .pg-pill{font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);color:var(--text2);transition:all .2s;font-family:'DM Sans',sans-serif;}
 .pg-pill:hover{border-color:var(--limeborder);color:var(--lime);}
 .pg-pill.active{background:var(--limedim);border-color:var(--limeborder);color:var(--lime);}
@@ -809,12 +809,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
     </nav>
 
-    <!-- Page switcher (dev helper) -->
-    <div class="page-switcher">
-      <div class="pg-pill active" id="pill-marketing" onclick="switchView('marketing')">🏠 Home</div>
-      <div class="pg-pill" id="pill-dashboard" onclick="switchView('dashboard')">📊 Dashboard</div>
-      <div class="pg-pill" id="pill-signup" onclick="openAuth('signup')">✍️ Sign up flow</div>
-    </div>
+
 
     <!-- Dashboard sub-bars (hidden on marketing) -->
     <div id="dash-bars" style="display:none;">
