@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.28.1110</title>
+<title>EconSquad AI v04.28.1119</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -24,7 +24,7 @@ html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM San
 .sticky-bottom{flex-shrink:0;}
 
 /* NAV */
-.nav-bar{background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.nav-bar{position:relative;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
 .logo-mark{display:flex;align-items:center;gap:10px;cursor:pointer;}
 .logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .logo-icon svg{width:22px;height:22px;}
@@ -473,7 +473,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   position:fixed;inset:0;background:rgba(0,0,0,0.4);
   z-index:99997;display:none;backdrop-filter:blur(2px);
   transition:opacity .3s ease;opacity:0;
+  pointer-events:none;
 }
+#drawer-overlay.show{pointer-events:all;}
 #drawer-overlay.show{display:block;opacity:1;}
 
 /* Drawer header */
