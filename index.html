@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1909</title>
+<title>EconSquad AI v04.30.1919</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -2648,6 +2648,22 @@ function loadUserStats(){
       var bh=document.getElementById('stat-hours-big');if(bh)bh.textContent=(totalHours>0?totalHours.toFixed(1):0)+' hrs';
       var bs=document.getElementById('stat-specialists-big');if(bs)bs.textContent=specCount;
       var bd=document.getElementById('stat-days-big');if(bd)bd.textContent=daysSince;
+
+      /* check ARIA milestones */
+      var salary=75000;
+      try{ var si=document.getElementById('sal'); if(si)salary=parseFloat(si.value)||75000; }catch(e){}
+      var hourlyRate=salary/2080;
+      var totalVal=Math.round(totalHours*hourlyRate);
+      var roiMult=Math.max(1,Math.round(totalVal/7.9)); /* based on monthly cost */
+      checkAriaMilestones({
+        totalTasks: tasks.length,
+        totalHours: totalHours,
+        totalValue: totalVal.toLocaleString(),
+        roiMultiple: roiMult,
+        daysSince: daysSince,
+        lastHours: tasks.length>0?(parseFloat(tasks[tasks.length-1].hours_saved)||1.5).toFixed(1):'1.5',
+        levelUp: false
+      });
       /* top specialists list */
       var topCont=document.getElementById('stats-top-specialists');
       if(topCont&&Object.keys(specUsage).length){
@@ -4948,6 +4964,127 @@ function doGoogleSignin(){
     }
     /* success redirects automatically */
   });
+}
+
+
+/* ===== ARIA PROACTIVE ROI CONGRATULATIONS ===== */
+
+var ariaMilestonesShown = {};
+
+try {
+  var saved = localStorage.getItem('econsquad_milestones');
+  if(saved) ariaMilestonesShown = JSON.parse(saved);
+} catch(e){}
+
+var ARIA_MILESTONES = [
+  {
+    id: 'first_mission',
+    check: function(stats){ return stats.totalTasks >= 1; },
+    title: 'First mission complete! ✦',
+    msg: function(stats){ return "You just saved your first <strong style='color:#aaff3e'>" + stats.lastHours + " hours</strong> with your squad. That's the beginning of something big — economic developers who use AI consistently recover <strong style='color:#f5c542'>10-15 workdays a year</strong>."; },
+    cta: 'Keep deploying →'
+  },
+  {
+    id: 'five_missions',
+    check: function(stats){ return stats.totalTasks >= 5; },
+    title: 'Five missions deployed! ⚡',
+    msg: function(stats){ return "You've completed <strong style='color:#aaff3e'>5 missions</strong> and recovered <strong style='color:#f5c542'>$" + stats.totalValue + "</strong> in time value. You're building real momentum. Your squad is learning your patterns."; },
+    cta: 'See your impact →'
+  },
+  {
+    id: 'ten_hours',
+    check: function(stats){ return stats.totalHours >= 10; },
+    title: 'Ten hours recovered! 🏆',
+    msg: function(stats){ return "You've saved <strong style='color:#aaff3e'>" + stats.totalHours.toFixed(1) + " hours</strong> — that's a full workday back in your pocket. At your rate, EconSquad AI is paying for itself <strong style='color:#f5c542'>" + stats.roiMultiple + "x over</strong>."; },
+    cta: 'View ROI breakdown →'
+  },
+  {
+    id: 'first_week',
+    check: function(stats){ return stats.daysSince >= 7; },
+    title: 'One week with your squad! 🎖️',
+    msg: function(stats){ return "One week in and you've already recovered <strong style='color:#aaff3e'>$" + stats.totalValue + "</strong> in time value. That's <strong style='color:#f5c542'>" + stats.roiMultiple + "x ROI</strong> in your first week alone. You're just getting started."; },
+    cta: 'See full stats →'
+  },
+  {
+    id: 'twenty_five_hours',
+    check: function(stats){ return stats.totalHours >= 25; },
+    title: '25 hours saved — unstoppable! 🚀',
+    msg: function(stats){ return "You've recovered <strong style='color:#aaff3e'>" + stats.totalHours.toFixed(1) + " hours</strong> — over <strong style='color:#f5c542'>3 full workdays</strong> back in your calendar. Your team does more with less. That's the EconSquad advantage."; },
+    cta: 'Share your impact →'
+  },
+  {
+    id: 'level_up',
+    check: function(stats){ return stats.levelUp; },
+    title: 'Level up! ' + '⚡',
+    msg: function(stats){ return "You just reached <strong style='color:#aaff3e'>Level " + stats.newLevel + " — " + stats.newTitle + "</strong>! Your squad is getting smarter with every mission. New capabilities unlocked."; },
+    cta: 'See your badges →'
+  }
+];
+
+function checkAriaMilestones(stats){
+  if(!currentUser) return;
+
+  for(var i=0; i<ARIA_MILESTONES.length; i++){
+    var m = ARIA_MILESTONES[i];
+    if(!ariaMilestonesShown[m.id] && m.check(stats)){
+      ariaMilestonesShown[m.id] = true;
+      try{ localStorage.setItem('econsquad_milestones', JSON.stringify(ariaMilestonesShown)); }catch(e){}
+      showAriaCongrats(m, stats);
+      break; /* show one at a time */
+    }
+  }
+}
+
+function showAriaCongrats(milestone, stats){
+  /* Remove any existing ARIA congrats */
+  var existing = document.getElementById('aria-congrats-toast');
+  if(existing) existing.remove();
+
+  var toast = document.createElement('div');
+  toast.id = 'aria-congrats-toast';
+  toast.style.cssText = [
+    'position:fixed',
+    'bottom:24px',
+    'right:24px',
+    'width:340px',
+    'background:rgba(8,12,24,0.97)',
+    'border:1px solid rgba(170,255,62,0.3)',
+    'border-radius:16px',
+    'padding:20px 22px',
+    'z-index:9999990',
+    'box-shadow:0 8px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(170,255,62,0.1)',
+    'animation:ariaSlideIn 0.4s cubic-bezier(0.16,1,0.3,1)',
+    'font-family:DM Sans,sans-serif'
+  ].join(';');
+
+  toast.innerHTML = [
+    '<style>',
+    '@keyframes ariaSlideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}',
+    '</style>',
+    '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">',
+      '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,175,255,0.1));border:1px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">✦</div>',
+      '<div style="flex:1;">',
+        '<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:900;color:#aaff3e;margin-bottom:2px;">ARIA</div>',
+        '<div style="font-family:Barlow,sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">' + milestone.title + '</div>',
+      '</div>',
+      '<button onclick="document.getElementById('aria-congrats-toast').remove()" style="background:none;border:none;color:#4a5568;cursor:pointer;font-size:18px;line-height:1;padding:0;flex-shrink:0;">×</button>',
+    '</div>',
+    '<div style="font-size:13px;color:#b8c8e0;line-height:1.6;margin-bottom:14px;">' + milestone.msg(stats) + '</div>',
+    '<button onclick="showDashTab('stats-tab',null);document.getElementById('aria-congrats-toast').remove();" style="width:100%;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:Barlow,sans-serif;font-size:12px;font-weight:800;padding:9px;border-radius:9px;cursor:pointer;letter-spacing:.04em;">' + milestone.cta + '</button>'
+  ].join('');
+
+  document.body.appendChild(toast);
+
+  /* Auto dismiss after 12 seconds */
+  setTimeout(function(){
+    if(document.getElementById('aria-congrats-toast') === toast){
+      toast.style.animation = 'none';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 300);
+    }
+  }, 12000);
 }
 
 /* ===== INIT ===== */
