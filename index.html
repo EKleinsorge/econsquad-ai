@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.2257</title>
+<title>EconSquad AI v04.30.2303</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -5259,10 +5259,10 @@ function showAriaCongrats(milestone, stats){
         '<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:900;color:#aaff3e;margin-bottom:2px;">ARIA</div>',
         '<div style="font-family:Barlow,sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">' + milestone.title + '</div>',
       '</div>',
-      '<button onclick="document.getElementById('aria-congrats-toast').remove()" style="background:none;border:none;color:#4a5568;cursor:pointer;font-size:18px;line-height:1;padding:0;flex-shrink:0;">×</button>',
+      '<button onclick="document.getElementById(\"aria-congrats-toast\").remove()" style="background:none;border:none;color:#4a5568;cursor:pointer;font-size:18px;line-height:1;padding:0;flex-shrink:0;">×</button>',
     '</div>',
     '<div style="font-size:13px;color:#b8c8e0;line-height:1.6;margin-bottom:14px;">' + milestone.msg(stats) + '</div>',
-    '<button onclick="showDashTab('stats-tab',null);document.getElementById('aria-congrats-toast').remove();" style="width:100%;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:Barlow,sans-serif;font-size:12px;font-weight:800;padding:9px;border-radius:9px;cursor:pointer;letter-spacing:.04em;">' + milestone.cta + '</button>'
+    '<button onclick="showDashTab(\"stats-tab\",null);document.getElementById(\"aria-congrats-toast\").remove();" style="width:100%;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:Barlow,sans-serif;font-size:12px;font-weight:800;padding:9px;border-radius:9px;cursor:pointer;letter-spacing:.04em;">' + milestone.cta + '</button>'
   ].join('');
 
   document.body.appendChild(toast);
