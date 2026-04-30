@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.2027</title>
+<title>EconSquad AI v04.30.2257</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -16,7 +16,7 @@
   --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
   --border:rgba(255,255,255,0.07);--r:12px;
 }
-html,body{height:100%;overflow:hidden;background:var(--navy);font-family:'DM Sans',sans-serif;color:var(--text);}
+html,body{height:100%;overflow:hidden;background:#04050d;background-color:#04050d;font-family:'DM Sans',sans-serif;color:var(--text);}
 #orb-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 .shell{position:relative;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .sticky-top{flex-shrink:0;}
@@ -694,7 +694,53 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
 
 /* ===== MOBILE RESPONSIVE ===== */
+@keyframes ariaSlideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
 @media (max-width: 768px) {
+  html, body { background: #04050d !important; background-color: #04050d !important; }
+  .shell { background: #04050d !important; }
+
+  /* STEPS GRID - stack to single column */
+  .steps-grid { 
+    grid-template-columns: 1fr !important; 
+    gap: 12px !important;
+    padding: 0 4px !important;
+  }
+  .step-card { 
+    padding: 20px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 14px !important;
+    align-items: flex-start !important;
+  }
+  .step-card::before { display: none !important; }
+  .step-num { 
+    font-size: 28px !important; 
+    min-width: 36px !important;
+    flex-shrink: 0 !important;
+  }
+  .step-icon { font-size: 20px !important; display: none !important; }
+  .step-title { font-size: 15px !important; margin-bottom: 4px !important; }
+  .step-desc { font-size: 12px !important; }
+
+  /* ARIA SECTION - stack to single column */
+  [id="sec-aria"] > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Fix section padding */
+  .hero-section, section { padding-left: 20px !important; padding-right: 20px !important; overflow: hidden !important; }
+
+  /* ROI CALCULATOR - stack to 2x2 grid */
+  .roi-nums-row { 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 10px !important; 
+  }
+  .roi-num-box { padding: 14px 10px !important; }
+  .rn { font-size: 26px !important; }
+  .salary-row { flex-direction: column !important; gap: 8px !important; }
+  .salary-input { width: 100% !important; max-width: 200px !important; }
 
   /* NAV */
   .nav-bar { padding: 0 16px !important; height: 56px !important; }
@@ -996,7 +1042,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   <div class="scroll-area" id="scroll-area">
 
     <!-- ========== MARKETING PAGE ========== -->
-    <div id="view-marketing">
+    <div id="view-marketing" style="overflow-x:hidden;">
 
       <section class="hero-section" id="sec-hero">
         <div class="hero-eyebrow"><span class="dot"></span>Built exclusively for economic developers</div>
@@ -1491,10 +1537,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
 /* ===== BACKGROUND CANVAS ===== */
 var bgCanvas=document.getElementById('orb-canvas');
-var bgCtx=bgCanvas.getContext('2d');
-function resizeBg(){bgCanvas.width=window.innerWidth;bgCanvas.height=window.innerHeight;}
-resizeBg();
-window.addEventListener('resize',resizeBg);
+var bgCtx=bgCanvas?bgCanvas.getContext('2d'):null;
+function resizeBg(){if(!bgCanvas)return;bgCanvas.width=window.innerWidth;bgCanvas.height=window.innerHeight;}
+try{resizeBg();}catch(e){}
+window.addEventListener('resize',function(){try{resizeBg();}catch(e){}});
 
 var stars=[];
 for(var i=0;i<200;i++){
@@ -1523,7 +1569,7 @@ for(var i=0;i<24;i++){
   });
 }
 var bgFrame=0;
-function drawBg(){
+function drawBg(){if(!bgCtx||!bgCanvas)return;
   var W=bgCanvas.width,H=bgCanvas.height;
   bgCtx.clearRect(0,0,W,H);
   bgFrame++;
@@ -1551,7 +1597,7 @@ function drawBg(){
   }
   requestAnimationFrame(drawBg);
 }
-drawBg();
+try{drawBg();}catch(e){}
 
 /* ===== VIEW SWITCHING ===== */
 function switchView(view){
@@ -1885,7 +1931,7 @@ function openAuth(tab){
   }
 
   /* Style tab buttons */
-  var tabs=Array.from(m.querySelectorAll('button')).filter(function(b){
+  var tabs=[].slice.call(m.querySelectorAll('button')).filter(function(b){
     return b.textContent.trim()==='Create Account'||b.textContent.trim()==='Sign In';
   });
   tabs.forEach(function(btn){
@@ -2767,8 +2813,7 @@ function loadUserStats(){
       var totalHours=tasks.reduce(function(sum,t){return sum+(parseFloat(t.hours_saved)||0);},0);
 
       /* unique specialists used */
-      var specSet=new Set(tasks.map(function(t){return t.specialist_id;}));
-      var specCount=specSet.size;
+      var specIds={}; tasks.forEach(function(t){if(t.specialist_id)specIds[t.specialist_id]=1;}); var specCount=Object.keys(specIds).length;
 
       /* most used specialist */
       var specUsage={};
@@ -2817,7 +2862,7 @@ function loadUserStats(){
       /* top specialists list */
       var topCont=document.getElementById('stats-top-specialists');
       if(topCont&&Object.keys(specUsage).length){
-        var sorted=Object.entries(specUsage).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+        var sorted=Object.keys(specUsage).map(function(k){return [k,specUsage[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
         topCont.innerHTML='';
         sorted.forEach(function(entry){
           var d=document.createElement('div');
@@ -4071,7 +4116,7 @@ function checkBadges(taskHistory,totalHours,specCounts){
   if(!currentUser)return;
 
   var totalTasks=taskHistory.length;
-  var uniqueSpecs=new Set(taskHistory.map(function(t){return t.specialist_id;})).size;
+  var specIdsUniq={}; taskHistory.forEach(function(t){if(t.specialist_id)specIdsUniq[t.specialist_id]=1;}); var uniqueSpecs=Object.keys(specIdsUniq).length;
 
   /* Getting Started */
   if(totalTasks>=1)awardBadge('first_deploy');
@@ -4143,8 +4188,8 @@ function renderBadgeShowcase(container){
   if(!container)return;
   /* Group by category */
   var cats={};
-  Object.entries(BADGES).forEach(function(entry){
-    var id=entry[0],b=entry[1];
+  Object.keys(BADGES).forEach(function(id){
+    var b=BADGES[id];
     if(!cats[b.cat])cats[b.cat]=[];
     cats[b.cat].push({id:id,badge:b});
   });
@@ -4160,8 +4205,8 @@ function renderBadgeShowcase(container){
     '<div style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:800;padding:3px 10px;border-radius:10px;">'+earnedCount+' / '+totalCount+' earned</div>';
   container.appendChild(hdr);
 
-  Object.entries(cats).forEach(function(catEntry){
-    var catName=catEntry[0],items=catEntry[1];
+  Object.keys(cats).forEach(function(catName){
+    var items=catEntry[1];
     var catDiv=document.createElement('div');
     catDiv.style.marginBottom='24px';
     var catLabel=document.createElement('div');
@@ -4962,8 +5007,8 @@ function renderSquadTab(tab){
       'workforce': {label:'Workforce',        icon:'👷'},
       'reporting': {label:'Reporting',        icon:'📋'},
     };
-    Object.entries(catGroups).forEach(function(entry){
-      var key=entry[0], info=entry[1];
+    Object.keys(catGroups).forEach(function(key){
+      var info=catGroups[key];
       var items=squad.filter(function(s){return s.cat===key;});
       if(!items.length)return;
       var row=buildGridRow(info.icon+' '+info.label, items);
@@ -5208,9 +5253,6 @@ function showAriaCongrats(milestone, stats){
   ].join(';');
 
   toast.innerHTML = [
-    '<style>',
-    '@keyframes ariaSlideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}',
-    '</style>',
     '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">',
       '<div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,175,255,0.1));border:1px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">✦</div>',
       '<div style="flex:1;">',
@@ -5492,7 +5534,7 @@ try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
     var t=eIO(lfadeT),ca=LOGO_COLORS[lci],cb=LOGO_COLORS[lni];
     return{r:lerpRGB(ca.r,cb.r,t),hi:lerpHex(ca.hi,cb.hi,t),mid:lerpHex(ca.mid,cb.mid,t),lo:lerpHex(ca.lo,cb.lo,t)};
   }
-  function drawLogo(){
+  function drawLogo(){if(!logoCtx)return;
     var cv=document.getElementById('logo-cv');
     var sp=document.getElementById('logo-sph');
     if(!cv||!sp){requestAnimationFrame(drawLogo);return;}
