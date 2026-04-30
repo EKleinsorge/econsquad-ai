@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2304050d'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23aaff3e' stroke-width='1.5' opacity='0.3'/%3E%3Ccircle cx='16' cy='8' r='2.5' fill='%23aaff3e'/%3E%3Ccircle cx='23' cy='20' r='2.5' fill='%2364afff'/%3E%3Ccircle cx='9' cy='20' r='2.5' fill='%23f5c542'/%3E%3Cline x1='16' y1='8' x2='23' y2='20' stroke='%23aaff3e' stroke-width='1' opacity='0.6'/%3E%3Cline x1='23' y1='20' x2='9' y2='20' stroke='%23aaff3e' stroke-width='1' opacity='0.6'/%3E%3Cline x1='9' y1='20' x2='16' y2='8' stroke='%23aaff3e' stroke-width='1' opacity='0.6'/%3E%3C/svg%3E">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1831</title>
+<title>EconSquad AI v04.30.1844</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1708,6 +1710,16 @@ function openAuth(tab){
   if(tab==='signin'){
     /* Show signin panel */
     if(psi)psi.style.setProperty('display','block','important');
+    /* pre-fill remembered email */
+    try{
+      var saved=localStorage.getItem('econsquad_remember_email');
+      if(saved){
+        var emailInput=m.querySelector('#si-email');
+        var rememberCheck=m.querySelector('#si-remember');
+        if(emailInput)emailInput.value=saved;
+        if(rememberCheck)rememberCheck.checked=true;
+      }
+    }catch(e){}
   } else if(tab==='confirm'){
     if(pc)pc.style.setProperty('display','block','important');
   } else {
@@ -4912,6 +4924,23 @@ function updateNavAuth(loggedIn){
   if(inn) inn.style.display = loggedIn ? 'flex' : 'none';
 }
 
+
+/* ===== GOOGLE SIGN IN ===== */
+function doGoogleSignin(){
+  supa.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+      queryParams: { access_type: 'offline', prompt: 'consent' }
+    }
+  }).then(function(res){
+    if(res.error){
+      showAuthMsg('Google sign in failed: ' + res.error.message, 'error');
+    }
+    /* success redirects automatically */
+  });
+}
+
 /* ===== INIT ===== */
 try{renderSquad();}catch(e){console.warn('renderSquad error:',e);}
 try{calcMktROI();}catch(e){console.warn('calcMktROI error:',e);}
@@ -5525,10 +5554,33 @@ try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
     <div id="panel-signin" style="display:none;">
       <div class="modal-eyebrow">Welcome back</div>
       <h2 class="modal-h2">Sign in to your <span>squad</span></h2>
+
+      <!-- Google Sign In -->
+      <button onclick="doGoogleSignin()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px;color:#eef3fc;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+        <span style="color:#4a5568;font-size:11px;font-weight:600;">OR</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
+      </div>
+
       <div class="form-field"><label>Email</label><input id="si-email" type="email" placeholder="sarah@cityofriverdale.gov"></div>
       <div class="form-field"><label>Password</label><input id="si-pass" type="password" placeholder="Your password"></div>
+
+      <!-- Remember Me -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#8a97b5;text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="si-remember" style="width:14px;height:14px;accent-color:#aaff3e;cursor:pointer;">
+          Remember me
+        </label>
+        <span onclick="doForgotPassword()" style="cursor:pointer;color:var(--lime);font-size:12px;font-weight:600;">Forgot password?</span>
+      </div>
+
       <button class="modal-btn" id="btn-signin" onclick="doSignin()">Sign in to my squad →</button>
-      <p class="modal-note" style="margin-top:10px;"><span onclick="doForgotPassword()" style="cursor:pointer;color:var(--lime);">Forgot your password?</span></p>
       <p class="modal-note">No account yet? <span onclick="switchAuthTab('signup')" style="cursor:pointer;color:var(--lime);">Start free trial</span></p>
     </div>
 
