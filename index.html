@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.2309</title>
+<title>EconSquad AI v04.30.2313</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -5539,7 +5539,10 @@ try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
     var t=eIO(lfadeT),ca=LOGO_COLORS[lci],cb=LOGO_COLORS[lni];
     return{r:lerpRGB(ca.r,cb.r,t),hi:lerpHex(ca.hi,cb.hi,t),mid:lerpHex(ca.mid,cb.mid,t),lo:lerpHex(ca.lo,cb.lo,t)};
   }
-  function drawLogo(){if(!logoCtx)return;
+  var logoCvEl = document.getElementById('logo-cv');
+var logoCtx = logoCvEl ? logoCvEl.getContext('2d') : null;
+
+function drawLogo(){if(!logoCtx)return;
     var cv=document.getElementById('logo-cv');
     var sp=document.getElementById('logo-sph');
     if(!cv||!sp){requestAnimationFrame(drawLogo);return;}
