@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1919</title>
+<title>EconSquad AI v04.30.2027</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -691,6 +691,156 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .badge-name{font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#eef3fc;line-height:1.3;margin-bottom:4px;}
 .badge-desc-sm{font-size:10px;color:#6b7a96;line-height:1.4;}
 .badge-earned-date{font-size:9px;color:#aaff3e;margin-top:4px;font-weight:700;}
+
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+
+  /* NAV */
+  .nav-bar { padding: 0 16px !important; height: 56px !important; }
+  .nav-links { display: none !important; }
+  #nav-ctas-marketing { gap: 6px !important; }
+  .btn-ghost-sm { padding: 6px 12px !important; font-size: 12px !important; }
+  .btn-lime { padding: 8px 14px !important; font-size: 12px !important; }
+  #main-nav .logo-text { font-size: 18px !important; }
+
+  /* DASHBOARD NAV */
+  #nav-dashboard .nav-links {
+    display: flex !important;
+    gap: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding: 0 8px !important;
+  }
+  #nav-dashboard .nav-links::-webkit-scrollbar { display: none; }
+  #nav-dashboard .nav-links a { 
+    white-space: nowrap !important; 
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
+  #nav-ctas-dashboard { gap: 4px !important; }
+  #plan-badge { font-size: 9px !important; padding: 3px 6px !important; }
+  #user-avatar { width: 28px !important; height: 28px !important; font-size: 10px !important; }
+
+  /* HERO DASH */
+  .hero-dash { 
+    padding: 16px !important; 
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .hero-dash h2 { font-size: 18px !important; }
+  .hero-dash p { font-size: 12px !important; }
+  .hero-btns { 
+    flex-direction: column !important; 
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .hero-btns button { 
+    width: 100% !important; 
+    font-size: 12px !important;
+    padding: 10px !important;
+  }
+
+  /* LEVEL BAR */
+  .level-bar-wrap { padding: 14px 16px !important; }
+  .level-lbl { font-size: 28px !important; }
+
+  /* STAT CARDS */
+  .stat-cards { 
+    grid-template-columns: 1fr 1fr !important; 
+    gap: 10px !important;
+    padding: 0 12px !important;
+  }
+  .stat-card { padding: 14px !important; }
+  .stat-val { font-size: 28px !important; }
+  .stat-label { font-size: 9px !important; }
+
+  /* SQUAD TABS */
+  .squad-tab { 
+    font-size: 11px !important; 
+    padding: 8px 12px !important; 
+  }
+  .chips { 
+    gap: 6px !important; 
+    flex-wrap: wrap !important;
+    padding: 0 12px !important;
+  }
+  .chip { 
+    font-size: 10px !important; 
+    padding: 4px 10px !important; 
+  }
+
+  /* SPECIALIST CARDS */
+  .orb-card-dash { width: 120px !important; }
+  .orb-wrap-dash canvas { width: 72px !important; height: 72px !important; }
+
+  /* MAIN PAGE PADDING */
+  .page.main { padding: 14px 12px !important; }
+
+  /* HISTORY CARDS */
+  .hist-card { padding: 12px !important; }
+  .hist-card-header { flex-wrap: wrap !important; gap: 8px !important; }
+
+  /* SPECIALIST DRAWER */
+  #specialist-drawer { 
+    width: 100vw !important; 
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+  }
+  .drawer-expand-btn { display: none !important; }
+
+  /* MODALS */
+  .modal-box { 
+    padding: 24px 20px !important; 
+    width: 95vw !important;
+    max-height: 92vh !important;
+  }
+  .modal-h2 { font-size: 22px !important; }
+
+  /* BILLING MODAL */
+  #billing-modal > div {
+    width: 95vw !important;
+    padding: 20px !important;
+  }
+
+  /* HERO SECTION (MARKETING) */
+  .hero-section { padding: 40px 20px 30px !important; }
+  .hero-section h1 { font-size: 52px !important; }
+  .hero-ctas { flex-direction: column !important; align-items: center !important; }
+  .hero-ctas a, .hero-ctas button { width: 100% !important; max-width: 300px !important; }
+
+  /* PRICING */
+  .pricing-grid { grid-template-columns: 1fr !important; gap: 16px !important; padding: 0 16px !important; }
+
+  /* FEATURES GRID */
+  .features-grid { grid-template-columns: 1fr !important; gap: 12px !important; padding: 0 16px !important; }
+
+  /* FOOTER */
+  .site-footer { padding: 32px 20px !important; }
+  .footer-cols { flex-direction: column !important; gap: 24px !important; }
+
+  /* ARIA CONGRATS TOAST */
+  #aria-congrats-toast { 
+    width: calc(100vw - 32px) !important; 
+    right: 16px !important; 
+    left: 16px !important;
+    bottom: 16px !important;
+  }
+
+  /* BADGE TOAST */
+  .badge-toast { 
+    width: calc(100vw - 32px) !important;
+    left: 16px !important;
+    right: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section h1 { font-size: 42px !important; }
+  .stat-cards { grid-template-columns: 1fr 1fr !important; }
+  #nav-dashboard .nav-links a { font-size: 11px !important; padding: 8px 8px !important; }
+}
 
 </style>
 </head>
