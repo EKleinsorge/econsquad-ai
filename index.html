@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1514</title>
+<title>EconSquad AI v04.30.1519</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1825,35 +1825,38 @@ function suNextStep(n){
 
 function mountStripeCard(){
   if(!window.Stripe)return;
-  if(!stripeElements){
-    var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
-    stripeElements=s.elements({
-      appearance:{
-        theme:'night',
-        variables:{
-          colorPrimary:'#aaff3e',
-          colorBackground:'#0d1120',
-          colorText:'#eef3fc',
-          colorDanger:'#ff8080',
-          fontFamily:'DM Sans, sans-serif',
-          borderRadius:'8px',
-        }
+
+  /* Always create a fresh Stripe instance for the clone */
+  var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
+  window._stripeInstance=s;
+  stripeElements=s.elements({
+    appearance:{
+      theme:'night',
+      variables:{
+        colorPrimary:'#aaff3e',
+        colorBackground:'#0d1120',
+        colorText:'#eef3fc',
+        colorDanger:'#ff8080',
+        fontFamily:'DM Sans, sans-serif',
+        borderRadius:'8px',
       }
-    });
-    stripeCardElement=stripeElements.create('card',{
-      style:{
-        base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
-        invalid:{color:'#ff8080'}
-      }
-    });
-    /* store stripe instance for later */
-    window._stripeInstance=s;
-  }
-  var el=document.getElementById('stripe-card-element');
-  if(el&&el.children.length===0){
-    stripeCardElement.mount('#stripe-card-element');
+    }
+  });
+  stripeCardElement=stripeElements.create('card',{
+    style:{
+      base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
+      invalid:{color:'#ff8080'}
+    }
+  });
+
+  /* Mount into the ACTIVE cloned modal, not the hidden original */
+  var m=document.getElementById('auth-modal-active')||document;
+  var el=m.querySelector('#stripe-card-element');
+  if(el){
+    el.innerHTML=''; /* clear any previous mount */
+    stripeCardElement.mount(el);
     stripeCardElement.on('change',function(e){
-      var err=document.getElementById('stripe-card-error');
+      var err=m.querySelector('#stripe-card-error');
       if(err){err.textContent=e.error?e.error.message:'';err.style.display=e.error?'block':'none';}
     });
   }
@@ -5985,35 +5988,38 @@ function suNextStep(n){
 
 function mountStripeCard(){
   if(!window.Stripe)return;
-  if(!stripeElements){
-    var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
-    stripeElements=s.elements({
-      appearance:{
-        theme:'night',
-        variables:{
-          colorPrimary:'#aaff3e',
-          colorBackground:'#0d1120',
-          colorText:'#eef3fc',
-          colorDanger:'#ff8080',
-          fontFamily:'DM Sans, sans-serif',
-          borderRadius:'8px',
-        }
+
+  /* Always create a fresh Stripe instance for the clone */
+  var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
+  window._stripeInstance=s;
+  stripeElements=s.elements({
+    appearance:{
+      theme:'night',
+      variables:{
+        colorPrimary:'#aaff3e',
+        colorBackground:'#0d1120',
+        colorText:'#eef3fc',
+        colorDanger:'#ff8080',
+        fontFamily:'DM Sans, sans-serif',
+        borderRadius:'8px',
       }
-    });
-    stripeCardElement=stripeElements.create('card',{
-      style:{
-        base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
-        invalid:{color:'#ff8080'}
-      }
-    });
-    /* store stripe instance for later */
-    window._stripeInstance=s;
-  }
-  var el=document.getElementById('stripe-card-element');
-  if(el&&el.children.length===0){
-    stripeCardElement.mount('#stripe-card-element');
+    }
+  });
+  stripeCardElement=stripeElements.create('card',{
+    style:{
+      base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
+      invalid:{color:'#ff8080'}
+    }
+  });
+
+  /* Mount into the ACTIVE cloned modal, not the hidden original */
+  var m=document.getElementById('auth-modal-active')||document;
+  var el=m.querySelector('#stripe-card-element');
+  if(el){
+    el.innerHTML=''; /* clear any previous mount */
+    stripeCardElement.mount(el);
     stripeCardElement.on('change',function(e){
-      var err=document.getElementById('stripe-card-error');
+      var err=m.querySelector('#stripe-card-error');
       if(err){err.textContent=e.error?e.error.message:'';err.style.display=e.error?'block':'none';}
     });
   }
