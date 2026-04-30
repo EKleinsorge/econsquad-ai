@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1453</title>
+<title>EconSquad AI v04.30.1514</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1745,33 +1745,33 @@ var stripeCardElement=null;
 
 function suToggleBilling(){
   suBillingAnnual=!suBillingAnnual;
-  var knob=document.getElementById('su-billing-knob');
-  var lblM=document.getElementById('su-lbl-m');
-  var lblA=document.getElementById('su-lbl-a');
+  var knob=authEl('su-billing-knob');
+  var lblM=authEl('su-lbl-m');
+  var lblA=authEl('su-lbl-a');
   if(suBillingAnnual){
     if(knob)knob.style.transform='translateX(20px)';
     if(lblM)lblM.style.color='#6b7a96';
     if(lblA)lblA.style.color='#eef3fc';
-    document.getElementById('su-starter-amt').textContent='$290';
-    document.getElementById('su-starter-per').textContent='/yr';
-    document.getElementById('su-pro-amt').textContent='$790';
-    document.getElementById('su-pro-per').textContent='/yr';
+    authEl('su-starter-amt').textContent='$290';
+    authEl('su-starter-per').textContent='/yr';
+    authEl('su-pro-amt').textContent='$790';
+    authEl('su-pro-per').textContent='/yr';
   } else {
     if(knob)knob.style.transform='translateX(0)';
     if(lblM)lblM.style.color='#eef3fc';
     if(lblA)lblA.style.color='#6b7a96';
-    document.getElementById('su-starter-amt').textContent='$29';
-    document.getElementById('su-starter-per').textContent='/mo';
-    document.getElementById('su-pro-amt').textContent='$79';
-    document.getElementById('su-pro-per').textContent='/mo';
+    authEl('su-starter-amt').textContent='$29';
+    authEl('su-starter-per').textContent='/mo';
+    authEl('su-pro-amt').textContent='$79';
+    authEl('su-pro-per').textContent='/mo';
   }
   suUpdatePlanSummary();
 }
 
 function suSelectPlan(plan){
   suSelectedPlan=plan;
-  var starter=document.getElementById('su-plan-starter');
-  var pro=document.getElementById('su-plan-pro');
+  var starter=authEl('su-plan-starter');
+  var pro=authEl('su-plan-pro');
   if(plan==='starter'){
     starter.style.border='2px solid #aaff3e';
     starter.style.background='rgba(170,255,62,0.05)';
