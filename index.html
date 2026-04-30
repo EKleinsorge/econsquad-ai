@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.1540</title>
+<title>EconSquad AI v04.30.1618</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -742,10 +742,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       <!-- CENTER: Dashboard nav links (logged in only) -->
       <div id="nav-dashboard" style="flex:1;display:none;justify-content:center;align-items:center;">
-        <ul class="nav-links" style="display:flex;gap:4px;list-style:none;margin:0;padding:0;">
+        <ul class="nav-links" style="display:flex;gap:28px;list-style:none;margin:0;padding:0;">
           <li><a id="dash-nav-home" onclick="showDashTab('home-tab',this)" style="cursor:pointer;">My Squad</a></li>
           <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
-          <li><a id="dash-nav-stats" onclick="showDashTab('mystats-tab',this)" style="cursor:pointer;">My Stats</a></li>
+          <li><a id="dash-nav-stats" onclick="showDashTab('stats-tab',this)" style="cursor:pointer;">My Stats</a></li>
           <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
         </ul>
       </div>
@@ -765,7 +765,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
 
       <div id="nav-ctas-dashboard" class="nav-ctas" style="display:none;align-items:center;gap:10px;flex-shrink:0;">
-        <span id="level-badge" onclick="showDashTab('mystats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;white-space:nowrap;" title="View your level">🎖️ Lvl 1 · Recruit</span>
+        <span id="level-badge" onclick="showDashTab('stats-tab',null)" style="font-size:10px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:.04em;font-family:'Barlow',sans-serif;cursor:pointer;border:1px solid rgba(138,151,181,0.3);color:#8a97b5;transition:all .3s;white-space:nowrap;" title="View your level">🎖️ Lvl 1 · Recruit</span>
         <span class="plan-badge" id="plan-badge" onclick="openBillingModal()" style="white-space:nowrap;">⚡ Trial</span>
         <div style="position:relative;">
           <div class="avatar" id="user-avatar" onclick="toggleProfileMenu()" style="cursor:pointer;overflow:hidden;" title="Profile & settings">
@@ -803,7 +803,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 </div>
               </div>
               <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
-              <div onclick="showDashTab('mystats-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+              <div onclick="showDashTab('stats-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">📊</span>
                 <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
               </div>
@@ -829,12 +829,12 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div class="sav-pill gp"><span class="sv" id="b-money">$4,820</span><span class="sl">saved this year</span></div>
           <div class="sav-pill"><span class="sv">61.5 hrs</span><span class="sl">recovered</span></div>
           <div class="streak"><span class="flame">🔥</span>14-day streak</div>
-          <div class="mystats-link" onclick="showDashTab('mystats-tab',null)">View My Stats →</div>
+          <div class="mystats-link" onclick="showDashTab('stats-tab',null)">View My Stats →</div>
         </div>
       </div>
       <div class="page-tabs">
         <div class="tab active" id="tab-home" onclick="showDashTab('home-tab',this)">Home</div>
-        <div class="tab" id="tab-stats" onclick="showDashTab('mystats-tab',this)">My Stats & ROI</div>
+        <div class="tab" id="tab-stats" onclick="showDashTab('stats-tab',this)">My Stats & ROI</div>
       </div>
     </div>
   </div>
@@ -1257,6 +1257,82 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           </div>
         </div>
       </div>
+
+      <!-- ========== MY STATS TAB ========== -->
+      <div class="page main dash-tab" id="stats-tab" style="display:none;padding:24px 32px;">
+        <!-- Sub-tab nav -->
+        <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:24px;">
+          <div id="subtab-overview" onclick="switchStatsTab('overview',this)" style="background:none;border:none;border-bottom:2px solid #aaff3e;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Overview</div>
+          <div id="subtab-badges" onclick="switchStatsTab('badges',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Badges</div>
+          <div id="subtab-roi" onclick="switchStatsTab('roi',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">ROI Calculator</div>
+        </div>
+
+        <!-- OVERVIEW sub-tab -->
+        <div id="stats-overview" style="display:block;">
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:20px;">Your Impact</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;">
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
+              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Total Missions</div>
+              <div id="stats-total-missions" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#aaff3e;">—</div>
+            </div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
+              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Hours Saved</div>
+              <div id="stats-total-hours" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#f5c542;">—</div>
+            </div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
+              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Value Recovered</div>
+              <div id="stats-total-value" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#aaff3e;">—</div>
+            </div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
+              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Current Level</div>
+              <div id="stats-level-display" style="font-family:'Barlow',sans-serif;font-size:24px;font-weight:900;color:#eef3fc;">—</div>
+            </div>
+          </div>
+          <!-- Most Used Specialists -->
+          <h3 style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">Most Used Specialists</h3>
+          <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+
+        <!-- BADGES sub-tab -->
+        <div id="stats-badges" style="display:none;">
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:8px;">Your Badges</h2>
+          <p style="color:#6b7a96;font-size:13px;margin-bottom:24px;">Earn badges by completing missions and reaching milestones.</p>
+          <div id="badge-showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;"></div>
+        </div>
+
+        <!-- ROI CALCULATOR sub-tab -->
+        <div id="stats-roi" style="display:none;">
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:8px;">ROI Calculator</h2>
+          <p style="color:#6b7a96;font-size:13px;margin-bottom:24px;">See exactly what EconSquad AI is worth to your organization.</p>
+          <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:24px;max-width:480px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Your Annual Salary</label>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+              <span style="color:#6b7a96;font-size:18px;">$</span>
+              <input id="sal" type="number" value="75000" oninput="calcROI()" style="flex:1;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:#eef3fc;font-size:16px;outline:none;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                <span style="color:#8a97b5;font-size:13px;">Your hourly rate</span>
+                <span id="r-hourly" style="color:#eef3fc;font-weight:700;">$36.06</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                <span style="color:#8a97b5;font-size:13px;">Annual value saved (61.5 hrs)</span>
+                <span id="r-saved" style="color:#aaff3e;font-weight:700;font-size:16px;">$2,218</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                <span style="color:#8a97b5;font-size:13px;">Projected 2-year value</span>
+                <span id="r-proj" style="color:#f5c542;font-weight:700;">$4,436</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;">
+                <span style="color:#8a97b5;font-size:13px;">Return on investment</span>
+                <span id="r-mult" style="color:#aaff3e;font-weight:900;font-size:18px;">5x</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3432,7 +3508,7 @@ showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
-  if(tabId==='mystats-tab'){
+  if(tabId==='stats-tab'){
     /* default to overview tab */
     switchStatsTab('overview', document.getElementById('subtab-overview'));
     /* update badge pill count */
