@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.01.1408</title>
+<title>EconSquad AI v05.01.1413</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -5929,8 +5929,34 @@ function loadCalendar(token){
   });
 }
 
+var calMeetingTypes = {
+  'site':     { label:'Site Visit',    color:'#64afff', icon:'🏭', specialist:'Deploy Cara — Site Comparator', specId:5 },
+  'board':    { label:'Board Meeting', color:'#f5c542', icon:'📊', specialist:'Deploy Brett — Board Report', specId:18 },
+  'bre':      { label:'BRE Meeting',   color:'#14b8a6', icon:'🤝', specialist:'Deploy Blake — BRE Survey', specId:6 },
+  'grant':    { label:'Grant Meeting', color:'#f5c542', icon:'💰', specialist:'Deploy Gary — Grant Writer', specId:1 },
+  'press':    { label:'Media/Press',   color:'#fb923c', icon:'📰', specialist:'Deploy Parker — Press Release', specId:13 },
+  'council':  { label:'City Council',  color:'#a78bfa', icon:'🏛️', specialist:'Deploy Annie — Annual Report', specId:17 },
+  'prospect': { label:'Prospect',      color:'#aaff3e', icon:'⚡', specialist:'Deploy Marcus — Market Analyst', specId:10 },
+  'internal': { label:'Internal',      color:'#6b7a96', icon:'👥', specialist:'Ask ARIA to help prepare', specId:null },
+  'other':    { label:'Meeting',       color:'#6b7a96', icon:'📅', specialist:'Ask ARIA to prepare a briefing', specId:null },
+};
+
+function categorizeMeeting(title, desc) {
+  var text = ((title||'') + ' ' + (desc||'')).toLowerCase();
+  if (/site visit|property tour|location tour|facility tour/i.test(text)) return 'site';
+  if (/board|directors|trustee/i.test(text)) return 'board';
+  if (/bre|retention|existing business|business visit/i.test(text)) return 'bre';
+  if (/grant|funding|rfp|application/i.test(text)) return 'grant';
+  if (/press|media|interview|reporter|journalist/i.test(text)) return 'press';
+  if (/council|commissioner|alderman|selectman|city hall/i.test(text)) return 'council';
+  if (/prospect|company visit|recruitment|attraction|site selector/i.test(text)) return 'prospect';
+  if (/staff|team|internal|one.on.one|1.on.1|standup/i.test(text)) return 'internal';
+  return 'other';
+}
+
 function showCalendarToday(events){
   var el = document.getElementById('calendar-today');
+  window._lastCalEvents = events;
   if(!el) return;
   if(!events.length){
     el.innerHTML = '<div style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px;text-align:center;color:#4a5568;font-size:12px;">No events today — clear runway! 🚀</div>';
@@ -5938,12 +5964,136 @@ function showCalendarToday(events){
   }
   el.innerHTML = '';
   events.forEach(function(evt){
-    var div = document.createElement('div');
-    div.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(170,255,62,0.12);border-radius:10px;padding:12px 14px;border-left:3px solid #aaff3e;';
+    var cat = categorizeMeeting(evt.title, evt.description||'');
+    var info = calMeetingTypes[cat];
     var timeStr = evt.allDay ? 'All day' : new Date(evt.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    div.innerHTML = '<div style="font-size:12px;font-weight:700;color:#eef3fc;margin-bottom:2px;">' + escHtml(evt.title) + '</div><div style="font-size:10px;color:#6b7a96;">🕐 ' + timeStr + '</div>';
+    
+    var div = document.createElement('div');
+    div.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+info.color+';border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;';
+    div.onmouseover = function(){ this.style.background='rgba(14,20,36,0.98)'; this.querySelector('.cal-prep-btn').style.display='flex'; };
+    div.onmouseout = function(){ this.style.background='rgba(14,20,36,0.8)'; this.querySelector('.cal-prep-btn').style.display='none'; };
+
+    div.innerHTML = [
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">',
+        '<div style="flex:1;min-width:0;">',
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">',
+            '<span style="font-size:14px;">'+info.icon+'</span>',
+            '<span style="font-size:12px;font-weight:700;color:#eef3fc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(evt.title)+'</span>',
+          '</div>',
+          '<div style="display:flex;align-items:center;gap:8px;">',
+            '<span style="font-size:10px;color:#6b7a96;">🕐 '+timeStr+'</span>',
+            '<span style="background:'+info.color+'22;color:'+info.color+';font-size:9px;font-weight:800;padding:1px 7px;border-radius:6px;">'+info.label+'</span>',
+          '</div>',
+        '</div>',
+      '</div>',
+      /* Prep button - shows on hover */
+      '<div class="cal-prep-btn" style="display:none;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">',
+        '<button class="cal-prep-aria-btn" data-title="'+escAttr(evt.title)+'" data-cat="'+cat+'" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:DM Sans,sans-serif;">✦ ARIA Prep Brief</button>',
+        info.specId ? '<button onclick="deploy('+info.specId+')" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#8a97b5;font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:DM Sans,sans-serif;">'+info.specialist+'</button>' : '',
+      '</div>',
+    ].join('');
     el.appendChild(div);
   });
+  /* wire up prep buttons */
+  el.onclick = function(e){
+    var btn = e.target.closest ? e.target.closest('.cal-prep-aria-btn') : null;
+    if(btn) prepMeetingWithARIA(btn.dataset.title, btn.dataset.cat);
+  };
+}
+
+function prepMeetingWithARIA(title, cat) {
+  var info = calMeetingTypes[cat] || calMeetingTypes['other'];
+  var briefEl = document.getElementById('aria-briefing-card');
+  var briefText = document.getElementById('aria-briefing-text');
+  var briefActions = document.getElementById('aria-briefing-actions');
+
+  if(briefEl) briefEl.style.display = 'block';
+  if(briefText) briefText.innerHTML = '<span style="color:#aaff3e;">✦ ARIA is preparing your meeting brief...</span>';
+
+  /* Build prep brief based on meeting type */
+  var preps = {
+    'site': [
+      'Review the prospect company profile, industry, job count, and capital investment range.',
+      'Prepare a site comparison matrix using Cara — have 3 sites ready with utilities, zoning, and incentives.',
+      'Run incentive analysis with Ivy before the meeting — know your numbers.',
+      'Have a one-page community overview ready from Annie.'
+    ],
+    'board': [
+      'Pull your latest ROI stats and mission accomplishments for the quarter.',
+      'Deploy Brett to draft a board report summary — have it ready 24 hrs in advance.',
+      'Prepare a 3-minute verbal summary: wins, pipeline, and 90-day priorities.',
+      'Anticipate budget questions — have your hours-saved and value-recovered data ready.'
+    ],
+    'bre': [
+      'Review the company profile — employee count, years in community, recent news.',
+      'Deploy Blake to build a BRE survey tailored to this business.',
+      'Prepare a list of available resources: workforce programs, grants, site expansion options.',
+      'Have Rita ready to draft a follow-up BRE report after the meeting.'
+    ],
+    'grant': [
+      'Review the grant requirements and eligibility criteria before the call.',
+      'Deploy Gary to draft a grant narrative outline.',
+      'Use Fiona to cross-reference similar grants your organization has won.',
+      'Prepare a project budget summary and matching funds documentation.'
+    ],
+    'press': [
+      'Deploy Parker to draft key talking points and press release language.',
+      'Prepare your top 3 wins and economic impact numbers.',
+      'Have a quote approved by leadership ready to share.',
+      'Know your headline metrics: jobs created, capital investment, projects closed.'
+    ],
+    'council': [
+      'Prepare a one-page summary of active projects and pipeline.',
+      'Deploy Annie to draft a council presentation summary.',
+      'Have your ROI and taxpayer value metrics ready.',
+      'Anticipate questions about specific projects or community concerns.'
+    ],
+    'prospect': [
+      'Research the company — size, industry, decision timeline, site requirements.',
+      'Deploy Marcus to run a market analysis for this industry.',
+      'Use Ivy to model incentives before the meeting.',
+      'Prepare a community overview and available sites packet with Cara.'
+    ],
+    'internal': [
+      'Set a clear agenda with time-boxed items.',
+      'Have your pipeline and task status ready to share.',
+      'Use ARIA to draft a meeting summary template to fill in after.',
+      'Identify 1-2 decisions that need to be made in this meeting.'
+    ],
+    'other': [
+      'Review any relevant background information about attendees.',
+      'Prepare a clear objective: what does success look like for this meeting?',
+      'Ask ARIA to draft an agenda if you do not have one.',
+      'Have your key stats and project pipeline ready to reference.'
+    ]
+  };
+
+  var steps = preps[cat] || preps['other'];
+  var html = '<strong style="color:#eef3fc;">Meeting Prep: '+escHtml(title)+'</strong><br><br>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+  steps.forEach(function(step, i) {
+    html += '<div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:'+info.color+';font-weight:800;flex-shrink:0;">'+(i+1)+'.</span><span style="color:#b8c8e0;font-size:12px;line-height:1.6;">'+step+'</span></div>';
+  });
+  html += '</div>';
+
+  setTimeout(function() {
+    if(briefText) briefText.innerHTML = html;
+    if(briefActions) {
+      briefActions.innerHTML = '';
+      if(info.specId) {
+        var btn2 = document.createElement('button');
+        btn2.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;';
+        btn2.textContent = '→ ' + info.specialist;
+        btn2.onclick = function(){ deploy(info.specId); };
+        briefActions.appendChild(btn2);
+      }
+      var ariaBtn = document.createElement('button');
+      ariaBtn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;';
+      ariaBtn.textContent = '✦ Ask ARIA for full prep brief';
+      ariaBtn.onclick = function(){ toggleAria(); };
+      briefActions.appendChild(ariaBtn);
+    }
+  }, 600);
 }
 
 function showCalendarWeek(events){
