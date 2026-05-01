@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v04.30.2313</title>
+<title>EconSquad AI v05.01.1231</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -943,6 +943,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <div id="nav-dashboard" style="flex:1;display:none;justify-content:center;align-items:center;">
         <ul class="nav-links" style="display:flex;gap:28px;list-style:none;margin:0;padding:0;">
           <li><a id="dash-nav-home" onclick="showDashTab('home-tab',this)" style="cursor:pointer;">My Squad</a></li>
+          <li><a id="dash-nav-inbox" onclick="showDashTab('inbox-tab',this)" style="cursor:pointer;">
+            Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span>
+          </a></li>
           <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
           <li><a id="dash-nav-stats" onclick="showDashTab('stats-tab',this)" style="cursor:pointer;">My Stats</a></li>
           <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
@@ -1426,6 +1429,80 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <!-- Populated by renderSquadTab() -->
         </div>
       </div>
+      <!-- ========== INBOX TAB ========== -->
+      <div class="page main dash-tab" id="inbox-tab" style="display:none;padding:24px 32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:4px;">ARIA Inbox</h2>
+            <p style="color:#6b7a96;font-size:13px;">Your Gmail and Calendar — organized by ARIA</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button id="inbox-connect-btn" onclick="connectGmail()" style="display:none;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;cursor:pointer;">
+              Connect Gmail ✦
+            </button>
+            <button onclick="refreshInbox()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- PRO LOCK for non-pro users -->
+        <div id="inbox-pro-lock" style="display:none;text-align:center;padding:60px 20px;">
+          <div style="font-size:40px;margin-bottom:16px;">✦</div>
+          <h3 style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#eef3fc;margin-bottom:8px;">Pro Feature</h3>
+          <p style="color:#6b7a96;font-size:14px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;">Connect your Gmail and Google Calendar so ARIA can give you a daily briefing, surface priority emails, and help you respond — all from your dashboard.</p>
+          <button onclick="openUpgradeFlow()" style="background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px 28px;border:none;border-radius:10px;cursor:pointer;">Upgrade to Pro →</button>
+        </div>
+
+        <!-- ARIA MORNING BRIEFING -->
+        <div id="aria-briefing-card" style="display:none;background:rgba(8,12,24,0.8);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:20px 24px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,175,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;">✦</div>
+            <div>
+              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:900;color:#aaff3e;">ARIA Morning Briefing</div>
+              <div id="briefing-time" style="font-size:10px;color:#4a5568;"></div>
+            </div>
+          </div>
+          <div id="aria-briefing-text" style="font-size:13px;color:#b8c8e0;line-height:1.7;"></div>
+          <div id="aria-briefing-actions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;"></div>
+        </div>
+
+        <!-- TWO COLUMN: EMAIL + CALENDAR -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="inbox-grid">
+
+          <!-- EMAIL PANEL -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;">
+                📧 Unread Emails
+              </div>
+              <span id="unread-count-label" style="font-size:11px;color:#4a5568;"></span>
+            </div>
+            <div id="email-list" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="text-align:center;padding:40px;color:#4a5568;font-size:13px;">
+                <div style="font-size:24px;margin-bottom:8px;">📧</div>
+                Loading your inbox...
+              </div>
+            </div>
+          </div>
+
+          <!-- CALENDAR PANEL -->
+          <div>
+            <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">
+              📅 Today's Schedule
+            </div>
+            <div id="calendar-today" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+              <div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Loading calendar...</div>
+            </div>
+            <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">
+              📆 Coming Up
+            </div>
+            <div id="calendar-week" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+
+        </div>
+      </div>
+
       <div class="page main dash-tab" id="history-tab" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
           <div>
@@ -1828,6 +1905,18 @@ function onSignedIn(user){
   setTimeout(loadBadges,700);
   /* pre-load billing so it's instant when clicked */
   setTimeout(loadBillingDetails,1200);
+  /* pre-load inbox badge count */
+  setTimeout(function(){
+    getProviderToken().then(function(token){
+      if(!token) return;
+      supa.functions.invoke('gmail-calendar',{body:{action:'gmail_inbox',provider_token:token}}).then(function(res){
+        if(res.data && res.data.total_unread > 0){
+          var badge = document.getElementById('inbox-badge');
+          if(badge){ badge.textContent = res.data.total_unread; badge.style.display='inline'; }
+        }
+      });
+    });
+  }, 2000);
   /* load voice preference */
   setTimeout(loadVoicePreference,800);
   /* load user level */
@@ -3757,6 +3846,7 @@ var _origShowDashTab=showDashTab;
 showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
+  if(tabId==='inbox-tab')loadInbox();
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
   if(tabId==='stats-tab'){
     /* default to overview tab */
@@ -5156,13 +5246,13 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
+      scopes: 'email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   }).then(function(res){
     if(res.error){
       showAuthMsg('Google sign in failed: ' + res.error.message, 'error');
     }
-    /* success redirects automatically */
   });
 }
 
@@ -5282,6 +5372,324 @@ function showAriaCongrats(milestone, stats){
       setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 300);
     }
   }, 12000);
+}
+
+
+/* ===== GMAIL + CALENDAR INBOX ===== */
+var providerToken = null;
+var inboxLoaded = false;
+var briefingLoaded = false;
+
+/* Get the Google provider token from Supabase session */
+function getProviderToken(){
+  return supa.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    if(session && session.provider_token){
+      providerToken = session.provider_token;
+      return providerToken;
+    }
+    return null;
+  });
+}
+
+/* Connect Gmail - triggers Google OAuth with Gmail scopes */
+function connectGmail(){
+  supa.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+      scopes: 'email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly',
+      queryParams: { access_type: 'offline', prompt: 'consent' }
+    }
+  });
+}
+
+/* Load inbox tab */
+function loadInbox(){
+  if(!currentUser) return;
+
+  /* Check if user is pro */
+  var plan = currentUserPlan || 'trial';
+  var isPro = (plan === 'pro' || plan === 'trial'); /* show during trial too */
+
+  var lockEl = document.getElementById('inbox-pro-lock');
+  var gridEl = document.getElementById('inbox-grid');
+  var briefEl = document.getElementById('aria-briefing-card');
+  var connectBtn = document.getElementById('inbox-connect-btn');
+
+  if(!isPro){
+    if(lockEl) lockEl.style.display = 'block';
+    if(gridEl) gridEl.style.display = 'none';
+    return;
+  }
+
+  if(lockEl) lockEl.style.display = 'none';
+  if(gridEl) gridEl.style.display = 'grid';
+
+  /* Get provider token */
+  getProviderToken().then(function(token){
+    if(!token){
+      /* No Google token - show connect button */
+      if(connectBtn) connectBtn.style.display = 'flex';
+      showEmailList([]);
+      showCalendarToday([]);
+      document.getElementById('email-list').innerHTML = '<div style="text-align:center;padding:40px;color:#4a5568;"><div style="font-size:24px;margin-bottom:8px;">📧</div><div style="margin-bottom:16px;font-size:13px;">Connect your Gmail to see your inbox here.</div><button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Gmail →</button></div>';
+      document.getElementById('calendar-today').innerHTML = '<div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Connect Gmail to see your calendar.</div>';
+      return;
+    }
+
+    if(connectBtn) connectBtn.style.display = 'none';
+
+    /* Load ARIA briefing + inbox + calendar in parallel */
+    loadAriaBriefing(token);
+    loadEmailList(token);
+    loadCalendar(token);
+  });
+}
+
+/* Refresh inbox */
+function refreshInbox(){
+  inboxLoaded = false;
+  loadInbox();
+}
+
+/* Load ARIA morning briefing */
+function loadAriaBriefing(token){
+  var briefEl = document.getElementById('aria-briefing-card');
+  var briefText = document.getElementById('aria-briefing-text');
+  var briefTime = document.getElementById('briefing-time');
+  var briefActions = document.getElementById('aria-briefing-actions');
+
+  if(briefEl) briefEl.style.display = 'block';
+  if(briefText) briefText.innerHTML = '<span style="color:#4a5568;">ARIA is preparing your briefing...</span>';
+  if(briefTime) briefTime.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  supa.functions.invoke('gmail-calendar', {
+    body: { action: 'aria_briefing', provider_token: token }
+  }).then(function(res){
+    if(res.error || !res.data){
+      if(briefText) briefText.innerHTML = '<span style="color:#4a5568;">Could not load briefing. Try reconnecting Gmail.</span>';
+      return;
+    }
+    var d = res.data;
+    buildAriaBriefing(d, briefText, briefActions);
+  });
+}
+
+function buildAriaBriefing(data, textEl, actionsEl){
+  var now = new Date();
+  var hour = now.getHours();
+  var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  var name = currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name
+    ? currentUser.user_metadata.full_name.split(' ')[0] : 'there';
+
+  var parts = [];
+  parts.push(greeting + ', <strong style="color:#eef3fc;">' + name + '</strong>. Here's what's on your plate today.');
+
+  /* Calendar */
+  var todayEvents = data.today_events || [];
+  if(todayEvents.length === 0){
+    parts.push('Your calendar is clear today — a great day to deploy your squad on high-impact work.');
+  } else {
+    var evtNames = todayEvents.map(function(e){
+      if(e.allDay) return e.title;
+      var t = new Date(e.start);
+      return e.title + ' at ' + t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    });
+    parts.push('You have <strong style="color:#aaff3e;">' + todayEvents.length + ' event' + (todayEvents.length>1?'s':'') + '</strong> today: ' + evtNames.slice(0,3).join(', ') + (evtNames.length>3?' and more':'') + '.');
+  }
+
+  /* Email */
+  var unread = data.unread_count || 0;
+  var emails = data.emails || [];
+  if(unread === 0){
+    parts.push('Your inbox is clear — no unread emails.');
+  } else {
+    parts.push('You have <strong style="color:#f5c542;">' + unread + ' unread email' + (unread>1?'s':'') + '</strong> waiting.');
+
+    /* Detect ED-relevant emails */
+    var rfis = emails.filter(function(e){ return /rfi|site|location|expansion|facility/i.test(e.subject + ' ' + e.snippet); });
+    var grants = emails.filter(function(e){ return /grant|funding|award|application/i.test(e.subject + ' ' + e.snippet); });
+
+    if(rfis.length > 0){
+      parts.push('<strong style="color:#aaff3e;">⚡ Heads up:</strong> ' + rfis.length + ' email' + (rfis.length>1?'s look':'s looks') + ' like site selection or RFI activity. Want me to deploy Riley to help respond?');
+    }
+    if(grants.length > 0){
+      parts.push('<strong style="color:#aaff3e;">⚡ Heads up:</strong> ' + grants.length + ' grant-related email' + (grants.length>1?'s':'') + ' detected. Gary and Fiona are standing by.');
+    }
+  }
+
+  /* Week ahead */
+  var weekEvents = data.week_events || [];
+  var tomorrow = new Date(now.getTime() + 24*60*60*1000);
+  var upcoming = weekEvents.filter(function(e){
+    var d = new Date(e.start);
+    return d > tomorrow;
+  });
+  if(upcoming.length > 0){
+    parts.push('Coming up this week: <strong style="color:#eef3fc;">' + upcoming.slice(0,3).map(function(e){return e.title;}).join(', ') + '</strong>.');
+  }
+
+  if(textEl) textEl.innerHTML = parts.join(' ');
+
+  /* Action buttons */
+  if(actionsEl){
+    actionsEl.innerHTML = '';
+    var actions = [];
+    if((data.emails||[]).some(function(e){ return /rfi|site/i.test(e.subject); })){
+      actions.push({label:'Deploy Riley — RFI Response', specId: 21});
+    }
+    if((data.emails||[]).some(function(e){ return /grant|funding/i.test(e.subject); })){
+      actions.push({label:'Deploy Gary — Grant Writer', specId: 1});
+    }
+    actions.push({label:'Open full inbox', action: 'inbox'});
+
+    actions.slice(0,3).forEach(function(a){
+      var btn = document.createElement('button');
+      btn.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;';
+      btn.textContent = '→ ' + a.label;
+      btn.onmouseover = function(){ this.style.borderColor='rgba(170,255,62,0.3)'; this.style.color='#aaff3e'; };
+      btn.onmouseout = function(){ this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#8a97b5'; };
+      if(a.specId){ btn.onclick = function(){ deploy(a.specId); }; }
+      else if(a.action === 'inbox'){ btn.onclick = function(){ showDashTab('inbox-tab', document.getElementById('dash-nav-inbox')); }; }
+      actionsEl.appendChild(btn);
+    });
+  }
+}
+
+/* Load email list */
+function loadEmailList(token){
+  var listEl = document.getElementById('email-list');
+  if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading emails...</div>';
+
+  supa.functions.invoke('gmail-calendar', {
+    body: { action: 'gmail_inbox', provider_token: token }
+  }).then(function(res){
+    if(res.error || !res.data){ showEmailList([]); return; }
+    var countEl = document.getElementById('unread-count-label');
+    if(countEl) countEl.textContent = (res.data.total_unread||0) + ' unread';
+    var badge = document.getElementById('inbox-badge');
+    if(badge && res.data.total_unread > 0){
+      badge.textContent = res.data.total_unread;
+      badge.style.display = 'inline';
+    }
+    showEmailList(res.data.emails || []);
+  });
+}
+
+function showEmailList(emails){
+  var listEl = document.getElementById('email-list');
+  if(!listEl) return;
+  if(!emails.length){
+    listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#4a5568;font-size:13px;"><div style="font-size:24px;margin-bottom:8px;">✅</div>Inbox zero! No unread emails.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  emails.forEach(function(email){
+    var card = document.createElement('div');
+    card.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s;';
+    card.onmouseover = function(){ this.style.borderColor='rgba(170,255,62,0.2)'; };
+    card.onmouseout = function(){ this.style.borderColor='rgba(255,255,255,0.07)'; };
+
+    /* Detect type */
+    var isRFI = /rfi|site|location|expansion|facility/i.test(email.subject + ' ' + email.snippet);
+    var isGrant = /grant|funding|award/i.test(email.subject + ' ' + email.snippet);
+    var tag = isRFI ? '<span style="background:rgba(100,175,255,0.15);color:#64afff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;">RFI</span>'
+            : isGrant ? '<span style="background:rgba(245,197,66,0.15);color:#f5c542;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;">GRANT</span>'
+            : '';
+
+    /* Format sender */
+    var from = email.from || '';
+    var fromName = from.replace(/<[^>]+>/,'').trim().replace(/"/g,'') || from;
+    if(fromName.length > 30) fromName = fromName.slice(0,30) + '…';
+
+    card.innerHTML = [
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">',
+        '<div style="font-size:12px;font-weight:700;color:#eef3fc;flex:1;">' + escHtml(email.subject||'(no subject)') + tag + '</div>',
+      '</div>',
+      '<div style="font-size:11px;color:#6b7a96;margin-bottom:6px;">From: ' + escHtml(fromName) + '</div>',
+      '<div style="font-size:11px;color:#4a5568;line-height:1.5;">' + escHtml((email.snippet||'').slice(0,100)) + '…</div>',
+      /* Quick actions */
+      '<div style="display:flex;gap:6px;margin-top:10px;">',
+        '<button onclick="replyWithEmma('' + email.id + '','' + escAttr(email.subject) + '','' + escAttr(fromName) + '')" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;">✦ Draft reply with Emma</button>',
+      '</div>'
+    ].join('');
+    listEl.appendChild(card);
+  });
+}
+
+/* Load calendar */
+function loadCalendar(token){
+  supa.functions.invoke('gmail-calendar', {
+    body: { action: 'calendar_today', provider_token: token }
+  }).then(function(res){
+    if(res.error || !res.data){ return; }
+    showCalendarToday(res.data.today || []);
+    showCalendarWeek(res.data.week || []);
+  });
+}
+
+function showCalendarToday(events){
+  var el = document.getElementById('calendar-today');
+  if(!el) return;
+  if(!events.length){
+    el.innerHTML = '<div style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px;text-align:center;color:#4a5568;font-size:12px;">No events today — clear runway! 🚀</div>';
+    return;
+  }
+  el.innerHTML = '';
+  events.forEach(function(evt){
+    var div = document.createElement('div');
+    div.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(170,255,62,0.12);border-radius:10px;padding:12px 14px;border-left:3px solid #aaff3e;';
+    var timeStr = evt.allDay ? 'All day' : new Date(evt.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    div.innerHTML = '<div style="font-size:12px;font-weight:700;color:#eef3fc;margin-bottom:2px;">' + escHtml(evt.title) + '</div><div style="font-size:10px;color:#6b7a96;">🕐 ' + timeStr + '</div>';
+    el.appendChild(div);
+  });
+}
+
+function showCalendarWeek(events){
+  var el = document.getElementById('calendar-week');
+  if(!el) return;
+  var today = new Date();
+  var upcoming = events.filter(function(e){
+    return new Date(e.start) > today;
+  }).slice(0,7);
+  if(!upcoming.length){
+    el.innerHTML = '<div style="color:#4a5568;font-size:11px;padding:8px 0;">Nothing scheduled this week.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  upcoming.forEach(function(evt){
+    var div = document.createElement('div');
+    div.style.cssText = 'padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:10px;align-items:flex-start;';
+    var d = new Date(evt.start);
+    var dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+    div.innerHTML = '<div style="font-size:10px;color:#6b7a96;min-width:60px;margin-top:1px;">' + dateStr + '</div><div style="font-size:12px;color:#b8c8e0;">' + escHtml(evt.title) + '</div>';
+    el.appendChild(div);
+  });
+}
+
+/* Draft email reply using Emma */
+function replyWithEmma(emailId, subject, fromName){
+  /* Open Emma with pre-loaded context */
+  var specData = squad.find(function(s){ return s.id === 19; });
+  if(specData){
+    openSpecialistDrawer(specData);
+    setTimeout(function(){
+      var inp = document.getElementById('chat-input');
+      if(inp){
+        inp.value = 'I need to reply to an email from ' + fromName + ' with subject: "' + subject + '". Help me write a professional, compelling response.';
+        autoResizeChat(inp);
+      }
+    }, 600);
+  }
+}
+
+/* HTML escape helpers */
+function escHtml(str){
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str){
+  return String(str||'').replace(/'/g,"\'").replace(/"/g,'&quot;').slice(0,60);
 }
 
 /* ===== INIT ===== */
