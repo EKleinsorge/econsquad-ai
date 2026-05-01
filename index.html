@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.01.1359</title>
+<title>EconSquad AI v05.01.1408</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1439,6 +1439,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div style="display:flex;gap:10px;align-items:center;">
             <button id="inbox-connect-btn" onclick="connectGmail()" style="display:none;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;cursor:pointer;">
               Connect Gmail ✦
+            </button>
+            <button onclick="analyzeInboxWithARIA()" id="aria-analyze-btn" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
+              ✦ ARIA Analyze
             </button>
             <button onclick="refreshInbox()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
               ↻ Refresh
@@ -5376,6 +5379,245 @@ function showAriaCongrats(milestone, stats){
 
 
 /* ===== GMAIL + CALENDAR INBOX ===== */
+/* ===== ARIA INBOX INTELLIGENCE ===== */
+
+var ariaEmailCategories = {
+  'rfi':      { label: 'RFI',      color: '#64afff', bg: 'rgba(100,175,255,0.15)', icon: '🏭', priority: 1, desc: 'Site selection or facility inquiry' },
+  'grant':    { label: 'GRANT',    color: '#f5c542', bg: 'rgba(245,197,66,0.15)',  icon: '💰', priority: 1, desc: 'Grant or funding opportunity' },
+  'bre':      { label: 'BRE',      color: '#14b8a6', bg: 'rgba(20,184,166,0.15)',  icon: '🤝', priority: 2, desc: 'Business retention & expansion' },
+  'partner':  { label: 'PARTNER',  color: '#e879f9', bg: 'rgba(232,121,249,0.15)', icon: '🌐', priority: 2, desc: 'Partnership or collaboration' },
+  'media':    { label: 'MEDIA',    color: '#fb923c', bg: 'rgba(251,146,60,0.15)',  icon: '📰', priority: 2, desc: 'Press or media inquiry' },
+  'deadline': { label: 'DEADLINE', color: '#f87171', bg: 'rgba(248,113,113,0.15)', icon: '⏰', priority: 1, desc: 'Time-sensitive deadline' },
+  'meeting':  { label: 'MEETING',  color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', icon: '📅', priority: 2, desc: 'Meeting request or invite' },
+  'action':   { label: 'ACTION',   color: '#aaff3e', bg: 'rgba(170,255,62,0.12)',  icon: '⚡', priority: 1, desc: 'Requires your response' },
+  'fyi':      { label: 'FYI',      color: '#6b7a96', bg: 'rgba(107,122,150,0.1)',  icon: 'ℹ️',  priority: 3, desc: 'For your information only' },
+};
+
+var ariaEmailAnalysis = {}; /* cache: emailId -> category */
+
+function categorizeEmail(email) {
+  var text = ((email.subject||'') + ' ' + (email.snippet||'')).toLowerCase();
+  var from = (email.from||'').toLowerCase();
+  
+  if (/deadline|due date|expires|last chance|urgent|asap|immediate/i.test(text)) return 'deadline';
+  if (/rfi|site selection|location inquiry|facility|expansion|relocat/i.test(text)) return 'rfi';
+  if (/grant|funding|award|appropriation|application.*fund|fund.*application/i.test(text)) return 'grant';
+  if (/bre|retention|existing business|survey.*business|business.*survey/i.test(text)) return 'bre';
+  if (/press|media|interview|reporter|journalist|news/i.test(text)) return 'media';
+  if (/meeting|call|zoom|teams|calendar.*invite|invite.*calendar/i.test(text)) return 'meeting';
+  if (/partnership|collaborate|mou|agreement|proposal/i.test(text)) return 'partner';
+  if (/please respond|reply needed|action required|your response|awaiting/i.test(text)) return 'action';
+  return 'fyi';
+}
+
+function analyzeInboxWithARIA() {
+  var btn = document.getElementById('aria-analyze-btn');
+  var listEl = document.getElementById('email-list');
+  var cards = listEl ? listEl.querySelectorAll('.email-card') : [];
+  
+  if (!cards.length) {
+    showToast('Load your inbox first!', 'warning');
+    return;
+  }
+
+  if (btn) { btn.textContent = '✦ Analyzing...'; btn.disabled = true; }
+
+  /* Show ARIA is working */
+  var briefEl = document.getElementById('aria-briefing-card');
+  var briefText = document.getElementById('aria-briefing-text');
+  var briefActions = document.getElementById('aria-briefing-actions');
+  if (briefEl) briefEl.style.display = 'block';
+  if (briefText) briefText.innerHTML = '<span style="color:#aaff3e;">✦ ARIA is reading your inbox...</span>';
+
+  /* Get current emails from the rendered cards */
+  /* Use the stored emails in window */
+  var emails = window._lastEmails || [];
+  
+  if (!emails.length) {
+    /* Re-fetch and analyze */
+    getProviderToken().then(function(token) {
+      if (!token) return;
+      supa.functions.invoke('gmail-calendar', {
+        body: { action: 'gmail_inbox', provider_token: token }
+      }).then(function(res) {
+        if (res.data && res.data.emails) {
+          window._lastEmails = res.data.emails;
+          runARIAAnalysis(res.data.emails, btn);
+        }
+      });
+    });
+  } else {
+    runARIAAnalysis(emails, btn);
+  }
+}
+
+function runARIAAnalysis(emails, btn) {
+  /* Categorize all emails */
+  var categories = {};
+  emails.forEach(function(email) {
+    var cat = categorizeEmail(email);
+    ariaEmailAnalysis[email.id] = cat;
+    categories[cat] = (categories[cat] || 0) + 1;
+  });
+
+  /* Sort emails by priority */
+  var sorted = emails.slice().sort(function(a, b) {
+    var catA = ariaEmailAnalysis[a.id] || 'fyi';
+    var catB = ariaEmailAnalysis[b.id] || 'fyi';
+    var priA = ariaEmailCategories[catA] ? ariaEmailCategories[catA].priority : 3;
+    var priB = ariaEmailCategories[catB] ? ariaEmailCategories[catB].priority : 3;
+    return priA - priB;
+  });
+
+  /* Re-render with categories */
+  showEmailListAnalyzed(sorted);
+
+  /* Build ARIA briefing summary */
+  buildARIASummary(categories, sorted);
+
+  if (btn) { btn.textContent = '✦ Re-analyze'; btn.disabled = false; }
+}
+
+function showEmailListAnalyzed(emails) {
+  var listEl = document.getElementById('email-list');
+  if (!listEl) return;
+
+  /* Add priority section headers */
+  var urgent = emails.filter(function(e) {
+    var cat = ariaEmailAnalysis[e.id];
+    return cat && ariaEmailCategories[cat] && ariaEmailCategories[cat].priority === 1;
+  });
+  var normal = emails.filter(function(e) {
+    var cat = ariaEmailAnalysis[e.id];
+    return !cat || !ariaEmailCategories[cat] || ariaEmailCategories[cat].priority === 2;
+  });
+  var fyi = emails.filter(function(e) {
+    var cat = ariaEmailAnalysis[e.id];
+    return cat && ariaEmailCategories[cat] && ariaEmailCategories[cat].priority === 3;
+  });
+
+  listEl.innerHTML = '';
+
+  function addSection(title, items, color) {
+    if (!items.length) return;
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:10px;font-weight:800;color:'+color+';text-transform:uppercase;letter-spacing:.1em;padding:12px 4px 6px;';
+    hdr.textContent = title + ' (' + items.length + ')';
+    listEl.appendChild(hdr);
+    items.forEach(function(email) { renderEmailCard(email, listEl); });
+  }
+
+  addSection('⚡ Needs Attention', urgent, '#f87171');
+  addSection('📋 In Progress', normal, '#6b7a96');
+  addSection('ℹ️ FYI', fyi, '#4a5568');
+
+  /* wire delegation */
+  listEl.onclick = function(e) {
+    var btn = e.target.closest ? e.target.closest('.emma-reply-btn') : null;
+    if (!btn) return;
+    e.stopPropagation();
+    replyWithEmma(btn.dataset.id, btn.dataset.subject, btn.dataset.from);
+  };
+}
+
+function renderEmailCard(email, listEl) {
+  var cat = ariaEmailAnalysis[email.id] || 'fyi';
+  var catInfo = ariaEmailCategories[cat] || ariaEmailCategories['fyi'];
+
+  var from = email.from || '';
+  var senderName = from.replace(/<[^>]+>/g,'').trim().replace(/"/g,'');
+  if (!senderName) senderName = (from.match(/<([^>]+)>/) || [])[1] || from;
+  if (senderName.length > 28) senderName = senderName.slice(0,28) + '…';
+
+  var initials = senderName.split(' ').filter(Boolean).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase() || '?';
+  var avatarColors = ['#aaff3e','#64afff','#f5c542','#14b8a6','#e879f9','#fb923c'];
+  var avatarColor = avatarColors[(senderName.charCodeAt(0)||0) % avatarColors.length];
+
+  var dateStr = '';
+  if (email.date) {
+    var d = new Date(email.date);
+    var isToday = d.toDateString() === new Date().toDateString();
+    dateStr = isToday ? d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : d.toLocaleDateString([],{month:'short',day:'numeric'});
+  }
+
+  var card = document.createElement('div');
+  card.className = 'email-card';
+  card.style.cssText = 'background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+catInfo.color+';border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .15s;position:relative;margin-bottom:8px;';
+  card.onmouseover = function() {
+    this.style.background='rgba(14,20,36,0.95)';
+    var qb = this.querySelector('.emma-quick-btn');
+    if(qb) qb.style.opacity='1';
+  };
+  card.onmouseout = function() {
+    this.style.background='rgba(14,20,36,0.6)';
+    var qb = this.querySelector('.emma-quick-btn');
+    if(qb) qb.style.opacity='0';
+  };
+
+  card.innerHTML = [
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">',
+      '<div style="width:32px;height:32px;border-radius:50%;background:'+avatarColor+'22;border:1px solid '+avatarColor+'44;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+avatarColor+';flex-shrink:0;">'+initials+'</div>',
+      '<div style="flex:1;min-width:0;">',
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">',
+          '<span style="font-size:12px;font-weight:700;color:#eef3fc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(senderName)+'</span>',
+          '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">',
+            '<span style="background:'+catInfo.bg+';color:'+catInfo.color+';font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;letter-spacing:.04em;">'+catInfo.icon+' '+catInfo.label+'</span>',
+            '<span style="font-size:10px;color:#8a97b5;font-weight:600;">'+escHtml(dateStr)+'</span>',
+          '</div>',
+        '</div>',
+      '</div>',
+    '</div>',
+    '<div style="font-size:13px;font-weight:700;color:#c8d5f0;margin-bottom:4px;margin-left:42px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(email.subject||'(no subject)')+'</div>',
+    '<div style="font-size:11px;color:#4a5568;line-height:1.5;margin-left:42px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml((email.snippet||'').slice(0,120))+'</div>',
+    '<button class="emma-quick-btn emma-reply-btn" data-id="'+escAttr(email.id)+'" data-subject="'+escAttr(email.subject)+'" data-from="'+escAttr(senderName)+'" ',
+      'style="opacity:0;transition:opacity .15s;position:absolute;right:14px;bottom:12px;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:DM Sans,sans-serif;">',
+      '✦ Reply with Emma',
+    '</button>',
+  ].join('');
+
+  listEl.appendChild(card);
+}
+
+function buildARIASummary(categories, emails) {
+  var briefText = document.getElementById('aria-briefing-text');
+  var briefActions = document.getElementById('aria-briefing-actions');
+  if (!briefText) return;
+
+  var parts = [];
+  var urgentCount = (categories['rfi']||0) + (categories['grant']||0) + (categories['deadline']||0) + (categories['action']||0);
+  
+  parts.push("I've analyzed your <strong style='color:#eef3fc;'>"+emails.length+" unread emails</strong>. Here's what needs your attention:");
+
+  if (categories['deadline']) parts.push("⏰ <strong style='color:#f87171;'>"+categories['deadline']+" deadline-sensitive</strong> email"+(categories['deadline']>1?'s':'')+' — review these first.');
+  if (categories['rfi']) parts.push("🏭 <strong style='color:#64afff;'>"+categories['rfi']+" RFI</strong> or site selection inquiry"+(categories['rfi']>1?'s':'')+' — potential investment activity.');
+  if (categories['grant']) parts.push("💰 <strong style='color:#f5c542;'>"+categories['grant']+" grant</strong> or funding email"+(categories['grant']>1?'s':'')+' — Gary and Fiona are ready to help.');
+  if (categories['bre']) parts.push("🤝 <strong style='color:#14b8a6;'>"+categories['bre']+" BRE</strong> related email"+(categories['bre']>1?'s':'')+' — your existing businesses need attention.');
+  if (categories['meeting']) parts.push("📅 <strong style='color:#a78bfa;'>"+categories['meeting']+" meeting</strong> request"+(categories['meeting']>1?'s':'')+' in your inbox.');
+  if (categories['fyi']) parts.push("ℹ️ <strong style='color:#4a5568;'>"+categories['fyi']+" FYI</strong> email"+(categories['fyi']>1?'s':'')+' — no action needed.');
+
+  briefText.innerHTML = parts.join(' ');
+
+  /* Action buttons */
+  if (briefActions) {
+    briefActions.innerHTML = '';
+    var actions = [];
+    if (categories['rfi']) actions.push({label: 'Deploy Riley — RFI Response', specId: 21});
+    if (categories['grant']) actions.push({label: 'Deploy Gary — Grant Writer', specId: 1});
+    if (categories['bre']) actions.push({label: 'Deploy Blake — BRE Survey', specId: 6});
+
+    actions.slice(0,3).forEach(function(a) {
+      var btn2 = document.createElement('button');
+      btn2.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;transition:all .15s;';
+      btn2.textContent = '→ ' + a.label;
+      btn2.onmouseover = function(){ this.style.borderColor='rgba(170,255,62,0.3)'; this.style.color='#aaff3e'; };
+      btn2.onmouseout = function(){ this.style.borderColor='rgba(255,255,255,0.1)'; this.style.color='#8a97b5'; };
+      btn2.onclick = function(){ deploy(a.specId); };
+      briefActions.appendChild(btn2);
+    });
+  }
+}
+
+
 var providerToken = null;
 var inboxLoaded = false;
 var briefingLoaded = false;
@@ -5577,6 +5819,7 @@ function loadEmailList(token){
 }
 
 function showEmailList(emails){
+  window._lastEmails = emails;
   var listEl = document.getElementById('email-list');
   if(!listEl) return;
   if(!emails.length){
@@ -5643,7 +5886,7 @@ function showEmailList(emails){
             '<span style="font-size:12px;font-weight:700;color:#eef3fc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(senderName) + '</span>',
             '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">',
               tagHtml,
-              '<span style="font-size:10px;color:#4a5568;">' + escHtml(dateStr) + '</span>',
+              '<span style="font-size:10px;color:#8a97b5;font-weight:600;">' + escHtml(dateStr) + '</span>',
             '</div>',
           '</div>',
         '</div>',
