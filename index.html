@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.01.1231</title>
+<title>EconSquad AI v05.01.1326</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -5484,7 +5484,7 @@ function buildAriaBriefing(data, textEl, actionsEl){
     ? currentUser.user_metadata.full_name.split(' ')[0] : 'there';
 
   var parts = [];
-  parts.push(greeting + ', <strong style="color:#eef3fc;">' + name + '</strong>. Here's what's on your plate today.');
+  parts.push(greeting + ', <strong style="color:#eef3fc;">' + name + '</strong>. Here is what is on your plate today.');
 
   /* Calendar */
   var todayEvents = data.today_events || [];
@@ -5611,11 +5611,18 @@ function showEmailList(emails){
       '<div style="font-size:11px;color:#4a5568;line-height:1.5;">' + escHtml((email.snippet||'').slice(0,100)) + '…</div>',
       /* Quick actions */
       '<div style="display:flex;gap:6px;margin-top:10px;">',
-        '<button onclick="replyWithEmma('' + email.id + '','' + escAttr(email.subject) + '','' + escAttr(fromName) + '')" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;">✦ Draft reply with Emma</button>',
+        '<button class="emma-reply-btn" data-id="' + escAttr(email.id) + '" data-subject="' + escAttr(email.subject) + '" data-from="' + escAttr(fromName) + '" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;">✦ Draft reply with Emma</button>',
       '</div>'
     ].join('');
     listEl.appendChild(card);
   });
+
+  /* wire up Emma reply buttons via delegation */
+  listEl.onclick = function(e){
+    var btn = e.target.closest ? e.target.closest('.emma-reply-btn') : null;
+    if(!btn) return;
+    replyWithEmma(btn.dataset.id, btn.dataset.subject, btn.dataset.from);
+  };
 }
 
 /* Load calendar */
