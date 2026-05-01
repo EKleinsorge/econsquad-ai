@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.01.1342</title>
+<title>EconSquad AI v05.01.1347</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -5566,13 +5566,13 @@ function loadEmailList(token){
     body: { action: 'gmail_inbox', provider_token: token }
   }).then(function(res){
     if(res.error || !res.data){ showEmailList([]); return; }
+    var total = res.data.total_unread || 0;
     var countEl = document.getElementById('unread-count-label');
-    if(countEl) countEl.textContent = (res.data.total_unread||0) + ' unread';
-    var badge = document.getElementById('inbox-badge');
-    if(badge && res.data.total_unread > 0){
-      badge.textContent = res.data.total_unread;
-      badge.style.display = 'inline';
-    }
+    if(countEl) countEl.textContent = total + ' unread';
+    /* update badge everywhere */
+    document.querySelectorAll('#inbox-badge').forEach(function(b){
+      if(total > 0){ b.textContent = total; b.style.display = 'inline'; }
+    });
     showEmailList(res.data.emails || []);
   });
 }
@@ -5630,7 +5630,11 @@ function loadCalendar(token){
   supa.functions.invoke('gmail-calendar', {
     body: { action: 'calendar_today', provider_token: token }
   }).then(function(res){
-    if(res.error || !res.data){ return; }
+    if(res.error || !res.data){
+      var ct = document.getElementById('calendar-today');
+      if(ct) ct.innerHTML = '<div style="color:#4a5568;font-size:12px;padding:12px;">Could not load calendar.</div>';
+      return;
+    }
     showCalendarToday(res.data.today || []);
     showCalendarWeek(res.data.week || []);
   });
