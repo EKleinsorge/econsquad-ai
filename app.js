@@ -249,7 +249,7 @@
 
   /* ── TRASH SYSTEM ── */
   window.trashEmailCard = function(emailId, btn) {
-    var token = window.getProviderToken ? window.getProviderToken() : null;
+    var token = typeof window.providerToken === 'string' ? window.providerToken : (window.getProviderToken ? window.getProviderToken() : null); if(token && typeof token !== 'string') token = null;
     if (!token) { alert('Gmail not connected'); return; }
     var card = btn ? btn.closest('.email-card-v2') : null;
     if (card) card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;';
@@ -283,7 +283,7 @@
     var log = getTrashLog(), ids = Object.keys(log);
     if (!ids.length) return;
     window.showConfirm('Empty Trash?', 'Permanently delete all ' + ids.length + ' trashed emails. Cannot be undone.', function() {
-      var token = window.getProviderToken ? window.getProviderToken() : null; if (!token) return;
+      var token = typeof window.providerToken === 'string' ? window.providerToken : (window.getProviderToken ? window.getProviderToken() : null); if(token && typeof token !== 'string') token = null; if (!token) return;
       Promise.all(ids.map(function(id) {
         return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }).catch(function() {});
       })).then(function() { setTrashLog({}); var b = eid('esq-trash-banner'); if (b) b.remove(); });
@@ -291,7 +291,7 @@
   };
 
   window.autoPurgeTrash = function() {
-    var token = window.getProviderToken ? window.getProviderToken() : null; if (!token) return;
+    var token = typeof window.providerToken === 'string' ? window.providerToken : (window.getProviderToken ? window.getProviderToken() : null); if(token && typeof token !== 'string') token = null; if (!token) return;
     var log = getTrashLog(), now = Date.now(), cutoff = 30 * 24 * 60 * 60 * 1000;
     var old = Object.keys(log).filter(function(id) { return (now - log[id]) > cutoff; });
     if (!old.length) return;
