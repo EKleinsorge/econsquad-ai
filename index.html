@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.04.1700</title>
+<title>EconSquad AI v05.04.1710</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -6982,154 +6982,237 @@ function drawLogo(){if(!logoCtx)return;
 
 <script>
 (function() {
+  var TRASH_KEY = 'esq_trash_log';
+  function getTrashLog(){try{return JSON.parse(localStorage.getItem(TRASH_KEY)||'{}')}catch(e){return{}}}
+  function setTrashLog(l){try{localStorage.setItem(TRASH_KEY,JSON.stringify(l))}catch(e){}}
+  function escH(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
-  // ============================================================
-  // REPORT A PROBLEM
-  // ============================================================
-  function injectReportButton() {
-    if (document.getElementById('esq-report-btn')) return;
-    var btn = document.createElement('button');
-    btn.id = 'esq-report-btn';
-    btn.className = 'report-btn-float';
-    btn.innerHTML = '⚠️ Report a problem';
-    btn.onclick = window.openReportModal;
+  // ── REPORT A PROBLEM ──
+  function injectReportButton(){
+    if(document.getElementById('esq-report-btn'))return;
+    var btn=document.createElement('button');
+    btn.id='esq-report-btn';
+    btn.className='report-btn-float';
+    btn.innerHTML='&#9888;&#65039; Report a problem';
+    btn.onclick=window.openReportModal;
     document.body.appendChild(btn);
   }
 
-  window.openReportModal = function() {
-    var ex = document.getElementById('esq-report-modal'); if(ex) ex.remove();
-    var meta = 'v05.04.1700 · ' + navigator.userAgent.slice(0,80);
-    var overlay = document.createElement('div');
-    overlay.id = 'esq-report-modal';
-    overlay.className = 'report-modal-overlay';
-    overlay.onclick = function(e) { if(e.target===overlay) overlay.remove(); };
-    overlay.innerHTML =
-      '<div class="report-modal">' +
-        '<button class="report-close-btn" onclick="document.getElementById('esq-report-modal').remove()">✕</button>' +
-        '<h3>Report a Problem</h3>' +
-        '<p>Tell us what went wrong and we'll look into it right away.</p>' +
-        '<textarea class="report-textarea" id="esq-report-text" placeholder="Describe what happened, what you expected, and any steps to reproduce..."></textarea>' +
-        '<div class="report-meta">Auto-captured: ' + meta.slice(0,120) + '</div>' +
-        '<button class="report-submit-btn" id="esq-report-submit" onclick="window.submitReport()">Send Report</button>' +
+  window.openReportModal=function(){
+    var ex=document.getElementById('esq-report-modal');if(ex)ex.remove();
+    var meta='v05.04.1700 | '+window.location.href;
+    var overlay=document.createElement('div');
+    overlay.id='esq-report-modal';
+    overlay.className='report-modal-overlay';
+    overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+    overlay.innerHTML=
+      '<div class="report-modal">'+
+        '<button class="report-close-btn" onclick="document.getElementById('esq-report-modal').remove()">&#x2715;</button>'+
+        '<h3>Report a Problem</h3>'+
+        '<p>Tell us what went wrong and we will look into it right away.</p>'+
+        '<textarea class="report-textarea" id="esq-report-text" placeholder="Describe what happened and any steps to reproduce..."></textarea>'+
+        '<div class="report-meta">Version: '+escH(meta)+'</div>'+
+        '<button class="report-submit-btn" id="esq-report-submit" onclick="window.submitReport()">Send Report &#8599;</button>'+
       '</div>';
     document.body.appendChild(overlay);
-    setTimeout(function(){ var t=document.getElementById('esq-report-text'); if(t)t.focus(); }, 100);
+    setTimeout(function(){var t=document.getElementById('esq-report-text');if(t)t.focus();},100);
   };
 
-  window.submitReport = function() {
-    var text = (document.getElementById('esq-report-text')||{}).value||'';
-    if(!text.trim()) { alert('Please describe the problem first.'); return; }
-    var btn = document.getElementById('esq-report-submit');
-    if(btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
-    var payload = {
-      problem: text,
-      version: 'v05.04.1700',
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      user: (window.currentUser && window.currentUser.email) || 'anonymous'
-    };
-    // Send to Supabase if available, otherwise log + show success
-    var sent = false;
-    if(window.supabase) {
-      window.supabase.from('problem_reports').insert([payload])
-        .then(function(res) {
-          if(!res.error) showReportSuccess();
-          else { console.error('Supabase error:', res.error); showReportSuccess(); }
-        }).catch(function(){ showReportSuccess(); });
-      sent = true;
+  window.submitReport=function(){
+    var text=(document.getElementById('esq-report-text')||{}).value||'';
+    if(!text.trim()){alert('Please describe the problem first.');return;}
+    var btn=document.getElementById('esq-report-submit');
+    if(btn){btn.disabled=true;btn.textContent='Sending...';}
+    var payload={problem:text,version:'v05.04.1700',url:window.location.href,userAgent:navigator.userAgent,timestamp:new Date().toISOString()};
+    console.log('Problem report submitted:',payload);
+    if(window.supabase){
+      window.supabase.from('problem_reports').insert([payload]).then(function(){showReportSuccess();}).catch(function(){showReportSuccess();});
+    } else {
+      setTimeout(showReportSuccess,600);
     }
-    // Also send via EmailJS or just log if no backend
-    console.log('Problem report:', payload);
-    if(!sent) setTimeout(showReportSuccess, 800);
   };
 
-  function showReportSuccess() {
-    var modal = document.querySelector('#esq-report-modal .report-modal');
-    if(!modal) return;
-    modal.innerHTML =
-      '<div class="report-success">' +
-        '<div class="check">✅</div>' +
-        '<h4>Report Sent!</h4>' +
-        '<p>Thanks for letting us know. We'll investigate and fix it fast.</p>' +
-      '</div>';
-    setTimeout(function(){ var m=document.getElementById('esq-report-modal'); if(m)m.remove(); }, 2500);
+  function showReportSuccess(){
+    var modal=document.querySelector('#esq-report-modal .report-modal');
+    if(!modal)return;
+    modal.innerHTML='<div class="report-success"><div class="check">&#x2705;</div><h4>Report Sent!</h4><p>Thanks for letting us know. We will investigate and fix it fast.</p></div>';
+    setTimeout(function(){var m=document.getElementById('esq-report-modal');if(m)m.remove();},2500);
   }
 
-  // ============================================================
-  // HOME PAGE ARIA CHAT
-  // ============================================================
-  var homeChatHistory = [];
+  // ── HOME PAGE ARIA CHAT ──
+  var homeChatHistory=[];
 
-  window.sendHomeChat = function(preset) {
-    var input = document.getElementById('home-chat-input');
-    var msg = preset || (input ? input.value.trim() : '');
-    if(!msg) return;
-    if(input) input.value = '';
-
-    var send = document.getElementById('home-chat-send');
-    if(send) send.disabled = true;
-
-    appendHomeChatMsg('user', msg);
-    appendHomeChatMsg('aria', '...', true);
-
-    homeChatHistory.push({role:'user', content: msg});
-
-    fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: "You are ARIA, the AI assistant for EconSquad — a platform built exclusively for economic developers. EconSquad gives economic developers a team of AI specialists: grant writers, RFI responders, BRE survey builders, incentive modelers, workforce analysts, marketing copywriters, data analysts, and more. The platform includes an AI inbox organizer, calendar, specialist deployment, XP/leveling system, and history tracking. Pricing: 7-day free trial, then Pro plan. You help potential users understand what EconSquad can do and answer questions warmly and concisely. Keep answers under 3 sentences. Never make up specific pricing numbers.",
-        messages: homeChatHistory
+  window.sendHomeChat=function(preset){
+    var input=document.getElementById('home-chat-input');
+    var msg=preset||(input?input.value.trim():'');
+    if(!msg)return;
+    if(input)input.value='';
+    var send=document.getElementById('home-chat-send');
+    if(send)send.disabled=true;
+    appendHomeChatMsg('user',msg);
+    appendHomeChatMsg('aria','...',true);
+    homeChatHistory.push({role:'user',content:msg});
+    fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:400,
+        system:'You are ARIA, the AI assistant for EconSquad, a platform built exclusively for economic developers. EconSquad gives economic developers AI specialists for grants, RFIs, BRE surveys, incentive modeling, workforce analysis, and more. It includes an AI inbox organizer, calendar, specialist deployment, and XP leveling system. Answer questions warmly and concisely in under 3 sentences. Never make up specific pricing numbers.',
+        messages:homeChatHistory
       })
     })
-    .then(function(r){ return r.json(); })
-    .then(function(d) {
-      var reply = (d.content && d.content[0] && d.content[0].text) || "I'm not sure about that one — try reaching out to our team!";
-      homeChatHistory.push({role:'assistant', content: reply});
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var reply=(d.content&&d.content[0]&&d.content[0].text)||'I am not sure about that one - try reaching out to our team!';
+      homeChatHistory.push({role:'assistant',content:reply});
       updateLastAriaMsg(reply);
-      if(send) send.disabled = false;
+      if(send)send.disabled=false;
     })
-    .catch(function(e) {
-      updateLastAriaMsg("Hmm, I'm having trouble connecting right now. Try again in a moment!");
-      if(send) send.disabled = false;
+    .catch(function(){
+      updateLastAriaMsg('Having trouble connecting right now. Try again in a moment!');
+      if(send)send.disabled=false;
     });
   };
 
-  function appendHomeChatMsg(role, text, isTyping) {
-    var container = document.getElementById('home-chat-messages');
-    if(!container) return;
-    var div = document.createElement('div');
-    div.className = 'home-chat-msg' + (role==='user' ? ' user' : '');
-    div.innerHTML =
-      '<div class="home-chat-avatar ' + (role==='user' ? 'user-av' : 'aria') + '">' + (role==='user' ? 'E' : 'A') + '</div>' +
-      '<div class="home-chat-bubble' + (isTyping ? ' typing' : '') + '">' + text + '</div>';
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+  function appendHomeChatMsg(role,text,isTyping){
+    var c=document.getElementById('home-chat-messages');if(!c)return;
+    var div=document.createElement('div');
+    div.className='home-chat-msg'+(role==='user'?' user':'');
+    div.innerHTML='<div class="home-chat-avatar '+(role==='user'?'user-av':'aria')+'">'+(role==='user'?'E':'A')+'</div><div class="home-chat-bubble'+(isTyping?' typing':'')+'">'+(isTyping?'<span>&#8226;&#8226;&#8226;</span>':escH(text))+'</div>';
+    c.appendChild(div);
+    c.scrollTop=c.scrollHeight;
   }
 
-  function updateLastAriaMsg(text) {
-    var container = document.getElementById('home-chat-messages');
-    if(!container) return;
-    var bubbles = container.querySelectorAll('.home-chat-msg:not(.user) .home-chat-bubble');
-    var last = bubbles[bubbles.length-1];
-    if(last) { last.textContent = text; last.classList.remove('typing'); }
-    container.scrollTop = container.scrollHeight;
+  function updateLastAriaMsg(text){
+    var c=document.getElementById('home-chat-messages');if(!c)return;
+    var bubbles=c.querySelectorAll('.home-chat-msg:not(.user) .home-chat-bubble');
+    var last=bubbles[bubbles.length-1];
+    if(last){last.textContent=text;last.classList.remove('typing');}
+    c.scrollTop=c.scrollHeight;
   }
 
-  // ============================================================
-  // INJECT REPORT BUTTON ON ALL PAGES
-  // ============================================================
-  if(document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', injectReportButton);
-  } else {
+  // ── INBOX OVERRIDES ──
+  function getEmailTag(from,subject,snippet){
+    var f=(from||'').toLowerCase(),s=(subject||'').toLowerCase(),sn=(snippet||'').toLowerCase(),all=s+' '+sn+' '+f;
+    if(/\brfi\b|request for information|site selection|location decision/.test(all))return{label:'RFI',color:'#64afff',bg:'rgba(100,175,255,0.15)',border:'rgba(100,175,255,0.35)',icon:'&#128205;',priority:true};
+    if(/\bgrant\b|cdbg|eda|usda|funding|weda|economic development/.test(all))return{label:'GRANT',color:'#f5c542',bg:'rgba(245,197,66,0.15)',border:'rgba(245,197,66,0.35)',icon:'&#128176;',priority:true};
+    if(/\bbre\b|business retention|expansion survey/.test(all))return{label:'BRE',color:'#32e1c8',bg:'rgba(50,225,200,0.15)',border:'rgba(50,225,200,0.35)',icon:'&#129309;',priority:true};
+    if(/incentive|tax credit|abatement|\btif\b|opportunity zone/.test(all))return{label:'INCENTIVE',color:'#c88cff',bg:'rgba(200,140,255,0.15)',border:'rgba(200,140,255,0.35)',icon:'&#128142;',priority:true};
+    if(/workforce|labor|talent|training/.test(all))return{label:'WORKFORCE',color:'#aaff3e',bg:'rgba(170,255,62,0.15)',border:'rgba(170,255,62,0.35)',icon:'&#128119;',priority:true};
+    if(/prospect|generate leads|attendee|contact list/.test(all))return{label:'PROSPECT',color:'#ff9b41',bg:'rgba(255,155,65,0.15)',border:'rgba(255,155,65,0.35)',icon:'&#127919;',priority:true};
+    if(/undeliverable|bounced|could not be delivered/.test(all))return{label:'BOUNCE',color:'#ff8080',bg:'rgba(255,80,80,0.12)',border:'rgba(255,80,80,0.7)',icon:'&#9888;',bounce:true};
+    if(/appointment|notif.*appoint/.test(all))return{label:'APPT',color:'#aaff3e',bg:'rgba(170,255,62,0.12)',border:'rgba(170,255,62,0.6)',icon:'&#128197;'};
+    if(/calendar|no events scheduled|invitation/.test(all))return{label:'CAL',color:'#64afff',bg:'rgba(100,175,255,0.12)',border:'rgba(100,175,255,0.5)',icon:'&#128467;'};
+    if(/loopnet|costar|listing|property|commercial real estate/.test(all))return{label:'SITE',color:'#64afff',bg:'rgba(100,175,255,0.12)',border:'rgba(100,175,255,0.5)',icon:'&#127962;'};
+    if(/github|gitlab|jira/.test(f+s))return{label:'SYSTEM',color:'#6b7a96',bg:'rgba(165,185,210,0.10)',border:'rgba(165,185,210,0.4)',icon:'&#9881;'};
+    if(/ebay|marketplace|bid|auction/.test(all))return{label:'MARKET',color:'#ff9b41',bg:'rgba(255,155,65,0.10)',border:'rgba(255,155,65,0.5)',icon:'&#128722;'};
+    if(/southwest|airline|flight|hotel|travel|booking|trip/.test(all))return{label:'TRAVEL',color:'#82dcff',bg:'rgba(130,220,255,0.12)',border:'rgba(130,220,255,0.5)',icon:'&#9992;'};
+    if(/netflix|hulu|disney|spotify|membership|subscription/.test(all))return{label:'SUBSCR',color:'#c88cff',bg:'rgba(200,140,255,0.10)',border:'rgba(200,140,255,0.5)',icon:'&#128250;'};
+    if(/walgreens|cvs|pharmacy|health|medical|doctor/.test(all))return{label:'HEALTH',color:'#32e1c8',bg:'rgba(50,225,200,0.10)',border:'rgba(50,225,200,0.5)',icon:'&#128138;'};
+    if(/survey|feedback|how.*doing|recommend|opinion/.test(all))return{label:'SURVEY',color:'#a5b9d2',bg:'rgba(165,185,210,0.10)',border:'rgba(165,185,210,0.4)',icon:'&#11088;'};
+    if(/newsletter|digest|alert|notification/.test(all))return{label:'ALERT',color:'#82dcff',bg:'rgba(130,220,255,0.12)',border:'rgba(130,220,255,0.5)',icon:'&#128276;'};
+    if(/sale|promo|discount|credit|deal|coupon/.test(all))return{label:'PROMO',color:'#b8930a',bg:'rgba(255,220,100,0.08)',border:'rgba(255,220,100,0.4)',icon:'&#127991;'};
+    if(/support|ticket|re:|fwd:|help/.test(all))return{label:'SUPPORT',color:'#6b7a96',bg:'rgba(255,255,255,0.06)',border:'rgba(255,255,255,0.2)',icon:'&#128295;'};
+    return{label:'EMAIL',color:'#4a5568',bg:'rgba(255,255,255,0.04)',border:'rgba(255,255,255,0.12)',icon:'&#9993;'};
+  }
+  function getAvatarColor(n){var c=['linear-gradient(135deg,#aaff3e,#5a9900)','linear-gradient(135deg,#64afff,#1e40af)','linear-gradient(135deg,#f5c542,#a06800)','linear-gradient(135deg,#32e1c8,#065f5b)','linear-gradient(135deg,#c88cff,#4a1d96)','linear-gradient(135deg,#ff9b41,#7c2d12)'];var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return c[Math.abs(h)%c.length];}
+  function getInitials(f){var n=(f||'').replace(/<[^>]*>/g,'').replace(/[<>]/g,'').trim()||'?';var p=n.split(/\s+/).filter(Boolean);if(p.length>=2)return(p[0][0]+(p[p.length-1][0]||'')).toUpperCase();return(n[0]||'?').toUpperCase()+(n[1]||'').toUpperCase();}
+  function getSenderName(f){f=f||'';var m=f.match(/^"?([^"<]+)"?\s*</);if(m&&m[1].trim())return m[1].trim();var a=f.replace(/<[^>]*>/g,'').trim();return a||f.split('@')[0]||'Unknown';}
+  function getCalEventStyle(t){t=(t||'').toLowerCase();if(/grant|gsli|funding|eda/.test(t))return{icon:'&#128176;',bg:'rgba(245,197,66,0.12)',color:'#f5c542',pill:'GRANT'};if(/kpi|update|report|review/.test(t))return{icon:'&#128202;',bg:'rgba(100,175,255,0.12)',color:'#64afff',pill:'REVIEW'};if(/select usa|conference|event/.test(t))return{icon:'&#128506;',bg:'rgba(170,255,62,0.12)',color:'#aaff3e',pill:'EVENT'};if(/office|in office/.test(t))return{icon:'&#127962;',bg:'rgba(165,185,210,0.10)',color:'#a5b9d2',pill:'IN OFFICE'};if(/call|phone|zoom|teams|meet/.test(t))return{icon:'&#128222;',bg:'rgba(50,225,200,0.12)',color:'#32e1c8',pill:'CALL'};if(/prospect|site visit|tour/.test(t))return{icon:'&#128205;',bg:'rgba(100,175,255,0.12)',color:'#64afff',pill:'SITE VISIT'};if(/tri time|training|workshop|networking/.test(t))return{icon:'&#129309;',bg:'rgba(255,155,65,0.12)',color:'#ff9b41',pill:'NETWORKING'};return{icon:'&#128197;',bg:'rgba(255,255,255,0.06)',color:'#6b7a96',pill:'MEETING'};}
+
+  window.openEmailDetail=function(email){
+    var ex=document.getElementById('esq-email-detail');if(ex)ex.remove();
+    var tag=getEmailTag(email.from||'',email.subject||'',email.snippet||'');
+    var senderName=getSenderName(email.from||'');
+    var d=new Date(email.date),now=new Date();
+    var dateStr=isNaN(d)?'':d.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    var tagHtml=tag?'<span class="email-type-tag" style="background:'+tag.bg+';color:'+tag.color+';border:1px solid '+tag.border+';margin-bottom:12px;display:inline-block;">'+tag.icon+' '+tag.label+'</span>':'';
+    var actionBtns='';
+    if(tag&&tag.label==='RFI')actionBtns+='<button class="email-action-btn primary" onclick="deploy(21);document.getElementById('esq-email-detail').remove()">Deploy Riley &#8599;</button>';
+    else if(tag&&tag.label==='GRANT')actionBtns+='<button class="email-action-btn primary" onclick="deploy(1);document.getElementById('esq-email-detail').remove()">Grant Writer &#8599;</button>';
+    actionBtns+='<button class="email-action-btn" onclick="document.getElementById('esq-email-detail').remove()">Close</button>';
+    actionBtns+='<button class="email-action-btn danger" onclick="window.trashEmailCard(''+escH(email.id||'')+'',null);document.getElementById('esq-email-detail').remove()">&#128465; Trash</button>';
+    var overlay=document.createElement('div');
+    overlay.id='esq-email-detail';
+    overlay.className='email-detail-overlay';
+    overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+    overlay.innerHTML='<div class="email-detail-modal" style="position:relative;"><div class="email-detail-handle"></div><button class="email-detail-close" onclick="document.getElementById('esq-email-detail').remove()">&#x2715;</button>'+tagHtml+'<div class="email-detail-from">'+escH(senderName)+' &bull; '+dateStr+'</div><div class="email-detail-subject">'+escH(email.subject||'(no subject)')+'</div><div class="email-detail-body">'+escH(email.snippet||'No preview available.')+'</div><div class="email-detail-actions">'+actionBtns+'</div></div>';
+    document.body.appendChild(overlay);
+  };
+
+  window.trashEmailCard=function(emailId,btn){
+    var token=window.getProviderToken?window.getProviderToken():null;
+    if(!token){alert('Gmail not connected');return;}
+    var card=btn?btn.closest('.email-card-v2'):null;
+    if(card)card.style.cssText='opacity:0.3;transform:translateX(12px);transition:all .35s;';
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+emailId+'/trash',{method:'POST',headers:{'Authorization':'Bearer '+token}})
+    .then(function(r){if(r.ok){var log=getTrashLog();log[emailId]=Date.now();setTrashLog(log);setTimeout(function(){if(card)card.remove();window.showTrashBanner();},400);}else{if(card)card.style.cssText='';}})
+    .catch(function(){if(card)card.style.cssText='';});
+  };
+  window.emptyTrashNow=function(){var log=getTrashLog(),ids=Object.keys(log);if(!ids.length)return;window.showConfirm('Empty Trash?','Permanently delete all '+ids.length+' trashed email'+(ids.length>1?'s':'')+'. Cannot be undone.',function(){var token=window.getProviderToken?window.getProviderToken():null;if(!token)return;Promise.all(ids.map(function(id){return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).catch(function(){});})).then(function(){setTrashLog({});var b=document.getElementById('esq-trash-banner');if(b)b.remove();});});};
+  window.autoPurgeTrash=function(){var token=window.getProviderToken?window.getProviderToken():null;if(!token)return;var log=getTrashLog(),now=Date.now(),cutoff=30*24*60*60*1000,old=Object.keys(log).filter(function(id){return(now-log[id])>cutoff;});if(!old.length)return;Promise.all(old.map(function(id){return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).then(function(){delete log[id];}).catch(function(){});})).then(function(){setTrashLog(log);});};
+  window.showTrashBanner=function(){var log=getTrashLog(),ids=Object.keys(log);var ex=document.getElementById('esq-trash-banner');if(ex)ex.remove();if(!ids.length)return;var now=Date.now(),cutoff=30*24*60*60*1000,stale=ids.filter(function(id){return(now-log[id])>cutoff;});var msg=ids.length+' email'+(ids.length>1?'s':'')+' in trash';if(stale.length)msg+=' | '+stale.length+' ready to purge';var list=document.getElementById('email-list');if(!list||!list.parentElement)return;var b=document.createElement('div');b.id='esq-trash-banner';b.className='trash-banner';b.innerHTML='<span class="trash-banner-text">&#128465;&#65039; '+msg+' | Auto-purge after 30 days</span><button class="trash-banner-btn" onclick="window.emptyTrashNow()">Empty Trash</button>';list.parentElement.insertBefore(b,list);};
+  window.showConfirm=function(title,msg,onOk){var ex=document.getElementById('esq-confirm');if(ex)ex.remove();var d=document.createElement('div');d.id='esq-confirm';d.className='confirm-overlay';d.innerHTML='<div class="confirm-modal"><h3>'+title+'</h3><p>'+msg+'</p><div class="confirm-modal-btns"><button class="confirm-btn-cancel" onclick="document.getElementById('esq-confirm').remove()">Cancel</button><button class="confirm-btn-delete" id="esq-ok">Delete Forever</button></div></div>';document.body.appendChild(d);document.getElementById('esq-ok').onclick=function(){d.remove();onOk();};};
+
+  function renderEmailCardV2(email){
+    var tag=getEmailTag(email.from||'',email.subject||'',email.snippet||'');
+    var senderName=getSenderName(email.from||'');
+    var rawEmail=(email.from||'').match(/<([^>]+)>/);
+    var senderAddr=rawEmail?rawEmail[1]:((email.from||'').indexOf('@')>-1?email.from:'');
+    var d=new Date(email.date),now=new Date();
+    var timeStr=isNaN(d)?'':(d.toDateString()===now.toDateString()?d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    var tagClass=tag?(' tag-'+tag.label.toLowerCase().replace(/[^a-z]/g,'')):'';
+    var cls='email-card-v2'+tagClass;
+    var tagHtml=tag?'<span class="email-type-tag" style="background:'+tag.bg+';color:'+tag.color+';border:1px solid '+tag.border+';">'+tag.icon+' '+tag.label+'</span>':'';
+    var eid=escH(email.id||'');
+    var emailJson=escH(JSON.stringify({id:email.id,from:email.from,subject:email.subject,snippet:email.snippet,date:email.date}));
+    var actions='';
+    if(tag&&tag.label==='RFI')actions+='<button class="email-action-btn primary" onclick="event.stopPropagation();deploy(21)">Deploy Riley &#8599;</button>';
+    else if(tag&&tag.label==='GRANT')actions+='<button class="email-action-btn primary" onclick="event.stopPropagation();deploy(1)">Grant Writer &#8599;</button>';
+    else if(tag&&tag.label==='PROSPECT')actions+='<button class="email-action-btn primary" onclick="event.stopPropagation();deploy(21)">Draft Response &#8599;</button>';
+    actions+='<button class="email-action-btn" onclick="event.stopPropagation()">Reply</button>';
+    actions+='<button class="email-action-btn" onclick="event.stopPropagation()">Archive</button>';
+    actions+='<button class="email-action-btn danger" onclick="event.stopPropagation();window.trashEmailCard(''+eid+'',this)">&#128465; Trash</button>';
+    var bg=getAvatarColor(senderName),fc=bg.indexOf('aaff3e')>-1?'#1a3300':'#fff';
+    return '<div class="'+cls+'" data-email="'+emailJson+'">'+
+      '<div class="email-card-top">'+
+        '<div class="email-avatar-v2" style="background:'+bg+';color:'+fc+'">'+getInitials(senderName)+'</div>'+
+        '<div class="email-sender-block">'+
+          '<div class="email-sender-name">'+escH(senderName)+'</div>'+
+          '<div class="email-sender-addr">'+escH(senderAddr)+'</div>'+
+        '</div>'+
+        '<div class="email-meta-right"><span class="email-time">'+timeStr+'</span>'+tagHtml+'</div>'+
+      '</div>'+
+      '<div class="email-subject">'+escH(email.subject||'(no subject)')+'</div>'+
+      '<div class="email-preview">'+escH(email.snippet||'')+'</div>'+
+      '<div class="email-footer-actions">'+actions+'</div>'+
+    '</div>';
+  }
+
+  function installOverrides(){
+    if(typeof window.showEmailList!=='function'||typeof window.escHtml!=='function'){setTimeout(installOverrides,300);return;}
+    window.showEmailList=function(emails){
+      window._lastEmails=emails;
+      var list=document.getElementById('email-list');if(!list)return;
+      if(!emails||!emails.length){list.innerHTML='<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;">&#128235;</div><div style="margin-top:8px;">No unread emails</div></div>';return;}
+      var tagged=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return t&&t.priority;});
+      var others=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return!(t&&t.priority);});
+      list.innerHTML=tagged.concat(others).map(renderEmailCardV2).join('');
+      var lbl=document.getElementById('unread-count-label');if(lbl)lbl.textContent=emails.length+' unread | '+tagged.length+' priority';
+      var badge=document.getElementById('inbox-badge');if(badge&&emails.length>0){badge.textContent=emails.length;badge.style.display='inline';}
+      if(list._clickHandler)list.removeEventListener('click',list._clickHandler);
+      list._clickHandler=function(e){if(e.target.closest('button'))return;var card=e.target.closest('.email-card-v2');if(!card||!card.dataset.email)return;try{window.openEmailDetail(JSON.parse(card.dataset.email));}catch(err){}};
+      list.addEventListener('click',list._clickHandler);
+      setTimeout(function(){window.autoPurgeTrash();window.showTrashBanner();},600);
+    };
+    window.renderEmailCard=renderEmailCardV2;
     injectReportButton();
   }
-  // Re-inject after nav changes (SPA)
-  setTimeout(injectReportButton, 1500);
 
+  installOverrides();
+  setTimeout(injectReportButton,1000);
+  setTimeout(injectReportButton,3000);
 })();
 </script>
 </body>
