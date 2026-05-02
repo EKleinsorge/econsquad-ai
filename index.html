@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.02.1510</title>
+<title>EconSquad AI v05.02.1520</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -941,6 +941,29 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .coming-title{font-size:13px;font-weight:600;color:#b8c8e0;flex:1;}
 .coming-icon{font-size:16px;flex-shrink:0;}
 .inbox-count-pill{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;}
+
+
+/* ===== TRASH & DELETE SYSTEM ===== */
+.email-action-btn.danger{background:rgba(255,80,80,0.08);border-color:rgba(255,80,80,0.25);color:#ff8080;}
+.email-action-btn.danger:hover{background:rgba(255,80,80,0.18);border-color:rgba(255,80,80,0.5);color:#ff5555;}
+.inbox-filter-tabs{display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;}
+.inbox-filter-tab{font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;border:1px solid transparent;color:#4a5568;transition:all .15s;letter-spacing:.04em;text-transform:uppercase;}
+.inbox-filter-tab:hover{color:#b8c8e0;border-color:rgba(255,255,255,0.1);}
+.inbox-filter-tab.active{background:rgba(170,255,62,0.1);border-color:rgba(170,255,62,0.3);color:#aaff3e;}
+.inbox-filter-tab.trash-tab.active{background:rgba(255,80,80,0.1);border-color:rgba(255,80,80,0.3);color:#ff8080;}
+.trash-banner{background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.trash-banner-text{font-size:12px;color:#ff8080;}
+.trash-banner-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.35);color:#ff8080;transition:all .15s;}
+.trash-banner-btn:hover{background:rgba(255,80,80,0.28);color:#fff;}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.confirm-modal{background:#0e1424;border:1px solid rgba(255,80,80,0.3);border-radius:16px;padding:28px 32px;max-width:420px;width:90%;text-align:center;}
+.confirm-modal h3{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:#eef3fc;margin-bottom:10px;}
+.confirm-modal p{font-size:13px;color:#6b7a96;line-height:1.6;margin-bottom:22px;}
+.confirm-modal-btns{display:flex;gap:10px;justify-content:center;}
+.confirm-btn-cancel{padding:9px 22px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#6b7a96;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.confirm-btn-delete{padding:9px 22px;border-radius:10px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.15);color:#ff8080;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.confirm-btn-delete:hover{background:rgba(255,80,80,0.3);color:#fff;}
+.email-card-v2.trashed{opacity:0.5;transform:translateX(4px);transition:all .3s;}
 
 </style>
 </head>
@@ -6514,6 +6537,205 @@ window.renderCalCardV2=function(e){var s=getCalEventStyle(e.title||e.summary||''
 window.renderComingUpRowV2=function(e){var s=getCalEventStyle(e.title||e.summary||'');return'<div class="coming-up-row"><span class="coming-icon">'+s.icon+'</span><span class="coming-date">'+escHtml(e.date||'')+'</span><span class="coming-title">'+escHtml(e.title||e.summary||'')+'</span><span class="cal-pill" style="background:'+s.bg+';color:'+s.color+';border:1px solid rgba(255,255,255,0.1);">'+s.pill+'</span></div>';};
 window.showEmailList=function(emails){window._lastEmails=emails;var list=document.getElementById('email-list');if(!list)return;if(!emails||!emails.length){list.innerHTML='<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;margin-bottom:12px;">📭</div><div>No unread emails</div></div>';return;}var tagged=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return t&&t.priority;});var others=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return!(t&&t.priority);});list.innerHTML=tagged.concat(others).map(renderEmailCardV2).join('');var lbl=document.getElementById('unread-count-label');if(lbl)lbl.textContent=emails.length+' unread · '+tagged.length+' priority';var badge=document.getElementById('inbox-badge');if(badge&&emails.length>0){badge.textContent=emails.length;badge.style.display='inline';}};
 window.renderEmailCard=window.renderEmailCardV2;
+
+
+/* ===== TRASH & DELETE SYSTEM ===== */
+
+// LocalStorage key for tracking trashed email timestamps (for 30-day auto-purge)
+const TRASH_LOG_KEY = 'econsquad_trash_log';
+
+window.getTrashLog = function() {
+  try { return JSON.parse(localStorage.getItem(TRASH_LOG_KEY)||'{}'); } catch(e) { return {}; }
+};
+window.setTrashLog = function(log) {
+  try { localStorage.setItem(TRASH_LOG_KEY, JSON.stringify(log)); } catch(e) {}
+};
+
+// Show confirmation modal before destructive action
+window.showConfirm = function(title, msg, onConfirm) {
+  var existing = document.getElementById('confirm-overlay');
+  if(existing) existing.remove();
+  var div = document.createElement('div');
+  div.id = 'confirm-overlay';
+  div.className = 'confirm-overlay';
+  div.innerHTML = '<div class="confirm-modal">' +
+    '<h3>' + title + '</h3>' +
+    '<p>' + msg + '</p>' +
+    '<div class="confirm-modal-btns">' +
+      '<button class="confirm-btn-cancel" onclick="document.getElementById('confirm-overlay').remove()">Cancel</button>' +
+      '<button class="confirm-btn-delete" id="confirm-delete-btn">Delete Forever</button>' +
+    '</div></div>';
+  document.body.appendChild(div);
+  document.getElementById('confirm-delete-btn').onclick = function() {
+    div.remove();
+    onConfirm();
+  };
+};
+
+// Trash a single email via Gmail API
+window.trashEmail = function(emailId, cardEl) {
+  var token = getProviderToken ? getProviderToken() : null;
+  if(!token) { alert('Gmail not connected'); return; }
+  
+  // Animate card out
+  if(cardEl) { cardEl.classList.add('trashed'); }
+  
+  fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+  .then(r => {
+    if(r.ok) {
+      // Log trash time for 30-day auto-purge
+      var log = getTrashLog();
+      log[emailId] = Date.now();
+      setTrashLog(log);
+      // Remove card after animation
+      setTimeout(function() {
+        if(cardEl) cardEl.remove();
+        // Update count
+        var remaining = document.querySelectorAll('.email-card-v2:not(.trashed)').length;
+        var lbl = document.getElementById('unread-count-label');
+        if(lbl) {
+          var parts = (lbl.textContent||'').split('·');
+          if(parts.length) lbl.textContent = remaining + ' unread' + (parts[1] ? ' ·' + parts[1] : '');
+        }
+      }, 350);
+    } else {
+      if(cardEl) cardEl.classList.remove('trashed');
+      console.error('Trash failed:', r.status);
+    }
+  })
+  .catch(e => { if(cardEl) cardEl.classList.remove('trashed'); console.error(e); });
+};
+
+// Permanently delete a single email
+window.deleteEmailForever = function(emailId, cardEl) {
+  showConfirm(
+    '🗑️ Delete Forever?',
+    'This email will be permanently deleted and cannot be recovered.',
+    function() {
+      var token = getProviderToken ? getProviderToken() : null;
+      if(!token) return;
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(r => {
+        if(r.ok || r.status === 204) {
+          var log = getTrashLog();
+          delete log[emailId];
+          setTrashLog(log);
+          if(cardEl) cardEl.remove();
+        }
+      })
+      .catch(e => console.error(e));
+    }
+  );
+};
+
+// Auto-purge emails trashed more than 30 days ago
+window.autoPurgeTrash = function() {
+  var token = getProviderToken ? getProviderToken() : null;
+  if(!token) return;
+  var log = getTrashLog();
+  var now = Date.now();
+  var thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  var toDelete = Object.keys(log).filter(id => (now - log[id]) > thirtyDays);
+  if(!toDelete.length) return;
+  
+  console.log('Auto-purging ' + toDelete.length + ' emails older than 30 days...');
+  var promises = toDelete.map(id =>
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(() => { delete log[id]; })
+    .catch(e => console.error('Purge failed for', id, e))
+  );
+  Promise.all(promises).then(() => {
+    setTrashLog(log);
+    if(toDelete.length > 0) console.log('Auto-purge complete: ' + toDelete.length + ' emails deleted');
+  });
+};
+
+// Empty entire trash (purge all logged emails)
+window.emptyTrashNow = function() {
+  var log = getTrashLog();
+  var ids = Object.keys(log);
+  if(!ids.length) { alert('Trash is already empty!'); return; }
+  showConfirm(
+    '🗑️ Empty Trash?',
+    'This will permanently delete all ' + ids.length + ' trashed emails. This cannot be undone.',
+    function() {
+      var token = getProviderToken ? getProviderToken() : null;
+      if(!token) return;
+      var promises = ids.map(id =>
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(e => console.error(e))
+      );
+      Promise.all(promises).then(() => {
+        setTrashLog({});
+        // Remove trash banner if visible
+        var banner = document.getElementById('trash-banner');
+        if(banner) banner.remove();
+        alert('Trash emptied. ' + ids.length + ' emails permanently deleted.');
+      });
+    }
+  );
+};
+
+// Show trash count banner if there are trashed emails
+window.showTrashBanner = function() {
+  var log = getTrashLog();
+  var ids = Object.keys(log);
+  var existing = document.getElementById('trash-banner');
+  if(existing) existing.remove();
+  if(!ids.length) return;
+  
+  var now = Date.now();
+  var thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  var stale = ids.filter(id => (now - log[id]) > thirtyDays);
+  var msg = ids.length + ' email' + (ids.length > 1 ? 's' : '') + ' in trash';
+  if(stale.length) msg += ' · ' + stale.length + ' ready to auto-purge';
+
+  var emailList = document.getElementById('email-list');
+  if(!emailList || !emailList.parentElement) return;
+  var banner = document.createElement('div');
+  banner.id = 'trash-banner';
+  banner.className = 'trash-banner';
+  banner.innerHTML = '<span class="trash-banner-text">🗑️ ' + msg + ' · Auto-purge after 30 days</span>' +
+    '<button class="trash-banner-btn" onclick="emptyTrashNow()">Empty Trash</button>';
+  emailList.parentElement.insertBefore(banner, emailList);
+};
+
+// Override renderEmailCardV2 to add Trash button to footer actions
+var _origRenderCard = window.renderEmailCardV2;
+window.renderEmailCardV2 = function(email) {
+  var html = _origRenderCard(email);
+  // Add trash button to every card's footer actions
+  var emailId = escHtml(email.id || '');
+  var trashBtn = '<button class="email-action-btn danger" onclick="event.stopPropagation();trashEmail(\''+emailId+'\',this.closest(\'.email-card-v2\'))">🗑️ Trash</button>';
+  // Insert trash btn into footer actions if they exist, or create them
+  if(html.includes('email-footer-actions')) {
+    html = html.replace('</div></div>', trashBtn + '</div></div>');
+  } else {
+    html = html.replace('</div>', '<div class="email-footer-actions">' + trashBtn + '</div></div>');
+  }
+  return html;
+};
+window.renderEmailCard = window.renderEmailCardV2;
+
+// Run auto-purge whenever inbox loads (hook into showEmailList)
+var _origShowEmailList = window.showEmailList;
+window.showEmailList = function(emails) {
+  _origShowEmailList(emails);
+  setTimeout(function() {
+    autoPurgeTrash();
+    showTrashBanner();
+  }, 500);
+};
 
 </script>
 
