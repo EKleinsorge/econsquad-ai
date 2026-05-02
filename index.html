@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EconSquad AI v05.02.1502</title>
+<title>EconSquad AI v05.02.1503</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -6499,7 +6499,57 @@ function drawLogo(){if(!logoCtx)return;
 
 
 /* ===== INBOX REDESIGN v2 JS ===== */
-window.getEmailTag=function(from,subject,snippet){var t=(subject+' '+snippet+' '+from).toLowerCase();if(/\brfi\b|request for information|site selection|location decision/.test(t))return{label:'RFI',bg:'rgba(100,175,255,0.15)',color:'#64afff',border:'rgba(100,175,255,0.35)',icon:'📍',priority:true};if(/\bgrant\b|cdbg|eda|usda|funding opportunity|rfp/.test(t))return{label:'GRANT',bg:'rgba(245,197,66,0.15)',color:'#f5c542',border:'rgba(245,197,66,0.35)',icon:'💰',priority:true};if(/\bbre\b|business retention|expansion survey/.test(t))return{label:'BRE',bg:'rgba(50,225,200,0.15)',color:'#32e1c8',border:'rgba(50,225,200,0.35)',icon:'🤝',priority:true};if(/incentive|tax credit|abatement|\btif\b|opportunity zone/.test(t))return{label:'INCENTIVE',bg:'rgba(200,140,255,0.15)',color:'#c88cff',border:'rgba(200,140,255,0.35)',icon:'💎',priority:true};if(/workforce|labor|talent|training/.test(t))return{label:'WORKFORCE',bg:'rgba(170,255,62,0.15)',color:'#aaff3e',border:'rgba(170,255,62,0.35)',icon:'👷',priority:true};if(/prospect|generate leads|attendee|contact list/.test(t))return{label:'PROSPECT',bg:'rgba(255,155,65,0.15)',color:'#ff9b41',border:'rgba(255,155,65,0.35)',icon:'🎯',priority:false};if(/undeliverable|bounced|could not be delivered|failed delivery/.test(t))return{label:'BOUNCE',bg:'rgba(255,80,80,0.12)',color:'#ff8080',border:'rgba(255,80,80,0.3)',icon:'⚠️',priority:false,bounce:true};if(/retirement|farewell|out of office/.test(t))return{label:'NETWORK',bg:'rgba(165,185,210,0.12)',color:'#a5b9d2',border:'rgba(165,185,210,0.25)',icon:'👥',priority:false};if(/appointment|notif|scheduled/.test(t))return{label:'APPT',bg:'rgba(170,255,62,0.12)',color:'#aaff3e',border:'rgba(170,255,62,0.3)',icon:'📅',priority:false};if(/alert|notification|newsletter|digest|report/.test(t))return{label:'ALERT',bg:'rgba(130,220,255,0.12)',color:'#82dcff',border:'rgba(130,220,255,0.25)',icon:'🔔',priority:false};if(/off|sale|promo|discount|shop|deal/.test(t))return{label:'PROMO',bg:'rgba(255,255,255,0.06)',color:'#4a5568',border:'rgba(255,255,255,0.1)',icon:'🏷️',priority:false};if(/support|ticket|re:|fwd:|help/.test(t))return{label:'SUPPORT',bg:'rgba(255,255,255,0.06)',color:'#6b7a96',border:'rgba(255,255,255,0.1)',icon:'🔧',priority:false};return null;};
+window.getEmailTag=function(from,subject,snippet){
+  var f=(from||'').toLowerCase(), s=(subject||'').toLowerCase(), sn=(snippet||'').toLowerCase();
+  var all=s+' '+sn+' '+f;
+
+  // ED Priority tags first
+  if(/\brfi\b|request for information|site selection|location decision/.test(all))
+    return{label:'RFI',bg:'rgba(100,175,255,0.15)',color:'#64afff',border:'rgba(100,175,255,0.35)',icon:'📍',priority:true};
+  if(/\bgrant\b|cdbg|eda|usda|funding opportunity|weda|economic development/.test(all))
+    return{label:'GRANT',bg:'rgba(245,197,66,0.15)',color:'#f5c542',border:'rgba(245,197,66,0.35)',icon:'💰',priority:true};
+  if(/\bbre\b|business retention|expansion survey/.test(all))
+    return{label:'BRE',bg:'rgba(50,225,200,0.15)',color:'#32e1c8',border:'rgba(50,225,200,0.35)',icon:'🤝',priority:true};
+  if(/incentive|tax credit|abatement|\btif\b|opportunity zone/.test(all))
+    return{label:'INCENTIVE',bg:'rgba(200,140,255,0.15)',color:'#c88cff',border:'rgba(200,140,255,0.35)',icon:'💎',priority:true};
+  if(/workforce|labor|talent|training/.test(all))
+    return{label:'WORKFORCE',bg:'rgba(170,255,62,0.15)',color:'#aaff3e',border:'rgba(170,255,62,0.35)',icon:'👷',priority:true};
+  if(/prospect|generate leads|attendee|contact list/.test(all))
+    return{label:'PROSPECT',bg:'rgba(255,155,65,0.15)',color:'#ff9b41',border:'rgba(255,155,65,0.35)',icon:'🎯',priority:true};
+
+  // Utility / system tags
+  if(/undeliverable|bounced|could not be delivered|failed delivery/.test(all))
+    return{label:'BOUNCE',bg:'rgba(255,80,80,0.12)',color:'#ff8080',border:'rgba(255,80,80,0.7)',icon:'⚠️',priority:false,bounce:true};
+  if(/retirement|farewell|out of office/.test(all))
+    return{label:'NETWORK',bg:'rgba(165,185,210,0.12)',color:'#a5b9d2',border:'rgba(165,185,210,0.7)',icon:'👥',priority:false};
+  if(/appointment|notif.*appoint|scheduled.*appoint/.test(all))
+    return{label:'APPT',bg:'rgba(170,255,62,0.12)',color:'#aaff3e',border:'rgba(170,255,62,0.7)',icon:'📅',priority:false};
+  if(/calendar|no events scheduled|event.*scheduled|invitation/.test(all))
+    return{label:'CALENDAR',bg:'rgba(100,175,255,0.12)',color:'#64afff',border:'rgba(100,175,255,0.6)',icon:'🗓️',priority:false};
+  if(/loopnet|costar|crexi|listing|property|commercial real estate|office for lease|site/.test(all))
+    return{label:'SITE',bg:'rgba(100,175,255,0.12)',color:'#64afff',border:'rgba(100,175,255,0.6)',icon:'🏢',priority:false};
+  if(/github|gitlab|bitbucket|jira|confluence|slack|teams|zoom|google alert|google calendar/.test(f+s))
+    return{label:'SYSTEM',bg:'rgba(165,185,210,0.10)',color:'#6b7a96',border:'rgba(165,185,210,0.4)',icon:'⚙️',priority:false};
+  if(/ebay|craigslist|facebook marketplace|offer|bid|won|auction|message about/.test(all))
+    return{label:'MARKET',bg:'rgba(255,155,65,0.10)',color:'#ff9b41',border:'rgba(255,155,65,0.5)',icon:'🛒',priority:false};
+  if(/southwest|airline|flight|hotel|travel|booking|reservation|trip/.test(all))
+    return{label:'TRAVEL',bg:'rgba(130,220,255,0.12)',color:'#82dcff',border:'rgba(130,220,255,0.6)',icon:'✈️',priority:false};
+  if(/netflix|hulu|disney|spotify|apple|amazon|membership|subscription|streaming/.test(all))
+    return{label:'SUBSCR',bg:'rgba(200,140,255,0.10)',color:'#c88cff',border:'rgba(200,140,255,0.5)',icon:'📺',priority:false};
+  if(/walgreens|cvs|pharmacy|prescription|health|medical|doctor|wellness/.test(all))
+    return{label:'HEALTH',bg:'rgba(50,225,200,0.10)',color:'#32e1c8',border:'rgba(50,225,200,0.5)',icon:'💊',priority:false};
+  if(/survey|review|feedback|how.*doing|recommend|opinion|rate/.test(all))
+    return{label:'SURVEY',bg:'rgba(255,255,255,0.06)',color:'#a5b9d2',border:'rgba(165,185,210,0.4)',icon:'⭐',priority:false};
+  if(/alert|notification|newsletter|digest|report|update/.test(all))
+    return{label:'ALERT',bg:'rgba(130,220,255,0.12)',color:'#82dcff',border:'rgba(130,220,255,0.5)',icon:'🔔',priority:false};
+  if(/off|sale|promo|discount|credit|deal|coupon|free|save|\$/.test(all))
+    return{label:'PROMO',bg:'rgba(255,220,100,0.08)',color:'#b8930a',border:'rgba(255,220,100,0.4)',icon:'🏷️',priority:false};
+  if(/support|ticket|re:|fwd:|help|inquiry/.test(all))
+    return{label:'SUPPORT',bg:'rgba(255,255,255,0.06)',color:'#6b7a96',border:'rgba(255,255,255,0.25)',icon:'🔧',priority:false};
+
+  // Generic fallback for any email sender
+  return{label:'EMAIL',bg:'rgba(255,255,255,0.04)',color:'#4a5568',border:'rgba(255,255,255,0.15)',icon:'✉️',priority:false};
+};if(/\bgrant\b|cdbg|eda|usda|funding opportunity|rfp/.test(t))return{label:'GRANT',bg:'rgba(245,197,66,0.15)',color:'#f5c542',border:'rgba(245,197,66,0.35)',icon:'💰',priority:true};if(/\bbre\b|business retention|expansion survey/.test(t))return{label:'BRE',bg:'rgba(50,225,200,0.15)',color:'#32e1c8',border:'rgba(50,225,200,0.35)',icon:'🤝',priority:true};if(/incentive|tax credit|abatement|\btif\b|opportunity zone/.test(t))return{label:'INCENTIVE',bg:'rgba(200,140,255,0.15)',color:'#c88cff',border:'rgba(200,140,255,0.35)',icon:'💎',priority:true};if(/workforce|labor|talent|training/.test(t))return{label:'WORKFORCE',bg:'rgba(170,255,62,0.15)',color:'#aaff3e',border:'rgba(170,255,62,0.35)',icon:'👷',priority:true};if(/prospect|generate leads|attendee|contact list/.test(t))return{label:'PROSPECT',bg:'rgba(255,155,65,0.15)',color:'#ff9b41',border:'rgba(255,155,65,0.35)',icon:'🎯',priority:false};if(/undeliverable|bounced|could not be delivered|failed delivery/.test(t))return{label:'BOUNCE',bg:'rgba(255,80,80,0.12)',color:'#ff8080',border:'rgba(255,80,80,0.3)',icon:'⚠️',priority:false,bounce:true};if(/retirement|farewell|out of office/.test(t))return{label:'NETWORK',bg:'rgba(165,185,210,0.12)',color:'#a5b9d2',border:'rgba(165,185,210,0.25)',icon:'👥',priority:false};if(/appointment|notif|scheduled/.test(t))return{label:'APPT',bg:'rgba(170,255,62,0.12)',color:'#aaff3e',border:'rgba(170,255,62,0.3)',icon:'📅',priority:false};if(/alert|notification|newsletter|digest|report/.test(t))return{label:'ALERT',bg:'rgba(130,220,255,0.12)',color:'#82dcff',border:'rgba(130,220,255,0.25)',icon:'🔔',priority:false};if(/off|sale|promo|discount|shop|deal/.test(t))return{label:'PROMO',bg:'rgba(255,255,255,0.06)',color:'#4a5568',border:'rgba(255,255,255,0.1)',icon:'🏷️',priority:false};if(/support|ticket|re:|fwd:|help/.test(t))return{label:'SUPPORT',bg:'rgba(255,255,255,0.06)',color:'#6b7a96',border:'rgba(255,255,255,0.1)',icon:'🔧',priority:false};return null;};
 window.getAvatarColor=function(n){var c=['linear-gradient(135deg,#aaff3e,#5a9900)','linear-gradient(135deg,#64afff,#1e40af)','linear-gradient(135deg,#f5c542,#a06800)','linear-gradient(135deg,#32e1c8,#065f5b)','linear-gradient(135deg,#c88cff,#4a1d96)','linear-gradient(135deg,#ff9b41,#7c2d12)'];var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return c[Math.abs(h)%c.length];};
 window.getInitials=function(f){var n=(f||'').replace(/<[^>]*>/g,'').replace(/[<>]/g,'').trim()||'?';var p=n.split(/\s+/).filter(Boolean);if(p.length>=2)return(p[0][0]+(p[p.length-1][0]||'')).toUpperCase();return(n[0]||'?').toUpperCase()+(n[1]||'').toUpperCase();};
 window.getSenderName=function(f){f=f||'';var m=f.match(/^"?([^"<]+)"?\s*</);if(m&&m[1].trim())return m[1].trim();var addr=f.replace(/<[^>]*>/g,'').trim();if(addr)return addr;return f.split('@')[0]||'Unknown';};
