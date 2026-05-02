@@ -7061,6 +7061,15 @@ function drawLogo(){if(!logoCtx)return;
       var tagged=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return t&&t.priority;});
       var others=emails.filter(function(e){var t=getEmailTag(e.from||'',e.subject||'',e.snippet||'');return!(t&&t.priority);});
       list.innerHTML=tagged.concat(others).map(renderEmailCardV2).join('');
+      // Event delegation for card clicks — survives innerHTML re-renders
+      if(list._clickHandler) list.removeEventListener('click', list._clickHandler);
+      list._clickHandler = function(e) {
+        if(e.target.closest('button')) return;
+        var card = e.target.closest('.email-card-v2');
+        if(!card || !card.dataset.email) return;
+        try { window.openEmailDetail(JSON.parse(card.dataset.email)); } catch(err) {}
+      };
+      list.addEventListener('click', list._clickHandler);
       var lbl=document.getElementById('unread-count-label');if(lbl)lbl.textContent=emails.length+' unread · '+tagged.length+' priority';
       var badge=document.getElementById('inbox-badge');if(badge&&emails.length>0){badge.textContent=emails.length;badge.style.display='inline';}
       setTimeout(function(){window.autoPurgeTrash();window.showTrashBanner();window.showCalendarTab();},600);
