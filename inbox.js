@@ -212,6 +212,18 @@ function install(){
     setTimeout(function(){window.autoPurge();showTB();addCalTab();},600);
   };
   window.renderEmailCard=renderCard;
+  // Event delegation for email card clicks
+  var emailList = document.getElementById('email-list');
+  if(emailList && !emailList._esqClick) {
+    emailList._esqClick = true;
+    emailList.addEventListener('click', function(e) {
+      if(e.target.closest('button')) return;
+      var card = e.target.closest('.email-card-v2');
+      if(!card) return;
+      var data = card.getAttribute('data-email');
+      if(data) { try { window.openEmailDetail(JSON.parse(data)); } catch(err){} }
+    });
+  }
 }
 install();
 setTimeout(addCalTab,2000);
