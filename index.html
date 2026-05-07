@@ -1044,6 +1044,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <input type="file" id="logo-upload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
               </label>
 
+              <!-- Gmail sync toggle -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#eef3fc;">Sync trash to Gmail</div>
+                  <div style="font-size:10px;color:#6b7a96;">Trashing here also trashes in Gmail</div>
+                </div>
+                <div onclick="toggleGmailSync()" id="gmail-sync-toggle" style="width:40px;height:22px;border-radius:11px;background:rgba(170,255,62,0.25);border:1px solid rgba(170,255,62,0.4);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+                  <div id="gmail-sync-knob" style="position:absolute;top:3px;left:23px;width:14px;height:14px;border-radius:50%;background:#aaff3e;transition:all .2s;"></div>
+                </div>
+              </div>
+
               <!-- Logo display toggle -->
               <div id="logo-toggle-row" style="display:none;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;">
                 <div>
@@ -1530,7 +1541,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;">
                 📧 Unread Emails
               </div>
-              <span id="unread-count-label" style="font-size:11px;color:#4a5568;"></span>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button id="inbox-select-btn" onclick="window.toggleSelectMode()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;font-family:'DM Sans',sans-serif;transition:all .2s;">Select</button>
+                <span id="unread-count-label" style="font-size:11px;color:#4a5568;"></span>
+              </div>
             </div>
             <div id="email-list" style="display:flex;flex-direction:column;gap:10px;">
               <div style="text-align:center;padding:40px;color:#4a5568;font-size:13px;">
@@ -2838,6 +2852,7 @@ function toggleProfileMenu(){
   if(!menu)return;
   var isOpen=menu.style.display==='block';
   menu.style.display=isOpen?'none':'block';
+  if(!isOpen)applyGmailSync(gmailSyncEnabled);
   /* populate header with user info */
   if(!isOpen&&currentUser){
     var nm=currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email;
@@ -4724,6 +4739,30 @@ function applyLogoToggle(enabled){
     if(knob){knob.style.left='3px';knob.style.background='#6b7a96';}
     if(communityWrap)communityWrap.style.display='none';
     if(defaultWrap)defaultWrap.style.display='flex';
+  }
+}
+
+
+/* ===== GMAIL SYNC TOGGLE ===== */
+var gmailSyncEnabled=(function(){
+  try{return localStorage.getItem('econsquad_gmail_sync')!=='0';}catch(e){return true;}
+})();
+
+function toggleGmailSync(){
+  gmailSyncEnabled=!gmailSyncEnabled;
+  applyGmailSync(gmailSyncEnabled);
+  try{localStorage.setItem('econsquad_gmail_sync',gmailSyncEnabled?'1':'0');}catch(e){}
+}
+
+function applyGmailSync(enabled){
+  var toggle=document.getElementById('gmail-sync-toggle');
+  var knob=document.getElementById('gmail-sync-knob');
+  if(enabled){
+    if(toggle){toggle.style.background='rgba(170,255,62,0.25)';toggle.style.borderColor='rgba(170,255,62,0.4)';}
+    if(knob){knob.style.left='23px';knob.style.background='#aaff3e';}
+  }else{
+    if(toggle){toggle.style.background='rgba(255,255,255,0.1)';toggle.style.borderColor='rgba(255,255,255,0.12)';}
+    if(knob){knob.style.left='3px';knob.style.background='#6b7a96';}
   }
 }
 

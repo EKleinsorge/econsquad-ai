@@ -23,6 +23,9 @@
   function setPermDeleted(d) {
     try { localStorage.setItem(PERM_DELETED_KEY, JSON.stringify(d)); } catch(e) {}
   }
+  function getGmailSync() {
+    try { return localStorage.getItem('econsquad_gmail_sync') !== '0'; } catch(e) { return true; }
+  }
   function escH(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -273,12 +276,14 @@
     var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
     if (emailData) { var te = getTrashEmails(); te[emailId] = emailData; setTrashEmails(te); }
     setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
-    fetchToken().then(function(token) {
-      if (!token) return;
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
-      }).catch(function() {});
-    });
+    if (getGmailSync()) {
+      fetchToken().then(function(token) {
+        if (!token) return;
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(function() {});
+      });
+    }
   };
 
   window.showConfirm = function(title, msg, onOk) {
@@ -394,12 +399,14 @@
     var log = getTrashLog(); delete log[emailId]; setTrashLog(log);
     var te = getTrashEmails(); delete te[emailId]; setTrashEmails(te);
     setTimeout(function() { if (row) row.remove(); window.showTrashBanner(); }, 350);
-    fetchToken().then(function(token) {
-      if (!token) return;
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/untrash', {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
-      }).catch(function() {});
-    });
+    if (getGmailSync()) {
+      fetchToken().then(function(token) {
+        if (!token) return;
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/untrash', {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(function() {});
+      });
+    }
   };
 
   window.permanentDeleteEmail = function(emailId, row) {
@@ -479,10 +486,13 @@
     var t = isNaN(d) ? '' : (d.toDateString() === now.toDateString() ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     var tc = tag ? ' tag-' + tag.label.toLowerCase().replace(/[^a-z]/g, '') : '';
     var div = cel('div', 'email-card-v2' + tc);
+    div.style.position = 'relative';
     div.dataset.email = JSON.stringify({ id: email.id, from: email.from, subject: email.subject, snippet: email.snippet, date: email.date });
+    div.dataset.emailId = email.id;
     var tagHtml = tag ? '<span class="email-type-tag" style="background:' + tag.bg + ';color:' + tag.color + ';border:1px solid ' + tag.border + ';">' + tag.icon + ' ' + tag.label + '</span>' : '';
     var bg = avatarColor(name), fc = bg.indexOf('aaff3e') > -1 ? '#1a3300' : '#fff';
     div.innerHTML =
+      '<div class="esq-check" style="display:none;position:absolute;top:14px;left:14px;width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.2);cursor:pointer;align-items:center;justify-content:center;z-index:2;transition:all .15s;"></div>' +
       '<div class="email-card-top">' +
         '<div class="email-avatar-v2" style="background:' + bg + ';color:' + fc + '">' + initials(name) + '</div>' +
         '<div class="email-sender-block"><div class="email-sender-name">' + escH(name) + '</div><div class="email-sender-addr">' + escH(addr) + '</div></div>' +
@@ -490,6 +500,11 @@
       '</div>' +
       '<div class="email-subject">' + escH(email.subject || '(no subject)') + '</div>' +
       '<div class="email-preview">' + escH(email.snippet || '') + '</div>';
+    var cbEl = div.querySelector('.esq-check');
+    cbEl.addEventListener('click', function(e) {
+      e.stopPropagation();
+      window.toggleEmailSelect(email.id, JSON.parse(div.dataset.email), cbEl, div);
+    });
     var actRow = cel('div', 'email-footer-actions');
     if (tag && tag.label === 'RFI') {
       var rBtn = cel('button', 'email-action-btn primary', 'Deploy Riley &#8599;');
@@ -529,12 +544,14 @@
       var emailId = email.id || '';
       var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
       var te = getTrashEmails(); te[emailId] = { id: emailId, from: email.from, subject: email.subject, snippet: email.snippet, date: email.date }; setTrashEmails(te);
-      fetchToken().then(function(token) {
-        if (!token) return;
-        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
-          method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
-        }).catch(function() {});
-      });
+      if (getGmailSync()) {
+        fetchToken().then(function(token) {
+          if (!token) return;
+          fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+          }).catch(function() {});
+        });
+      }
       window.showTrashBanner();
       if (card) {
         animateEmailToTrash(card, function() { card.remove(); refreshInboxCount(); });
@@ -545,6 +562,137 @@
     return div;
   }
 
+  /* ── BULK SELECT ── */
+  var selectMode = false;
+  var selectedIds = {};
+
+  function updateBulkBar() {
+    var old = eid('esq-bulk-bar'); if (old) old.remove();
+    var list = eid('email-list');
+    if (!list || !list.parentElement || !selectMode) return;
+    var count = Object.keys(selectedIds).length;
+    var bar = cel('div', '');
+    bar.id = 'esq-bulk-bar';
+    bar.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.18);border-radius:10px;margin-bottom:10px;flex-wrap:wrap;';
+    var countEl = cel('span', '');
+    countEl.style.cssText = 'font-size:12px;font-weight:700;color:#aaff3e;flex:1;min-width:80px;';
+    countEl.textContent = count ? count + ' selected' : 'Select emails below';
+    bar.appendChild(countEl);
+    var selAllBtn = cel('button', '', 'Select All');
+    selAllBtn.style.cssText = 'font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#b8c8e0;font-family:DM Sans,sans-serif;';
+    selAllBtn.addEventListener('click', window.selectAllEmails);
+    bar.appendChild(selAllBtn);
+    if (count > 0) {
+      var trashAllBtn = cel('button', '', '🗑 Trash ' + count);
+      trashAllBtn.style.cssText = 'font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.3);color:#ff8080;font-family:DM Sans,sans-serif;';
+      trashAllBtn.addEventListener('click', window.bulkTrash);
+      bar.appendChild(trashAllBtn);
+      var archAllBtn = cel('button', '', '📁 Archive ' + count);
+      archAllBtn.style.cssText = 'font-size:11px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer;background:rgba(100,160,255,0.1);border:1px solid rgba(100,160,255,0.25);color:#64a0ff;font-family:DM Sans,sans-serif;';
+      archAllBtn.addEventListener('click', window.bulkArchive);
+      bar.appendChild(archAllBtn);
+    }
+    var trashBanner = eid('esq-trash-banner');
+    if (trashBanner) list.parentElement.insertBefore(bar, trashBanner);
+    else list.parentElement.insertBefore(bar, list);
+  }
+
+  window.toggleSelectMode = function() {
+    selectMode = !selectMode;
+    selectedIds = {};
+    var btn = eid('inbox-select-btn');
+    if (btn) {
+      btn.textContent = selectMode ? 'Cancel' : 'Select';
+      btn.style.background = selectMode ? 'rgba(170,255,62,0.15)' : 'rgba(255,255,255,0.06)';
+      btn.style.borderColor = selectMode ? 'rgba(170,255,62,0.4)' : 'rgba(255,255,255,0.12)';
+      btn.style.color = selectMode ? '#aaff3e' : '#6b7a96';
+    }
+    var list = eid('email-list');
+    if (list) {
+      list.querySelectorAll('.esq-check').forEach(function(cb) {
+        cb.style.display = selectMode ? 'flex' : 'none';
+        cb.style.background = 'rgba(255,255,255,0.08)';
+        cb.style.borderColor = 'rgba(255,255,255,0.2)';
+        cb.innerHTML = '';
+      });
+      list.querySelectorAll('.email-card-v2').forEach(function(card) {
+        card.style.outline = '';
+        card.style.background = '';
+      });
+    }
+    updateBulkBar();
+  };
+
+  window.toggleEmailSelect = function(emailId, emailData, cbEl, cardEl) {
+    if (selectedIds[emailId]) {
+      delete selectedIds[emailId];
+      if (cbEl) { cbEl.style.background = 'rgba(255,255,255,0.08)'; cbEl.style.borderColor = 'rgba(255,255,255,0.2)'; cbEl.innerHTML = ''; }
+      if (cardEl) { cardEl.style.outline = ''; cardEl.style.background = ''; }
+    } else {
+      selectedIds[emailId] = emailData;
+      if (cbEl) { cbEl.style.background = '#aaff3e'; cbEl.style.borderColor = '#aaff3e'; cbEl.innerHTML = '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#0a1a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+      if (cardEl) { cardEl.style.outline = '1px solid rgba(170,255,62,0.3)'; cardEl.style.background = 'rgba(170,255,62,0.04)'; }
+    }
+    updateBulkBar();
+  };
+
+  window.selectAllEmails = function() {
+    var list = eid('email-list'); if (!list) return;
+    list.querySelectorAll('.email-card-v2').forEach(function(card) {
+      var emailId = card.dataset.emailId;
+      var emailData = card.dataset.email ? JSON.parse(card.dataset.email) : {};
+      var cbEl = card.querySelector('.esq-check');
+      if (!selectedIds[emailId]) {
+        selectedIds[emailId] = emailData;
+        if (cbEl) { cbEl.style.background = '#aaff3e'; cbEl.style.borderColor = '#aaff3e'; cbEl.innerHTML = '<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#0a1a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+        card.style.outline = '1px solid rgba(170,255,62,0.3)';
+        card.style.background = 'rgba(170,255,62,0.04)';
+      }
+    });
+    updateBulkBar();
+  };
+
+  window.bulkTrash = function() {
+    var ids = Object.keys(selectedIds); if (!ids.length) return;
+    var list = eid('email-list');
+    ids.forEach(function(emailId) {
+      var card = list ? list.querySelector('[data-email-id="' + emailId + '"]') : null;
+      var emailData = selectedIds[emailId] || {};
+      var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
+      var te = getTrashEmails(); te[emailId] = emailData; setTrashEmails(te);
+      if (card) { card.style.cssText = 'position:relative;opacity:0;transform:translateX(16px);transition:all .3s;'; setTimeout(function() { if (card.parentNode) card.remove(); }, 320); }
+      if (getGmailSync()) {
+        fetchToken().then(function(token) {
+          if (!token) return;
+          fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+          }).catch(function() {});
+        });
+      }
+    });
+    selectedIds = {};
+    setTimeout(function() { window.toggleSelectMode(); window.showTrashBanner(); refreshInboxCount(); }, 380);
+  };
+
+  window.bulkArchive = function() {
+    var ids = Object.keys(selectedIds); if (!ids.length) return;
+    var list = eid('email-list');
+    ids.forEach(function(emailId) {
+      var card = list ? list.querySelector('[data-email-id="' + emailId + '"]') : null;
+      if (card) { card.style.cssText = 'position:relative;opacity:0;transform:translateX(16px);transition:all .3s;'; setTimeout(function() { if (card.parentNode) card.remove(); }, 320); }
+      fetchToken().then(function(token) {
+        if (!token) return;
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/modify', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ removeLabelIds: ['INBOX'] })
+        }).catch(function() {});
+      });
+    });
+    selectedIds = {};
+    setTimeout(function() { window.toggleSelectMode(); refreshInboxCount(); }, 380);
+  };
+
   /* ── INSTALL OVERRIDES ── */
   function install() {
     if (typeof window.showEmailList !== 'function' || typeof window.escHtml !== 'function') {
@@ -552,6 +700,11 @@
     }
     window.showEmailList = function(emails) {
       window._lastEmails = emails;
+      // reset select state on list reload
+      selectMode = false; selectedIds = {};
+      var selBtn = eid('inbox-select-btn');
+      if (selBtn) { selBtn.textContent = 'Select'; selBtn.style.background = 'rgba(255,255,255,0.06)'; selBtn.style.borderColor = 'rgba(255,255,255,0.12)'; selBtn.style.color = '#6b7a96'; }
+      var oldBar = eid('esq-bulk-bar'); if (oldBar) oldBar.remove();
       var list = eid('email-list'); if (!list) return;
       var trashLog = getTrashLog(), permDeleted = getPermDeleted();
       emails = (emails || []).filter(function(e) { return !trashLog[e.id] && !permDeleted[e.id]; });
@@ -568,9 +721,15 @@
       var badge = eid('inbox-badge');
       if (badge && emails.length > 0) { badge.textContent = emails.length; badge.style.display = 'inline'; }
       list.addEventListener('click', function(e) {
-        if (e.target.closest('button')) return;
+        if (e.target.closest('button') || e.target.closest('.esq-check')) return;
         var card = e.target.closest('.email-card-v2');
-        if (!card || !card.dataset.email) return;
+        if (!card) return;
+        if (selectMode) {
+          var cbEl = card.querySelector('.esq-check');
+          window.toggleEmailSelect(card.dataset.emailId, card.dataset.email ? JSON.parse(card.dataset.email) : {}, cbEl, card);
+          return;
+        }
+        if (!card.dataset.email) return;
         try { window.openEmailDetail(JSON.parse(card.dataset.email)); } catch (err) {}
       });
       setTimeout(function() { window.autoPurgeTrash(); window.showTrashBanner(); }, 600);
