@@ -1,5 +1,5 @@
 
-/* EconSquad App Extensions v05.04.1720 */
+/* EconSquad App Extensions v05.04.1740 */
 (function() {
   var TRASH_KEY = 'esq_trash_log';
   var TRASH_EMAILS_KEY = 'esq_trash_emails';
@@ -15,6 +15,13 @@
   }
   function setTrashEmails(d) {
     try { localStorage.setItem(TRASH_EMAILS_KEY, JSON.stringify(d)); } catch(e) {}
+  }
+  var PERM_DELETED_KEY = 'esq_perm_deleted';
+  function getPermDeleted() {
+    try { return JSON.parse(localStorage.getItem(PERM_DELETED_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function setPermDeleted(d) {
+    try { localStorage.setItem(PERM_DELETED_KEY, JSON.stringify(d)); } catch(e) {}
   }
   function escH(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -295,14 +302,16 @@
     if (!ids.length) return;
     window.showConfirm('Empty Trash?', 'Permanently delete all ' + ids.length + ' trashed emails. Cannot be undone.', function() {
       fetchToken().then(function(token) {
+        var pd = getPermDeleted();
+        ids.forEach(function(id) { pd[id] = Date.now(); });
+        setPermDeleted(pd);
+        setTrashLog({}); setTrashEmails({});
+        var b = eid('esq-trash-banner'); if (b) b.remove();
+        var v = eid('esq-trash-view'); if (v) v.remove();
         if (!token) return;
         Promise.all(ids.map(function(id) {
           return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }).catch(function() {});
-        })).then(function() {
-          setTrashLog({}); setTrashEmails({});
-          var b = eid('esq-trash-banner'); if (b) b.remove();
-          var v = eid('esq-trash-view'); if (v) v.remove();
-        });
+        }));
       });
     });
   };
@@ -397,6 +406,7 @@
     if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
     var log = getTrashLog(); delete log[emailId]; setTrashLog(log);
     var te = getTrashEmails(); delete te[emailId]; setTrashEmails(te);
+    var pd = getPermDeleted(); pd[emailId] = Date.now(); setPermDeleted(pd);
     setTimeout(function() { if (row) row.remove(); window.showTrashBanner(); }, 350);
     fetchToken().then(function(token) {
       if (!token) return;
@@ -405,6 +415,51 @@
       }).catch(function() {});
     });
   };
+
+  /* ── FLY-TO-TRASH ANIMATION ── */
+  function animateEmailToTrash(card, onDone) {
+    var rect = card.getBoundingClientRect();
+    var bin = document.createElement('div');
+    bin.id = 'esq-trash-fly-bin';
+    bin.style.cssText = 'position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:rgba(30,30,40,0.92);display:flex;align-items:center;justify-content:center;font-size:28px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:transform .15s ease;';
+    bin.innerHTML = '&#128465;&#65039;';
+    document.body.appendChild(bin);
+    var flyW = Math.min(rect.width, 280), flyH = Math.min(rect.height, 80);
+    var senderEl = card.querySelector('.email-sender-name');
+    var subjectEl = card.querySelector('.email-subject');
+    var fly = document.createElement('div');
+    fly.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + rect.top + 'px;width:' + flyW + 'px;height:' + flyH + 'px;background:rgba(26,26,46,0.97);border:1px solid rgba(255,255,255,0.15);border-radius:12px;z-index:99998;pointer-events:none;opacity:1;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;';
+    fly.innerHTML = '<div style="padding:10px 14px;"><div style="font-size:11px;color:#a0aec0;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escH((senderEl ? senderEl.textContent : '') || '') + '</div><div style="font-size:12px;color:#e2e8f0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escH((subjectEl ? subjectEl.textContent : '') || '') + '</div></div>';
+    document.body.appendChild(fly);
+    card.style.opacity = '0';
+    var binRect = bin.getBoundingClientRect();
+    var targetX = binRect.left + binRect.width / 2 - flyW / 2;
+    var targetY = binRect.top + binRect.height / 2 - flyH / 2;
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        fly.style.transition = 'left .45s cubic-bezier(.4,0,.2,1),top .45s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1),height .35s cubic-bezier(.4,0,.2,1),opacity .3s .2s,transform .45s cubic-bezier(.4,0,.2,1)';
+        fly.style.left = targetX + 'px';
+        fly.style.top = targetY + 'px';
+        fly.style.width = '52px';
+        fly.style.height = '52px';
+        fly.style.opacity = '0.15';
+        fly.style.transform = 'rotate(12deg) scale(0.3)';
+      });
+    });
+    setTimeout(function() {
+      bin.style.transform = 'scale(1.35) rotate(-15deg)';
+      setTimeout(function() {
+        bin.style.transform = 'scale(1.1) rotate(10deg)';
+        setTimeout(function() {
+          bin.style.transform = 'scale(1) rotate(0deg)';
+          setTimeout(function() {
+            fly.remove(); bin.remove();
+            if (typeof onDone === 'function') onDone();
+          }, 180);
+        }, 110);
+      }, 130);
+    }, 490);
+  }
 
   /* ── EMAIL CARD RENDERER ── */
   function renderCard(email) {
@@ -463,17 +518,20 @@
     trashBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       var card = e.currentTarget.closest('.email-card-v2');
-      if (card) { card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;'; }
       var emailId = email.id || '';
       var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
       var te = getTrashEmails(); te[emailId] = { id: emailId, from: email.from, subject: email.subject, snippet: email.snippet, date: email.date }; setTrashEmails(te);
-      setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
       fetchToken().then(function(token) {
         if (!token) return;
         fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
           method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
         }).catch(function() {});
       });
+      if (card) {
+        animateEmailToTrash(card, function() { card.remove(); window.showTrashBanner(); });
+      } else {
+        window.showTrashBanner();
+      }
     });
     actRow.appendChild(replyBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn);
     div.appendChild(actRow);
@@ -488,8 +546,8 @@
     window.showEmailList = function(emails) {
       window._lastEmails = emails;
       var list = eid('email-list'); if (!list) return;
-      var trashLog = getTrashLog();
-      emails = (emails || []).filter(function(e) { return !trashLog[e.id]; });
+      var trashLog = getTrashLog(), permDeleted = getPermDeleted();
+      emails = (emails || []).filter(function(e) { return !trashLog[e.id] && !permDeleted[e.id]; });
       if (!emails.length) {
         list.innerHTML = '<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;">&#128235;</div><div style="margin-top:8px;">No unread emails</div></div>';
         return;
