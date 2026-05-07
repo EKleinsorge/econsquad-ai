@@ -416,6 +416,21 @@
     });
   };
 
+  function refreshInboxCount() {
+    var list = eid('email-list');
+    if (!list) return;
+    var cards = list.querySelectorAll('.email-card-v2');
+    var count = cards.length;
+    var priority = 0;
+    cards.forEach(function(c) {
+      try { var d = JSON.parse(c.dataset.email || '{}'); if (getTag(d.from || '', d.subject || '', d.snippet || '').priority) priority++; } catch(e) {}
+    });
+    var lbl = eid('unread-count-label');
+    if (lbl) lbl.textContent = count + ' unread | ' + priority + ' priority';
+    var badge = eid('inbox-badge');
+    if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+  }
+
   /* ── FLY-TO-TRASH ANIMATION ── */
   function animateEmailToTrash(card, onDone) {
     var rect = card.getBoundingClientRect();
@@ -522,7 +537,7 @@
       });
       window.showTrashBanner();
       if (card) {
-        animateEmailToTrash(card, function() { card.remove(); });
+        animateEmailToTrash(card, function() { card.remove(); refreshInboxCount(); });
       }
     });
     actRow.appendChild(replyBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn);
