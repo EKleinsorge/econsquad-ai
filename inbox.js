@@ -103,28 +103,42 @@ window.openEmailDetail=function(emailData){
   var ad=document.createElement('div');ad.style.cssText='display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;';
   if(tag&&tag.l==='RFI'){var rb=document.createElement('button');rb.className='email-action-btn primary';rb.innerHTML='Deploy Riley &#8599;';rb.onclick=function(){if(typeof deploy==='function')deploy(21);overlay.remove();};ad.appendChild(rb);}
   else if(tag&&tag.l==='GRANT'){var gb=document.createElement('button');gb.className='email-action-btn primary';gb.innerHTML='Grant Writer &#8599;';gb.onclick=function(){if(typeof deploy==='function')deploy(1);overlay.remove();};ad.appendChild(gb);}
+  var replyB=document.createElement('button');replyB.className='email-action-btn';replyB.textContent='Reply';replyB.onclick=function(){var m=(email.from||'').match(/<([^>]+)>/);var to=m?m[1]:(email.from||'');window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent('Re: '+(email.subject||'')));};ad.appendChild(replyB);
+  var archB=document.createElement('button');archB.className='email-action-btn';archB.textContent='Archive';archB.onclick=function(){overlay.remove();window.archiveCard(email.id||'');};ad.appendChild(archB);
   var tb=document.createElement('button');tb.className='email-action-btn danger';tb.textContent='\u{1F5D1} Trash';tb.onclick=function(){window.trashCard(email.id||'');overlay.remove();};ad.appendChild(tb);
   var cb=document.createElement('button');cb.className='email-action-btn';cb.textContent='Close';cb.onclick=function(){overlay.remove();};ad.appendChild(cb);
   modal.appendChild(ad);overlay.appendChild(modal);document.body.appendChild(overlay);
 };
 
 window.trashCard=function(eid){
-  var token=window.getProviderToken?window.getProviderToken():null;
+  var token=window.providerToken||null;
   var log=gTL();log[eid]=Date.now();sTL(log);
   if(token)fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+eid+'/trash',{method:'POST',headers:{'Authorization':'Bearer '+token}}).catch(function(){});
   var card=document.querySelector('[data-eid="'+eid+'"]');
   if(card){card.style.cssText='opacity:0.3;transform:translateX(12px);transition:all .35s;';setTimeout(function(){card.remove();showTB();},380);}else{showTB();}
 };
 
+window.replyToCard=function(eid){
+  var card=document.querySelector('[data-eid="'+eid+'"]');if(!card)return;
+  try{var em=JSON.parse(card.getAttribute('data-email'));var m=(em.from||'').match(/<([^>]+)>/);var to=m?m[1]:(em.from||'');window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent('Re: '+(em.subject||'')));}catch(e){}
+};
+
+window.archiveCard=function(eid){
+  var token=window.providerToken||null;if(!token){alert('Gmail not connected');return;}
+  var card=document.querySelector('[data-eid="'+eid+'"]');
+  if(card){card.style.cssText='opacity:0.3;transform:translateX(12px);transition:all .35s;';setTimeout(function(){card.remove();},380);}
+  fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+eid+'/modify',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({removeLabelIds:['INBOX']})}).catch(function(){if(card)card.style.cssText='';});
+};
+
 window.emptyTrash=function(){
   var log=gTL(),ids=Object.keys(log);if(!ids.length)return;
   if(!confirm('Permanently delete all '+ids.length+' trashed emails?'))return;
-  var token=window.getProviderToken?window.getProviderToken():null;if(!token)return;
+  var token=window.providerToken||null;if(!token)return;
   Promise.all(ids.map(function(id){return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).catch(function(){});})).then(function(){sTL({});var b=document.getElementById('esqTB');if(b)b.remove();});
 };
 
 window.autoPurge=function(){
-  var token=window.getProviderToken?window.getProviderToken():null;if(!token)return;
+  var token=window.providerToken||null;if(!token)return;
   var log=gTL(),now=Date.now(),cut=30*24*60*60*1000,old=Object.keys(log).filter(function(id){return(now-log[id])>cut;});
   if(!old.length)return;
   Promise.all(old.map(function(id){return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token}}).then(function(){delete log[id];}).catch(function(){});})).then(function(){sTL(log);});
@@ -152,8 +166,8 @@ function renderCard(email){
   var ab='';
   if(tag&&tag.l==='RFI')ab+='<button class="email-action-btn primary" onclick="event.stopPropagation();deploy(21)">Deploy &#8599;</button>';
   else if(tag&&tag.l==='GRANT')ab+='<button class="email-action-btn primary" onclick="event.stopPropagation();deploy(1)">Grant &#8599;</button>';
-  ab+='<button class="email-action-btn" onclick="event.stopPropagation()">Reply</button>';
-  ab+='<button class="email-action-btn" onclick="event.stopPropagation()">Archive</button>';
+  ab+='<button class="email-action-btn" onclick="event.stopPropagation();window.replyToCard(this.closest(\'.email-card-v2\').getAttribute(\'data-eid\'))">Reply</button>';
+  ab+='<button class="email-action-btn" onclick="event.stopPropagation();window.archiveCard(this.closest(\'.email-card-v2\').getAttribute(\'data-eid\'))">Archive</button>';
   ab+='<button class="email-action-btn danger" onclick="event.stopPropagation();window.trashCard(this.closest(\'.email-card-v2\').getAttribute(\'data-eid\'))">\u{1F5D1}</button>';
   var bg=gAC(sn),fc=bg.indexOf('aaff3e')>-1?'#1a3300':'#fff';
   var ed=JSON.stringify({id:email.id,from:email.from,subject:email.subject,snippet:email.snippet,date:email.date});

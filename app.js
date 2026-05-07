@@ -351,9 +351,25 @@
       actRow.appendChild(gBtn);
     }
     var replyBtn = cel('button', 'email-action-btn', 'Reply');
-    replyBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+    replyBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var m = (email.from || '').match(/<([^>]+)>/);
+      var to = m ? m[1] : (email.from || '');
+      window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent('Re: ' + (email.subject || '')));
+    });
     var archBtn = cel('button', 'email-action-btn', 'Archive');
-    archBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+    archBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var token = window.providerToken || null;
+      if (!token) { alert('Gmail not connected'); return; }
+      var card = e.currentTarget.closest('.email-card-v2');
+      if (card) { card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;'; setTimeout(function() { card.remove(); }, 380); }
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + (email.id || '') + '/modify', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ removeLabelIds: ['INBOX'] })
+      }).catch(function() { if (card) card.style.cssText = ''; });
+    });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
     trashBtn.addEventListener('click', function(e) { e.stopPropagation(); window.trashEmailCard(email.id || '', trashBtn); });
     actRow.appendChild(replyBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn);
