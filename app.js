@@ -2,12 +2,19 @@
 /* EconSquad App Extensions v05.04.1720 */
 (function() {
   var TRASH_KEY = 'esq_trash_log';
+  var TRASH_EMAILS_KEY = 'esq_trash_emails';
 
   function getTrashLog() {
     try { return JSON.parse(localStorage.getItem(TRASH_KEY) || '{}'); } catch(e) { return {}; }
   }
   function setTrashLog(l) {
     try { localStorage.setItem(TRASH_KEY, JSON.stringify(l)); } catch(e) {}
+  }
+  function getTrashEmails() {
+    try { return JSON.parse(localStorage.getItem(TRASH_EMAILS_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function setTrashEmails(d) {
+    try { localStorage.setItem(TRASH_EMAILS_KEY, JSON.stringify(d)); } catch(e) {}
   }
   function escH(s) {
     return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -232,7 +239,7 @@
     var closeBtn = cel('button', 'email-action-btn', 'Close');
     closeBtn.addEventListener('click', function() { ol.remove(); });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
-    trashBtn.addEventListener('click', function() { window.trashEmailCard(email.id || '', null); ol.remove(); });
+    trashBtn.addEventListener('click', function() { window.trashEmailCard(email.id || '', null, email); ol.remove(); });
     actRow.appendChild(closeBtn);
     actRow.appendChild(trashBtn);
     modal.appendChild(handle);
@@ -253,10 +260,11 @@
     return Promise.resolve(window.providerToken || null);
   }
 
-  window.trashEmailCard = function(emailId, btn) {
+  window.trashEmailCard = function(emailId, btn, emailData) {
     var card = btn ? btn.closest('.email-card-v2') : null;
     if (card) card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;';
     var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
+    if (emailData) { var te = getTrashEmails(); te[emailId] = emailData; setTrashEmails(te); }
     setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
     fetchToken().then(function(token) {
       if (!token) return;
@@ -290,7 +298,11 @@
         if (!token) return;
         Promise.all(ids.map(function(id) {
           return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }).catch(function() {});
-        })).then(function() { setTrashLog({}); var b = eid('esq-trash-banner'); if (b) b.remove(); });
+        })).then(function() {
+          setTrashLog({}); setTrashEmails({});
+          var b = eid('esq-trash-banner'); if (b) b.remove();
+          var v = eid('esq-trash-view'); if (v) v.remove();
+        });
       });
     });
   };
@@ -311,19 +323,87 @@
   window.showTrashBanner = function() {
     var log = getTrashLog(), ids = Object.keys(log);
     var old = eid('esq-trash-banner'); if (old) old.remove();
-    if (!ids.length) return;
-    var cutoff = 30 * 24 * 60 * 60 * 1000, now = Date.now();
-    var stale = ids.filter(function(id) { return (now - log[id]) > cutoff; });
-    var msg = ids.length + ' email' + (ids.length > 1 ? 's' : '') + ' in trash';
-    if (stale.length) msg += ' | ' + stale.length + ' ready to purge';
+    if (!ids.length) { var v = eid('esq-trash-view'); if (v) v.remove(); return; }
     var list = eid('email-list'); if (!list || !list.parentElement) return;
     var b = cel('div', 'trash-banner');
     b.id = 'esq-trash-banner';
-    var txt = cel('span', 'trash-banner-text', '&#128465;&#65039; ' + msg + ' | Auto-purge after 30 days');
-    var btn = cel('button', 'trash-banner-btn', 'Empty Trash');
-    btn.addEventListener('click', window.emptyTrashNow);
-    b.appendChild(txt); b.appendChild(btn);
+    var msg = ids.length + ' email' + (ids.length > 1 ? 's' : '') + ' in trash · Auto-purge after 30 days';
+    var txt = cel('span', 'trash-banner-text', '&#128465;&#65039; ' + msg);
+    var viewBtn = cel('button', 'trash-banner-btn', 'View Trash');
+    viewBtn.addEventListener('click', window.toggleTrashView);
+    var emptyBtn = cel('button', 'trash-banner-btn', 'Empty Trash');
+    emptyBtn.addEventListener('click', window.emptyTrashNow);
+    b.appendChild(txt); b.appendChild(viewBtn); b.appendChild(emptyBtn);
     list.parentElement.insertBefore(b, list);
+  };
+
+  window.toggleTrashView = function() {
+    var existing = eid('esq-trash-view');
+    if (existing) { existing.remove(); return; }
+    var log = getTrashLog(), emails = getTrashEmails();
+    var ids = Object.keys(log).sort(function(a, b) { return log[b] - log[a]; });
+    var banner = eid('esq-trash-banner');
+    var list = eid('email-list');
+    if (!banner && !list) return;
+    var view = cel('div', '');
+    view.id = 'esq-trash-view';
+    view.style.cssText = 'margin-bottom:12px;';
+    var hdr = cel('div', '');
+    hdr.style.cssText = 'font-family:Barlow,sans-serif;font-size:11px;font-weight:800;color:#ff8080;text-transform:uppercase;letter-spacing:.08em;padding:8px 0 6px;';
+    hdr.textContent = '🗑️ Trash (' + ids.length + ') — Click Restore to move back to inbox';
+    view.appendChild(hdr);
+    ids.forEach(function(id) {
+      var em = emails[id] || {};
+      var row = cel('div', '');
+      row.style.cssText = 'background:rgba(255,80,80,0.05);border:1px solid rgba(255,80,80,0.15);border-radius:10px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;';
+      var info = cel('div', '');
+      info.style.cssText = 'flex:1;min-width:0;';
+      var subj = cel('div', '', escH(em.subject || '(no subject)'));
+      subj.style.cssText = 'font-size:13px;font-weight:600;color:#c0cce0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;';
+      var from = cel('div', '', escH(em.from || id));
+      from.style.cssText = 'font-size:11px;color:#6b7a96;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      info.appendChild(subj); info.appendChild(from);
+      var btns = cel('div', '');
+      btns.style.cssText = 'display:flex;gap:6px;flex-shrink:0;';
+      var restoreBtn = cel('button', '', '↩ Restore');
+      restoreBtn.style.cssText = 'font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;cursor:pointer;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:DM Sans,sans-serif;';
+      restoreBtn.addEventListener('click', (function(eid, r) { return function() { window.restoreEmail(eid, r); }; })(id, row));
+      var delBtn = cel('button', '', '✕');
+      delBtn.title = 'Delete forever';
+      delBtn.style.cssText = 'font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.25);color:#ff8080;font-family:DM Sans,sans-serif;';
+      delBtn.addEventListener('click', (function(eid, r) { return function() { window.permanentDeleteEmail(eid, r); }; })(id, row));
+      btns.appendChild(restoreBtn); btns.appendChild(delBtn);
+      row.appendChild(info); row.appendChild(btns);
+      view.appendChild(row);
+    });
+    if (banner) banner.parentNode.insertBefore(view, banner.nextSibling);
+    else list.parentNode.insertBefore(view, list);
+  };
+
+  window.restoreEmail = function(emailId, row) {
+    if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+    var log = getTrashLog(); delete log[emailId]; setTrashLog(log);
+    var te = getTrashEmails(); delete te[emailId]; setTrashEmails(te);
+    setTimeout(function() { if (row) row.remove(); window.showTrashBanner(); }, 350);
+    fetchToken().then(function(token) {
+      if (!token) return;
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/untrash', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+      }).catch(function() {});
+    });
+  };
+
+  window.permanentDeleteEmail = function(emailId, row) {
+    if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+    var log = getTrashLog(); delete log[emailId]; setTrashLog(log);
+    var te = getTrashEmails(); delete te[emailId]; setTrashEmails(te);
+    setTimeout(function() { if (row) row.remove(); window.showTrashBanner(); }, 350);
+    fetchToken().then(function(token) {
+      if (!token) return;
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId, {
+        method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token }
+      }).catch(function() {});
+    });
   };
 
   /* ── EMAIL CARD RENDERER ── */
@@ -386,6 +466,7 @@
       if (card) { card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;'; }
       var emailId = email.id || '';
       var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
+      var te = getTrashEmails(); te[emailId] = { id: emailId, from: email.from, subject: email.subject, snippet: email.snippet, date: email.date }; setTrashEmails(te);
       setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
       fetchToken().then(function(token) {
         if (!token) return;
@@ -407,7 +488,9 @@
     window.showEmailList = function(emails) {
       window._lastEmails = emails;
       var list = eid('email-list'); if (!list) return;
-      if (!emails || !emails.length) {
+      var trashLog = getTrashLog();
+      emails = (emails || []).filter(function(e) { return !trashLog[e.id]; });
+      if (!emails.length) {
         list.innerHTML = '<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;">&#128235;</div><div style="margin-top:8px;">No unread emails</div></div>';
         return;
       }
