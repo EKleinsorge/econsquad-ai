@@ -249,18 +249,14 @@
 
   /* ── TRASH SYSTEM ── */
   window.trashEmailCard = function(emailId, btn) {
-    var token = window.providerToken || null;
-    if (!token) { alert('Gmail not connected'); return; }
     var card = btn ? btn.closest('.email-card-v2') : null;
     if (card) card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;';
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+    var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
+    setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
+    var token = window.providerToken || null;
+    if (token) fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
       method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
-    }).then(function(r) {
-      if (r.ok) {
-        var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
-        setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
-      } else { if (card) card.style.cssText = ''; }
-    }).catch(function() { if (card) card.style.cssText = ''; });
+    }).catch(function() {});
   };
 
   window.showConfirm = function(title, msg, onOk) {
@@ -360,18 +356,28 @@
     var archBtn = cel('button', 'email-action-btn', 'Archive');
     archBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      var token = window.providerToken || null;
-      if (!token) { alert('Gmail not connected'); return; }
       var card = e.currentTarget.closest('.email-card-v2');
       if (card) { card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;'; setTimeout(function() { card.remove(); }, 380); }
-      fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + (email.id || '') + '/modify', {
+      var token = window.providerToken || null;
+      if (token) fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + (email.id || '') + '/modify', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ removeLabelIds: ['INBOX'] })
-      }).catch(function() { if (card) card.style.cssText = ''; });
+      }).catch(function() {});
     });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
-    trashBtn.addEventListener('click', function(e) { e.stopPropagation(); window.trashEmailCard(email.id || '', trashBtn); });
+    trashBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var card = e.currentTarget.closest('.email-card-v2');
+      if (card) { card.style.cssText = 'opacity:0.3;transform:translateX(12px);transition:all .35s;'; }
+      var emailId = email.id || '';
+      var log = getTrashLog(); log[emailId] = Date.now(); setTrashLog(log);
+      setTimeout(function() { if (card) card.remove(); window.showTrashBanner(); }, 400);
+      var token = window.providerToken || null;
+      if (token) fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + emailId + '/trash', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }
+      }).catch(function() {});
+    });
     actRow.appendChild(replyBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn);
     div.appendChild(actRow);
     return div;
