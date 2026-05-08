@@ -6164,6 +6164,21 @@ function openCalEventDetail(evt){
   var notesContainer = document.createElement('div');
   notesContainer.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
 
+  var _evtKey = evt.id||evt.title||'';
+
+  function refreshCalNotesBadge(){
+    var has = savedNotes.length > 0;
+    document.querySelectorAll('[data-calid="'+_evtKey+'"] [data-notesbadge]').forEach(function(el){
+      if(has){
+        el.textContent = '🔖 Notes';
+        el.style.cssText = 'font-size:11px;background:rgba(170,255,62,0.12);color:#aaff3e;padding:1px 7px;border-radius:10px;border:1px solid rgba(170,255,62,0.25);font-weight:700;white-space:nowrap;';
+      } else {
+        el.textContent = '';
+        el.style.cssText = '';
+      }
+    });
+  }
+
   function renderSavedNotes(){
     notesContainer.innerHTML = '';
     if(!savedNotes.length){
@@ -6171,6 +6186,7 @@ function openCalEventDetail(evt){
       emp.style.cssText = 'font-size:11px;color:#4a5568;font-style:italic;line-height:1.5;';
       emp.textContent = 'No saved notes yet — click 🔖 on any ARIA response to save it here.';
       notesContainer.appendChild(emp);
+      refreshCalNotesBadge();
       return;
     }
     savedNotes.forEach(function(note, i){
@@ -6180,15 +6196,15 @@ function openCalEventDetail(evt){
       noteText.style.cssText = 'font-size:11px;color:#b8c8e0;line-height:1.55;';
       noteText.innerHTML = note.text.replace(/\n/g,'<br>');
       var noteFooter = document.createElement('div');
-      noteFooter.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:6px;';
+      noteFooter.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:6px;';
       var noteTs = document.createElement('span');
       noteTs.style.cssText = 'font-size:9px;color:#4a5568;';
       noteTs.textContent = new Date(note.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
       var delBtn = document.createElement('button');
-      delBtn.textContent = '✕ Remove';
-      delBtn.style.cssText = 'background:none;border:none;color:#4a5568;font-size:10px;cursor:pointer;padding:0;font-family:inherit;';
-      delBtn.onmouseover = function(){ delBtn.style.color='#ff6b6b'; };
-      delBtn.onmouseout  = function(){ delBtn.style.color='#4a5568'; };
+      delBtn.innerHTML = '🗑 Delete';
+      delBtn.style.cssText = 'background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);color:#ff6b6b;font-size:10px;font-weight:600;cursor:pointer;padding:3px 9px;border-radius:6px;font-family:inherit;transition:background .15s;';
+      delBtn.onmouseover = function(){ delBtn.style.background='rgba(255,80,80,0.18)'; };
+      delBtn.onmouseout  = function(){ delBtn.style.background='rgba(255,80,80,0.08)'; };
       delBtn.addEventListener('click', function(){
         savedNotes.splice(i,1);
         localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(savedNotes));
@@ -6198,6 +6214,7 @@ function openCalEventDetail(evt){
       card.appendChild(noteText); card.appendChild(noteFooter);
       notesContainer.appendChild(card);
     });
+    refreshCalNotesBadge();
   }
   renderSavedNotes();
   left.appendChild(notesSep); left.appendChild(notesHdr); left.appendChild(notesContainer);
@@ -6275,6 +6292,7 @@ function openCalEventDetail(evt){
         savedNotes.unshift({text:reply, savedAt:Date.now()});
         localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(savedNotes));
         renderSavedNotes();
+        refreshCalNotesBadge();
         saveBtn.innerHTML = '✓ Saved';
         saveBtn.style.color = '#aaff3e';
         saveBtn.disabled = true;
@@ -6349,6 +6367,7 @@ function showCalendarToday(events){
     var hasNotes = false;
     try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
     var div = document.createElement('div');
+    div.dataset.calid = evt.id||evt.title||'';
     div.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+info.color+';border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:background .15s;';
     div.onmouseover = function(){ this.style.background='rgba(14,20,36,0.98)'; };
     div.onmouseout  = function(){ this.style.background='rgba(14,20,36,0.8)'; };
@@ -6356,7 +6375,7 @@ function showCalendarToday(events){
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">',
         '<span style="font-size:14px;">'+info.icon+'</span>',
         '<span style="font-size:12px;font-weight:700;color:#eef3fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+escHtml(evt.title)+'</span>',
-        hasNotes ? '<span title="Has saved notes" style="font-size:11px;background:rgba(170,255,62,0.12);color:#aaff3e;padding:1px 7px;border-radius:10px;border:1px solid rgba(170,255,62,0.25);font-weight:700;white-space:nowrap;">🔖 Notes</span>' : '',
+        '<span data-notesbadge '+(hasNotes?'style="font-size:11px;background:rgba(170,255,62,0.12);color:#aaff3e;padding:1px 7px;border-radius:10px;border:1px solid rgba(170,255,62,0.25);font-weight:700;white-space:nowrap;"':'')+'>'+(hasNotes?'🔖 Notes':'')+'</span>',
       '</div>',
       '<div style="display:flex;align-items:center;gap:8px;">',
         '<span style="font-size:10px;color:#6b7a96;">🕐 '+timeStr+'</span>',
@@ -6487,9 +6506,10 @@ function showCalendarWeek(events){
     var info = calMeetingTypes[cat];
     var hasNotes = false;
     try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
+    div.dataset.calid = evt.id||evt.title||'';
     div.innerHTML = '<div style="font-size:10px;color:#6b7a96;min-width:60px;margin-top:1px;">'+dateStr+'</div>'
       +'<div style="font-size:12px;color:#b8c8e0;flex:1;">'+info.icon+' '+escHtml(evt.title)+'</div>'
-      +(hasNotes?'<span title="Has saved notes" style="font-size:10px;color:#aaff3e;opacity:.8;">🔖</span>':'');
+      +'<span data-notesbadge style="font-size:10px;color:#aaff3e;opacity:.8;">'+(hasNotes?'🔖':'')+'</span>';
     div.addEventListener('click', function(){ openCalEventDetail(evt); });
     el.appendChild(div);
   });
