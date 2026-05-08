@@ -1818,8 +1818,13 @@ function showDashTab(tabId,el){
   if(tab)tab.style.display='block';
   document.querySelectorAll('#nav-dashboard .nav-links a').forEach(function(a){a.classList.remove('active');});
   if(el)el.classList.add('active');
+  /* highlight nav link even when el isn't passed (e.g. on restore) */
+  var navMap={'home-tab':'dash-nav-home','inbox-tab':'dash-nav-inbox','fullcal-tab':'dash-nav-fullcal','history-tab':'dash-nav-history','stats-tab':'dash-nav-stats'};
+  if(!el && navMap[tabId]){var nl=document.getElementById(navMap[tabId]);if(nl)nl.classList.add('active');}
   var sa=document.querySelector('.scroll-area');
   if(sa)sa.scrollTop=0;
+  /* remember last tab across refreshes */
+  try{ localStorage.setItem('esq_last_tab', tabId); }catch(e){}
 }
 
 var _fcInstance = null;
@@ -2121,6 +2126,14 @@ function onSignedIn(user){
     setTimeout(function(){launchStripeCheckout(p);},600);
   } else {
     switchView('dashboard');
+    /* restore last active tab on refresh */
+    var lastTab = null;
+    try{ lastTab = localStorage.getItem('esq_last_tab'); }catch(e){}
+    if(lastTab && lastTab !== 'home-tab'){
+      setTimeout(function(){
+        showDashTab(lastTab, null);
+      }, 300);
+    }
   }
 }
 
