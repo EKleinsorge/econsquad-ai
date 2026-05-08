@@ -372,7 +372,7 @@
     var replyDetBtn = cel('button', 'email-action-btn', '&#9993; Reply');
     replyDetBtn.addEventListener('click', function() { ol.remove(); window.openReplyCompose(email); });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
-    trashBtn.addEventListener('click', function() { window.trashEmailCard(email.id || '', null, email); ol.remove(); });
+    trashBtn.addEventListener('click', function() { var eid_ = email.id || ''; window.trashEmailCard(eid_, null, email); ol.remove(); removeFromTriage(eid_); });
     actRow.appendChild(closeBtn); actRow.appendChild(replyDetBtn); actRow.appendChild(trashBtn);
 
     modal.appendChild(hdr); modal.appendChild(bodyWrap); modal.appendChild(actRow);
@@ -1831,6 +1831,40 @@
     toInp.focus();
   };
 
+  /* Remove a single email card from the open triage list (called after trash/delete) */
+  function removeFromTriage(emailId) {
+    if (!emailId) return;
+    var triageOl = eid('esq-triage-ol');
+    if (!triageOl) return;
+    var card = triageOl.querySelector('[data-email-id="' + emailId + '"]');
+    if (!card) return;
+    var sec = card.parentElement;
+    /* Animate out */
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(16px)';
+    setTimeout(function() {
+      card.remove();
+      /* If the section has no more cards, remove the whole section */
+      if (sec && sec.querySelectorAll('[data-email-id]').length === 0) sec.remove();
+      /* Update count in modal header */
+      var remaining = triageOl.querySelectorAll('[data-email-id]').length;
+      var countEl = eid('esq-triage-count');
+      if (countEl) {
+        countEl.textContent = remaining > 0
+          ? remaining + ' email' + (remaining !== 1 ? 's' : '') + ' remaining'
+          : '✅ All triaged!';
+        if (remaining === 0) countEl.style.color = '#4ade80';
+      }
+      /* If list is fully empty, show done state in body */
+      if (remaining === 0) {
+        var bodyEl = triageOl.querySelector('[style*="overflow-y"]');
+        if (bodyEl) {
+          bodyEl.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#4ade80;font-size:13px;font-weight:600;">✅ All emails have been triaged!</div>';
+        }
+      }
+    }, 260);
+  }
+
   function showTriageLoading() {
     var old = eid('esq-triage-ol'); if (old) old.remove();
     var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol';
@@ -1895,7 +1929,7 @@
     modal.style.cssText = 'max-width:640px;width:96%;max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;';
     var hdr = document.createElement('div');
     hdr.style.cssText = 'padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-    hdr.innerHTML = '<div><div style="font-size:15px;font-weight:700;color:#eef3fc;">✦ ARIA Email Triage</div><div style="font-size:11px;color:#4a5568;margin-top:2px;">'+triage.length+' emails analyzed</div></div>';
+    hdr.innerHTML = '<div><div style="font-size:15px;font-weight:700;color:#eef3fc;">✦ ARIA Email Triage</div><div id="esq-triage-count" style="font-size:11px;color:#4a5568;margin-top:2px;">'+triage.length+' emails analyzed</div></div>';
     var xBtn = cel('button', 'email-detail-close', '&#x2715;');
     xBtn.style.cssText = 'position:relative;top:0;right:0;'; xBtn.onclick = function() { ol.remove(); };
     hdr.appendChild(xBtn);
@@ -1916,7 +1950,8 @@
       sec.appendChild(secHdr);
       items.forEach(function(item) {
         var card = document.createElement('div');
-        card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+COLORS[p]+';border-radius:8px;padding:8px 12px;cursor:pointer;';
+        card.dataset.emailId = item.email.id || '';
+        card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+COLORS[p]+';border-radius:8px;padding:8px 12px;cursor:pointer;transition:opacity .25s,transform .25s;';
         card.onmouseover = function() { card.style.background = 'rgba(255,255,255,0.06)'; };
         card.onmouseout = function() { card.style.background = 'rgba(255,255,255,0.03)'; };
         card.innerHTML = '<div style="font-size:12px;font-weight:600;color:#eef3fc;margin-bottom:2px;">'+escH(item.email.subject||'(no subject)')+'</div>'
