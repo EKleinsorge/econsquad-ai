@@ -1595,7 +1595,9 @@
       /* Older emails footer */
       var list2 = eid('email-list'); if (!list2) return;
       var mode    = window._inboxMode  || 'unread';
-      var curPer  = mode === 'unread' ? (window._inboxPeriod != null ? window._inboxPeriod : '7d') : (window._readPeriod != null ? window._readPeriod : '30d');
+      var curPer  = mode === 'unread' ? (window._inboxPeriod != null ? window._inboxPeriod : '7d')
+                  : mode === 'sent'   ? (window._sentPeriod  != null ? window._sentPeriod  : '30d')
+                  :                     (window._readPeriod  != null ? window._readPeriod  : '30d');
       var perLabels = { '7d':'last 7 days', '30d':'last 30 days', '90d':'last 90 days', '':'all time' };
       var foot = cel('div','');
       foot.style.cssText = 'margin-top:4px;padding:12px 14px;border:1px dashed rgba(255,255,255,0.09);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;';

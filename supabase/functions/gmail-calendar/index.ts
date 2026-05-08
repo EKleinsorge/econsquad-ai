@@ -324,6 +324,36 @@ serve(async (req) => {
       result = { emails }
     }
 
+    // ===== GMAIL SENT EMAILS =====
+    if (action === 'gmail_sent') {
+      const period = (body.period !== undefined && body.period !== null) ? body.period : '30d'
+      const dateFilter = period ? `+newer_than:${period}` : ''
+      const listRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=in:sent${dateFilter}`,
+        { headers: { Authorization: `Bearer ${provider_token}` } }
+      )
+      const listData = await listRes.json()
+      const messages = listData.messages || []
+      if (messages.length === 0) {
+        return new Response(JSON.stringify({ emails: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const emailPromises = messages.slice(0, 50).map((msg: any) =>
+        fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date&fields=id,threadId,snippet,payload/headers`,
+          { headers: { Authorization: `Bearer ${provider_token}` } }
+        ).then(r => r.json())
+      )
+      const details = await Promise.all(emailPromises)
+      const emails = details.map((detail: any) => {
+        const headers = detail.payload?.headers || []
+        const getH = (name: string) => headers.find((h: any) => h.name === name)?.value || ''
+        return { id: detail.id, threadId: detail.threadId, from: 'Me → ' + getH('To'), subject: getH('Subject'), date: getH('Date'), snippet: detail.snippet || '' }
+      }).filter((e: any) => e.subject)
+      result = { emails }
+    }
+
     // ===== GMAIL FULL MESSAGE =====
     if (action === 'gmail_message') {
       const { messageId } = body
