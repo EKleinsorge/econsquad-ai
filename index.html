@@ -6148,18 +6148,25 @@ function openCalEventDetail(evt){
   var attLabel = document.createElement('div');
   attLabel.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;';
   attLabel.textContent = '👥 Attendees';
+  // Notify toggle (shown alongside Save)
+  var attNotifyWrap=document.createElement('label'); attNotifyWrap.style.cssText='display:none;align-items:center;gap:5px;cursor:pointer;';
+  var attNotifyChk=document.createElement('input'); attNotifyChk.type='checkbox'; attNotifyChk.checked=true; attNotifyChk.style.cssText='width:12px;height:12px;accent-color:#aaff3e;cursor:pointer;';
+  var attNotifyLbl=document.createElement('span'); attNotifyLbl.style.cssText='font-size:10px;color:#6b7a96;white-space:nowrap;'; attNotifyLbl.textContent='Notify';
+  attNotifyWrap.appendChild(attNotifyChk); attNotifyWrap.appendChild(attNotifyLbl);
   var attSaveBtn = document.createElement('button');
   attSaveBtn.textContent = 'Save';
   attSaveBtn.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;cursor:pointer;font-family:inherit;display:none;';
   attSaveBtn.onclick = function(){
     attSaveBtn.textContent='Saving…'; attSaveBtn.disabled=true;
-    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:JSON.stringify({action:'calendar_update',provider_token:providerToken,eventId:evt.id,attendeeEmails:editAttendees.map(function(a){return a.email;})})})
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:JSON.stringify({action:'calendar_update',provider_token:providerToken,eventId:evt.id,attendeeEmails:editAttendees.map(function(a){return a.email;}),sendUpdates:attNotifyChk.checked})})
     .then(function(r){return r.json();}).then(function(d){
       attSaveBtn.textContent=d.error?'Error':'Saved ✓'; attSaveBtn.disabled=false;
-      setTimeout(function(){attSaveBtn.textContent='Save';attSaveBtn.style.display='none';},1500);
+      setTimeout(function(){attSaveBtn.textContent='Save';attSaveBtn.style.display='none';attNotifyWrap.style.display='none';},1500);
     }).catch(function(){attSaveBtn.textContent='Error';attSaveBtn.disabled=false;});
   };
-  attHdrRow.appendChild(attLabel); attHdrRow.appendChild(attSaveBtn);
+  var attBtnGroup=document.createElement('div'); attBtnGroup.style.cssText='display:flex;align-items:center;gap:8px;';
+  attBtnGroup.appendChild(attNotifyWrap); attBtnGroup.appendChild(attSaveBtn);
+  attHdrRow.appendChild(attLabel); attHdrRow.appendChild(attBtnGroup);
   left.appendChild(attHdrRow);
   var attList = document.createElement('div'); attList.style.cssText='margin-bottom:8px;';
   function renderAttendees(){
@@ -6170,7 +6177,7 @@ function openCalEventDetail(evt){
       var nm=document.createElement('span'); nm.style.cssText='font-size:11px;color:#b8c8e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;'; nm.textContent=a.name||a.email; nm.title=a.email;
       var rm=document.createElement('button'); rm.textContent='✕'; rm.style.cssText='background:none;border:none;color:#4a5568;font-size:11px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;';
       rm.onmouseover=function(){rm.style.color='#f87171';}; rm.onmouseout=function(){rm.style.color='#4a5568';};
-      rm.addEventListener('click',function(){editAttendees.splice(i,1);renderAttendees();attSaveBtn.style.display='';});
+      rm.addEventListener('click',function(){editAttendees.splice(i,1);renderAttendees();attSaveBtn.style.display='';attNotifyWrap.style.display='flex';});
       row.appendChild(dot); row.appendChild(nm); row.appendChild(rm); attList.appendChild(row);
     });
     if(!editAttendees.length){
@@ -6190,7 +6197,7 @@ function openCalEventDetail(evt){
     var e=attInp.value.trim();
     if(!e||!e.includes('@'))return;
     editAttendees.push({name:e,email:e,status:'needsAction'});
-    attInp.value=''; renderAttendees(); attSaveBtn.style.display='';
+    attInp.value=''; renderAttendees(); attSaveBtn.style.display=''; attNotifyWrap.style.display='flex';
   }
   addAttBtn.addEventListener('click',doAddAtt);
   attInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doAddAtt();}});
@@ -6683,9 +6690,19 @@ function openScheduleMeeting(prefill){
   form.appendChild(field('Attendees', attendeesEl));
   form.appendChild(field('Notes / Agenda', notesEl));
 
+  // Send invites toggle
+  var inviteRow=document.createElement('label');
+  inviteRow.style.cssText='display:flex;align-items:center;gap:8px;cursor:pointer;padding:2px 0;';
+  var inviteChk=document.createElement('input'); inviteChk.type='checkbox'; inviteChk.checked=true;
+  inviteChk.style.cssText='width:14px;height:14px;accent-color:#aaff3e;cursor:pointer;flex-shrink:0;';
+  var inviteLbl=document.createElement('span'); inviteLbl.style.cssText='font-size:11px;color:#6b7a96;';
+  inviteLbl.textContent='📧 Send email invites to all attendees';
+  inviteRow.appendChild(inviteChk); inviteRow.appendChild(inviteLbl);
+  form.appendChild(inviteRow);
+
   // Status msg
   var statusEl=document.createElement('div');
-  statusEl.style.cssText='font-size:11px;color:#4a5568;min-height:16px;';
+  statusEl.style.cssText='font-size:11px;color:#4a5568;min-height:16px;margin-top:4px;';
 
   // Buttons
   var btnRow=document.createElement('div'); btnRow.style.cssText='display:flex;gap:10px;justify-content:flex-end;padding:0 20px 20px;';
@@ -6708,7 +6725,7 @@ function openScheduleMeeting(prefill){
     fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(window._providerToken||providerToken||'')},
-      body:JSON.stringify({action:'calendar_create',provider_token:window._providerToken||providerToken||'',title:title,startDateTime:startDT,endDateTime:endDT,attendeeEmails:emails,location:locationEl.value.trim()||undefined,description:notesEl.value.trim()||undefined})
+      body:JSON.stringify({action:'calendar_create',provider_token:window._providerToken||providerToken||'',title:title,startDateTime:startDT,endDateTime:endDT,attendeeEmails:emails,location:locationEl.value.trim()||undefined,description:notesEl.value.trim()||undefined,sendUpdates:inviteChk.checked&&emails.length>0})
     })
     .then(function(r){return r.json();})
     .then(function(d){

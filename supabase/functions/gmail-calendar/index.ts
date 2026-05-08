@@ -229,16 +229,19 @@ serve(async (req) => {
 
     // ===== CALENDAR UPDATE (attendees + Google Meet) =====
     if (action === 'calendar_update') {
-      const { eventId, attendeeEmails, addMeet } = body
+      const { eventId, attendeeEmails, addMeet, sendUpdates } = body
       const patch: any = {}
-      let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`
+      const params = new URLSearchParams()
+      if (addMeet) {
+        patch.conferenceData = { createRequest: { requestId: `meet-${Date.now()}` } }
+        params.set('conferenceDataVersion', '1')
+      }
+      if (sendUpdates) params.set('sendUpdates', 'all')
       if (attendeeEmails !== undefined) {
         patch.attendees = attendeeEmails.map((email: string) => ({ email: email.trim() }))
       }
-      if (addMeet) {
-        patch.conferenceData = { createRequest: { requestId: `meet-${Date.now()}` } }
-        url += '?conferenceDataVersion=1'
-      }
+      const qs = params.toString()
+      let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}${qs ? '?' + qs : ''}`
       const res = await fetch(url, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${provider_token}`, 'Content-Type': 'application/json' },
@@ -251,7 +254,7 @@ serve(async (req) => {
 
     // ===== CALENDAR CREATE =====
     if (action === 'calendar_create') {
-      const { title, startDateTime, endDateTime, attendeeEmails, location: loc, description } = body
+      const { title, startDateTime, endDateTime, attendeeEmails, location: loc, description, sendUpdates } = body
       const event: any = {
         summary: title,
         start: { dateTime: startDateTime },
@@ -262,7 +265,10 @@ serve(async (req) => {
       if (attendeeEmails && attendeeEmails.length) {
         event.attendees = attendeeEmails.map((email: string) => ({ email: email.trim() }))
       }
-      const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      const createUrl = sendUpdates
+        ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all'
+        : 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+      const res = await fetch(createUrl, {
         method: 'POST',
         headers: { Authorization: `Bearer ${provider_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(event)
