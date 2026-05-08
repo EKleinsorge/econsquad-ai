@@ -6120,6 +6120,10 @@ function openCalEventDetail(evt){
   var PREP_CHECKS_KEY = 'esq_cal_checks_'+(evt.id||evt.title||'');
   var savedChecks = {};
   try{ savedChecks = JSON.parse(localStorage.getItem(PREP_CHECKS_KEY)||'{}'); }catch(e){}
+
+  var SAVED_NOTES_KEY = 'esq_cal_notes_'+(evt.id||evt.title||'');
+  var savedNotes = [];
+  try{ savedNotes = JSON.parse(localStorage.getItem(SAVED_NOTES_KEY)||'[]'); }catch(e){}
   steps.forEach(function(step,i){
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;cursor:pointer;';
@@ -6144,6 +6148,53 @@ function openCalEventDetail(evt){
     specBtn.onclick=function(){ deploy(info.specId); ol.remove(); };
     left.appendChild(sep2); left.appendChild(specBtn);
   }
+
+  // Saved Notes section (left panel, below checklist)
+  var notesSep = document.createElement('div');
+  notesSep.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:14px 0;';
+  var notesHdr = document.createElement('div');
+  notesHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
+  notesHdr.textContent = '🔖 Saved Notes';
+  var notesContainer = document.createElement('div');
+  notesContainer.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+
+  function renderSavedNotes(){
+    notesContainer.innerHTML = '';
+    if(!savedNotes.length){
+      var emp = document.createElement('div');
+      emp.style.cssText = 'font-size:11px;color:#4a5568;font-style:italic;line-height:1.5;';
+      emp.textContent = 'No saved notes yet — click 🔖 on any ARIA response to save it here.';
+      notesContainer.appendChild(emp);
+      return;
+    }
+    savedNotes.forEach(function(note, i){
+      var card = document.createElement('div');
+      card.style.cssText = 'background:rgba(170,255,62,0.04);border:1px solid rgba(170,255,62,0.12);border-radius:8px;padding:8px 10px;';
+      var noteText = document.createElement('div');
+      noteText.style.cssText = 'font-size:11px;color:#b8c8e0;line-height:1.55;';
+      noteText.innerHTML = note.text.replace(/\n/g,'<br>');
+      var noteFooter = document.createElement('div');
+      noteFooter.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-top:6px;';
+      var noteTs = document.createElement('span');
+      noteTs.style.cssText = 'font-size:9px;color:#4a5568;';
+      noteTs.textContent = new Date(note.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      var delBtn = document.createElement('button');
+      delBtn.textContent = '✕ Remove';
+      delBtn.style.cssText = 'background:none;border:none;color:#4a5568;font-size:10px;cursor:pointer;padding:0;font-family:inherit;';
+      delBtn.onmouseover = function(){ delBtn.style.color='#ff6b6b'; };
+      delBtn.onmouseout  = function(){ delBtn.style.color='#4a5568'; };
+      delBtn.addEventListener('click', function(){
+        savedNotes.splice(i,1);
+        localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(savedNotes));
+        renderSavedNotes();
+      });
+      noteFooter.appendChild(noteTs); noteFooter.appendChild(delBtn);
+      card.appendChild(noteText); card.appendChild(noteFooter);
+      notesContainer.appendChild(card);
+    });
+  }
+  renderSavedNotes();
+  left.appendChild(notesSep); left.appendChild(notesHdr); left.appendChild(notesContainer);
 
   // RIGHT — ARIA chat
   var right = document.createElement('div');
@@ -6198,6 +6249,23 @@ function openCalEventDetail(evt){
       chatHistory.push({role:'assistant', content:reply});
       typingBub.dataset.typing='0';
       typingBub.innerHTML = reply.replace(/\n/g,'<br>');
+      var saveRow = document.createElement('div');
+      saveRow.style.cssText = 'margin-top:7px;display:flex;justify-content:flex-end;';
+      var saveBtn = document.createElement('button');
+      saveBtn.innerHTML = '🔖 Save this';
+      saveBtn.style.cssText = 'background:none;border:none;color:#4a5568;font-size:10px;cursor:pointer;padding:0;font-family:inherit;transition:color .15s;';
+      saveBtn.onmouseover = function(){ saveBtn.style.color='#aaff3e'; };
+      saveBtn.onmouseout  = function(){ if(!saveBtn.disabled) saveBtn.style.color='#4a5568'; };
+      saveBtn.addEventListener('click', function(){
+        savedNotes.unshift({text:reply, savedAt:Date.now()});
+        localStorage.setItem(SAVED_NOTES_KEY, JSON.stringify(savedNotes));
+        renderSavedNotes();
+        saveBtn.innerHTML = '✓ Saved';
+        saveBtn.style.color = '#aaff3e';
+        saveBtn.disabled = true;
+      });
+      saveRow.appendChild(saveBtn);
+      typingBub.appendChild(saveRow);
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     })
     .catch(function(){
