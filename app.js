@@ -2209,7 +2209,7 @@
     var n = new Notification(title, {
       body: body,
       tag:  tag || ('esq-' + Date.now()),
-      icon: 'https://ekleinsorge.github.io/econsquad-ai/favicon.ico',
+      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>",
       silent: true   // we handle sound ourselves
     });
     if (s.sound_enabled) playSound(s.sound_type || 'chime', s.sound_custom_url);

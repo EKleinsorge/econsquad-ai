@@ -362,6 +362,26 @@ serve(async (req) => {
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const data = await res.json()
+
+      // Walk the MIME tree and collect every part that has a Content-ID header
+      // (these are inline images referenced as cid:xxx in the HTML body)
+      function collectInlineParts(payload: any, acc: any[] = []): any[] {
+        if (!payload) return acc
+        const cidHeader = (payload.headers || []).find(
+          (h: any) => h.name.toLowerCase() === 'content-id'
+        )
+        if (cidHeader && payload.body) {
+          acc.push({
+            cid:          cidHeader.value.replace(/^<|>$/g, '').trim(),
+            mimeType:     payload.mimeType || 'image/jpeg',
+            attachmentId: payload.body.attachmentId || null,
+            data:         payload.body.data || null,   // present for small inline parts
+          })
+        }
+        for (const part of payload.parts || []) collectInlineParts(part, acc)
+        return acc
+      }
+
       function extractBody(payload: any): { content: string; isHtml: boolean } {
         if (!payload) return { content: '', isHtml: false }
         if (payload.body?.data) {
@@ -369,9 +389,9 @@ serve(async (req) => {
           return { content, isHtml: payload.mimeType === 'text/html' }
         }
         if (payload.parts) {
-          const html = payload.parts.find((p: any) => p.mimeType === 'text/html')
+          const html  = payload.parts.find((p: any) => p.mimeType === 'text/html')
           const plain = payload.parts.find((p: any) => p.mimeType === 'text/plain')
-          const part = html || plain
+          const part  = html || plain
           if (part?.body?.data) {
             const content = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'))
             return { content, isHtml: !!html }
@@ -383,10 +403,40 @@ serve(async (req) => {
         }
         return { content: '', isHtml: false }
       }
+
       const headers = data.payload?.headers || []
       const getH = (n: string) => headers.find((h: any) => h.name === n)?.value || ''
       const { content, isHtml } = extractBody(data.payload)
-      result = { from: getH('From'), to: getH('To'), subject: getH('Subject'), date: getH('Date'), body: content, isHtml }
+
+      let processedBody = content
+
+      // Resolve cid: inline image references → data: URIs so they render in the browser
+      if (isHtml && data.payload) {
+        const inlineParts = collectInlineParts(data.payload)
+        for (const part of inlineParts) {
+          let b64 = part.data
+          // If the attachment data wasn't inlined in the MIME part, fetch it separately
+          if (!b64 && part.attachmentId) {
+            try {
+              const attRes = await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${part.attachmentId}`,
+                { headers: { Authorization: `Bearer ${provider_token}` } }
+              )
+              const attJson = await attRes.json()
+              b64 = attJson.data || null
+            } catch (_) { /* skip */ }
+          }
+          if (b64) {
+            const standardB64 = b64.replace(/-/g, '+').replace(/_/g, '/')
+            const dataUri      = `data:${part.mimeType};base64,${standardB64}`
+            // Replace every cid:xxx occurrence (case-insensitive, with or without angle brackets)
+            const escapedCid   = part.cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            processedBody = processedBody.replace(new RegExp(`cid:${escapedCid}`, 'gi'), dataUri)
+          }
+        }
+      }
+
+      result = { from: getH('From'), to: getH('To'), subject: getH('Subject'), date: getH('Date'), body: processedBody, isHtml }
     }
 
     // ===== CALENDAR UPDATE (attendees + Google Meet) =====
