@@ -562,7 +562,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 <script>
 var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
-var ADMIN_EMAIL='eric@gslisolutions.com';
+var ADMIN_EMAILS=['eric@gslisolutions.com']; /* ← add more admin emails here */
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var adminUser=null;
 var allReports=[];
@@ -582,7 +582,7 @@ window.addEventListener('load',function(){
 function adminLogin(){
   var email=document.getElementById('login-email').value.trim();
   var pass=document.getElementById('login-pass').value;
-  if(email!==ADMIN_EMAIL){showLoginMsg('Access denied. Admin only.','error');return;}
+  if(ADMIN_EMAILS.indexOf(email)===-1){showLoginMsg('Access denied. Admin only.','error');return;}
   supa.auth.signInWithPassword({email:email,password:pass}).then(function(res){
     if(res.error){showLoginMsg(res.error.message,'error');return;}
     checkAdminAccess(res.data.user);
@@ -590,7 +590,7 @@ function adminLogin(){
 }
 
 function checkAdminAccess(user){
-  if(user.email!==ADMIN_EMAIL){
+  if(ADMIN_EMAILS.indexOf(user.email)===-1){
     showLoginMsg('Access denied. You are not an admin.','error');
     supa.auth.signOut();
     return;
