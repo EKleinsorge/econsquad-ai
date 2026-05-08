@@ -1554,7 +1554,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
             <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,175,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;">✦</div>
             <div>
-              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:900;color:#aaff3e;">ARIA Morning Briefing</div>
+              <div id="briefing-title" style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:900;color:#aaff3e;">ARIA Briefing</div>
               <div id="briefing-time" style="font-size:10px;color:#4a5568;"></div>
             </div>
           </div>
@@ -6037,6 +6037,9 @@ function loadAriaBriefing(token){
   if(briefEl) briefEl.style.display = 'block';
   if(briefText) briefText.innerHTML = '<span style="color:#4a5568;">ARIA is preparing your briefing...</span>';
   if(briefTime) briefTime.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  var _bh = new Date().getHours();
+  var _btitle = document.getElementById('briefing-title');
+  if(_btitle) _btitle.textContent = 'ARIA ' + (_bh < 12 ? 'Morning' : _bh < 17 ? 'Afternoon' : 'Evening') + ' Briefing';
 
   supa.functions.invoke('gmail-calendar', {
     body: { action: 'aria_briefing', provider_token: token }
