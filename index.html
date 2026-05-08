@@ -6057,138 +6057,197 @@ function openCalEventDetail(evt){
   var dateStr = startD ? startD.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}) : '';
 
   var preps = {
-    'site':     ['Review the prospect company profile, industry, job count, and capital investment range.','Prepare a site comparison matrix using Cara — have 3 sites ready with utilities, zoning, and incentives.','Run incentive analysis with Ivy before the meeting — know your numbers.','Have a one-page community overview ready from Annie.'],
-    'board':    ['Pull your latest ROI stats and mission accomplishments for the quarter.','Deploy Brett to draft a board report summary — have it ready 24 hrs in advance.','Prepare a 3-minute verbal summary: wins, pipeline, and 90-day priorities.','Anticipate budget questions — have your hours-saved and value-recovered data ready.'],
-    'bre':      ['Review the company profile — employee count, years in community, recent news.','Deploy Blake to build a BRE survey tailored to this business.','Prepare a list of available resources: workforce programs, grants, site expansion options.','Have Rita ready to draft a follow-up BRE report after the meeting.'],
-    'grant':    ['Review the grant requirements and eligibility criteria before the call.','Deploy Gary to draft a grant narrative outline.','Use Fiona to cross-reference similar grants your organization has won.','Prepare a project budget summary and matching funds documentation.'],
-    'press':    ['Deploy Parker to draft key talking points and press release language.','Prepare your top 3 wins and economic impact numbers.','Have a quote approved by leadership ready to share.','Know your headline metrics: jobs created, capital investment, projects closed.'],
-    'council':  ['Prepare a one-page summary of active projects and pipeline.','Deploy Annie to draft a council presentation summary.','Have your ROI and taxpayer value metrics ready.','Anticipate questions about specific projects or community concerns.'],
-    'prospect': ['Research the company — size, industry, decision timeline, site requirements.','Deploy Marcus to run a market analysis for this industry.','Use Ivy to model incentives before the meeting.','Prepare a community overview and available sites packet with Cara.'],
-    'internal': ['Set a clear agenda with time-boxed items.','Have your pipeline and task status ready to share.','Use ARIA to draft a meeting summary template to fill in after.','Identify 1-2 decisions that need to be made in this meeting.'],
-    'other':    ['Review any relevant background information about attendees.','Prepare a clear objective: what does success look like for this meeting?','Ask ARIA to draft an agenda if you do not have one.','Have your key stats and project pipeline ready to reference.']
+    'site':     ['Review the prospect company profile, industry, job count, and capital investment range.','Prepare a site comparison matrix — have 3 sites ready with utilities, zoning, and incentives.','Run incentive analysis before the meeting — know your numbers.','Have a one-page community overview ready.'],
+    'board':    ['Pull your latest ROI stats and mission accomplishments for the quarter.','Draft a board report summary — have it ready 24 hrs in advance.','Prepare a 3-minute verbal summary: wins, pipeline, and 90-day priorities.','Anticipate budget questions — have your hours-saved and value-recovered data ready.'],
+    'bre':      ['Review the company profile — employee count, years in community, recent news.','Build a BRE survey tailored to this business.','Prepare a list of available resources: workforce programs, grants, site expansion options.','Draft a follow-up BRE report template for after the meeting.'],
+    'grant':    ['Review the grant requirements and eligibility criteria before the call.','Draft a grant narrative outline.','Cross-reference similar grants your organization has won.','Prepare a project budget summary and matching funds documentation.'],
+    'press':    ['Draft key talking points and press release language.','Prepare your top 3 wins and economic impact numbers.','Have a quote approved by leadership ready to share.','Know your headline metrics: jobs created, capital investment, projects closed.'],
+    'council':  ['Prepare a one-page summary of active projects and pipeline.','Draft a council presentation summary.','Have your ROI and taxpayer value metrics ready.','Anticipate questions about specific projects or community concerns.'],
+    'prospect': ['Research the company — size, industry, decision timeline, site requirements.','Run a market analysis for this industry.','Model incentives before the meeting.','Prepare a community overview and available sites packet.'],
+    'internal': ['Set a clear agenda with time-boxed items.','Have your pipeline and task status ready to share.','Draft a meeting summary template to fill in after.','Identify 1-2 decisions that need to be made in this meeting.'],
+    'other':    ['Review any relevant background information about attendees.','Prepare a clear objective: what does success look like for this meeting?','Draft an agenda if you do not have one.','Have your key stats and project pipeline ready to reference.']
   };
   var steps = preps[cat] || preps['other'];
 
+  // ── Overlay & modal ──
   var ol = document.createElement('div');
   ol.id = 'esq-cal-ol';
   ol.className = 'email-detail-overlay';
   var modal = document.createElement('div');
   modal.className = 'email-detail-modal';
-  modal.style.cssText = 'max-width:520px;width:92%;';
+  modal.style.cssText = 'max-width:880px;width:96%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;padding:0;';
 
-  // Close btn
+  // ── Header bar ──
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;';
+  var hdrBadge = document.createElement('span');
+  hdrBadge.style.cssText = 'background:'+info.color+'22;color:'+info.color+';font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;border:1px solid '+info.color+'44;white-space:nowrap;';
+  hdrBadge.textContent = info.icon+' '+info.label;
+  var hdrTitle = document.createElement('div');
+  hdrTitle.style.cssText = 'font-size:15px;font-weight:700;color:#eef3fc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+  hdrTitle.textContent = evt.title||'Untitled Event';
+  var hdrMeta = document.createElement('div');
+  hdrMeta.style.cssText = 'font-size:11px;color:#6b7a96;white-space:nowrap;display:flex;gap:12px;';
+  if(timeStr) hdrMeta.innerHTML += '<span>🕐 '+escHtml(timeStr)+'</span>';
+  if(evt.location) hdrMeta.innerHTML += '<span>📍 '+escHtml(evt.location)+'</span>';
   var xBtn = document.createElement('button');
   xBtn.className = 'email-detail-close';
+  xBtn.style.cssText = 'position:relative;top:0;right:0;flex-shrink:0;';
   xBtn.innerHTML = '&#x2715;';
   xBtn.addEventListener('click', function(){ ol.remove(); });
+  hdr.appendChild(hdrBadge); hdr.appendChild(hdrTitle); hdr.appendChild(hdrMeta); hdr.appendChild(xBtn);
 
-  // Category badge
-  var badge = document.createElement('span');
-  badge.style.cssText = 'display:inline-block;background:'+info.color+'22;color:'+info.color+';font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;border:1px solid '+info.color+'55;margin-bottom:12px;';
-  badge.textContent = info.icon + ' ' + info.label;
+  // ── Two-column body ──
+  var body = document.createElement('div');
+  body.style.cssText = 'display:flex;flex:1;overflow:hidden;';
 
-  // Title
-  var titleEl = document.createElement('div');
-  titleEl.style.cssText = 'font-size:17px;font-weight:700;color:#eef3fc;margin-bottom:10px;line-height:1.3;';
-  titleEl.textContent = evt.title || 'Untitled Event';
+  // LEFT — details + checklist
+  var left = document.createElement('div');
+  left.style.cssText = 'width:300px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);padding:18px;overflow-y:auto;display:flex;flex-direction:column;gap:0;';
 
-  // Meta row (date, time, location)
-  var meta = document.createElement('div');
-  meta.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:16px;';
-  if(dateStr) {
-    var dr = document.createElement('div');
-    dr.style.cssText = 'font-size:12px;color:#6b7a96;display:flex;align-items:center;gap:6px;';
-    dr.innerHTML = '📅 <span>'+escHtml(dateStr)+'</span>';
-    meta.appendChild(dr);
-  }
-  if(timeStr) {
-    var tr2 = document.createElement('div');
-    tr2.style.cssText = 'font-size:12px;color:#6b7a96;display:flex;align-items:center;gap:6px;';
-    tr2.innerHTML = '🕐 <span>'+escHtml(timeStr)+'</span>';
-    meta.appendChild(tr2);
-  }
-  if(evt.location) {
-    var lr = document.createElement('div');
-    lr.style.cssText = 'font-size:12px;color:#6b7a96;display:flex;align-items:center;gap:6px;';
-    lr.innerHTML = '📍 <span>'+escHtml(evt.location)+'</span>';
-    meta.appendChild(lr);
-  }
+  var metaDiv = document.createElement('div');
+  metaDiv.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:16px;';
+  if(dateStr){ var dr=document.createElement('div'); dr.style.cssText='font-size:11px;color:#6b7a96;'; dr.innerHTML='📅 '+escHtml(dateStr); metaDiv.appendChild(dr); }
+  if(timeStr){ var tr2=document.createElement('div'); tr2.style.cssText='font-size:11px;color:#6b7a96;'; tr2.innerHTML='🕐 '+escHtml(timeStr); metaDiv.appendChild(tr2); }
+  if(evt.location){ var lr=document.createElement('div'); lr.style.cssText='font-size:11px;color:#6b7a96;'; lr.innerHTML='📍 '+escHtml(evt.location); metaDiv.appendChild(lr); }
+  left.appendChild(metaDiv);
 
-  // Divider
-  var sep = document.createElement('div');
-  sep.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin-bottom:14px;';
+  var chkHdr = document.createElement('div');
+  chkHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;';
+  chkHdr.textContent = '✦ Prep Checklist';
+  left.appendChild(chkHdr);
 
-  // Prep checklist
-  var prepHdr = document.createElement('div');
-  prepHdr.style.cssText = 'font-size:11px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;';
-  prepHdr.textContent = '✦ Meeting Prep Checklist';
-
-  var checkList = document.createElement('div');
-  checkList.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:18px;';
-  var PREP_CHECKS_KEY = 'esq_cal_checks_' + (evt.id || evt.title || '');
+  var PREP_CHECKS_KEY = 'esq_cal_checks_'+(evt.id||evt.title||'');
   var savedChecks = {};
-  try { savedChecks = JSON.parse(localStorage.getItem(PREP_CHECKS_KEY) || '{}'); } catch(e){}
-
-  steps.forEach(function(step, i){
+  try{ savedChecks = JSON.parse(localStorage.getItem(PREP_CHECKS_KEY)||'{}'); }catch(e){}
+  steps.forEach(function(step,i){
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;cursor:pointer;';
-    var chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.checked = !!savedChecks[i];
-    chk.style.cssText = 'width:15px;height:15px;flex-shrink:0;margin-top:2px;accent-color:#aaff3e;cursor:pointer;';
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;cursor:pointer;';
+    var chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!savedChecks[i];
+    chk.style.cssText = 'width:14px;height:14px;flex-shrink:0;margin-top:2px;accent-color:#aaff3e;cursor:pointer;';
     var lbl = document.createElement('span');
-    lbl.style.cssText = 'font-size:12px;color:' + (chk.checked ? '#4a5568;text-decoration:line-through;' : '#b0bfd8;') + 'line-height:1.6;';
+    lbl.style.cssText = 'font-size:11px;line-height:1.55;color:'+(chk.checked?'#4a5568':'#b0bfd8')+(chk.checked?';text-decoration:line-through':'')+'';
     lbl.textContent = step;
     chk.addEventListener('change', function(){
-      savedChecks[i] = chk.checked;
-      localStorage.setItem(PREP_CHECKS_KEY, JSON.stringify(savedChecks));
-      lbl.style.color = chk.checked ? '#4a5568' : '#b0bfd8';
-      lbl.style.textDecoration = chk.checked ? 'line-through' : 'none';
+      savedChecks[i]=chk.checked; localStorage.setItem(PREP_CHECKS_KEY,JSON.stringify(savedChecks));
+      lbl.style.color=chk.checked?'#4a5568':'#b0bfd8'; lbl.style.textDecoration=chk.checked?'line-through':'none';
     });
-    row.addEventListener('click', function(e){ if(e.target !== chk){ chk.checked = !chk.checked; chk.dispatchEvent(new Event('change')); } });
-    row.appendChild(chk); row.appendChild(lbl);
-    checkList.appendChild(row);
+    row.addEventListener('click',function(e){ if(e.target!==chk){ chk.checked=!chk.checked; chk.dispatchEvent(new Event('change')); } });
+    row.appendChild(chk); row.appendChild(lbl); left.appendChild(row);
   });
 
-  // Action buttons
-  var actRow = document.createElement('div');
-  actRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
   if(info.specId){
-    var specBtn = document.createElement('button');
-    specBtn.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;';
-    specBtn.textContent = '→ ' + info.specialist;
-    specBtn.onclick = function(){ deploy(info.specId); ol.remove(); };
-    actRow.appendChild(specBtn);
+    var sep2=document.createElement('div'); sep2.style.cssText='height:1px;background:rgba(255,255,255,0.06);margin:12px 0;';
+    var specBtn=document.createElement('button');
+    specBtn.style.cssText='width:100%;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;';
+    specBtn.textContent='→ '+info.specialist;
+    specBtn.onclick=function(){ deploy(info.specId); ol.remove(); };
+    left.appendChild(sep2); left.appendChild(specBtn);
   }
-  var ariaBtn2 = document.createElement('button');
-  ariaBtn2.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;';
-  ariaBtn2.textContent = '✦ Ask ARIA';
-  ariaBtn2.onclick = function(){
-    ol.remove();
-    showDashTab('home-tab', null);
-    setTimeout(function(){
-      var inp = document.getElementById('home-chat-input');
-      var sendBtn = document.getElementById('home-chat-send');
-      if(inp){
-        inp.value = 'Help me prepare for my ' + info.label + ' meeting: "' + (evt.title||'') + '"' + (evt.location ? ' at ' + evt.location : '') + (timeStr ? ' at ' + timeStr : '') + '. What should I know and do before this meeting?';
-        inp.dispatchEvent(new Event('input'));
-        if(sendBtn) sendBtn.click();
-      }
-    }, 300);
-  };
-  actRow.appendChild(ariaBtn2);
 
-  modal.appendChild(xBtn);
-  modal.appendChild(badge);
-  modal.appendChild(titleEl);
-  modal.appendChild(meta);
-  modal.appendChild(sep);
-  modal.appendChild(prepHdr);
-  modal.appendChild(checkList);
-  modal.appendChild(actRow);
+  // RIGHT — ARIA chat
+  var right = document.createElement('div');
+  right.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;';
+
+  var chatHdr = document.createElement('div');
+  chatHdr.style.cssText = 'padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;flex-shrink:0;';
+  chatHdr.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#aaff3e;flex-shrink:0;box-shadow:0 0 6px #aaff3e99;"></span>'
+    +'<span style="font-size:12px;font-weight:700;color:#aaff3e;letter-spacing:.05em;">ARIA</span>'
+    +'<span style="font-size:11px;color:#4a5568;">Meeting Assistant — ask me anything about this meeting</span>';
+
+  var chatMsgs = document.createElement('div');
+  chatMsgs.style.cssText = 'flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;';
+
+  var chatHistory = [];
+  var systemPrompt = 'You are ARIA, a meeting coach and assistant for economic developers. The user has a '+info.label+' meeting: "'+evt.title+'"'
+    +(dateStr?' on '+dateStr:'')+(timeStr?' at '+timeStr:'')+(evt.location?' at '+evt.location:'')
+    +'. Help them prepare, draft agendas, write talking points, anticipate questions, or anything else they need. Be concise and actionable. Format responses with bullet points or short paragraphs for easy scanning.';
+
+  function addCalMsg(role, text, typing){
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;gap:8px;align-items:flex-start;'+(role==='user'?'flex-direction:row-reverse;':'');
+    var av = document.createElement('div');
+    av.style.cssText = 'width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;'
+      +(role==='user'?'background:rgba(100,175,255,0.2);color:#64afff;':'background:rgba(170,255,62,0.15);color:#aaff3e;');
+    av.textContent = role==='user'?'U':'A';
+    var bub = document.createElement('div');
+    bub.style.cssText = 'max-width:85%;font-size:12px;line-height:1.65;padding:9px 12px;border-radius:10px;'
+      +(role==='user'?'background:rgba(100,175,255,0.1);color:#eef3fc;border:1px solid rgba(100,175,255,0.15);':'background:rgba(255,255,255,0.04);color:#b8c8e0;border:1px solid rgba(255,255,255,0.08);');
+    if(typing){ bub.innerHTML='<span style="opacity:.5;">•••</span>'; bub.dataset.typing='1'; }
+    else { bub.innerHTML = text.replace(/\n/g,'<br>'); }
+    wrap.appendChild(av); wrap.appendChild(bub);
+    chatMsgs.appendChild(wrap);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    return bub;
+  }
+
+  function sendCalMsg(text){
+    if(!text.trim()) return;
+    addCalMsg('user', text, false);
+    chatHistory.push({role:'user', content:text});
+    var typingBub = addCalMsg('aria','',true);
+    calInp.value=''; calInp.style.height='38px';
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      body:JSON.stringify({action:'aria_chat', system:systemPrompt, messages:chatHistory})
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var reply = d.reply||'Sorry, I had trouble with that. Try again?';
+      chatHistory.push({role:'assistant', content:reply});
+      typingBub.dataset.typing='0';
+      typingBub.innerHTML = reply.replace(/\n/g,'<br>');
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    })
+    .catch(function(){
+      typingBub.innerHTML='Something went wrong. Please try again.';
+    });
+  }
+
+  // Input row
+  var inputRow = document.createElement('div');
+  inputRow.style.cssText = 'display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0;align-items:flex-end;';
+  var calInp = document.createElement('textarea');
+  calInp.placeholder = 'Ask ARIA anything about this meeting…';
+  calInp.rows = 1;
+  calInp.style.cssText = 'flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:12px;color:#eef3fc;outline:none;font-family:inherit;resize:none;height:38px;max-height:100px;overflow-y:auto;line-height:1.4;';
+  calInp.addEventListener('input',function(){ this.style.height='38px'; this.style.height=Math.min(this.scrollHeight,100)+'px'; });
+  calInp.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendCalMsg(calInp.value); } });
+  calInp.addEventListener('focus',function(){ this.style.borderColor='rgba(170,255,62,0.4)'; });
+  calInp.addEventListener('blur',function(){ this.style.borderColor='rgba(255,255,255,0.1)'; });
+  var calSend = document.createElement('button');
+  calSend.style.cssText = 'background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;border-radius:8px;padding:0 14px;height:38px;cursor:pointer;font-size:16px;flex-shrink:0;';
+  calSend.innerHTML = '&#9658;';
+  calSend.addEventListener('click',function(){ sendCalMsg(calInp.value); });
+  inputRow.appendChild(calInp); inputRow.appendChild(calSend);
+
+  // Suggested prompts
+  var suggestions = document.createElement('div');
+  suggestions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px;';
+  var prompts = ['Draft an agenda','What questions might I be asked?','Write talking points','Summarize what I need to prepare'];
+  prompts.forEach(function(p){
+    var btn = document.createElement('button');
+    btn.textContent = p;
+    btn.style.cssText = 'font-size:10px;padding:4px 10px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;cursor:pointer;font-family:inherit;white-space:nowrap;';
+    btn.onmouseover=function(){ btn.style.color='#aaff3e'; btn.style.borderColor='rgba(170,255,62,0.3)'; };
+    btn.onmouseout=function(){ btn.style.color='#6b7a96'; btn.style.borderColor='rgba(255,255,255,0.1)'; };
+    btn.addEventListener('click',function(){ sendCalMsg(p+' for my '+info.label+' meeting: "'+evt.title+'"'); suggestions.style.display='none'; });
+    suggestions.appendChild(btn);
+  });
+
+  right.appendChild(chatHdr); right.appendChild(chatMsgs); right.appendChild(suggestions); right.appendChild(inputRow);
+  body.appendChild(left); body.appendChild(right);
+  modal.appendChild(hdr); modal.appendChild(body);
   ol.appendChild(modal);
-  ol.addEventListener('click', function(e){ if(e.target===ol) ol.remove(); });
+  ol.addEventListener('click',function(e){ if(e.target===ol) ol.remove(); });
   document.body.appendChild(ol);
+  calInp.focus();
+
+  // Auto-send opening brief
+  setTimeout(function(){
+    sendCalMsg('Give me a quick prep brief for this meeting. What are the 3 most important things I should do or know before walking in?');
+  }, 300);
 }
 
 function showCalendarToday(events){

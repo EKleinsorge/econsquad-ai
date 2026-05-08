@@ -12,6 +12,32 @@ serve(async (req) => {
     const body = await req.json()
     const { action, provider_token } = body
 
+    // ===== ARIA MEETING CHAT (no provider_token needed) =====
+    if (action === 'aria_chat') {
+      const { messages, system } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      if (!anthropicKey) {
+        return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500
+        })
+      }
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1024,
+          system: system || 'You are ARIA, an AI meeting coach for economic developers.',
+          messages: messages || []
+        })
+      })
+      const claudeData = await claudeRes.json()
+      const reply = claudeData?.content?.[0]?.text || ''
+      return new Response(JSON.stringify({ reply }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     // ===== ARIA REPLY DRAFT (no provider_token needed) =====
     if (action === 'aria_reply') {
       const { from, subject, snippet } = body
