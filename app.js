@@ -1,5 +1,5 @@
 
-/* EconSquad App Extensions v05.04.1740 */
+/* EconSquad App Extensions v05.05.1745 */
 (function() {
   var TRASH_KEY = 'esq_trash_log';
   var TRASH_EMAILS_KEY = 'esq_trash_emails';
@@ -281,9 +281,12 @@
     }
     var closeBtn = cel('button', 'email-action-btn', 'Close');
     closeBtn.addEventListener('click', function() { ol.remove(); });
+    var replyDetBtn = cel('button', 'email-action-btn', '&#9993; Reply');
+    replyDetBtn.addEventListener('click', function() { ol.remove(); window.openReplyCompose(email); });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
     trashBtn.addEventListener('click', function() { window.trashEmailCard(email.id || '', null, email); ol.remove(); });
     actRow.appendChild(closeBtn);
+    actRow.appendChild(replyDetBtn);
     actRow.appendChild(trashBtn);
     modal.appendChild(handle);
     modal.appendChild(xBtn);
@@ -295,6 +298,120 @@
     ol.appendChild(modal);
     ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
     document.body.appendChild(ol);
+  };
+
+  /* ── REPLY COMPOSE MODAL ── */
+  window.openReplyCompose = function(email) {
+    var old = eid('esq-compose-ol'); if (old) old.remove();
+    var m = (email.from || '').match(/<([^>]+)>/);
+    var toAddr = m ? m[1] : (email.from || '');
+    var subj = 'Re: ' + (email.subject || '');
+
+    var ol = cel('div', 'email-detail-overlay');
+    ol.id = 'esq-compose-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:560px;width:92%;';
+
+    var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.addEventListener('click', function() { ol.remove(); });
+
+    var title = cel('div', '', 'Reply');
+    title.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:14px;';
+
+    var toRow = cel('div', '');
+    toRow.style.cssText = 'margin-bottom:10px;';
+    var toLbl = cel('div', '', 'To');
+    toLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
+    var toEl = cel('div', '', escH(email.from || ''));
+    toEl.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;';
+    toRow.appendChild(toLbl); toRow.appendChild(toEl);
+
+    var subRow = cel('div', '');
+    subRow.style.cssText = 'margin-bottom:10px;';
+    var subLbl = cel('div', '', 'Subject');
+    subLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
+    var subInp = document.createElement('input');
+    subInp.type = 'text'; subInp.value = subj;
+    subInp.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;';
+    subInp.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    subInp.addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+    subRow.appendChild(subLbl); subRow.appendChild(subInp);
+
+    var quoteDiv = cel('div', '');
+    quoteDiv.style.cssText = 'background:rgba(255,255,255,0.03);border-left:3px solid rgba(170,255,62,0.25);border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#6b7a96;line-height:1.5;max-height:72px;overflow:hidden;';
+    quoteDiv.textContent = email.snippet || '';
+
+    var bodyLbl = cel('div', '', 'Your Reply');
+    bodyLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
+    var textarea = document.createElement('textarea');
+    textarea.placeholder = 'Write your reply here...';
+    textarea.rows = 6;
+    textarea.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;margin-bottom:8px;';
+    textarea.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    textarea.addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+
+    var ariaBtn = cel('button', 'email-action-btn', '&#x2728; ARIA: Draft Reply');
+    ariaBtn.style.cssText = 'background:rgba(170,255,62,0.1);border-color:rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;margin-bottom:14px;';
+    ariaBtn.addEventListener('click', function() {
+      ariaBtn.disabled = true; ariaBtn.textContent = 'Drafting…';
+      var ctx = 'From: ' + (email.from || '') + '\nSubject: ' + (email.subject || '') + '\nMessage preview: ' + (email.snippet || '');
+      var prompt = 'Draft a professional, concise reply to this email. Return only the reply body text (no subject line, no greeting label like "Subject:" or "To:"):\n\n' + ctx;
+      function callClaude(key) {
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          var draft = (d.content && d.content[0] && d.content[0].text) || '';
+          if (draft) { textarea.value = draft; textarea.style.borderColor = 'rgba(170,255,62,0.5)'; setTimeout(function() { textarea.style.borderColor = 'rgba(255,255,255,0.1)'; }, 1800); }
+          ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply';
+        })
+        .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
+      }
+      if (window.supabase && window.currentUser) {
+        window.supabase.from('profiles').select('anthropic_key').eq('id', window.currentUser.id).single()
+          .then(function(res) {
+            var key = res.data && res.data.anthropic_key;
+            if (key) { callClaude(key); }
+            else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; ariaBtn.title = 'Add your Anthropic API key in Settings to use ARIA'; }
+          })
+          .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
+      } else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; }
+    });
+
+    var actRow = cel('div', 'email-detail-actions');
+    var cancelBtn = cel('button', 'email-action-btn', 'Cancel');
+    cancelBtn.addEventListener('click', function() { ol.remove(); });
+    var sendBtn2 = cel('button', 'email-action-btn primary', '&#9993; Send');
+    sendBtn2.addEventListener('click', function() {
+      var body = textarea.value.trim(); if (!body) return;
+      sendBtn2.disabled = true; sendBtn2.textContent = 'Sending…';
+      fetchToken().then(function(token) {
+        if (!token) { sendBtn2.disabled = false; sendBtn2.innerHTML = '&#9993; Send'; return; }
+        var rawEmail = ['To: ' + toAddr, 'Subject: ' + subInp.value, 'Content-Type: text/plain; charset=utf-8', '', body].join('\n');
+        var encoded = btoa(unescape(encodeURIComponent(rawEmail))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: encoded })
+        })
+        .then(function() { sendBtn2.innerHTML = '&#10003; Sent!'; setTimeout(function() { ol.remove(); }, 900); })
+        .catch(function() { sendBtn2.disabled = false; sendBtn2.innerHTML = '&#9993; Send'; });
+      });
+    });
+    actRow.appendChild(cancelBtn); actRow.appendChild(sendBtn2);
+
+    modal.appendChild(xBtn); modal.appendChild(title);
+    modal.appendChild(toRow); modal.appendChild(subRow);
+    modal.appendChild(quoteDiv);
+    modal.appendChild(bodyLbl); modal.appendChild(textarea);
+    modal.appendChild(ariaBtn); modal.appendChild(actRow);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+    textarea.focus();
   };
 
   /* ── TRASH SYSTEM ── */
@@ -558,9 +675,7 @@
     var replyBtn = cel('button', 'email-action-btn', 'Reply');
     replyBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      var m = (email.from || '').match(/<([^>]+)>/);
-      var to = m ? m[1] : (email.from || '');
-      window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&su=' + encodeURIComponent('Re: ' + (email.subject || '')));
+      window.openReplyCompose(email);
     });
     var archBtn = cel('button', 'email-action-btn', 'Archive');
     archBtn.addEventListener('click', function(e) {
