@@ -6984,7 +6984,7 @@ function renderSchedulePanel(filterDate) {
   if(!panel) return;
 
   /* Merge today + week events, deduplicate by id/title */
-  var todayEvts = window._lastCalEvents   || [];
+  var todayEvts = window._lastCalEvents    || [];
   var weekEvts  = window._lastCalWeekEvents || [];
   var seen = {};
   var allEvts = [];
@@ -6992,7 +6992,6 @@ function renderSchedulePanel(filterDate) {
     var key = e.id || e.title;
     if(!seen[key]){ seen[key]=true; allEvts.push(e); }
   });
-  /* sort by start */
   allEvts.sort(function(a,b){ return new Date(a.start)-new Date(b.start); });
 
   /* apply date filter */
@@ -7014,41 +7013,34 @@ function renderSchedulePanel(filterDate) {
     return;
   }
 
-  /* Group by day label */
-  var now   = new Date();
-  var tod   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var tom   = new Date(tod); tom.setDate(tom.getDate()+1);
-  var wkEnd = new Date(tod); wkEnd.setDate(wkEnd.getDate()+7);
+  /* Split into today vs future */
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var todayEnd   = new Date(todayStart); todayEnd.setDate(todayEnd.getDate()+1);
 
+  var todayGroup   = allEvts.filter(function(e){ var d=new Date(e.start); return d>=todayStart && d<todayEnd; });
+  var futureGroup  = allEvts.filter(function(e){ return new Date(e.start)>=todayEnd; });
+
+  /* day label helper for future events */
+  var tom   = new Date(todayStart); tom.setDate(tom.getDate()+1);
+  var wkEnd = new Date(todayStart); wkEnd.setDate(wkEnd.getDate()+7);
   function dayLabel(d){
     var ds = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    if(+ds === +tod) return 'Today';
-    if(+ds === +tom) return 'Tomorrow';
-    if(ds < wkEnd)  return d.toLocaleDateString([],{weekday:'long'});
-    return d.toLocaleDateString([],{month:'short',day:'numeric',weekday:'short'});
+    if(+ds===+tom) return 'Tomorrow';
+    if(ds<wkEnd)   return d.toLocaleDateString([],{weekday:'long'});
+    return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
   }
 
-  /* Build grouped rows */
-  var groups = {};
-  var order  = [];
-  allEvts.forEach(function(e){
-    var d = new Date(e.start);
-    var lbl = filterDate ? d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}) : dayLabel(d);
-    if(!groups[lbl]){ groups[lbl]=[]; order.push(lbl); }
-    groups[lbl].push(e);
-  });
-
   panel.innerHTML = '';
-  order.forEach(function(lbl){
-    /* Day header */
-    var hdr = document.createElement('div');
-    hdr.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:'
-      +(lbl==='Today'?'#aaff3e':lbl==='Tomorrow'?'#f5c542':'#6b7a96')
-      +';text-transform:uppercase;letter-spacing:.09em;padding:10px 8px 5px;';
-    hdr.textContent = lbl;
-    panel.appendChild(hdr);
 
-    groups[lbl].forEach(function(evt){
+  /* ── TODAY: large bubbles ─────────────────────────────────── */
+  if(todayGroup.length){
+    var todayHdr = document.createElement('div');
+    todayHdr.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.09em;padding:8px 8px 6px;';
+    todayHdr.textContent = "Today";
+    panel.appendChild(todayHdr);
+
+    todayGroup.forEach(function(evt){
       var cat  = categorizeMeeting(evt.title, evt.description||'');
       var info = calMeetingTypes[cat];
       var d    = new Date(evt.start);
@@ -7056,30 +7048,82 @@ function renderSchedulePanel(filterDate) {
       var hasNotes = false;
       try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
 
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:10px;align-items:center;padding:8px 8px;border-radius:9px;cursor:pointer;transition:background .12s;margin-bottom:2px;';
-      row.onmouseover = function(){ this.style.background='rgba(255,255,255,0.04)'; };
-      row.onmouseout  = function(){ this.style.background=''; };
+      var card = document.createElement('div');
+      card.style.cssText = 'background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+info.color+';border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:background .15s;';
+      card.onmouseover = function(){ this.style.background='rgba(14,20,36,0.98)'; };
+      card.onmouseout  = function(){ this.style.background='rgba(14,20,36,0.8)'; };
+      card.innerHTML = [
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">',
+          '<span style="font-size:14px;">'+info.icon+'</span>',
+          '<span style="font-size:12px;font-weight:700;color:#eef3fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+escHtml(evt.title)+'</span>',
+          hasNotes ? '<span style="font-size:10px;background:rgba(170,255,62,0.12);color:#aaff3e;padding:1px 7px;border-radius:10px;border:1px solid rgba(170,255,62,0.25);font-weight:700;white-space:nowrap;">🔖 Notes</span>' : '',
+        '</div>',
+        '<div style="display:flex;align-items:center;gap:8px;">',
+          '<span style="font-size:10px;color:#6b7a96;">🕐 '+timeStr+'</span>',
+          '<span style="background:'+info.color+'22;color:'+info.color+';font-size:9px;font-weight:800;padding:1px 7px;border-radius:6px;">'+info.label+'</span>',
+          evt.location ? '<span style="font-size:10px;color:#4a5568;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+escHtml(evt.location)+'</span>' : '',
+        '</div>',
+      ].join('');
+      card.addEventListener('click', function(){ openCalEventDetail(evt); });
+      panel.appendChild(card);
+    });
+  }
 
-      var colorDot = document.createElement('div');
-      colorDot.style.cssText = 'width:3px;height:36px;border-radius:3px;flex-shrink:0;background:'+info.color+';';
+  /* ── FUTURE: compact list ─────────────────────────────────── */
+  if(futureGroup.length){
+    /* divider + header */
+    var futHdr = document.createElement('div');
+    futHdr.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.09em;padding:'+(todayGroup.length?'14px':'8px')+' 8px 6px;border-top:'+(todayGroup.length?'1px solid rgba(255,255,255,0.06)':'none')+';margin-top:'+(todayGroup.length?'4px':'0')+';';
+    futHdr.textContent = '📆 Coming Up';
+    panel.appendChild(futHdr);
 
-      var body = document.createElement('div');
-      body.style.cssText = 'flex:1;min-width:0;';
-      body.innerHTML = '<div style="font-size:12px;font-weight:600;color:#d4e0f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-        +info.icon+' '+escHtml(evt.title)+'</div>'
-        +'<div style="font-size:10px;color:#6b7a96;margin-top:2px;">'+timeStr+(hasNotes?' · 🔖':'')+'</div>';
-
-      row.appendChild(colorDot);
-      row.appendChild(body);
-      row.addEventListener('click', function(){ openCalEventDetail(evt); });
-      panel.appendChild(row);
+    /* group future by day */
+    var fGroups = {}, fOrder = [];
+    futureGroup.forEach(function(e){
+      var d = new Date(e.start);
+      var lbl = filterDate ? d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}) : dayLabel(d);
+      if(!fGroups[lbl]){ fGroups[lbl]=[]; fOrder.push(lbl); }
+      fGroups[lbl].push(e);
     });
 
-    /* spacer between groups */
-    var sp = document.createElement('div'); sp.style.height='4px';
-    panel.appendChild(sp);
-  });
+    fOrder.forEach(function(lbl){
+      /* day sub-label */
+      var dlbl = document.createElement('div');
+      dlbl.style.cssText = 'font-size:9px;font-weight:700;color:'+(lbl==='Tomorrow'?'#f5c542':'#4a5568')+';text-transform:uppercase;letter-spacing:.07em;padding:6px 8px 2px;';
+      dlbl.textContent = lbl;
+      panel.appendChild(dlbl);
+
+      fGroups[lbl].forEach(function(evt){
+        var cat  = categorizeMeeting(evt.title, evt.description||'');
+        var info = calMeetingTypes[cat];
+        var d    = new Date(evt.start);
+        var timeStr = evt.allDay ? 'All day' : d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        var hasNotes = false;
+        try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
+
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:1px;';
+        row.onmouseover = function(){ this.style.background='rgba(255,255,255,0.04)'; };
+        row.onmouseout  = function(){ this.style.background=''; };
+
+        var dot = document.createElement('div');
+        dot.style.cssText = 'width:3px;height:30px;border-radius:3px;flex-shrink:0;background:'+info.color+';opacity:0.7;';
+
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
+        body.innerHTML = '<div style="font-size:11px;font-weight:600;color:#b8c8e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+info.icon+' '+escHtml(evt.title)+'</div>'
+          +'<div style="font-size:10px;color:#4a5568;margin-top:1px;">'+timeStr+(hasNotes?' · 🔖':'')+'</div>';
+
+        row.appendChild(dot);
+        row.appendChild(body);
+        row.addEventListener('click', function(){ openCalEventDetail(evt); });
+        panel.appendChild(row);
+      });
+    });
+  }
+
+  /* if filtered and no today events, future uses full bubble style too */
+  if(filterDate && !todayGroup.length && !futureGroup.length) return;
 }
 
 function openScheduleMeeting(prefill){
