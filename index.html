@@ -5339,7 +5339,7 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'email profile https://www.googleapis.com/auth/gmail https://www.googleapis.com/auth/calendar.readonly',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   }).then(function(res){
@@ -5730,7 +5730,7 @@ function connectGmail(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'email profile https://www.googleapis.com/auth/gmail https://www.googleapis.com/auth/calendar.readonly',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
