@@ -929,6 +929,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .scroll-area,#inbox-tab{padding-bottom:90px !important;}
 @media(max-width:768px){#inbox-grid{grid-template-columns:1fr !important;}}
 @media(max-width:600px){#esq-right-sidebar{display:none !important;}}
+@media(max-width:860px){#fullcal-tab>div:last-child{grid-template-columns:1fr !important;}#esq-schedule-panel{position:static !important;}}
+#esq-schedule-list::-webkit-scrollbar{width:4px;}
+#esq-schedule-list::-webkit-scrollbar-track{background:transparent;}
+#esq-schedule-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
 .email-card-v2{background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .15s;}
 .email-card-v2:hover{border-color:rgba(170,255,62,0.25);background:rgba(20,28,50,0.92);transform:translateY(-1px);}
 .email-card-v2.tag-rfi{border-left:3px solid #64afff;}.email-card-v2.tag-grant{border-left:3px solid #f5c542;}.email-card-v2.tag-bre{border-left:3px solid #32e1c8;}.email-card-v2.tag-incentive{border-left:3px solid #c88cff;}.email-card-v2.tag-workforce{border-left:3px solid #aaff3e;}.email-card-v2.tag-prospect{border-left:3px solid #ff9b41;}.email-card-v2.tag-bounce{border-left:3px solid rgba(255,80,80,0.9);}.email-card-v2.tag-appt,.email-card-v2.tag-cal{border-left:3px solid #aaff3e;}.email-card-v2.tag-site{border-left:3px solid #64afff;}.email-card-v2.tag-system{border-left:3px solid rgba(165,185,210,0.5);}.email-card-v2.tag-market{border-left:3px solid #ff9b41;}.email-card-v2.tag-travel{border-left:3px solid #82dcff;}.email-card-v2.tag-subscr{border-left:3px solid #c88cff;}.email-card-v2.tag-health{border-left:3px solid #32e1c8;}.email-card-v2.tag-survey,.email-card-v2.tag-alert{border-left:3px solid #82dcff;}.email-card-v2.tag-promo{border-left:3px solid rgba(255,220,100,0.5);}.email-card-v2.tag-support,.email-card-v2.tag-email{border-left:3px solid rgba(255,255,255,0.12);}
@@ -1638,12 +1642,33 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
 
       <!-- ========== FULL CALENDAR TAB ========== -->
-      <div class="page main dash-tab" id="fullcal-tab" style="display:none;padding:24px 32px;">
+      <div class="page main dash-tab" id="fullcal-tab" style="display:none;padding:24px 32px 24px 24px;">
+        <!-- Header row -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#eef3fc;">📅 Calendar</div>
-          <button onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule Meeting</button>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="esq-sched-filter-label" style="font-size:11px;color:#6b7a96;display:none;"></span>
+            <button id="esq-sched-clear-btn" onclick="clearScheduleFilter()" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit;">✕ Clear filter</button>
+            <button onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule Meeting</button>
+          </div>
         </div>
-        <div id="esq-fullcal" style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;"></div>
+        <!-- Split pane: schedule left, calendar right -->
+        <div style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;">
+
+          <!-- LEFT: Schedule panel -->
+          <div id="esq-schedule-panel" style="background:rgba(10,15,28,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;position:sticky;top:20px;">
+            <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.1em;">Schedule</span>
+              <span id="esq-sched-count" style="font-size:10px;color:#4a5568;"></span>
+            </div>
+            <div id="esq-schedule-list" style="padding:10px 8px;max-height:calc(100vh - 220px);overflow-y:auto;">
+              <div style="color:#4a5568;font-size:12px;padding:16px;text-align:center;">Loading events…</div>
+            </div>
+          </div>
+
+          <!-- RIGHT: FullCalendar grid -->
+          <div id="esq-fullcal" style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;"></div>
+        </div>
       </div>
 
       <!-- ========== MY STATS TAB ========== -->
@@ -1888,6 +1913,17 @@ function initFullCalendar(){
     buttonText: { today:'Today', month:'Month', week:'Week', day:'Day', list:'Agenda' },
     nowIndicator: true,
     events: fcEvents,
+    dateClick: function(info) {
+      /* filter the schedule panel to the clicked date */
+      _schedFilterDate = info.dateStr;
+      var lbl = document.getElementById('esq-sched-filter-label');
+      var btn = document.getElementById('esq-sched-clear-btn');
+      var d = new Date(info.dateStr + 'T00:00:00');
+      var label = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+      if(lbl){ lbl.textContent = label; lbl.style.display='inline'; }
+      if(btn){ btn.style.display='inline-block'; }
+      renderSchedulePanel(_schedFilterDate);
+    },
     eventClick: function(info){
       openCalEventDetail(info.event.extendedProps._raw);
     },
@@ -6783,6 +6819,8 @@ function openCalEventDetail(evt){
 function showCalendarToday(events){
   var el = document.getElementById('calendar-today');
   window._lastCalEvents = events;
+  /* refresh split-pane schedule panel whenever today's events arrive */
+  setTimeout(function(){ renderSchedulePanel(_schedFilterDate); }, 50);
   if(!el) return;
   if(!events.length){
     el.innerHTML = '<div style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px;text-align:center;color:#4a5568;font-size:12px;">No events today — clear runway! 🚀</div>';
@@ -6913,34 +6951,152 @@ function prepMeetingWithARIA(title, cat) {
 }
 
 function showCalendarWeek(events){
+  /* legacy home-tab calendar-week list (keep working) */
   var el = document.getElementById('calendar-week');
-  if(!el) return;
-  var today = new Date();
-  var upcoming = events.filter(function(e){
-    return new Date(e.start) > today;
-  }).slice(0,7);
-  if(!upcoming.length){
-    el.innerHTML = '<div style="color:#4a5568;font-size:11px;padding:8px 0;">Nothing scheduled this week.</div>';
+  window._lastCalWeekEvents = events;
+  if(el){
+    var today = new Date();
+    var upcoming = events.filter(function(e){ return new Date(e.start) > today; }).slice(0,7);
+    if(!upcoming.length){
+      el.innerHTML = '<div style="color:#4a5568;font-size:11px;padding:8px 0;">Nothing scheduled this week.</div>';
+    } else {
+      el.innerHTML = '';
+      upcoming.forEach(function(evt){
+        var div = document.createElement('div');
+        div.style.cssText = 'padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background .12s;border-radius:6px;padding-left:4px;';
+        div.onmouseover = function(){ this.style.background='rgba(255,255,255,0.03)'; };
+        div.onmouseout  = function(){ this.style.background=''; };
+        var d = new Date(evt.start);
+        var dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+        var cat = categorizeMeeting(evt.title, '');
+        var info = calMeetingTypes[cat];
+        var hasNotes = false;
+        try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
+        div.dataset.calid = evt.id||evt.title||'';
+        div.innerHTML = '<div style="font-size:10px;color:#6b7a96;min-width:60px;margin-top:1px;">'+dateStr+'</div>'
+          +'<div style="font-size:12px;color:#b8c8e0;flex:1;">'+info.icon+' '+escHtml(evt.title)+'</div>'
+          +'<span data-notesbadge style="font-size:10px;color:#aaff3e;opacity:.8;">'+(hasNotes?'🔖':'')+'</span>';
+        div.addEventListener('click', function(){ openCalEventDetail(evt); });
+        el.appendChild(div);
+      });
+    }
+  }
+  /* also refresh the split-pane schedule panel */
+  renderSchedulePanel(null);
+}
+
+/* ── Schedule panel renderer ──────────────────────────────────────────── */
+var _schedFilterDate = null; // null = show all
+
+window.clearScheduleFilter = function() {
+  _schedFilterDate = null;
+  var lbl = document.getElementById('esq-sched-filter-label');
+  var btn = document.getElementById('esq-sched-clear-btn');
+  if(lbl) lbl.style.display = 'none';
+  if(btn) btn.style.display = 'none';
+  renderSchedulePanel(null);
+};
+
+function renderSchedulePanel(filterDate) {
+  var panel = document.getElementById('esq-schedule-list');
+  if(!panel) return;
+
+  /* Merge today + week events, deduplicate by id/title */
+  var todayEvts = window._lastCalEvents   || [];
+  var weekEvts  = window._lastCalWeekEvents || [];
+  var seen = {};
+  var allEvts = [];
+  todayEvts.concat(weekEvts).forEach(function(e){
+    var key = e.id || e.title;
+    if(!seen[key]){ seen[key]=true; allEvts.push(e); }
+  });
+  /* sort by start */
+  allEvts.sort(function(a,b){ return new Date(a.start)-new Date(b.start); });
+
+  /* apply date filter */
+  if(filterDate){
+    var fd = new Date(filterDate);
+    allEvts = allEvts.filter(function(e){
+      var d = new Date(e.start);
+      return d.getFullYear()===fd.getFullYear() && d.getMonth()===fd.getMonth() && d.getDate()===fd.getDate();
+    });
+  }
+
+  var countEl = document.getElementById('esq-sched-count');
+  if(countEl) countEl.textContent = allEvts.length ? allEvts.length+' event'+(allEvts.length!==1?'s':'') : '';
+
+  if(!allEvts.length){
+    panel.innerHTML = '<div style="color:#4a5568;font-size:12px;padding:20px 10px;text-align:center;">'
+      +(filterDate ? 'No events on this day.' : 'No upcoming events.<br><span style="font-size:11px;">Connect your Google Calendar to sync events.</span>')
+      +'</div>';
     return;
   }
-  el.innerHTML = '';
-  upcoming.forEach(function(evt){
-    var div = document.createElement('div');
-    div.style.cssText = 'padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:10px;align-items:flex-start;cursor:pointer;transition:background .12s;border-radius:6px;padding-left:4px;';
-    div.onmouseover = function(){ this.style.background='rgba(255,255,255,0.03)'; };
-    div.onmouseout  = function(){ this.style.background=''; };
-    var d = new Date(evt.start);
-    var dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
-    var cat = categorizeMeeting(evt.title, '');
-    var info = calMeetingTypes[cat];
-    var hasNotes = false;
-    try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
-    div.dataset.calid = evt.id||evt.title||'';
-    div.innerHTML = '<div style="font-size:10px;color:#6b7a96;min-width:60px;margin-top:1px;">'+dateStr+'</div>'
-      +'<div style="font-size:12px;color:#b8c8e0;flex:1;">'+info.icon+' '+escHtml(evt.title)+'</div>'
-      +'<span data-notesbadge style="font-size:10px;color:#aaff3e;opacity:.8;">'+(hasNotes?'🔖':'')+'</span>';
-    div.addEventListener('click', function(){ openCalEventDetail(evt); });
-    el.appendChild(div);
+
+  /* Group by day label */
+  var now   = new Date();
+  var tod   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var tom   = new Date(tod); tom.setDate(tom.getDate()+1);
+  var wkEnd = new Date(tod); wkEnd.setDate(wkEnd.getDate()+7);
+
+  function dayLabel(d){
+    var ds = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if(+ds === +tod) return 'Today';
+    if(+ds === +tom) return 'Tomorrow';
+    if(ds < wkEnd)  return d.toLocaleDateString([],{weekday:'long'});
+    return d.toLocaleDateString([],{month:'short',day:'numeric',weekday:'short'});
+  }
+
+  /* Build grouped rows */
+  var groups = {};
+  var order  = [];
+  allEvts.forEach(function(e){
+    var d = new Date(e.start);
+    var lbl = filterDate ? d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}) : dayLabel(d);
+    if(!groups[lbl]){ groups[lbl]=[]; order.push(lbl); }
+    groups[lbl].push(e);
+  });
+
+  panel.innerHTML = '';
+  order.forEach(function(lbl){
+    /* Day header */
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:'
+      +(lbl==='Today'?'#aaff3e':lbl==='Tomorrow'?'#f5c542':'#6b7a96')
+      +';text-transform:uppercase;letter-spacing:.09em;padding:10px 8px 5px;';
+    hdr.textContent = lbl;
+    panel.appendChild(hdr);
+
+    groups[lbl].forEach(function(evt){
+      var cat  = categorizeMeeting(evt.title, evt.description||'');
+      var info = calMeetingTypes[cat];
+      var d    = new Date(evt.start);
+      var timeStr = evt.allDay ? 'All day' : d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      var hasNotes = false;
+      try{ hasNotes = JSON.parse(localStorage.getItem('esq_cal_notes_'+(evt.id||evt.title||''))||'[]').length > 0; }catch(e){}
+
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;align-items:center;padding:8px 8px;border-radius:9px;cursor:pointer;transition:background .12s;margin-bottom:2px;';
+      row.onmouseover = function(){ this.style.background='rgba(255,255,255,0.04)'; };
+      row.onmouseout  = function(){ this.style.background=''; };
+
+      var colorDot = document.createElement('div');
+      colorDot.style.cssText = 'width:3px;height:36px;border-radius:3px;flex-shrink:0;background:'+info.color+';';
+
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      body.innerHTML = '<div style="font-size:12px;font-weight:600;color:#d4e0f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+        +info.icon+' '+escHtml(evt.title)+'</div>'
+        +'<div style="font-size:10px;color:#6b7a96;margin-top:2px;">'+timeStr+(hasNotes?' · 🔖':'')+'</div>';
+
+      row.appendChild(colorDot);
+      row.appendChild(body);
+      row.addEventListener('click', function(){ openCalEventDetail(evt); });
+      panel.appendChild(row);
+    });
+
+    /* spacer between groups */
+    var sp = document.createElement('div'); sp.style.height='4px';
+    panel.appendChild(sp);
   });
 }
 
