@@ -144,7 +144,7 @@ serve(async (req) => {
       
       // Fetch today + week in parallel
       const [todayRes, weekRes] = await Promise.all([
-        fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()}&singleEvents=true&orderBy=startTime&fields=items(id,summary,start,end,location,attendees)`,
+        fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()}&singleEvents=true&orderBy=startTime&fields=items(id,summary,start,end,location,attendees,conferenceData)`,
           { headers: { Authorization: `Bearer ${provider_token}` } }),
         fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${nextWeek}&singleEvents=true&orderBy=startTime&maxResults=15&fields=items(id,summary,start)`,
           { headers: { Authorization: `Bearer ${provider_token}` } })
@@ -164,7 +164,8 @@ serve(async (req) => {
             email: a.email || '',
             status: a.responseStatus || 'needsAction',
             self: !!a.self
-          }))
+          })),
+          meetLink: e.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri || null
         })),
         week: (weekData.items || []).map((e: any) => ({
           id: e.id, title: e.summary || 'Untitled',
@@ -224,6 +225,28 @@ serve(async (req) => {
           title: e.summary, start: e.start?.dateTime || e.start?.date
         }))
       }
+    }
+
+    // ===== CALENDAR UPDATE (attendees + Google Meet) =====
+    if (action === 'calendar_update') {
+      const { eventId, attendeeEmails, addMeet } = body
+      const patch: any = {}
+      let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`
+      if (attendeeEmails !== undefined) {
+        patch.attendees = attendeeEmails.map((email: string) => ({ email: email.trim() }))
+      }
+      if (addMeet) {
+        patch.conferenceData = { createRequest: { requestId: `meet-${Date.now()}` } }
+        url += '?conferenceDataVersion=1'
+      }
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${provider_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch)
+      })
+      const data = await res.json()
+      const meetLink = data.conferenceData?.entryPoints?.find((ep: any) => ep.entryPointType === 'video')?.uri || null
+      result = { updated: !data.error, meetLink, error: data.error?.message }
     }
 
     // ===== CALENDAR CREATE =====

@@ -6117,32 +6117,86 @@ function openCalEventDetail(evt){
   if(dateStr){ var dr=document.createElement('div'); dr.style.cssText='font-size:11px;color:#6b7a96;'; dr.innerHTML='📅 '+escHtml(dateStr); metaDiv.appendChild(dr); }
   if(timeStr){ var tr2=document.createElement('div'); tr2.style.cssText='font-size:11px;color:#6b7a96;'; tr2.innerHTML='🕐 '+escHtml(timeStr); metaDiv.appendChild(tr2); }
   if(evt.location){ var lr=document.createElement('div'); lr.style.cssText='font-size:11px;color:#6b7a96;'; lr.innerHTML='📍 '+escHtml(evt.location); metaDiv.appendChild(lr); }
+  // Google Meet
+  var meetDiv = document.createElement('div'); meetDiv.style.cssText='margin-top:6px;';
+  function renderMeetSection(link){
+    meetDiv.innerHTML='';
+    if(link){
+      meetDiv.innerHTML='<a href="'+link+'" target="_blank" style="font-size:11px;color:#4ade80;text-decoration:none;display:inline-flex;align-items:center;gap:5px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);padding:4px 10px;border-radius:8px;">📹 Join Google Meet ↗</a>';
+    } else {
+      var addMeetBtn=document.createElement('button');
+      addMeetBtn.textContent='📹 Add Google Meet';
+      addMeetBtn.style.cssText='background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.15);color:#4ade80;font-size:10px;font-weight:600;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit;';
+      addMeetBtn.onclick=function(){
+        addMeetBtn.textContent='Adding…'; addMeetBtn.disabled=true;
+        fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:JSON.stringify({action:'calendar_update',provider_token:providerToken,eventId:evt.id,addMeet:true})})
+        .then(function(r){return r.json();}).then(function(d){ if(d.meetLink){renderMeetSection(d.meetLink);}else{addMeetBtn.textContent='Failed — try again';addMeetBtn.disabled=false;} })
+        .catch(function(){addMeetBtn.textContent='Failed — try again';addMeetBtn.disabled=false;});
+      };
+      meetDiv.appendChild(addMeetBtn);
+    }
+  }
+  renderMeetSection(evt.meetLink||null);
+  metaDiv.appendChild(meetDiv);
   left.appendChild(metaDiv);
 
-  // Attendees
-  if(evt.attendees && evt.attendees.length){
-    var attHdr = document.createElement('div');
-    attHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
-    attHdr.textContent = '👥 Attendees';
-    left.appendChild(attHdr);
-    var statusDot = {'accepted':'#4ade80','tentative':'#facc15','needsAction':'#6b7a96','declined':'#f87171'};
-    evt.attendees.forEach(function(a){
-      if(a.self) return;
-      var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:7px;margin-bottom:7px;';
-      var dot = document.createElement('span');
-      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:'+(statusDot[a.status]||'#6b7a96')+';';
-      var name = document.createElement('span');
-      name.style.cssText = 'font-size:11px;color:#b8c8e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
-      name.textContent = a.name || a.email;
-      name.title = a.email;
-      row.appendChild(dot); row.appendChild(name);
-      left.appendChild(row);
+  // Attendees (editable)
+  var STATUS_DOT = {'accepted':'#4ade80','tentative':'#facc15','needsAction':'#6b7a96','declined':'#f87171'};
+  var editAttendees = (evt.attendees||[]).filter(function(a){return !a.self;}).map(function(a){return {name:a.name,email:a.email,status:a.status||'needsAction'};});
+  var attHdrRow = document.createElement('div');
+  attHdrRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
+  var attLabel = document.createElement('div');
+  attLabel.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;';
+  attLabel.textContent = '👥 Attendees';
+  var attSaveBtn = document.createElement('button');
+  attSaveBtn.textContent = 'Save';
+  attSaveBtn.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;cursor:pointer;font-family:inherit;display:none;';
+  attSaveBtn.onclick = function(){
+    attSaveBtn.textContent='Saving…'; attSaveBtn.disabled=true;
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},body:JSON.stringify({action:'calendar_update',provider_token:providerToken,eventId:evt.id,attendeeEmails:editAttendees.map(function(a){return a.email;})})})
+    .then(function(r){return r.json();}).then(function(d){
+      attSaveBtn.textContent=d.error?'Error':'Saved ✓'; attSaveBtn.disabled=false;
+      setTimeout(function(){attSaveBtn.textContent='Save';attSaveBtn.style.display='none';},1500);
+    }).catch(function(){attSaveBtn.textContent='Error';attSaveBtn.disabled=false;});
+  };
+  attHdrRow.appendChild(attLabel); attHdrRow.appendChild(attSaveBtn);
+  left.appendChild(attHdrRow);
+  var attList = document.createElement('div'); attList.style.cssText='margin-bottom:8px;';
+  function renderAttendees(){
+    attList.innerHTML='';
+    editAttendees.forEach(function(a,i){
+      var row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:7px;margin-bottom:6px;';
+      var dot=document.createElement('span'); dot.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;background:'+(STATUS_DOT[a.status]||'#6b7a96')+';';
+      var nm=document.createElement('span'); nm.style.cssText='font-size:11px;color:#b8c8e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;'; nm.textContent=a.name||a.email; nm.title=a.email;
+      var rm=document.createElement('button'); rm.textContent='✕'; rm.style.cssText='background:none;border:none;color:#4a5568;font-size:11px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;';
+      rm.onmouseover=function(){rm.style.color='#f87171';}; rm.onmouseout=function(){rm.style.color='#4a5568';};
+      rm.addEventListener('click',function(){editAttendees.splice(i,1);renderAttendees();attSaveBtn.style.display='';});
+      row.appendChild(dot); row.appendChild(nm); row.appendChild(rm); attList.appendChild(row);
     });
-    var attSep = document.createElement('div');
-    attSep.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:10px 0 14px;';
-    left.appendChild(attSep);
+    if(!editAttendees.length){
+      var none=document.createElement('div'); none.style.cssText='font-size:11px;color:#4a5568;font-style:italic;margin-bottom:6px;'; none.textContent='No attendees yet.'; attList.appendChild(none);
+    }
   }
+  renderAttendees();
+  left.appendChild(attList);
+  // Add attendee row
+  var addAttRow = document.createElement('div'); addAttRow.style.cssText='display:flex;gap:6px;margin-bottom:14px;';
+  var attInp = document.createElement('input'); attInp.type='email'; attInp.placeholder='Add attendee email…';
+  attInp.style.cssText='flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 9px;font-size:11px;color:#eef3fc;outline:none;font-family:inherit;min-width:0;';
+  attInp.onfocus=function(){attInp.style.borderColor='rgba(170,255,62,0.4)';}; attInp.onblur=function(){attInp.style.borderColor='rgba(255,255,255,0.1)';};
+  var addAttBtn = document.createElement('button'); addAttBtn.textContent='Add';
+  addAttBtn.style.cssText='background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;cursor:pointer;font-family:inherit;white-space:nowrap;';
+  function doAddAtt(){
+    var e=attInp.value.trim();
+    if(!e||!e.includes('@'))return;
+    editAttendees.push({name:e,email:e,status:'needsAction'});
+    attInp.value=''; renderAttendees(); attSaveBtn.style.display='';
+  }
+  addAttBtn.addEventListener('click',doAddAtt);
+  attInp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doAddAtt();}});
+  addAttRow.appendChild(attInp); addAttRow.appendChild(addAttBtn);
+  left.appendChild(addAttRow);
+  var attSep=document.createElement('div'); attSep.style.cssText='height:1px;background:rgba(255,255,255,0.06);margin-bottom:14px;'; left.appendChild(attSep);
 
   var chkHdr = document.createElement('div');
   chkHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;';
@@ -6244,6 +6298,19 @@ function openCalEventDetail(evt){
   }
   renderSavedNotes();
   left.appendChild(notesSep); left.appendChild(notesHdr); left.appendChild(notesContainer);
+
+  // Live meeting notes
+  var lnSep=document.createElement('div'); lnSep.style.cssText='height:1px;background:rgba(255,255,255,0.06);margin:14px 0;';
+  var lnHdr=document.createElement('div'); lnHdr.style.cssText='font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;'; lnHdr.textContent='📝 Live Meeting Notes';
+  var LIVE_NOTES_KEY='esq_cal_live_'+(evt.id||evt.title||'');
+  var lnTa=document.createElement('textarea');
+  lnTa.placeholder='Type notes here during the meeting…';
+  lnTa.value=localStorage.getItem(LIVE_NOTES_KEY)||'';
+  lnTa.style.cssText='width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 11px;font-size:11px;color:#b8c8e0;outline:none;font-family:inherit;resize:vertical;min-height:90px;line-height:1.6;box-sizing:border-box;';
+  lnTa.onfocus=function(){lnTa.style.borderColor='rgba(170,255,62,0.3)';};
+  lnTa.onblur=function(){lnTa.style.borderColor='rgba(255,255,255,0.08)';};
+  lnTa.addEventListener('input',function(){localStorage.setItem(LIVE_NOTES_KEY,lnTa.value);});
+  left.appendChild(lnSep); left.appendChild(lnHdr); left.appendChild(lnTa);
 
   // RIGHT — ARIA chat
   var right = document.createElement('div');
