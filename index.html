@@ -5932,7 +5932,7 @@ function loadOlderEmails(){
 }
 
 function loadReadEmailList(token, period){
-  period = period || '30d';
+  if(period === undefined || period === null) period = '30d';
   _readPeriod = period;
   var listEl = document.getElementById('email-list');
   var countEl = document.getElementById('unread-count-label');
@@ -6053,7 +6053,7 @@ function buildAriaBriefing(data, textEl, actionsEl){
 
 /* Load email list */
 function loadEmailList(token, period){
-  period = period || '7d';
+  if(period === undefined || period === null) period = '7d';
   _inboxPeriod = period;
   var listEl = document.getElementById('email-list');
   if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading emails...</div>';
