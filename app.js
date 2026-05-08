@@ -398,14 +398,25 @@
           var token   = window.providerToken;
           var msgId   = email.id;
 
+          // ── DEBUG: log what we got back ──────────────────────────────
+          console.log('[ESQ-IMG] cidMap keys:', Object.keys(cidMap));
+          var allImgSrcs = [];
+          (data.body.match(/src=["']([^"']+)["']/gi)||[]).forEach(function(s){
+            allImgSrcs.push(s.replace(/src=["']/i,'').replace(/["']$/,''));
+          });
+          console.log('[ESQ-IMG] img src values in body:', allImgSrcs);
+          // ─────────────────────────────────────────────────────────────
+
           // Find cid: refs still present in the HTML
           var remaining = [];
           var cidRe = /cid:([^"'\s>]+)/gi;
           var m;
           while ((m = cidRe.exec(data.body)) !== null) {
             var cid = m[1];
+            console.log('[ESQ-IMG] found cid ref:', cid, '→ in cidMap?', !!cidMap[cid]);
             if (cidMap[cid] && remaining.indexOf(cid) === -1) remaining.push(cid);
           }
+          console.log('[ESQ-IMG] remaining to fetch:', remaining.length);
 
           function renderHtml(html) {
             var iframe = document.createElement('iframe');
