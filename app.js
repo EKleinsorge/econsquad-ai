@@ -1217,6 +1217,11 @@
       e.stopPropagation();
       window.openReplyCompose(email);
     });
+    var fwdBtn = cel('button', 'email-action-btn', '&#x27A1; Forward');
+    fwdBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      window.openForwardCompose(email);
+    });
     var archBtn = cel('button', 'email-action-btn', 'Archive');
     archBtn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -1267,7 +1272,7 @@
       e.stopPropagation();
       window.showSnoozePicker(e, email.id, JSON.parse(div.dataset.email));
     });
-    actRow.appendChild(replyBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn); actRow.appendChild(pinBtn); actRow.appendChild(snoozeBtn);
+    actRow.appendChild(replyBtn); actRow.appendChild(fwdBtn); actRow.appendChild(archBtn); actRow.appendChild(trashBtn); actRow.appendChild(pinBtn); actRow.appendChild(snoozeBtn);
     div.appendChild(actRow);
     return div;
   }
@@ -3338,10 +3343,13 @@
   window.updateSidebarCalBadge = function updateSidebarCalBadge() {
     var evts = window._lastCalEvents || [];
     var count = evts.length;
+    var label = count > 99 ? '99+' : String(count);
+    /* Sidebar icon badge */
     var b = eid('esq-rsb-cal-badge');
-    if (!b) return;
-    if (count > 0) { b.textContent = count > 99 ? '99+' : count; b.style.display = 'inline-block'; }
-    else { b.style.display = 'none'; }
+    if (b) { if (count > 0) { b.textContent = label; b.style.display = 'inline-block'; } else { b.style.display = 'none'; } }
+    /* Top nav badge */
+    var nb = eid('cal-nav-badge');
+    if (nb) { if (count > 0) { nb.textContent = label; nb.style.display = 'inline-block'; } else { nb.style.display = 'none'; } }
   };
 
   /* ── Filter / sort helpers ── */
