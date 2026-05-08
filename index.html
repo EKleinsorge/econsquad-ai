@@ -1561,9 +1561,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
           <!-- EMAIL PANEL -->
           <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;">
-                📧 Unread Emails
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;gap:4px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
+                <button id="inbox-pill-unread" onclick="switchInboxMode('unread')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:rgba(170,255,62,0.15);color:#aaff3e;transition:all .2s;">📧 Unread</button>
+                <button id="inbox-pill-read" onclick="switchInboxMode('read')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:transparent;color:#6b7a96;transition:all .2s;">✉️ Read</button>
               </div>
               <div style="display:flex;align-items:center;gap:10px;">
                 <button id="inbox-select-btn" onclick="window.toggleSelectMode()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;font-family:'DM Sans',sans-serif;transition:all .2s;">Select</button>
@@ -5888,6 +5889,42 @@ function loadInbox(){
 function refreshInbox(){
   inboxLoaded = false;
   loadInbox();
+}
+
+/* Toggle between Unread / Read views */
+var _inboxMode = 'unread';
+function switchInboxMode(mode){
+  _inboxMode = mode;
+  var unreadPill = document.getElementById('inbox-pill-unread');
+  var readPill = document.getElementById('inbox-pill-read');
+  if(unreadPill && readPill){
+    if(mode === 'unread'){
+      unreadPill.style.background='rgba(170,255,62,0.15)'; unreadPill.style.color='#aaff3e';
+      readPill.style.background='transparent'; readPill.style.color='#6b7a96';
+    } else {
+      readPill.style.background='rgba(170,255,62,0.15)'; readPill.style.color='#aaff3e';
+      unreadPill.style.background='transparent'; unreadPill.style.color='#6b7a96';
+    }
+  }
+  getProviderToken().then(function(token){
+    if(!token) return;
+    if(mode === 'unread') loadEmailList(token);
+    else loadReadEmailList(token);
+  });
+}
+
+function loadReadEmailList(token){
+  var listEl = document.getElementById('email-list');
+  var countEl = document.getElementById('unread-count-label');
+  if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading read emails...</div>';
+  supa.functions.invoke('gmail-calendar',{
+    body:{ action:'gmail_read', provider_token:token }
+  }).then(function(res){
+    if(res.error || !res.data){ showEmailList([]); return; }
+    var emails = res.data.emails || [];
+    if(countEl) countEl.textContent = emails.length + ' read';
+    showEmailList(emails);
+  }).catch(function(){ showEmailList([]); });
 }
 
 /* Load ARIA morning briefing */
