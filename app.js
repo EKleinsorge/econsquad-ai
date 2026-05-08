@@ -1709,7 +1709,7 @@
     var old = eid('esq-triage-ol'); if (old) old.remove();
     var COLORS = { urgent: '#f87171', today: '#facc15', later: '#4ade80', fyi: '#6b7a96' };
     var LABELS = { urgent: '🔴 Urgent', today: '🟡 Respond Today', later: '🟢 Can Wait', fyi: '⚪ FYI Only' };
-    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol';
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol'; ol.style.zIndex = '98000';
     var modal = cel('div', 'email-detail-modal');
     modal.style.cssText = 'max-width:640px;width:96%;max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;';
     var hdr = document.createElement('div');
@@ -1741,7 +1741,7 @@
         card.innerHTML = '<div style="font-size:12px;font-weight:600;color:#eef3fc;margin-bottom:2px;">'+escH(item.email.subject||'(no subject)')+'</div>'
           + '<div style="font-size:11px;color:#6b7a96;margin-bottom:4px;">'+escH(senderName(item.email.from||''))+'</div>'
           + '<div style="font-size:11px;color:#8a97b5;font-style:italic;">'+escH(item.reason)+'</div>';
-        card.addEventListener('click', function() { ol.remove(); window.openEmailDetail(item.email); });
+        card.addEventListener('click', function() { window.openEmailDetail(item.email); });
         sec.appendChild(card);
       });
       body.appendChild(sec);
