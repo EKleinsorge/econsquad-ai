@@ -1989,8 +1989,20 @@
     email_priority:    true,      // priority emails only
     meeting_enabled:   true,
     meeting_reminder:  10,        // minutes before start
-    sound_enabled:     true
+    sound_enabled:     true,
+    sound_type:        'chime',   // chime | futuristic | soft | ding | pulse | custom
+    sound_custom_url:  null       // base64 data URL for custom sound
   };
+
+  /* ── Sound catalogue ─────────────────────────────────────────────── */
+  var SOUND_TYPES = [
+    { id: 'chime',      emoji: '🔔', label: 'Classic Chime',  desc: 'Warm ascending 3-note' },
+    { id: 'futuristic', emoji: '⚡', label: 'Futuristic',     desc: 'Sci-fi frequency sweep' },
+    { id: 'soft',       emoji: '🌙', label: 'Soft & Subtle',  desc: 'Gentle whisper tone' },
+    { id: 'ding',       emoji: '✨', label: 'Bright Ding',    desc: 'Crisp single chime' },
+    { id: 'pulse',      emoji: '🎵', label: 'Deep Pulse',     desc: 'Low two-beat tone' },
+    { id: 'custom',     emoji: '📁', label: 'Custom Sound',   desc: 'Upload your own file' },
+  ];
 
   function getNotifSettings() {
     try { return Object.assign({}, NOTIF_DEFAULTS, JSON.parse(localStorage.getItem(NOTIF_KEY) || '{}')); }
@@ -2000,24 +2012,121 @@
     try { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); } catch(e) {}
   }
 
-  /* ── Chime (Web Audio, no external file) ─────────────────────────── */
-  function playChime() {
+  /* ── Sound engine ────────────────────────────────────────────────── */
+
+  /* Classic Chime — warm C5→E5→G5 ascending triplet */
+  function synthChime(ctx) {
+    [[523.25, 0], [659.25, 0.13], [783.99, 0.26]].forEach(function(pair) {
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = pair[0];
+      var t = ctx.currentTime + pair[1];
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+      osc.start(t); osc.stop(t + 0.48);
+    });
+  }
+
+  /* Futuristic — rising sci-fi sweep with harmonic shimmer */
+  function synthFuturistic(ctx) {
+    var t0 = ctx.currentTime;
+    // Primary: fast rising sweep
+    var osc1 = ctx.createOscillator(), g1 = ctx.createGain();
+    osc1.connect(g1); g1.connect(ctx.destination);
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(180, t0);
+    osc1.frequency.exponentialRampToValueAtTime(1400, t0 + 0.22);
+    osc1.frequency.exponentialRampToValueAtTime(700, t0 + 0.38);
+    g1.gain.setValueAtTime(0, t0);
+    g1.gain.linearRampToValueAtTime(0.18, t0 + 0.04);
+    g1.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+    osc1.start(t0); osc1.stop(t0 + 0.6);
+    // Shimmer: detuned sine for sparkle
+    var osc2 = ctx.createOscillator(), g2 = ctx.createGain();
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1400, t0 + 0.22);
+    osc2.frequency.exponentialRampToValueAtTime(1800, t0 + 0.45);
+    g2.gain.setValueAtTime(0, t0 + 0.20);
+    g2.gain.linearRampToValueAtTime(0.12, t0 + 0.26);
+    g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.65);
+    osc2.start(t0 + 0.20); osc2.stop(t0 + 0.7);
+  }
+
+  /* Soft & Subtle — barely-there whisper chord */
+  function synthSoft(ctx) {
+    var t0 = ctx.currentTime;
+    [[440, 0], [660, 0.06]].forEach(function(pair) {
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = pair[0];
+      var t = t0 + pair[1];
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.09, t + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+      osc.start(t); osc.stop(t + 1.0);
+    });
+  }
+
+  /* Bright Ding — crisp single high chime */
+  function synthDing(ctx) {
+    var t0 = ctx.currentTime;
+    var osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 1318.5; // E6
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(0.35, t0 + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+    osc.start(t0); osc.stop(t0 + 0.6);
+    // Subtle overtone for bell character
+    var osc2 = ctx.createOscillator(), g2 = ctx.createGain();
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.type = 'sine'; osc2.frequency.value = 2637; // E7
+    g2.gain.setValueAtTime(0, t0);
+    g2.gain.linearRampToValueAtTime(0.07, t0 + 0.004);
+    g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+    osc2.start(t0); osc2.stop(t0 + 0.25);
+  }
+
+  /* Deep Pulse — two low bass tones with a beat between them */
+  function synthPulse(ctx) {
+    var t0 = ctx.currentTime;
+    [[130.81, 0], [196.00, 0.2]].forEach(function(pair) { // C3, G3
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle'; osc.frequency.value = pair[0];
+      var t = t0 + pair[1];
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.30, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.40);
+      osc.start(t); osc.stop(t + 0.45);
+    });
+  }
+
+  /* Dispatch to the right synth, or play custom audio file */
+  function playSound(type, customUrl) {
+    type = type || 'chime';
+    if (type === 'custom' && customUrl) {
+      try {
+        var audio = new Audio(customUrl);
+        audio.volume = 0.7;
+        audio.play().catch(function() {});
+      } catch(e) {}
+      return;
+    }
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [[523.25, 0], [659.25, 0.13], [783.99, 0.26]].forEach(function(pair) {
-        var freq = pair[0], delay = pair[1];
-        var osc  = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'sine'; osc.frequency.value = freq;
-        var t = ctx.currentTime + delay;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.28, t + 0.025);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
-        osc.start(t); osc.stop(t + 0.45);
-      });
+      if      (type === 'futuristic') synthFuturistic(ctx);
+      else if (type === 'soft')       synthSoft(ctx);
+      else if (type === 'ding')       synthDing(ctx);
+      else if (type === 'pulse')      synthPulse(ctx);
+      else                            synthChime(ctx);   // default: chime
     } catch(e) {}
   }
+
+  /* Legacy alias kept in case anything still calls playChime() directly */
+  function playChime() { playSound('chime'); }
 
   /* ── Core notification sender ────────────────────────────────────── */
   function notify(title, body, tag, onClick) {
@@ -2030,7 +2139,7 @@
       icon: 'https://ekleinsorge.github.io/econsquad-ai/favicon.ico',
       silent: true   // we handle sound ourselves
     });
-    if (s.sound_enabled) playChime();
+    if (s.sound_enabled) playSound(s.sound_type || 'chime', s.sound_custom_url);
     n.onclick = function() {
       try { window.focus(); } catch(e) {}
       n.close();
@@ -2271,18 +2380,118 @@
     var sndChk = toggle(s.sound_enabled, function(on){var ns=getNotifSettings();ns.sound_enabled=on;saveNotifSettings(ns);});
     sndRow.appendChild(sndChk);
 
-    var testRow = cel('div',''); testRow.style.cssText='padding:14px 0 4px;display:flex;gap:10px;align-items:center;';
-    var testBtn = cel('button','','▶ Test Notification');
+    /* Sound picker grid */
+    var pickerWrap = cel('div','');
+    pickerWrap.style.cssText='padding:10px 0 4px;';
+
+    var grid = cel('div','');
+    grid.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;';
+
+    var curType = s.sound_type || 'chime';
+
+    function makeSoundCard(st) {
+      var card = cel('div','');
+      var isSelected = (st.id === curType);
+      card.style.cssText='border:1px solid '+(isSelected?'rgba(170,255,62,0.55)':'rgba(255,255,255,0.09)')+';border-radius:9px;padding:8px 8px 7px;cursor:pointer;background:'+(isSelected?'rgba(170,255,62,0.07)':'rgba(255,255,255,0.02)')+';transition:border .15s,background .15s;position:relative;';
+      card.dataset.soundId = st.id;
+      var em  = cel('div','', st.emoji); em.style.cssText='font-size:18px;line-height:1;margin-bottom:4px;';
+      var lbl = cel('div','', st.label); lbl.style.cssText='font-size:11px;font-weight:700;color:#eef3fc;line-height:1.2;';
+      var dsc = cel('div','', st.desc);  dsc.style.cssText='font-size:10px;color:#4a5568;margin-top:2px;line-height:1.3;';
+      // Play preview button
+      var play = cel('button','','▶');
+      play.title = 'Preview';
+      play.style.cssText='position:absolute;top:6px;right:6px;background:transparent;border:none;color:#4a5568;font-size:10px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;';
+      play.onmouseover=function(){play.style.color='#aaff3e';};
+      play.onmouseout=function(){play.style.color='#4a5568';};
+      play.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (st.id === 'custom') {
+          var ns2 = getNotifSettings();
+          if (ns2.sound_custom_url) playSound('custom', ns2.sound_custom_url);
+        } else {
+          playSound(st.id);
+        }
+        play.textContent='♪'; setTimeout(function(){play.textContent='▶';},700);
+      });
+      card.appendChild(em); card.appendChild(lbl); card.appendChild(dsc); card.appendChild(play);
+      card.addEventListener('click', function() {
+        var ns2 = getNotifSettings(); ns2.sound_type = st.id; saveNotifSettings(ns2); curType = st.id;
+        // Update all card styles
+        grid.querySelectorAll('[data-sound-id]').forEach(function(c) {
+          var sel2 = c.dataset.soundId === st.id;
+          c.style.borderColor = sel2 ? 'rgba(170,255,62,0.55)' : 'rgba(255,255,255,0.09)';
+          c.style.background  = sel2 ? 'rgba(170,255,62,0.07)'  : 'rgba(255,255,255,0.02)';
+        });
+        // Show/hide custom upload row
+        if (customUploadRow) customUploadRow.style.display = st.id === 'custom' ? 'block' : 'none';
+        // Auto-preview
+        if (st.id !== 'custom') playSound(st.id);
+      });
+      return card;
+    }
+
+    SOUND_TYPES.forEach(function(st) { grid.appendChild(makeSoundCard(st)); });
+    pickerWrap.appendChild(grid);
+
+    /* Custom sound upload row */
+    var customUploadRow = cel('div','');
+    customUploadRow.style.cssText='display:'+(curType==='custom'?'block':'none')+';background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:12px;margin-bottom:8px;';
+
+    var uploadLabel = cel('div','','Upload a sound file (MP3, WAV, OGG — max 2 MB)');
+    uploadLabel.style.cssText='font-size:11px;color:#8a97b5;margin-bottom:8px;';
+    var uploadRow2 = cel('div',''); uploadRow2.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+    var fileInput = document.createElement('input');
+    fileInput.type='file'; fileInput.accept='audio/mp3,audio/mpeg,audio/wav,audio/ogg,audio/*';
+    fileInput.style.cssText='display:none;';
+    var uploadBtn = cel('button','','📂 Choose file');
+    uploadBtn.style.cssText='background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#eef3fc;font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:inherit;';
+    var uploadStatus = cel('span',''); uploadStatus.style.cssText='font-size:11px;color:#4a5568;';
+    var existingUrl = s.sound_custom_url;
+    uploadStatus.textContent = existingUrl ? '✅ Custom sound loaded' : 'No file chosen';
+    uploadBtn.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function() {
+      var file = fileInput.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { uploadStatus.textContent='⚠️ File too large (max 2 MB)'; uploadStatus.style.color='#f87171'; return; }
+      uploadStatus.textContent='Loading…'; uploadStatus.style.color='#8a97b5';
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var dataUrl = ev.target.result;
+        var ns2 = getNotifSettings(); ns2.sound_custom_url = dataUrl; saveNotifSettings(ns2);
+        uploadStatus.textContent='✅ ' + file.name; uploadStatus.style.color='#4ade80';
+        playSound('custom', dataUrl);
+      };
+      reader.readAsDataURL(file);
+    });
+    uploadRow2.appendChild(uploadBtn); uploadRow2.appendChild(fileInput); uploadRow2.appendChild(uploadStatus);
+
+    var browseRow = cel('div',''); browseRow.style.cssText='margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;';
+    var mixkitBtn = cel('button','','🌐 Browse Mixkit Sounds (free)');
+    mixkitBtn.style.cssText='background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:inherit;';
+    mixkitBtn.title='Free notification sounds — no login required';
+    mixkitBtn.addEventListener('click', function(){ window.open('https://mixkit.co/free-sound-effects/notification/', '_blank'); });
+    var freesoundBtn = cel('button','','🎵 Freesound.org');
+    freesoundBtn.style.cssText='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 12px;border-radius:7px;cursor:pointer;font-family:inherit;';
+    freesoundBtn.addEventListener('click', function(){ window.open('https://freesound.org/search/?q=notification+alert&f=duration%3A%5B0+TO+5%5D&s=score+desc', '_blank'); });
+    browseRow.appendChild(mixkitBtn); browseRow.appendChild(freesoundBtn);
+
+    customUploadRow.appendChild(uploadLabel); customUploadRow.appendChild(uploadRow2); customUploadRow.appendChild(browseRow);
+    pickerWrap.appendChild(customUploadRow);
+
+    /* Test button */
+    var testRow = cel('div',''); testRow.style.cssText='padding:4px 0 4px;display:flex;gap:10px;align-items:center;';
+    var testBtn = cel('button','','▶ Test Sound & Alert');
     testBtn.style.cssText='background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;';
     testBtn.addEventListener('click', function(){
-      playChime();
+      var ns2 = getNotifSettings();
+      playSound(ns2.sound_type || 'chime', ns2.sound_custom_url);
       if (Notification.permission==='granted') {
         notify('🔔 EconSquad AI', 'Notifications are working! Click to go to your inbox.', 'test-'+Date.now(), function(){
           if(typeof window.showDashTab==='function') window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
         });
       } else {
         testBtn.textContent='⚠️ Permission needed — click Allow above';
-        setTimeout(function(){testBtn.textContent='▶ Test Notification';},3000);
+        setTimeout(function(){testBtn.textContent='▶ Test Sound & Alert';},3000);
       }
     });
     testRow.appendChild(testBtn);
@@ -2295,7 +2504,7 @@
     modal.appendChild(sectionHead('📅 Meeting Reminders'));
     modal.appendChild(meetRow); modal.appendChild(remRow);
     modal.appendChild(sectionHead('🔊 Sound'));
-    modal.appendChild(sndRow); modal.appendChild(testRow);
+    modal.appendChild(sndRow); modal.appendChild(pickerWrap); modal.appendChild(testRow);
 
     ol.appendChild(modal);
     ol.addEventListener('click', function(e){ if(e.target===ol) ol.remove(); });
