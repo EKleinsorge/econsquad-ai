@@ -2181,87 +2181,122 @@
     var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     var name = firstName ? (', ' + firstName) : '';
 
-    /* ── Web Audio engine ─────────────────────────────────────────────── */
-    var _ctx = null; var _humOsc = null; var _humGain = null; var _humOsc2 = null; var _humGain2 = null;
-    var _dismissed = false;
+    /* ── Web Audio engine — deep & mysterious ─────────────────────────── */
+    var _ctx = null; var _humNodes = []; var _dismissed = false;
     function _initAudio() {
       try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); if (_ctx.state === 'suspended') _ctx.resume(); } catch(e) { _ctx = null; }
     }
+    /* Master limiter so bass frequencies never clip */
+    function _master() {
+      if (!_ctx) return null;
+      var comp = _ctx.createDynamicsCompressor();
+      comp.threshold.value = -6; comp.knee.value = 6;
+      comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+      comp.connect(_ctx.destination);
+      return comp;
+    }
     function _playWarmup() {
       if (!_ctx) return;
-      /* Low sawtooth sweep — powering up */
-      var o = _ctx.createOscillator(), g = _ctx.createGain(), f = _ctx.createBiquadFilter();
-      f.type = 'lowpass'; f.frequency.value = 1800;
-      o.connect(f); f.connect(g); g.connect(_ctx.destination);
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(55, _ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(280, _ctx.currentTime + 2.2);
-      g.gain.setValueAtTime(0, _ctx.currentTime);
-      g.gain.linearRampToValueAtTime(0.07, _ctx.currentTime + 0.5);
-      g.gain.linearRampToValueAtTime(0.03, _ctx.currentTime + 2.0);
-      g.gain.linearRampToValueAtTime(0, _ctx.currentTime + 2.5);
-      o.start(); o.stop(_ctx.currentTime + 2.6);
-      /* Bright startup ping at top of sweep */
-      var o2 = _ctx.createOscillator(), g2 = _ctx.createGain();
-      o2.type = 'sine';
-      o2.frequency.setValueAtTime(880, _ctx.currentTime + 1.8);
-      o2.frequency.exponentialRampToValueAtTime(1760, _ctx.currentTime + 2.4);
-      g2.gain.setValueAtTime(0, _ctx.currentTime + 1.8);
-      g2.gain.linearRampToValueAtTime(0.13, _ctx.currentTime + 2.0);
-      g2.gain.linearRampToValueAtTime(0, _ctx.currentTime + 2.6);
-      o2.connect(g2); g2.connect(_ctx.destination);
-      o2.start(_ctx.currentTime + 1.8); o2.stop(_ctx.currentTime + 2.7);
+      var dest = _master();
+      var t = _ctx.currentTime;
+      /* Sub-bass rumble that wakes up — like a turbine starting deep underground */
+      var sub = _ctx.createOscillator(), subG = _ctx.createGain();
+      sub.type = 'sine'; sub.frequency.setValueAtTime(32, t); sub.frequency.linearRampToValueAtTime(48, t + 3.0);
+      subG.gain.setValueAtTime(0, t); subG.gain.linearRampToValueAtTime(0.28, t + 1.2);
+      subG.gain.linearRampToValueAtTime(0.12, t + 3.0); subG.gain.linearRampToValueAtTime(0, t + 4.0);
+      sub.connect(subG); subG.connect(dest); sub.start(t); sub.stop(t + 4.1);
+      /* Filtered sawtooth body — low and warm, like a reactor spooling */
+      var body = _ctx.createOscillator(), bodyG = _ctx.createGain(), bodyF = _ctx.createBiquadFilter();
+      bodyF.type = 'lowpass'; bodyF.frequency.setValueAtTime(120, t + 0.8); bodyF.frequency.linearRampToValueAtTime(280, t + 3.2); bodyF.Q.value = 2;
+      body.type = 'sawtooth'; body.frequency.setValueAtTime(38, t + 0.6); body.frequency.exponentialRampToValueAtTime(78, t + 3.0);
+      bodyG.gain.setValueAtTime(0, t + 0.6); bodyG.gain.linearRampToValueAtTime(0.09, t + 1.4);
+      bodyG.gain.linearRampToValueAtTime(0.04, t + 3.0); bodyG.gain.linearRampToValueAtTime(0, t + 3.8);
+      body.connect(bodyF); bodyF.connect(bodyG); bodyG.connect(dest); body.start(t + 0.6); body.stop(t + 3.9);
+      /* Mysterious resonant tone — low theremin-like bloom */
+      var res = _ctx.createOscillator(), resG = _ctx.createGain(), resF = _ctx.createBiquadFilter();
+      resF.type = 'bandpass'; resF.Q.value = 5; resF.frequency.setValueAtTime(82, t + 1.5); resF.frequency.linearRampToValueAtTime(146, t + 3.5);
+      res.type = 'sine'; res.frequency.setValueAtTime(82, t + 1.5); res.frequency.linearRampToValueAtTime(110, t + 3.5);
+      resG.gain.setValueAtTime(0, t + 1.5); resG.gain.linearRampToValueAtTime(0.18, t + 2.4);
+      resG.gain.linearRampToValueAtTime(0.06, t + 3.5); resG.gain.linearRampToValueAtTime(0, t + 4.2);
+      res.connect(resF); resF.connect(resG); resG.connect(dest); res.start(t + 1.5); res.stop(t + 4.3);
+      /* Deep arrival bloom — low warm chord (A1 + E2) fades in as warmup completes */
+      var ch1 = _ctx.createOscillator(), ch1G = _ctx.createGain();
+      ch1.type = 'sine'; ch1.frequency.value = 55; /* A1 */
+      ch1G.gain.setValueAtTime(0, t + 2.8); ch1G.gain.linearRampToValueAtTime(0.14, t + 3.6); ch1G.gain.linearRampToValueAtTime(0, t + 5.0);
+      ch1.connect(ch1G); ch1G.connect(dest); ch1.start(t + 2.8); ch1.stop(t + 5.1);
+      var ch2 = _ctx.createOscillator(), ch2G = _ctx.createGain();
+      ch2.type = 'sine'; ch2.frequency.value = 82.4; /* E2 — a fifth up, adds mystery */
+      ch2G.gain.setValueAtTime(0, t + 3.0); ch2G.gain.linearRampToValueAtTime(0.08, t + 3.8); ch2G.gain.linearRampToValueAtTime(0, t + 5.0);
+      ch2.connect(ch2G); ch2G.connect(dest); ch2.start(t + 3.0); ch2.stop(t + 5.1);
     }
     function _startHum() {
       if (!_ctx) return;
-      _humOsc = _ctx.createOscillator(); _humGain = _ctx.createGain();
-      _humOsc.type = 'sine'; _humOsc.frequency.value = 55;
-      _humGain.gain.setValueAtTime(0, _ctx.currentTime);
-      _humGain.gain.linearRampToValueAtTime(0.038, _ctx.currentTime + 2.5);
-      _humOsc.connect(_humGain); _humGain.connect(_ctx.destination); _humOsc.start();
-      _humOsc2 = _ctx.createOscillator(); _humGain2 = _ctx.createGain();
-      _humOsc2.type = 'sine'; _humOsc2.frequency.value = 110;
-      _humGain2.gain.setValueAtTime(0, _ctx.currentTime);
-      _humGain2.gain.linearRampToValueAtTime(0.014, _ctx.currentTime + 2.5);
-      _humOsc2.connect(_humGain2); _humGain2.connect(_ctx.destination); _humOsc2.start();
+      var dest = _master(); var t = _ctx.currentTime;
+      /* Deep bass foundation — 38Hz sub-bass + detuned pair at 55/56.5Hz for warmth + 82Hz fifth */
+      var specs = [
+        { freq: 38,   type: 'sine', gain: 0.22, rise: 3.5 },
+        { freq: 55,   type: 'sine', gain: 0.14, rise: 3.0 },
+        { freq: 56.5, type: 'sine', gain: 0.07, rise: 3.0 }, /* slight detune — adds thickness */
+        { freq: 82.4, type: 'sine', gain: 0.05, rise: 4.0 }, /* E2 fifth — mysterious color */
+      ];
+      specs.forEach(function(sp) {
+        var o = _ctx.createOscillator(), g = _ctx.createGain();
+        o.type = sp.type; o.frequency.value = sp.freq;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(sp.gain, t + sp.rise);
+        o.connect(g); g.connect(dest); o.start();
+        _humNodes.push({ osc: o, gain: g });
+      });
     }
     function _stopHum() {
       if (!_ctx) return;
-      try { _humGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.6); _humOsc.stop(_ctx.currentTime + 0.7); } catch(e) {}
-      try { _humGain2.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.6); _humOsc2.stop(_ctx.currentTime + 0.7); } catch(e) {}
+      var t = _ctx.currentTime;
+      _humNodes.forEach(function(n) {
+        try { n.gain.gain.linearRampToValueAtTime(0, t + 0.8); n.osc.stop(t + 0.9); } catch(e) {}
+      });
+      _humNodes = [];
     }
     function _playClick() {
+      /* Deep satisfying thok — like a heavy relay closing */
       if (!_ctx) return;
+      var dest = _master(); var t = _ctx.currentTime;
       var o = _ctx.createOscillator(), g = _ctx.createGain();
-      o.type = 'sine'; o.frequency.setValueAtTime(1300, _ctx.currentTime); o.frequency.exponentialRampToValueAtTime(650, _ctx.currentTime + 0.07);
-      g.gain.setValueAtTime(0.22, _ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, _ctx.currentTime + 0.09);
-      o.connect(g); g.connect(_ctx.destination); o.start(); o.stop(_ctx.currentTime + 0.1);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.10);
+      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.15);
+      /* Low-passed noise transient — gives it body */
       try {
-        var buf = _ctx.createBuffer(1, Math.floor(_ctx.sampleRate * 0.045), _ctx.sampleRate);
+        var buf = _ctx.createBuffer(1, Math.floor(_ctx.sampleRate * 0.07), _ctx.sampleRate);
         var d = buf.getChannelData(0);
-        for (var ii = 0; ii < d.length; ii++) d[ii] = (Math.random() * 2 - 1) * (1 - ii / d.length);
+        for (var ii = 0; ii < d.length; ii++) d[ii] = (Math.random() * 2 - 1) * Math.pow(1 - ii / d.length, 1.5);
         var src = _ctx.createBufferSource(); src.buffer = buf;
-        var ng = _ctx.createGain(); ng.gain.value = 0.07;
-        src.connect(ng); ng.connect(_ctx.destination); src.start();
-      } catch(e2) {}
+        var flt = _ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 350;
+        var ng = _ctx.createGain(); ng.gain.value = 0.18;
+        src.connect(flt); flt.connect(ng); ng.connect(dest); src.start(t);
+      } catch(e) {}
     }
     function _playWhoosh() {
+      /* Deep descending whoosh + bass thump as she vanishes */
       if (!_ctx) return;
+      var dest = _master(); var t = _ctx.currentTime;
+      /* Bass thump first */
+      var thump = _ctx.createOscillator(), thumpG = _ctx.createGain();
+      thump.type = 'sine'; thump.frequency.setValueAtTime(60, t); thump.frequency.exponentialRampToValueAtTime(28, t + 0.35);
+      thumpG.gain.setValueAtTime(0.45, t); thumpG.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      thump.connect(thumpG); thumpG.connect(dest); thump.start(t); thump.stop(t + 0.45);
+      /* Filtered noise whoosh — descends from mid to sub */
       try {
-        var dur = 1.0;
+        var dur = 1.3;
         var buf = _ctx.createBuffer(1, Math.floor(_ctx.sampleRate * dur), _ctx.sampleRate);
         var d = buf.getChannelData(0);
         for (var ii = 0; ii < d.length; ii++) d[ii] = Math.random() * 2 - 1;
         var src = _ctx.createBufferSource(); src.buffer = buf;
-        var flt = _ctx.createBiquadFilter(); flt.type = 'bandpass'; flt.Q.value = 0.7;
-        flt.frequency.setValueAtTime(2200, _ctx.currentTime);
-        flt.frequency.exponentialRampToValueAtTime(140, _ctx.currentTime + dur);
+        var flt = _ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.Q.value = 1.2;
+        flt.frequency.setValueAtTime(700, t); flt.frequency.exponentialRampToValueAtTime(40, t + dur);
         var g = _ctx.createGain();
-        g.gain.setValueAtTime(0, _ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0.4, _ctx.currentTime + 0.08);
-        g.gain.exponentialRampToValueAtTime(0.001, _ctx.currentTime + dur);
-        src.connect(flt); flt.connect(g); g.connect(_ctx.destination);
-        src.start(); src.stop(_ctx.currentTime + dur + 0.05);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.38, t + 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(flt); flt.connect(g); g.connect(dest); src.start(t); src.stop(t + dur + 0.05);
       } catch(e) {}
     }
     _initAudio();
@@ -2278,7 +2313,7 @@
         '@keyframes starTwinkle{0%,100%{opacity:0.1;}50%{opacity:0.6;}}',
         '@keyframes splashOrb{0%,100%{box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);}50%{box-shadow:0 0 70px rgba(170,255,62,1),0 0 130px rgba(170,255,62,0.6),0 0 200px rgba(170,255,62,0.25);}}',
         '@keyframes splashOrbPowerup{0%{opacity:0.05;box-shadow:none;filter:brightness(0.15);}20%{opacity:0.5;filter:brightness(0.4);}40%{opacity:0.25;filter:brightness(0.2);}60%{opacity:0.8;filter:brightness(0.7);}75%{opacity:0.55;filter:brightness(0.45);}90%{opacity:0.95;filter:brightness(0.95);}100%{opacity:1;filter:brightness(1);box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4);}}',
-        '@keyframes splashOrbWink{0%{transform:scaleY(1);}20%{transform:scaleY(0.08) scaleX(1.12);}55%{transform:scaleY(0.08) scaleX(1.12);}80%{transform:scaleY(1.12);}100%{transform:scaleY(1);}}',
+        '@keyframes splashOrbWink{0%{transform:scaleY(1);}30%{transform:scaleY(0.07) scaleX(1.14);}62%{transform:scaleY(0.07) scaleX(1.14);}84%{transform:scaleY(1.09);}100%{transform:scaleY(1);}}',
         '@keyframes splashRing{0%,100%{opacity:0.25;transform:scale(1);}50%{opacity:0.6;transform:scale(1.05);}}',
         '@keyframes splashSwirl1{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}',
         '@keyframes splashSwirl2{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}',
@@ -2539,7 +2574,7 @@
             setTimeout(function() { btn.style.transform = ''; btn.style.boxShadow = '0 0 32px rgba(170,255,62,0.35)'; }, 150);
 
             /* Wink */
-            orb.style.animation = 'splashOrbWink 0.42s ease, splashOrb 3.5s ease-in-out 0.42s infinite';
+            orb.style.animation = 'splashOrbWink 0.75s ease, splashOrb 3.5s ease-in-out 0.75s infinite';
 
             /* Cursor fades out */
             setTimeout(function() {
