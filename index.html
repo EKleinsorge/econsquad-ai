@@ -5917,17 +5917,16 @@ function switchInboxMode(mode){
 }
 
 function loadOlderEmails(){
+  var token = providerToken || window._providerToken;
+  if(!token) return;
   var STEPS = { '7d':'30d', '30d':'90d', '90d':'' };
-  getProviderToken().then(function(token){
-    if(!token) return;
-    if(_inboxMode === 'unread'){
-      _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
-      loadEmailList(token, _inboxPeriod);
-    } else {
-      _readPeriod = STEPS[_readPeriod] !== undefined ? STEPS[_readPeriod] : '';
-      loadReadEmailList(token, _readPeriod);
-    }
-  });
+  if(_inboxMode === 'unread'){
+    _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
+    loadEmailList(token, _inboxPeriod);
+  } else {
+    _readPeriod = STEPS[_readPeriod] !== undefined ? STEPS[_readPeriod] : '';
+    loadReadEmailList(token, _readPeriod);
+  }
 }
 
 function loadReadEmailList(token, period){
