@@ -6168,12 +6168,13 @@ function openCalEventDetail(evt){
     showDashTab('home-tab', null);
     setTimeout(function(){
       var inp = document.getElementById('home-chat-input');
+      var sendBtn = document.getElementById('home-chat-send');
       if(inp){
         inp.value = 'Help me prepare for my ' + info.label + ' meeting: "' + (evt.title||'') + '"' + (evt.location ? ' at ' + evt.location : '') + (timeStr ? ' at ' + timeStr : '') + '. What should I know and do before this meeting?';
         inp.dispatchEvent(new Event('input'));
-        inp.focus();
+        if(sendBtn) sendBtn.click();
       }
-    }, 200);
+    }, 300);
   };
   actRow.appendChild(ariaBtn2);
 
