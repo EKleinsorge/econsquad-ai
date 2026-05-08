@@ -2640,4 +2640,873 @@
     }
   };
 
+  /* ═══════════════════════════════════════════════════════════════════
+     TASK MANAGEMENT MODULE
+     ═══════════════════════════════════════════════════════════════════ */
+
+  var TASKS_KEY = 'esq_tasks';
+  var TASK_CATS_KEY = 'esq_task_cats';
+  var TASK_ALERTED_KEY = 'esq_task_alerted';
+  var DEFAULT_CATS = ['General','Grants','BRE','Site Selection','Workforce','Marketing','Outreach','Reporting'];
+  var _taskFilter = 'pending';
+  var _taskSort = 'priority';
+  var _taskCatFilter = 'all';
+  var _taskAlertTimers = {};
+
+  /* ── Storage ── */
+  function getAllTasks() {
+    try { return JSON.parse(localStorage.getItem(TASKS_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveAllTasks(tasks) {
+    try { localStorage.setItem(TASKS_KEY, JSON.stringify(tasks)); } catch(e) {}
+  }
+  function getTaskCategories() {
+    try {
+      var stored = JSON.parse(localStorage.getItem(TASK_CATS_KEY) || 'null');
+      return stored || DEFAULT_CATS.slice();
+    } catch(e) { return DEFAULT_CATS.slice(); }
+  }
+  function saveTaskCategories(cats) {
+    try { localStorage.setItem(TASK_CATS_KEY, JSON.stringify(cats)); } catch(e) {}
+  }
+  function getAlerted() {
+    try { return JSON.parse(localStorage.getItem(TASK_ALERTED_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function setAlerted(d) {
+    try { localStorage.setItem(TASK_ALERTED_KEY, JSON.stringify(d)); } catch(e) {}
+  }
+
+  function genTaskId() {
+    return 'tsk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function createTask(data) {
+    var tasks = getAllTasks();
+    var now = new Date().toISOString();
+    var task = {
+      id: genTaskId(),
+      title: data.title || 'Untitled Task',
+      description: data.description || '',
+      category: data.category || 'General',
+      priority: data.priority || 'medium',
+      status: data.status || 'pending',
+      dueDate: data.dueDate || null,
+      alertMinBefore: (data.alertMinBefore !== undefined) ? data.alertMinBefore : 30,
+      completedAt: null,
+      sourceEmailId: data.sourceEmailId || null,
+      sourceEmailSubject: data.sourceEmailSubject || null,
+      googleTaskId: data.googleTaskId || null,
+      createdAt: now,
+      updatedAt: now
+    };
+    tasks.push(task);
+    saveAllTasks(tasks);
+    updateTasksBadge();
+    scheduleTaskAlerts();
+    return task;
+  }
+
+  function updateTask(id, updates) {
+    var tasks = getAllTasks();
+    var idx = tasks.findIndex(function(t) { return t.id === id; });
+    if (idx === -1) return null;
+    Object.assign(tasks[idx], updates, { updatedAt: new Date().toISOString() });
+    saveAllTasks(tasks);
+    updateTasksBadge();
+    scheduleTaskAlerts();
+    return tasks[idx];
+  }
+
+  function deleteTask(id) {
+    var tasks = getAllTasks().filter(function(t) { return t.id !== id; });
+    saveAllTasks(tasks);
+    updateTasksBadge();
+  }
+
+  function completeTask(id) {
+    return updateTask(id, { status: 'completed', completedAt: new Date().toISOString() });
+  }
+
+  /* ── Priority helpers ── */
+  var PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
+  var PRIORITY_COLORS = { urgent: '#f87171', high: '#fb923c', medium: '#facc15', low: '#4ade80' };
+  var PRIORITY_LABELS = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
+
+  function isOverdue(task) {
+    if (!task.dueDate || task.status === 'completed') return false;
+    return new Date(task.dueDate) < new Date();
+  }
+  function isDueToday(task) {
+    if (!task.dueDate || task.status === 'completed') return false;
+    var d = new Date(task.dueDate);
+    var now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  }
+
+  /* ── Badge ── */
+  function updateTasksBadge() {
+    var badge = eid('tasks-nav-badge');
+    if (!badge) return;
+    var tasks = getAllTasks();
+    var count = tasks.filter(function(t) {
+      return t.status !== 'completed' && (t.status === 'pending' || t.status === 'in_progress' || isOverdue(t));
+    }).length;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* ── Filter / sort helpers ── */
+  function filterTasks(tasks, filter, catFilter) {
+    var now = new Date();
+    var todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+    var result = tasks.filter(function(t) {
+      if (catFilter && catFilter !== 'all' && t.category !== catFilter) return false;
+      if (filter === 'pending') return t.status === 'pending' || t.status === 'in_progress';
+      if (filter === 'today') return isDueToday(t) && t.status !== 'completed';
+      if (filter === 'overdue') return isOverdue(t);
+      if (filter === 'upcoming') {
+        if (!t.dueDate || t.status === 'completed') return false;
+        var d = new Date(t.dueDate);
+        return d > todayEnd;
+      }
+      if (filter === 'completed') return t.status === 'completed';
+      return true; // 'all'
+    });
+    return result;
+  }
+
+  function sortTasks(tasks, sort) {
+    return tasks.slice().sort(function(a, b) {
+      if (sort === 'priority') {
+        var pd = (PRIORITY_ORDER[a.priority] || 2) - (PRIORITY_ORDER[b.priority] || 2);
+        if (pd !== 0) return pd;
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+        if (a.dueDate) return -1; if (b.dueDate) return 1;
+        return 0;
+      }
+      if (sort === 'due') {
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+        if (a.dueDate) return -1; if (b.dueDate) return 1;
+        return 0;
+      }
+      // created
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }
+
+  /* ── Format due date for display ── */
+  function fmtDue(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var now = new Date();
+    var diffMs = d - now;
+    var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    var timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays < -1) return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + timeStr;
+    if (diffDays === -1) return 'Yesterday ' + timeStr;
+    if (diffDays === 0) {
+      var today = new Date(); today.setHours(0,0,0,0);
+      var dDay = new Date(d); dDay.setHours(0,0,0,0);
+      if (dDay.getTime() === today.getTime()) return 'Today ' + timeStr;
+      return 'Yesterday ' + timeStr;
+    }
+    if (diffDays === 1) return 'Tomorrow ' + timeStr;
+    if (diffDays < 7) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] + ' ' + timeStr;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + timeStr;
+  }
+
+  /* ── Render task list ── */
+  window.renderTaskList = function() {
+    var wrap = eid('tasks-list-wrap');
+    if (!wrap) return;
+    var tasks = getAllTasks();
+    var filtered = filterTasks(tasks, _taskFilter, _taskCatFilter);
+    var sorted = sortTasks(filtered, _taskSort);
+
+    if (sorted.length === 0) {
+      wrap.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#4a5568;"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:#6b7a96;">No tasks</div><div style="font-size:12px;margin-top:6px;">Create a task with the + New Task button above</div></div>';
+      return;
+    }
+
+    // Group by section
+    var overdue = [], today = [], upcoming = [], later = [], completed = [];
+    sorted.forEach(function(t) {
+      if (t.status === 'completed') { completed.push(t); return; }
+      if (isOverdue(t)) { overdue.push(t); return; }
+      if (isDueToday(t)) { today.push(t); return; }
+      if (t.dueDate) { upcoming.push(t); return; }
+      later.push(t);
+    });
+
+    var html = '';
+    function renderSection(label, arr, color) {
+      if (!arr.length) return '';
+      var s = '<div style="font-size:10px;font-weight:800;color:' + (color||'#6b7a96') + ';text-transform:uppercase;letter-spacing:.1em;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.05);">' + escH(label) + ' <span style="font-weight:400;opacity:.7;">(' + arr.length + ')</span></div>';
+      arr.forEach(function(t) { s += renderTaskCard(t); });
+      return s;
+    }
+
+    if (_taskFilter === 'all' || _taskFilter === 'pending') {
+      html += renderSection('⚠ Overdue', overdue, '#f87171');
+      html += renderSection('📅 Today', today, '#facc15');
+      html += renderSection('🔜 Upcoming', upcoming, '#aaff3e');
+      html += renderSection('📌 No Due Date', later, '#6b7a96');
+      if (_taskFilter === 'all') html += renderSection('✅ Completed', completed, '#4a5568');
+    } else {
+      sorted.forEach(function(t) { html += renderTaskCard(t); });
+    }
+
+    wrap.innerHTML = html;
+  };
+
+  function renderTaskCard(t) {
+    var pColor = PRIORITY_COLORS[t.priority] || '#6b7a96';
+    var overdueCls = isOverdue(t) ? 'opacity:1;' : '';
+    var overdueChip = isOverdue(t) ? '<span style="background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);color:#f87171;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px;margin-left:4px;">OVERDUE</span>' : '';
+    var statusChip = t.status === 'in_progress' ? '<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;margin-left:4px;">IN PROGRESS</span>' : '';
+    var dueChip = t.dueDate ? '<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:10px;padding:1px 7px;border-radius:6px;margin-left:4px;">' + escH(fmtDue(t.dueDate)) + '</span>' : '';
+    var desc = t.description ? '<div style="font-size:11px;color:#4a5568;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escH(t.description.slice(0, 80)) + (t.description.length > 80 ? '…' : '') + '</div>' : '';
+    var strikeStyle = t.status === 'completed' ? 'text-decoration:line-through;opacity:.5;' : '';
+    var checkIcon = t.status === 'completed' ? '✅' : '⬜';
+    return '<div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ' + pColor + ';border-radius:10px;padding:12px 14px;margin-bottom:8px;' + overdueCls + '">'
+      + '<button onclick="window.toggleTaskDone(\'' + escH(t.id) + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;margin-top:1px;flex-shrink:0;" title="' + (t.status==='completed'?'Mark pending':'Mark complete') + '">' + checkIcon + '</button>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px;">'
+      + '<span style="font-size:13px;font-weight:600;color:#eef3fc;' + strikeStyle + '">' + escH(t.title) + '</span>'
+      + overdueChip + statusChip
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">'
+      + '<span style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:1px 8px;border-radius:6px;">' + escH(t.category) + '</span>'
+      + '<span style="background:rgba(255,255,255,0.05);border:1px solid ' + pColor + '44;color:' + pColor + ';font-size:10px;font-weight:700;padding:1px 8px;border-radius:6px;">' + escH(PRIORITY_LABELS[t.priority] || t.priority) + '</span>'
+      + dueChip
+      + '</div>'
+      + desc
+      + '</div>'
+      + '<div style="display:flex;gap:6px;flex-shrink:0;">'
+      + '<button onclick="window.openEditTask(\'' + escH(t.id) + '\')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;" title="Edit">✏️</button>'
+      + '<button onclick="window.confirmDeleteTask(\'' + escH(t.id) + '\')" style="background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;" title="Delete">🗑️</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  window.toggleTaskDone = function(id) {
+    var tasks = getAllTasks();
+    var t = tasks.find(function(x) { return x.id === id; });
+    if (!t) return;
+    if (t.status === 'completed') {
+      updateTask(id, { status: 'pending', completedAt: null });
+    } else {
+      completeTask(id);
+    }
+    window.renderTaskList();
+  };
+
+  window.confirmDeleteTask = function(id) {
+    var tasks = getAllTasks();
+    var t = tasks.find(function(x) { return x.id === id; });
+    if (!t) return;
+    if (!confirm('Delete task "' + t.title + '"?')) return;
+    deleteTask(id);
+    window.renderTaskList();
+    refreshTaskSummary();
+  };
+
+  /* ── Load full tasks page ── */
+  window.loadTasks = function() {
+    var wrap = eid('tasks-page-content');
+    if (!wrap) return;
+
+    var tasks = getAllTasks();
+    var overdueCount = tasks.filter(function(t) { return isOverdue(t); }).length;
+    var todayCount = tasks.filter(function(t) { return isDueToday(t) && t.status !== 'completed'; }).length;
+    var pendingCount = tasks.filter(function(t) { return t.status !== 'completed'; }).length;
+
+    var summaryParts = [];
+    if (overdueCount) summaryParts.push('<span style="color:#f87171;">' + overdueCount + ' overdue</span>');
+    if (todayCount) summaryParts.push('<span style="color:#facc15;">' + todayCount + ' due today</span>');
+    summaryParts.push(tasks.length + ' total');
+
+    var cats = getTaskCategories();
+    var catOptions = '<option value="all">All Categories</option>' + cats.map(function(c) { return '<option value="' + escH(c) + '">' + escH(c) + '</option>'; }).join('');
+
+    var filterPills = [
+      { id: 'pending', label: 'Pending' },
+      { id: 'today', label: 'Today' + (todayCount ? ' <span style="background:#facc15;color:#000;font-size:9px;font-weight:800;padding:0 4px;border-radius:5px;">' + todayCount + '</span>' : '') },
+      { id: 'overdue', label: 'Overdue' + (overdueCount ? ' <span style="background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:0 4px;border-radius:5px;">' + overdueCount + '</span>' : '') },
+      { id: 'upcoming', label: 'Upcoming' },
+      { id: 'completed', label: 'Completed' },
+      { id: 'all', label: 'All' }
+    ];
+
+    var pillsHtml = filterPills.map(function(p) {
+      var active = _taskFilter === p.id;
+      return '<button onclick="window.setTaskFilter(\'' + p.id + '\',this)" style="background:' + (active ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (active ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)') + ';color:' + (active ? '#aaff3e' : '#6b7a96') + ';font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;font-family:inherit;">' + p.label + '</button>';
+    }).join('');
+
+    wrap.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">'
+      + '<div>'
+      + '<div style="font-family:\'Barlow\',sans-serif;font-size:22px;font-weight:800;color:#eef3fc;">📋 Tasks</div>'
+      + '<div style="font-size:12px;color:#6b7a96;margin-top:2px;" id="tasks-summary-line">' + summaryParts.join(' &nbsp;·&nbsp; ') + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;">'
+      + '<button onclick="window.syncGoogleTasks()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">↻ Google Tasks</button>'
+      + '<button onclick="window.openManageCategories()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">🏷️ Categories</button>'
+      + '<button onclick="window.openNewTask({})" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">+ New Task</button>'
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;" id="tasks-filter-row">'
+      + pillsHtml
+      + '<div style="margin-left:auto;display:flex;gap:8px;">'
+      + '<select id="tasks-sort-sel" onchange="window.setTaskSort(this.value)" style="background:#0d1220;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit;">'
+      + '<option value="priority"' + (_taskSort==='priority'?' selected':'') + '>Sort: Priority</option>'
+      + '<option value="due"' + (_taskSort==='due'?' selected':'') + '>Sort: Due Date</option>'
+      + '<option value="created"' + (_taskSort==='created'?' selected':'') + '>Sort: Created</option>'
+      + '</select>'
+      + '<select id="tasks-cat-sel" onchange="window.setTaskCatFilter(this.value)" style="background:#0d1220;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit;">'
+      + catOptions
+      + '</select>'
+      + '</div>'
+      + '</div>'
+      + '<div id="tasks-list-wrap"></div>';
+
+    window.renderTaskList();
+  };
+
+  function refreshTaskSummary() {
+    var tasks = getAllTasks();
+    var overdueCount = tasks.filter(function(t) { return isOverdue(t); }).length;
+    var todayCount = tasks.filter(function(t) { return isDueToday(t) && t.status !== 'completed'; }).length;
+    var summaryParts = [];
+    if (overdueCount) summaryParts.push('<span style="color:#f87171;">' + overdueCount + ' overdue</span>');
+    if (todayCount) summaryParts.push('<span style="color:#facc15;">' + todayCount + ' due today</span>');
+    summaryParts.push(tasks.length + ' total');
+    var sl = eid('tasks-summary-line');
+    if (sl) sl.innerHTML = summaryParts.join(' &nbsp;·&nbsp; ');
+  }
+
+  window.setTaskFilter = function(f, btn) {
+    _taskFilter = f;
+    document.querySelectorAll('#tasks-filter-row button').forEach(function(b) {
+      var active = b === btn;
+      b.style.background = active ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)';
+      b.style.borderColor = active ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)';
+      b.style.color = active ? '#aaff3e' : '#6b7a96';
+    });
+    window.renderTaskList();
+  };
+  window.setTaskSort = function(v) { _taskSort = v; window.renderTaskList(); };
+  window.setTaskCatFilter = function(v) { _taskCatFilter = v; window.renderTaskList(); };
+
+  /* ── Task modal (create / edit) ── */
+  function openTaskModal(prefill, editId) {
+    var old = eid('esq-task-ol'); if (old) old.remove();
+    var cats = getTaskCategories();
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-task-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:520px;width:96%;max-height:90vh;overflow-y:auto;padding:0;';
+
+    var pf = prefill || {};
+    var title = editId ? 'Edit Task' : 'New Task';
+
+    var hdr = cel('div', '');
+    hdr.style.cssText = 'padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;';
+    var hdrTitle = cel('div', '');
+    hdrTitle.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;';
+    hdrTitle.textContent = title;
+    var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.style.cssText = 'position:relative;top:0;right:0;';
+    xBtn.addEventListener('click', function() { ol.remove(); });
+    hdr.appendChild(hdrTitle); hdr.appendChild(xBtn);
+
+    var body = cel('div', '');
+    body.style.cssText = 'padding:20px;display:flex;flex-direction:column;gap:14px;';
+
+    function field(labelTxt, inputEl) {
+      var wrap = cel('div', '');
+      wrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;';
+      var lbl = cel('label', '');
+      lbl.style.cssText = 'font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;';
+      lbl.textContent = labelTxt;
+      wrap.appendChild(lbl); wrap.appendChild(inputEl);
+      return wrap;
+    }
+    var inputStyle = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#eef3fc;font-size:13px;padding:9px 12px;border-radius:8px;font-family:inherit;width:100%;outline:none;';
+
+    var titleIn = cel('input', '');
+    titleIn.type = 'text'; titleIn.placeholder = 'Task title *'; titleIn.value = pf.title || '';
+    titleIn.style.cssText = inputStyle;
+
+    var descIn = cel('textarea', '');
+    descIn.placeholder = 'Description (optional)'; descIn.value = pf.description || '';
+    descIn.style.cssText = inputStyle + 'resize:vertical;min-height:72px;';
+
+    var catSel = cel('select', '');
+    catSel.style.cssText = inputStyle + 'cursor:pointer;';
+    cats.forEach(function(c) {
+      var o = document.createElement('option'); o.value = c; o.textContent = c;
+      if (c === (pf.category || 'General')) o.selected = true;
+      catSel.appendChild(o);
+    });
+    var newCatOpt = document.createElement('option'); newCatOpt.value = '__new__'; newCatOpt.textContent = '+ New Category…';
+    catSel.appendChild(newCatOpt);
+    catSel.addEventListener('change', function() {
+      if (catSel.value === '__new__') {
+        var nc = prompt('New category name:');
+        if (nc && nc.trim()) {
+          var newCats = getTaskCategories();
+          if (!newCats.includes(nc.trim())) { newCats.push(nc.trim()); saveTaskCategories(newCats); }
+          var o2 = document.createElement('option'); o2.value = nc.trim(); o2.textContent = nc.trim();
+          catSel.insertBefore(o2, newCatOpt);
+          catSel.value = nc.trim();
+        } else {
+          catSel.value = pf.category || 'General';
+        }
+      }
+    });
+
+    var priSel = cel('select', '');
+    priSel.style.cssText = inputStyle + 'cursor:pointer;';
+    [['urgent','🔴 Urgent'],['high','🟠 High'],['medium','🟡 Medium'],['low','🟢 Low']].forEach(function(p) {
+      var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
+      if (p[0] === (pf.priority || 'medium')) o.selected = true;
+      priSel.appendChild(o);
+    });
+
+    var statusSel = null;
+    if (editId) {
+      statusSel = cel('select', '');
+      statusSel.style.cssText = inputStyle + 'cursor:pointer;';
+      [['pending','Pending'],['in_progress','In Progress'],['completed','Completed']].forEach(function(s) {
+        var o = document.createElement('option'); o.value = s[0]; o.textContent = s[1];
+        if (s[0] === (pf.status || 'pending')) o.selected = true;
+        statusSel.appendChild(o);
+      });
+    }
+
+    // Due date + time row
+    var dueDateIn = cel('input', '');
+    dueDateIn.type = 'date';
+    dueDateIn.style.cssText = inputStyle + 'flex:1;';
+    var dueTimeIn = cel('input', '');
+    dueTimeIn.type = 'time';
+    dueTimeIn.style.cssText = inputStyle + 'flex:1;';
+    if (pf.dueDate) {
+      var dd = new Date(pf.dueDate);
+      if (!isNaN(dd)) {
+        var y = dd.getFullYear(), mo = String(dd.getMonth()+1).padStart(2,'0'), dy = String(dd.getDate()).padStart(2,'0');
+        dueDateIn.value = y + '-' + mo + '-' + dy;
+        dueTimeIn.value = String(dd.getHours()).padStart(2,'0') + ':' + String(dd.getMinutes()).padStart(2,'0');
+      }
+    }
+    var dueDateRow = cel('div', '');
+    dueDateRow.style.cssText = 'display:flex;gap:8px;';
+    dueDateRow.appendChild(dueDateIn); dueDateRow.appendChild(dueTimeIn);
+
+    var alertIn = cel('input', '');
+    alertIn.type = 'number'; alertIn.min = '0'; alertIn.max = '10080';
+    alertIn.value = (pf.alertMinBefore !== undefined ? pf.alertMinBefore : 30);
+    alertIn.style.cssText = inputStyle;
+
+    body.appendChild(field('Title *', titleIn));
+    body.appendChild(field('Description', descIn));
+    body.appendChild(field('Category', catSel));
+    body.appendChild(field('Priority', priSel));
+    if (statusSel) body.appendChild(field('Status', statusSel));
+    body.appendChild(field('Due Date & Time', dueDateRow));
+    body.appendChild(field('Alert (minutes before due)', alertIn));
+
+    if (pf.sourceEmailSubject) {
+      var srcNote = cel('div', '');
+      srcNote.style.cssText = 'background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.15);border-radius:8px;padding:8px 12px;font-size:11px;color:#6b7a96;';
+      srcNote.innerHTML = '📧 From email: <span style="color:#aaff3e;">' + escH(pf.sourceEmailSubject) + '</span>';
+      body.appendChild(srcNote);
+    }
+
+    var foot = cel('div', '');
+    foot.style.cssText = 'padding:14px 20px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:10px;justify-content:flex-end;';
+    var cancelBtn = cel('button', '', 'Cancel');
+    cancelBtn.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:12px;font-weight:600;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    cancelBtn.addEventListener('click', function() { ol.remove(); });
+    var saveBtn = cel('button', '', editId ? 'Save Changes' : 'Create Task');
+    saveBtn.style.cssText = 'background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    saveBtn.addEventListener('click', function() {
+      var t = titleIn.value.trim();
+      if (!t) { titleIn.style.borderColor = '#f87171'; titleIn.focus(); return; }
+      var dueIso = null;
+      if (dueDateIn.value) {
+        var timeVal = dueTimeIn.value || '09:00';
+        dueIso = new Date(dueDateIn.value + 'T' + timeVal).toISOString();
+      }
+      var data = {
+        title: t,
+        description: descIn.value.trim(),
+        category: catSel.value === '__new__' ? 'General' : catSel.value,
+        priority: priSel.value,
+        status: statusSel ? statusSel.value : (pf.status || 'pending'),
+        dueDate: dueIso,
+        alertMinBefore: parseInt(alertIn.value, 10) || 30,
+        sourceEmailId: pf.sourceEmailId || null,
+        sourceEmailSubject: pf.sourceEmailSubject || null
+      };
+      if (editId) {
+        updateTask(editId, data);
+      } else {
+        createTask(data);
+      }
+      ol.remove();
+      if (eid('tasks-page-content')) { window.loadTasks(); }
+      injectTasksWidget();
+    });
+    foot.appendChild(cancelBtn); foot.appendChild(saveBtn);
+
+    modal.appendChild(hdr); modal.appendChild(body); modal.appendChild(foot);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+    setTimeout(function() { titleIn.focus(); }, 100);
+  }
+
+  window.openNewTask = function(prefill) { openTaskModal(prefill || {}, null); };
+  window.openEditTask = function(taskId) {
+    var tasks = getAllTasks();
+    var t = tasks.find(function(x) { return x.id === taskId; });
+    if (!t) return;
+    openTaskModal(t, taskId);
+  };
+
+  /* ── Manage Categories modal ── */
+  window.openManageCategories = function() {
+    var old = eid('esq-catmgr-ol'); if (old) old.remove();
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-catmgr-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:440px;width:96%;max-height:88vh;overflow-y:auto;';
+
+    var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.addEventListener('click', function() { ol.remove(); });
+    var hdrEl = cel('div', '');
+    hdrEl.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:4px;';
+    hdrEl.textContent = '🏷️ Manage Categories';
+    var subEl = cel('div', '');
+    subEl.style.cssText = 'font-size:12px;color:#6b7a96;margin-bottom:16px;';
+    subEl.textContent = 'Add, rename, or remove task categories.';
+
+    var listWrap = cel('div', ''); listWrap.id = 'cat-mgr-list';
+    function renderCatList() {
+      var cats = getTaskCategories();
+      listWrap.innerHTML = '';
+      cats.forEach(function(c, idx) {
+        var row = cel('div', '');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);';
+        var nameEl = cel('div', '');
+        nameEl.style.cssText = 'flex:1;font-size:13px;color:#eef3fc;';
+        nameEl.textContent = c;
+        var renBtn = cel('button', '', 'Rename');
+        renBtn.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;';
+        renBtn.addEventListener('click', function() {
+          var nv = prompt('Rename category:', c);
+          if (!nv || !nv.trim() || nv.trim() === c) return;
+          var cc = getTaskCategories();
+          cc[idx] = nv.trim();
+          saveTaskCategories(cc);
+          // update tasks using old name
+          var tasks = getAllTasks();
+          tasks.forEach(function(t) { if (t.category === c) t.category = nv.trim(); });
+          saveAllTasks(tasks);
+          renderCatList();
+        });
+        var delBtn = cel('button', '', '✕');
+        delBtn.style.cssText = 'background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:#f87171;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;';
+        delBtn.addEventListener('click', function() {
+          if (!confirm('Delete category "' + c + '"? Tasks will move to General.')) return;
+          var cc = getTaskCategories();
+          cc.splice(idx, 1);
+          saveTaskCategories(cc);
+          var tasks = getAllTasks();
+          tasks.forEach(function(t) { if (t.category === c) t.category = 'General'; });
+          saveAllTasks(tasks);
+          renderCatList();
+        });
+        row.appendChild(nameEl); row.appendChild(renBtn); row.appendChild(delBtn);
+        listWrap.appendChild(row);
+      });
+    }
+    renderCatList();
+
+    var addRow = cel('div', '');
+    addRow.style.cssText = 'display:flex;gap:8px;margin-top:14px;';
+    var addIn = cel('input', '');
+    addIn.type = 'text'; addIn.placeholder = 'New category name';
+    addIn.style.cssText = 'flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#eef3fc;font-size:12px;padding:7px 10px;border-radius:8px;font-family:inherit;outline:none;';
+    var addBtn = cel('button', '', '+ Add');
+    addBtn.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    addBtn.addEventListener('click', function() {
+      var v = addIn.value.trim();
+      if (!v) return;
+      var cc = getTaskCategories();
+      if (!cc.includes(v)) { cc.push(v); saveTaskCategories(cc); }
+      addIn.value = '';
+      renderCatList();
+    });
+    addIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') addBtn.click(); });
+    addRow.appendChild(addIn); addRow.appendChild(addBtn);
+
+    modal.appendChild(xBtn); modal.appendChild(hdrEl); modal.appendChild(subEl);
+    modal.appendChild(listWrap); modal.appendChild(addRow);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+  };
+
+  /* ── Task Alerts ── */
+  function scheduleTaskAlerts() {
+    // Clear existing timers
+    Object.keys(_taskAlertTimers).forEach(function(k) { clearTimeout(_taskAlertTimers[k]); });
+    _taskAlertTimers = {};
+
+    var tasks = getAllTasks();
+    var alerted = getAlerted();
+    var now = Date.now();
+
+    tasks.forEach(function(t) {
+      if (t.status === 'completed' || !t.dueDate) return;
+      var dueMs = new Date(t.dueDate).getTime();
+      var alertMs = dueMs - (t.alertMinBefore || 30) * 60000;
+      var delayMs = alertMs - now;
+
+      // Already past due and not alerted yet — alert immediately
+      if (dueMs < now && !alerted[t.id + '_overdue']) {
+        alerted[t.id + '_overdue'] = true;
+        setAlerted(alerted);
+        setTimeout(function() {
+          notify('⚠️ Task Overdue: ' + t.title, 'Category: ' + t.category + ' · ' + PRIORITY_LABELS[t.priority], 'task-overdue-' + t.id, function() {
+            if (typeof window.showDashTab === 'function') window.showDashTab('tasks-tab', document.getElementById('dash-nav-tasks'));
+          });
+          playSound('chime');
+        }, 500);
+        return;
+      }
+
+      if (delayMs > 0 && !alerted[t.id + '_pre']) {
+        _taskAlertTimers[t.id] = setTimeout(function() {
+          var al2 = getAlerted(); al2[t.id + '_pre'] = true; setAlerted(al2);
+          notify('⏰ Task Due Soon: ' + t.title, (t.alertMinBefore || 30) + ' min until due · ' + t.category, 'task-pre-' + t.id, function() {
+            if (typeof window.showDashTab === 'function') window.showDashTab('tasks-tab', document.getElementById('dash-nav-tasks'));
+          });
+          playSound('chime');
+        }, delayMs);
+      }
+    });
+  }
+
+  /* ── Inbox widget ── */
+  function injectTasksWidget() {
+    var inboxTab = eid('inbox-tab');
+    if (!inboxTab) return;
+    var old = eid('esq-tasks-widget'); if (old) old.remove();
+
+    var tasks = getAllTasks();
+    var widgetTasks = tasks.filter(function(t) {
+      return t.status !== 'completed' && (isOverdue(t) || isDueToday(t));
+    }).sort(function(a, b) {
+      if (isOverdue(a) && !isOverdue(b)) return -1;
+      if (!isOverdue(a) && isOverdue(b)) return 1;
+      return (PRIORITY_ORDER[a.priority] || 2) - (PRIORITY_ORDER[b.priority] || 2);
+    }).slice(0, 6);
+
+    var widget = cel('div', '');
+    widget.id = 'esq-tasks-widget';
+    widget.style.cssText = 'background:rgba(10,14,24,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;margin:0 0 16px;';
+
+    var wHdr = cel('div', '');
+    wHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
+    var wTitle = cel('div', '');
+    wTitle.style.cssText = 'font-size:12px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;';
+    wTitle.textContent = '📋 Tasks';
+    var wLink = cel('a', '');
+    wLink.style.cssText = 'font-size:11px;color:#aaff3e;cursor:pointer;text-decoration:none;';
+    wLink.textContent = 'View all →';
+    wLink.addEventListener('click', function() {
+      if (typeof window.showDashTab === 'function') window.showDashTab('tasks-tab', document.getElementById('dash-nav-tasks'));
+    });
+    wHdr.appendChild(wTitle); wHdr.appendChild(wLink);
+    widget.appendChild(wHdr);
+
+    if (widgetTasks.length === 0) {
+      var empty = cel('div', '');
+      empty.style.cssText = 'font-size:12px;color:#4a5568;text-align:center;padding:8px 0;';
+      empty.textContent = 'No overdue or today tasks';
+      widget.appendChild(empty);
+    } else {
+      widgetTasks.forEach(function(t) {
+        var pc = PRIORITY_COLORS[t.priority] || '#6b7a96';
+        var row = cel('div', '');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;';
+        row.addEventListener('click', function() {
+          if (typeof window.showDashTab === 'function') window.showDashTab('tasks-tab', document.getElementById('dash-nav-tasks'));
+        });
+        var dot = cel('span', '');
+        dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:' + pc + ';flex-shrink:0;';
+        var titleEl = cel('span', '');
+        titleEl.style.cssText = 'flex:1;font-size:12px;color:#eef3fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        titleEl.textContent = t.title;
+        var timeEl = cel('span', '');
+        timeEl.style.cssText = 'font-size:10px;color:' + (isOverdue(t) ? '#f87171' : '#6b7a96') + ';flex-shrink:0;';
+        timeEl.textContent = t.dueDate ? fmtDue(t.dueDate) : '';
+        row.appendChild(dot); row.appendChild(titleEl); row.appendChild(timeEl);
+        widget.appendChild(row);
+      });
+    }
+
+    var wAddBtn = cel('button', '');
+    wAddBtn.style.cssText = 'margin-top:10px;width:100%;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);color:#aaff3e;font-size:11px;font-weight:600;padding:5px 0;border-radius:7px;cursor:pointer;font-family:inherit;';
+    wAddBtn.textContent = '+ New Task';
+    wAddBtn.addEventListener('click', function() { window.openNewTask({}); });
+    widget.appendChild(wAddBtn);
+
+    // Inject at top of inbox-tab
+    inboxTab.insertBefore(widget, inboxTab.firstChild);
+  }
+
+  /* ── "Create Task from Email" button in email detail modal ── */
+  var _origOpenEmailDetail = window.openEmailDetail;
+  window.openEmailDetail = function(email) {
+    _origOpenEmailDetail(email);
+    // Add task button to the action row after a tick
+    setTimeout(function() {
+      var actRow = document.querySelector('#esq-ed .email-detail-actions');
+      if (!actRow || actRow.querySelector('#esq-task-from-email-btn')) return;
+      var taskBtn = cel('button', 'email-action-btn', '📋 Task');
+      taskBtn.id = 'esq-task-from-email-btn';
+      taskBtn.addEventListener('click', function() {
+        var ol = eid('esq-ed'); if (ol) ol.remove();
+        window.openNewTask({
+          sourceEmailId: email.id,
+          sourceEmailSubject: email.subject,
+          title: 'Follow up: ' + (email.subject || ''),
+          description: 'From: ' + (email.from || '')
+        });
+      });
+      // Insert before Close button
+      var closeBtn = actRow.querySelector('.email-action-btn:not(.primary):not(.danger)');
+      if (closeBtn) actRow.insertBefore(taskBtn, closeBtn);
+      else actRow.appendChild(taskBtn);
+    }, 50);
+  };
+
+  /* ── Google Tasks sync ── */
+  window.syncGoogleTasks = function() {
+    var supaUrl = window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
+    var supaKey = window.SUPA_KEY || '';
+    var token = window.providerToken || window._providerToken;
+
+    // Update button state
+    var btn = document.querySelector('[onclick="window.syncGoogleTasks()"]');
+    if (btn) { btn.textContent = '↻ Syncing…'; btn.disabled = true; }
+
+    if (!token) {
+      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+      showTaskScopeModal('No Google session found. Please sign in with Google to sync tasks.');
+      return;
+    }
+
+    fetch(supaUrl + '/functions/v1/gmail-calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
+      body: JSON.stringify({ action: 'google_tasks_list', provider_token: token })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+      if (data.needsScope || data.error) {
+        showTaskScopeModal(data.error || 'Google Tasks access required.');
+        return;
+      }
+      var imported = 0;
+      var existing = getAllTasks();
+      var existingGIds = {};
+      existing.forEach(function(t) { if (t.googleTaskId) existingGIds[t.googleTaskId] = true; });
+      (data.tasks || []).forEach(function(gt) {
+        if (!gt.id || existingGIds[gt.id]) return;
+        createTask({
+          title: gt.title || 'Google Task',
+          description: gt.notes || '',
+          category: 'General',
+          priority: 'medium',
+          status: gt.status === 'completed' ? 'completed' : 'pending',
+          dueDate: gt.due ? new Date(gt.due).toISOString() : null,
+          googleTaskId: gt.id
+        });
+        imported++;
+      });
+      if (eid('tasks-page-content')) window.loadTasks();
+      injectTasksWidget();
+      var msg = imported > 0 ? imported + ' tasks imported from Google Tasks.' : 'No new tasks to import.';
+      showToastMsg(msg);
+    })
+    .catch(function(err) {
+      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+      showTaskScopeModal('Could not connect to Google Tasks. ' + (err.message || ''));
+    });
+  };
+
+  function showTaskScopeModal(msg) {
+    var old = eid('esq-scope-ol'); if (old) old.remove();
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-scope-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:440px;width:96%;padding:28px 24px;text-align:center;';
+    var icon = cel('div', ''); icon.style.cssText = 'font-size:36px;margin-bottom:12px;'; icon.textContent = '🔑';
+    var hd = cel('div', ''); hd.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:8px;'; hd.textContent = 'Google Tasks Access Needed';
+    var bd = cel('div', ''); bd.style.cssText = 'font-size:13px;color:#8a97b5;line-height:1.6;margin-bottom:20px;'; bd.textContent = msg + ' To enable Google Tasks sync, reconnect your Google account and grant the Tasks permission when prompted.';
+    var closeBtn = cel('button', '');
+    closeBtn.style.cssText = 'background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:13px;font-weight:700;padding:9px 24px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    closeBtn.textContent = 'Got it';
+    closeBtn.addEventListener('click', function() { ol.remove(); });
+    modal.appendChild(icon); modal.appendChild(hd); modal.appendChild(bd); modal.appendChild(closeBtn);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+  }
+
+  /* ── ARIA briefing integration ── */
+  var _origAriaWelcome = window.loadAriaWelcome;
+  window.loadAriaWelcome = function() {
+    if (typeof _origAriaWelcome === 'function') _origAriaWelcome();
+    // Inject task summary into ARIA briefing if element exists
+    setTimeout(function() {
+      var briefEl = eid('aria-briefing-tasks');
+      if (!briefEl) return;
+      var tasks = getAllTasks();
+      var ov = tasks.filter(function(t) { return isOverdue(t); }).length;
+      var td = tasks.filter(function(t) { return isDueToday(t) && t.status !== 'completed'; }).length;
+      if (ov || td) {
+        briefEl.style.display = 'block';
+        briefEl.innerHTML = '📋 <strong>' + (ov ? ov + ' overdue task' + (ov>1?'s':'') : '') + (ov&&td?' and ':'') + (td ? td + ' task' + (td>1?'s':'') + ' due today' : '') + '</strong> — <a href="#" style="color:#aaff3e;" onclick="event.preventDefault();window.showDashTab(\'tasks-tab\',document.getElementById(\'dash-nav-tasks\'))">View tasks →</a>';
+      }
+    }, 400);
+  };
+
+  /* ── showToastMsg helper (if not defined) ── */
+  if (typeof showToastMsg === 'undefined') {
+    var showToastMsg = function(msg) {
+      var t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(8,20,8,0.97);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-size:13px;font-weight:700;padding:10px 24px;border-radius:10px;z-index:99999;font-family:Barlow,sans-serif;';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function() { if (t.parentNode) t.remove(); }, 2500);
+    };
+  }
+
+  /* ── Public init ── */
+  window.initTasks = function() {
+    updateTasksBadge();
+    scheduleTaskAlerts();
+    setTimeout(injectTasksWidget, 300);
+  };
+
 })();

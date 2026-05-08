@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "WebFetch(domain:ekleinsorge.github.io)",
+      "Bash(supabase *)",
+      "PowerShell(supabase *)",
+      "PowerShell(npm install *)",
+      "PowerShell(winget install *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell($release = Invoke-RestMethod \"https://api.github.com/repos/supabase/cli/releases/latest\"; $release.assets | Select-Object name, browser_download_url | Format-Table -AutoSize)",
+      "PowerShell($url = \"https://github.com/supabase/cli/releases/download/v2.98.2/supabase_windows_amd64.tar.gz\"; $dest = \"$env:TEMP\\\\supabase_windows_amd64.tar.gz\"; Invoke-WebRequest -Uri $url -OutFile $dest; Write-Host \"Downloaded to $dest\")",
+      "PowerShell(New-Item *)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(supabase login *)"
+    ]
+  }
+}

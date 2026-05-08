@@ -1021,6 +1021,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span>
           </a></li>
           <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);initFullCalendar();" style="cursor:pointer;">Calendar</a></li>
+          <li><a id="dash-nav-tasks" onclick="showDashTab('tasks-tab',this)" style="cursor:pointer;">Tasks <span id="tasks-nav-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></a></li>
           <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
           <li><a id="dash-nav-stats" onclick="showDashTab('stats-tab',this)" style="cursor:pointer;">My Stats</a></li>
           <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
@@ -1599,6 +1600,13 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
       </div>
 
+      <!-- ========== TASKS TAB ========== -->
+      <div class="page main dash-tab" id="tasks-tab" style="display:none;padding:24px 32px;">
+        <div id="tasks-page-content">
+          <div style="text-align:center;padding:60px 20px;color:#4a5568;font-size:13px;">Loading tasks…</div>
+        </div>
+      </div>
+
       <div class="page main dash-tab" id="history-tab" style="display:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
           <div>
@@ -1819,7 +1827,7 @@ function showDashTab(tabId,el){
   document.querySelectorAll('#nav-dashboard .nav-links a').forEach(function(a){a.classList.remove('active');});
   if(el)el.classList.add('active');
   /* highlight nav link even when el isn't passed (e.g. on restore) */
-  var navMap={'home-tab':'dash-nav-home','inbox-tab':'dash-nav-inbox','fullcal-tab':'dash-nav-fullcal','history-tab':'dash-nav-history','stats-tab':'dash-nav-stats'};
+  var navMap={'home-tab':'dash-nav-home','inbox-tab':'dash-nav-inbox','fullcal-tab':'dash-nav-fullcal','tasks-tab':'dash-nav-tasks','history-tab':'dash-nav-history','stats-tab':'dash-nav-stats'};
   if(!el && navMap[tabId]){var nl=document.getElementById(navMap[tabId]);if(nl)nl.classList.add('active');}
   var sa=document.querySelector('.scroll-area');
   if(sa)sa.scrollTop=0;
@@ -2112,6 +2120,8 @@ function onSignedIn(user){
   setTimeout(loadAriaWelcome,1000);
   /* initialize notification system (bell icon + polling) */
   setTimeout(function(){ if(typeof window.initNotifications==='function') window.initNotifications(); }, 2000);
+  /* initialize task system (widget, alerts, badge) */
+  setTimeout(function(){ if(typeof window.initTasks==='function') window.initTasks(); }, 2500);
   /* update last active */
   updateLastActive();
   /* update greeting with real first name */
@@ -4040,6 +4050,7 @@ showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
   if(tabId==='inbox-tab')loadInbox();
+  if(tabId==='tasks-tab'){if(typeof window.loadTasks==='function')window.loadTasks();}
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
   if(tabId==='stats-tab'){
     /* default to overview tab */

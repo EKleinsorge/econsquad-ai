@@ -549,6 +549,24 @@ serve(async (req) => {
       result = { created: true, eventId: data.id, htmlLink: data.htmlLink, error: data.error?.message }
     }
 
+    // ===== GOOGLE TASKS LIST =====
+    if (action === 'google_tasks_list') {
+      const listRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
+        headers: { Authorization: `Bearer ${provider_token}` }
+      })
+      const lists = await listRes.json()
+      if (lists.error) {
+        result = { error: lists.error.message, needsScope: true }
+      } else {
+        const firstList = lists.items?.[0]?.id || '@default'
+        const tasksRes = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${firstList}/tasks?showCompleted=false&maxResults=100`, {
+          headers: { Authorization: `Bearer ${provider_token}` }
+        })
+        const tasksData = await tasksRes.json()
+        result = { tasks: tasksData.items || [] }
+      }
+    }
+
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
