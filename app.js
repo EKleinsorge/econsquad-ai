@@ -753,7 +753,7 @@
       var supaKey = window.SUPA_KEY || '';
       fetch(supaUrl + '/functions/v1/gmail-calendar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': supaKey },
+        headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
         body: JSON.stringify({ action: 'aria_reply', from: email.from || '', subject: email.subject || '', snippet: email.snippet || '' })
       })
       .then(function(r) { return r.json(); })
