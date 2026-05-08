@@ -404,6 +404,7 @@
       delBtn.addEventListener('click', function() {
         var tags = getCustomTags(); tags.splice(idx, 1); setCustomTags(tags);
         rebuildCustomList();
+        _renderList(window._lastEmails || []);
       });
       row.appendChild(badge); row.appendChild(kwPrev); row.appendChild(editRowBtn); row.appendChild(delBtn);
       return row;
@@ -516,6 +517,7 @@
         formWrap.style.display = 'none';
         editingId = null;
         rebuildCustomList();
+        _renderList(window._lastEmails || []);
       });
       cancelFBtn.addEventListener('click', function() { formWrap.style.display = 'none'; editingId = null; });
       fAct.appendChild(saveBtn); fAct.appendChild(cancelFBtn); formWrap.appendChild(fAct);
@@ -558,6 +560,7 @@
           if (idx === -1) pt.push(r.label); else pt.splice(idx, 1);
           setPinnedTags(pt);
           rebuildBuiltinList();
+          _renderList(window._lastEmails || []);
         });
         // Enable toggle
         var tog = cel('div', '');
@@ -571,6 +574,7 @@
           if (idx === -1) d.push(r.label); else d.splice(idx, 1);
           setDisabledBuiltins(d);
           rebuildBuiltinList();
+          _renderList(window._lastEmails || []);
         });
         row.appendChild(badge); row.appendChild(kw); row.appendChild(pinTagBtn); row.appendChild(tog);
         builtinGrid.appendChild(row);
