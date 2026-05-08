@@ -5497,7 +5497,7 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events',
+      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   }).then(function(res){
@@ -5888,7 +5888,7 @@ function connectGmail(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events',
+      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
