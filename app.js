@@ -1748,6 +1748,12 @@
       if (lbl) lbl.textContent = visible.length + ' unread | ' + priorityCount + ' priority';
       var badge = eid('inbox-badge');
       if (badge && visible.length > 0) { badge.textContent = visible.length; badge.style.display = 'inline'; }
+      /* sync sidebar email badge */
+      var rsbBadge = eid('esq-rsb-email-badge');
+      if (rsbBadge) {
+        if (visible.length > 0) { rsbBadge.textContent = visible.length > 99 ? '99+' : visible.length; rsbBadge.style.display = 'inline-block'; }
+        else { rsbBadge.style.display = 'none'; }
+      }
       list.addEventListener('click', function(e) {
         if (e.target.closest('button') || e.target.closest('.esq-check')) return;
         var card = e.target.closest('.email-card-v2');
@@ -3729,8 +3735,17 @@
       /* rebuild btn to include label */
       btn.innerHTML = '';
       var iconWrap = cel('div', '');
+      iconWrap.style.cssText = 'position:relative;display:flex;align-items:center;justify-content:center;';
       iconWrap.innerHTML = t.svg;
-      iconWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;';
+
+      /* unread badge — only on the Email button */
+      if (t.id === 'esq-rsb-email') {
+        var rsbBadge = cel('span', '');
+        rsbBadge.id = 'esq-rsb-email-badge';
+        rsbBadge.style.cssText = 'display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:#f87171;color:#fff;font-size:9px;font-weight:800;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;font-family:Barlow,sans-serif;border:1.5px solid rgba(6,8,15,0.9);';
+        iconWrap.appendChild(rsbBadge);
+      }
+
       btn.appendChild(iconWrap);
       btn.appendChild(lbl);
 
