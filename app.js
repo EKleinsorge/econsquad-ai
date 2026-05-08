@@ -2170,6 +2170,156 @@
     document.body.appendChild(ol);
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     ✦  ARIA WELCOME SPLASH SCREEN
+  ═══════════════════════════════════════════════════════════════════════ */
+  window.showWelcomeSplash = function(firstName) {
+    /* Only show once per browser session */
+    try { if (sessionStorage.getItem('esq_splash_shown')) return; sessionStorage.setItem('esq_splash_shown', '1'); } catch(e) {}
+
+    var hour = new Date().getHours();
+    var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    var name = firstName ? (', ' + firstName) : '';
+
+    var lines = [
+      greeting + name + '.',
+      'I\'m ARIA — your AI economic development squad.',
+      'I\'m here to clear your inbox, prep your meetings,',
+      'and handle the heavy lifting so you can focus on what matters.',
+      'Less work. More impact. Let\'s make today count.'
+    ];
+
+    /* Inject keyframe styles */
+    if (!document.getElementById('esq-splash-css')) {
+      var s = document.createElement('style');
+      s.id = 'esq-splash-css';
+      s.textContent = [
+        '@keyframes ariaSplashStarPulse{0%,100%{filter:drop-shadow(0 0 18px #aaff3e) drop-shadow(0 0 40px #aaff3e88);}50%{filter:drop-shadow(0 0 38px #aaff3e) drop-shadow(0 0 80px #aaff3eaa);}}',
+        '@keyframes ariaSplashFadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}',
+        '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}',
+        '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.08) translateY(-60px);}100%{opacity:0;transform:scale(0.04) translateY(-80px);}}',
+        '@keyframes ariaSplashOverlayOut{from{opacity:1;}to{opacity:0;}}',
+        '@keyframes starTwinkle{0%,100%{opacity:0.15;}50%{opacity:0.7;}}',
+      ].join('');
+      document.head.appendChild(s);
+    }
+
+    /* Build overlay */
+    var overlay = document.createElement('div');
+    overlay.id = 'esq-splash-overlay';
+    overlay.style.cssText = [
+      'position:fixed','inset:0','z-index:99999',
+      'background:radial-gradient(ellipse at 50% 40%, #0a1628 0%, #04050d 70%)',
+      'display:flex','flex-direction:column','align-items:center','justify-content:center',
+      'overflow:hidden','cursor:pointer',
+    ].join(';');
+
+    /* Star field */
+    var stars = document.createElement('div');
+    stars.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+    for (var i = 0; i < 80; i++) {
+      var star = document.createElement('div');
+      var size = Math.random() * 2.5 + 0.5;
+      var delay = Math.random() * 4;
+      var dur = 2 + Math.random() * 3;
+      star.style.cssText = 'position:absolute;border-radius:50%;background:#aaff3e;'
+        + 'width:' + size + 'px;height:' + size + 'px;'
+        + 'left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 100) + '%;'
+        + 'animation:starTwinkle ' + dur + 's ' + delay + 's ease-in-out infinite;opacity:0.15;';
+      stars.appendChild(star);
+    }
+    overlay.appendChild(stars);
+
+    /* Main content wrapper — this is what shrinks */
+    var content = document.createElement('div');
+    content.id = 'esq-splash-content';
+    content.style.cssText = 'display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 24px;max-width:700px;';
+
+    /* ARIA giant star icon */
+    var iconWrap = document.createElement('div');
+    iconWrap.style.cssText = 'margin-bottom:28px;animation:ariaSplashFloat 3s ease-in-out infinite;';
+    var iconInner = document.createElement('div');
+    iconInner.style.cssText = 'animation:ariaSplashStarPulse 2s ease-in-out infinite;';
+    iconInner.innerHTML = '<svg width="120" height="120" viewBox="0 0 24 24" fill="#aaff3e"><path d="M12 2 L13.8 9.5 L21 12 L13.8 14.5 L12 22 L10.2 14.5 L3 12 L10.2 9.5 Z"/></svg>';
+    iconWrap.appendChild(iconInner);
+    content.appendChild(iconWrap);
+
+    /* ARIA name */
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-family:Barlow Condensed,Barlow,sans-serif;font-size:clamp(64px,12vw,120px);font-weight:900;color:#aaff3e;letter-spacing:-.02em;line-height:1;margin-bottom:8px;text-shadow:0 0 60px rgba(170,255,62,0.4);';
+    nameEl.textContent = 'ARIA';
+    content.appendChild(nameEl);
+
+    /* Tagline */
+    var tagEl = document.createElement('div');
+    tagEl.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(13px,2vw,16px);font-weight:600;color:#4a5568;letter-spacing:.18em;text-transform:uppercase;margin-bottom:48px;';
+    tagEl.textContent = 'AI Economic Development Squad';
+    content.appendChild(tagEl);
+
+    /* Greeting lines — appear one by one */
+    var msgWrap = document.createElement('div');
+    msgWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:56px;';
+
+    lines.forEach(function(line, i) {
+      var p = document.createElement('div');
+      var isAccent = i === lines.length - 1;
+      p.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(14px,2.2vw,19px);font-weight:' + (isAccent ? '800' : '400') + ';'
+        + 'color:' + (i === 0 ? '#eef3fc' : isAccent ? '#aaff3e' : '#8a97b5') + ';'
+        + 'line-height:1.6;opacity:0;'
+        + 'animation:ariaSplashFadeUp .6s ' + (0.6 + i * 0.35) + 's ease forwards;';
+      p.textContent = line;
+      msgWrap.appendChild(p);
+    });
+    content.appendChild(msgWrap);
+
+    /* CTA button */
+    var btn = document.createElement('button');
+    var btnDelay = 0.6 + lines.length * 0.35 + 0.4;
+    btn.style.cssText = 'font-family:Barlow,sans-serif;font-size:15px;font-weight:800;'
+      + 'background:#aaff3e;color:#0a1a00;border:none;padding:14px 40px;border-radius:50px;'
+      + 'cursor:pointer;letter-spacing:.04em;opacity:0;'
+      + 'animation:ariaSplashFadeUp .5s ' + btnDelay + 's ease forwards;'
+      + 'box-shadow:0 0 32px rgba(170,255,62,0.35);transition:transform .15s,box-shadow .15s;';
+    btn.textContent = "Let's dive in →";
+    btn.onmouseover = function() { btn.style.transform='scale(1.05)'; btn.style.boxShadow='0 0 48px rgba(170,255,62,0.55)'; };
+    btn.onmouseout  = function() { btn.style.transform=''; btn.style.boxShadow='0 0 32px rgba(170,255,62,0.35)'; };
+    content.appendChild(btn);
+
+    /* Skip hint */
+    var skip = document.createElement('div');
+    skip.style.cssText = 'position:absolute;bottom:24px;right:32px;font-size:11px;color:#2a3448;font-family:Barlow,sans-serif;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:color .2s;';
+    skip.textContent = 'Skip';
+    skip.onmouseover = function() { skip.style.color = '#4a5568'; };
+    skip.onmouseout  = function() { skip.style.color = '#2a3448'; };
+    overlay.appendChild(skip);
+
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    /* Dismiss → ARIA shrinks away */
+    function dismiss() {
+      content.style.animation = 'ariaSplashShrink .8s cubic-bezier(.4,0,.2,1) forwards';
+      setTimeout(function() {
+        overlay.style.animation = 'ariaSplashOverlayOut .5s ease forwards';
+        setTimeout(function() {
+          overlay.remove();
+          /* Navigate to inbox after splash */
+          if (typeof window.showDashTab === 'function') {
+            window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
+          }
+        }, 500);
+      }, 750);
+    }
+
+    btn.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
+    skip.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
+
+    /* Auto-dismiss after 7 seconds */
+    var autoTimer = setTimeout(dismiss, 7000);
+    btn.addEventListener('click', function() { clearTimeout(autoTimer); });
+    skip.addEventListener('click', function() { clearTimeout(autoTimer); });
+  };
+
   install();
   setTimeout(injectReportBtn, 1500);
   setTimeout(initHomeChat, 1500);
