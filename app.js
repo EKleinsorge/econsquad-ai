@@ -754,7 +754,10 @@
       fetch(supaUrl + '/functions/v1/gmail-calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
-        body: JSON.stringify({ action: 'aria_reply', from: email.from || '', subject: email.subject || '', snippet: email.snippet || '' })
+        body: JSON.stringify({ action: 'aria_reply',
+          from: (email._ariaContext || email).from || '',
+          subject: (email._ariaContext || email).subject || '',
+          snippet: (email._ariaContext || email).snippet || '' })
       })
       .then(function(r) { return r.json(); })
       .then(function(d) {

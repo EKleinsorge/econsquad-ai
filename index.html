@@ -6488,13 +6488,20 @@ function openCalEventDetail(evt){
     var recipEmails=editAttendees.map(function(a){return a.email;}).filter(Boolean).join(', ');
     if(!recipEmails){alert('No attendees to email.');return;}
     ol.remove();
+    var liveNotesCtx=localStorage.getItem('esq_cal_live_'+(evt.id||evt.title||''))||'';
+    var attendeeNames=editAttendees.map(function(a){return a.name||a.email;}).join(', ');
     window.openReplyCompose({
       from:'',
       _prefillTo:recipEmails,
       _prefillSubject:evt.title,
       subject:evt.title,
       snippet:'',
-      _prefillBody:'Hi team,\n\n'
+      _prefillBody:'Hi team,\n\n',
+      _ariaContext:{
+        from:'Meeting: '+evt.title,
+        subject:evt.title,
+        snippet:'Meeting'+(dateStr?' on '+dateStr:'')+(attendeeNames?', attendees: '+attendeeNames:'')+(liveNotesCtx?'. Notes: '+liveNotesCtx.substring(0,300):'')
+      }
     });
   });
 
