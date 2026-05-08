@@ -2179,6 +2179,8 @@ function onSignedIn(user){
 }
 
 function onSignedOut(){
+  /* clear splash flag so it shows again on next sign-in */
+  try{ sessionStorage.removeItem('esq_splash_shown'); }catch(e){}
   switchView('marketing');
   var av=document.getElementById('user-avatar');
   if(av)av.textContent='SM';
