@@ -1556,8 +1556,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
           <!-- CALENDAR PANEL -->
           <div>
-            <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">
-              📅 Today's Schedule
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;">📅 Today's Schedule</div>
+              <button onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:4px 12px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule</button>
             </div>
             <div id="calendar-today" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
               <div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Loading calendar...</div>
@@ -5339,7 +5340,7 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   }).then(function(res){
@@ -5730,7 +5731,7 @@ function connectGmail(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.readonly',
+      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events',
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
@@ -6105,7 +6106,7 @@ function openCalEventDetail(evt){
 
   // ── Two-column body ──
   var body = document.createElement('div');
-  body.style.cssText = 'display:flex;flex:1;overflow:hidden;';
+  body.style.cssText = 'display:flex;flex:1;overflow:hidden;min-height:0;';
 
   // LEFT — details + checklist
   var left = document.createElement('div');
@@ -6117,6 +6118,31 @@ function openCalEventDetail(evt){
   if(timeStr){ var tr2=document.createElement('div'); tr2.style.cssText='font-size:11px;color:#6b7a96;'; tr2.innerHTML='🕐 '+escHtml(timeStr); metaDiv.appendChild(tr2); }
   if(evt.location){ var lr=document.createElement('div'); lr.style.cssText='font-size:11px;color:#6b7a96;'; lr.innerHTML='📍 '+escHtml(evt.location); metaDiv.appendChild(lr); }
   left.appendChild(metaDiv);
+
+  // Attendees
+  if(evt.attendees && evt.attendees.length){
+    var attHdr = document.createElement('div');
+    attHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
+    attHdr.textContent = '👥 Attendees';
+    left.appendChild(attHdr);
+    var statusDot = {'accepted':'#4ade80','tentative':'#facc15','needsAction':'#6b7a96','declined':'#f87171'};
+    evt.attendees.forEach(function(a){
+      if(a.self) return;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:7px;margin-bottom:7px;';
+      var dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:'+(statusDot[a.status]||'#6b7a96')+';';
+      var name = document.createElement('span');
+      name.style.cssText = 'font-size:11px;color:#b8c8e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
+      name.textContent = a.name || a.email;
+      name.title = a.email;
+      row.appendChild(dot); row.appendChild(name);
+      left.appendChild(row);
+    });
+    var attSep = document.createElement('div');
+    attSep.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:10px 0 14px;';
+    left.appendChild(attSep);
+  }
 
   var chkHdr = document.createElement('div');
   chkHdr.style.cssText = 'font-size:10px;font-weight:700;color:#aaff3e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;';
@@ -6345,10 +6371,13 @@ function openCalEventDetail(evt){
   document.body.appendChild(ol);
   calInp.focus();
 
-  // Auto-send opening brief
+  // ARIA greeting
   setTimeout(function(){
-    sendCalMsg('Give me a quick prep brief for this meeting. What are the 3 most important things I should do or know before walking in?');
-  }, 300);
+    var greeting = 'Hi! I\'m ARIA, your meeting assistant. I see you have a '+info.label+' meeting — "'+evt.title+'"'
+      +(dateStr?' on '+dateStr:'')+(timeStr?' at '+timeStr:'')+'.'
+      +'\n\nWould you like a quick prep brief, or is there something specific I can help you with?';
+    addCalMsg('aria', greeting, false);
+  }, 200);
 }
 
 function showCalendarToday(events){
@@ -6513,6 +6542,124 @@ function showCalendarWeek(events){
     div.addEventListener('click', function(){ openCalEventDetail(evt); });
     el.appendChild(div);
   });
+}
+
+function openScheduleMeeting(prefill){
+  var old = document.getElementById('esq-sched-ol'); if(old) old.remove();
+  prefill = prefill || {};
+  var ol = document.createElement('div'); ol.id='esq-sched-ol'; ol.className='email-detail-overlay';
+  var modal = document.createElement('div'); modal.className='email-detail-modal';
+  modal.style.cssText='max-width:520px;width:96%;max-height:90vh;overflow-y:auto;padding:0;';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);';
+  hdr.innerHTML='<span style="font-size:15px;font-weight:700;color:#eef3fc;">📅 Schedule Meeting</span>';
+  var xBtn=document.createElement('button'); xBtn.className='email-detail-close';
+  xBtn.style.cssText='position:relative;top:0;right:0;'; xBtn.innerHTML='&#x2715;';
+  xBtn.onclick=function(){ ol.remove(); }; hdr.appendChild(xBtn);
+
+  // Form body
+  var form = document.createElement('div');
+  form.style.cssText='padding:20px;display:flex;flex-direction:column;gap:14px;';
+
+  function field(label, el){
+    var wrap=document.createElement('div');
+    var lbl=document.createElement('label');
+    lbl.style.cssText='font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px;';
+    lbl.textContent=label;
+    wrap.appendChild(lbl); wrap.appendChild(el); return wrap;
+  }
+  function inp(type, val, placeholder){
+    var el=document.createElement('input'); el.type=type; el.value=val||'';
+    if(placeholder) el.placeholder=placeholder;
+    el.style.cssText='width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:12px;color:#eef3fc;outline:none;font-family:inherit;box-sizing:border-box;';
+    el.onfocus=function(){ el.style.borderColor='rgba(170,255,62,0.4)'; };
+    el.onblur=function(){ el.style.borderColor='rgba(255,255,255,0.1)'; };
+    return el;
+  }
+
+  // Fields
+  var titleEl = inp('text', prefill.title||'', 'e.g. Site Visit — Acme Corp');
+  var dateEl  = inp('date', prefill.date||'');
+  var startEl = inp('time', prefill.start||'09:00');
+  var endEl   = inp('time', prefill.end||'10:00');
+
+  var timeRow=document.createElement('div'); timeRow.style.cssText='display:flex;gap:10px;';
+  var startWrap=document.createElement('div'); startWrap.style.cssText='flex:1;';
+  var startLbl=document.createElement('label'); startLbl.style.cssText='font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px;'; startLbl.textContent='Start';
+  startWrap.appendChild(startLbl); startWrap.appendChild(startEl);
+  var endWrap=document.createElement('div'); endWrap.style.cssText='flex:1;';
+  var endLbl=document.createElement('label'); endLbl.style.cssText='font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px;'; endLbl.textContent='End';
+  endWrap.appendChild(endLbl); endWrap.appendChild(endEl);
+  timeRow.appendChild(startWrap); timeRow.appendChild(endWrap);
+
+  var locationEl = inp('text', prefill.location||'', 'Address or video link');
+  var attendeesEl = document.createElement('textarea');
+  attendeesEl.placeholder='Attendee emails, one per line or comma-separated';
+  attendeesEl.value = prefill.attendees||'';
+  attendeesEl.rows=3;
+  attendeesEl.style.cssText='width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;font-size:12px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;';
+  attendeesEl.onfocus=function(){ attendeesEl.style.borderColor='rgba(170,255,62,0.4)'; };
+  attendeesEl.onblur=function(){ attendeesEl.style.borderColor='rgba(255,255,255,0.1)'; };
+  var notesEl = document.createElement('textarea');
+  notesEl.placeholder='Description or agenda notes (optional)';
+  notesEl.value=prefill.notes||''; notesEl.rows=3;
+  notesEl.style.cssText=attendeesEl.style.cssText;
+  notesEl.onfocus=function(){ notesEl.style.borderColor='rgba(170,255,62,0.4)'; };
+  notesEl.onblur=function(){ notesEl.style.borderColor='rgba(255,255,255,0.1)'; };
+
+  form.appendChild(field('Meeting Title', titleEl));
+  form.appendChild(field('Date', dateEl));
+  form.appendChild(timeRow);
+  form.appendChild(field('Location', locationEl));
+  form.appendChild(field('Attendees', attendeesEl));
+  form.appendChild(field('Notes / Agenda', notesEl));
+
+  // Status msg
+  var statusEl=document.createElement('div');
+  statusEl.style.cssText='font-size:11px;color:#4a5568;min-height:16px;';
+
+  // Buttons
+  var btnRow=document.createElement('div'); btnRow.style.cssText='display:flex;gap:10px;justify-content:flex-end;padding:0 20px 20px;';
+  var cancelBtn=document.createElement('button');
+  cancelBtn.textContent='Cancel'; cancelBtn.style.cssText='background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:12px;font-weight:600;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;';
+  cancelBtn.onclick=function(){ ol.remove(); };
+  var schedBtn=document.createElement('button');
+  schedBtn.textContent='Schedule Meeting'; schedBtn.style.cssText='background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.35);color:#aaff3e;font-size:12px;font-weight:700;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:inherit;';
+  schedBtn.onclick=function(){
+    var title=titleEl.value.trim();
+    var date=dateEl.value;
+    var start=startEl.value;
+    var end=endEl.value;
+    if(!title||!date||!start||!end){ statusEl.style.color='#f87171'; statusEl.textContent='Please fill in title, date, start, and end time.'; return; }
+    var startDT=date+'T'+start+':00';
+    var endDT=date+'T'+end+':00';
+    var emails=attendeesEl.value.split(/[\n,]+/).map(function(e){return e.trim();}).filter(function(e){return e.includes('@');});
+    schedBtn.textContent='Scheduling…'; schedBtn.disabled=true;
+    statusEl.style.color='#6b7a96'; statusEl.textContent='';
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(window._providerToken||providerToken||'')},
+      body:JSON.stringify({action:'calendar_create',provider_token:window._providerToken||providerToken||'',title:title,startDateTime:startDT,endDateTime:endDT,attendeeEmails:emails,location:locationEl.value.trim()||undefined,description:notesEl.value.trim()||undefined})
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error||!d.created){ statusEl.style.color='#f87171'; statusEl.textContent='Error: '+(d.error||'Could not create event.'); schedBtn.textContent='Schedule Meeting'; schedBtn.disabled=false; return; }
+      statusEl.style.color='#4ade80'; statusEl.textContent='✓ Meeting scheduled!';
+      schedBtn.textContent='Scheduled ✓'; schedBtn.style.color='#4ade80';
+      setTimeout(function(){ loadCalendar(providerToken); ol.remove(); }, 1200);
+    })
+    .catch(function(){ statusEl.style.color='#f87171'; statusEl.textContent='Network error. Please try again.'; schedBtn.textContent='Schedule Meeting'; schedBtn.disabled=false; });
+  };
+
+  form.appendChild(statusEl);
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(schedBtn);
+  modal.appendChild(hdr); modal.appendChild(form); modal.appendChild(btnRow);
+  ol.appendChild(modal);
+  ol.addEventListener('click',function(e){ if(e.target===ol) ol.remove(); });
+  document.body.appendChild(ol);
+  titleEl.focus();
 }
 
 /* Draft email reply using Emma */

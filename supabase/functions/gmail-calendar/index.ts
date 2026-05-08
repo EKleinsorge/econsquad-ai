@@ -144,7 +144,7 @@ serve(async (req) => {
       
       // Fetch today + week in parallel
       const [todayRes, weekRes] = await Promise.all([
-        fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()}&singleEvents=true&orderBy=startTime&fields=items(id,summary,start,end,location)`,
+        fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()}&singleEvents=true&orderBy=startTime&fields=items(id,summary,start,end,location,attendees)`,
           { headers: { Authorization: `Bearer ${provider_token}` } }),
         fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${nextWeek}&singleEvents=true&orderBy=startTime&maxResults=15&fields=items(id,summary,start)`,
           { headers: { Authorization: `Bearer ${provider_token}` } })
@@ -158,7 +158,13 @@ serve(async (req) => {
           start: e.start?.dateTime || e.start?.date,
           end: e.end?.dateTime || e.end?.date,
           location: e.location || '',
-          allDay: !e.start?.dateTime
+          allDay: !e.start?.dateTime,
+          attendees: (e.attendees || []).map((a: any) => ({
+            name: a.displayName || a.email || '',
+            email: a.email || '',
+            status: a.responseStatus || 'needsAction',
+            self: !!a.self
+          }))
         })),
         week: (weekData.items || []).map((e: any) => ({
           id: e.id, title: e.summary || 'Untitled',
@@ -218,6 +224,28 @@ serve(async (req) => {
           title: e.summary, start: e.start?.dateTime || e.start?.date
         }))
       }
+    }
+
+    // ===== CALENDAR CREATE =====
+    if (action === 'calendar_create') {
+      const { title, startDateTime, endDateTime, attendeeEmails, location: loc, description } = body
+      const event: any = {
+        summary: title,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime }
+      }
+      if (loc) event.location = loc
+      if (description) event.description = description
+      if (attendeeEmails && attendeeEmails.length) {
+        event.attendees = attendeeEmails.map((email: string) => ({ email: email.trim() }))
+      }
+      const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${provider_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(event)
+      })
+      const data = await res.json()
+      result = { created: true, eventId: data.id, htmlLink: data.htmlLink, error: data.error?.message }
     }
 
     return new Response(JSON.stringify(result), {
