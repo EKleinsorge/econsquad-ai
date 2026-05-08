@@ -354,31 +354,20 @@
     ariaBtn.style.cssText = 'background:rgba(170,255,62,0.1);border-color:rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;margin-bottom:14px;';
     ariaBtn.addEventListener('click', function() {
       ariaBtn.disabled = true; ariaBtn.textContent = 'Drafting…';
-      var ctx = 'From: ' + (email.from || '') + '\nSubject: ' + (email.subject || '') + '\nMessage preview: ' + (email.snippet || '');
-      var prompt = 'Draft a professional, concise reply to this email. Return only the reply body text (no subject line, no greeting label like "Subject:" or "To:"):\n\n' + ctx;
-      function callClaude(key) {
-        fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-          var draft = (d.content && d.content[0] && d.content[0].text) || '';
-          if (draft) { textarea.value = draft; textarea.style.borderColor = 'rgba(170,255,62,0.5)'; setTimeout(function() { textarea.style.borderColor = 'rgba(255,255,255,0.1)'; }, 1800); }
-          ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply';
-        })
-        .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
-      }
-      if (window.supa && window.currentUser) {
-        window.supa.from('profiles').select('anthropic_key').eq('id', window.currentUser.id).single()
-          .then(function(res) {
-            var key = res.data && res.data.anthropic_key;
-            if (key) { callClaude(key); }
-            else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; ariaBtn.title = 'Add your Anthropic API key in Settings to use ARIA'; }
-          })
-          .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
-      } else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; ariaBtn.title = 'Sign in to use ARIA'; }
+      var supaUrl = (window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co');
+      var supaKey = window.SUPA_KEY || '';
+      fetch(supaUrl + '/functions/v1/gmail-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': supaKey },
+        body: JSON.stringify({ action: 'aria_reply', from: email.from || '', subject: email.subject || '', snippet: email.snippet || '' })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var draft = d.draft || '';
+        if (draft) { textarea.value = draft; textarea.style.borderColor = 'rgba(170,255,62,0.5)'; setTimeout(function() { textarea.style.borderColor = 'rgba(255,255,255,0.1)'; }, 1800); }
+        ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply';
+      })
+      .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
     });
 
     var actRow = cel('div', 'email-detail-actions');
