@@ -370,15 +370,15 @@
         })
         .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
       }
-      if (window.supabase && window.currentUser) {
-        window.supabase.from('profiles').select('anthropic_key').eq('id', window.currentUser.id).single()
+      if (window.supa && window.currentUser) {
+        window.supa.from('profiles').select('anthropic_key').eq('id', window.currentUser.id).single()
           .then(function(res) {
             var key = res.data && res.data.anthropic_key;
             if (key) { callClaude(key); }
             else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; ariaBtn.title = 'Add your Anthropic API key in Settings to use ARIA'; }
           })
           .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; });
-      } else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; }
+      } else { ariaBtn.disabled = false; ariaBtn.innerHTML = '&#x2728; ARIA: Draft Reply'; ariaBtn.title = 'Sign in to use ARIA'; }
     });
 
     var actRow = cel('div', 'email-detail-actions');
