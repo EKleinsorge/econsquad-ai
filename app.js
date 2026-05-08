@@ -1624,11 +1624,44 @@
     tagsBtn.insertAdjacentElement('afterend', btn);
   }
 
+  function showTriageLoading() {
+    var old = eid('esq-triage-ol'); if (old) old.remove();
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:480px;width:94%;padding:0;overflow:hidden;';
+    modal.innerHTML = [
+      '<div style="padding:32px 28px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;">',
+        '<div id="aria-triage-avatar" style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#8fe620,#ccff7a);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 24px rgba(170,255,62,0.45);animation:ariaTrigPulse 1.6s ease-in-out infinite;">✦</div>',
+        '<div>',
+          '<div style="font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:8px;">Reviewing your inbox…</div>',
+          '<div style="font-size:13px;color:#8a97b5;line-height:1.65;max-width:340px;">',
+            'I\'m scanning each email and organizing everything by importance.',
+            ' Give me just a moment.',
+          '</div>',
+        '</div>',
+        '<div style="display:flex;gap:7px;align-items:center;margin-top:4px;">',
+          '<span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;animation:ariaTrigDot 1.1s ease-in-out infinite;animation-delay:0s;display:inline-block;"></span>',
+          '<span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;animation:ariaTrigDot 1.1s ease-in-out infinite;animation-delay:0.2s;display:inline-block;"></span>',
+          '<span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;animation:ariaTrigDot 1.1s ease-in-out infinite;animation-delay:0.4s;display:inline-block;"></span>',
+        '</div>',
+      '</div>'
+    ].join('');
+    if (!eid('aria-trig-anim-css')) {
+      var s = document.createElement('style'); s.id = 'aria-trig-anim-css';
+      s.textContent = '@keyframes ariaTrigPulse{0%,100%{box-shadow:0 0 18px rgba(170,255,62,0.4);}50%{box-shadow:0 0 36px rgba(170,255,62,0.75);transform:scale(1.06);}} @keyframes ariaTrigDot{0%,80%,100%{opacity:0.2;transform:scale(0.8);}40%{opacity:1;transform:scale(1.2);}}';
+      document.head.appendChild(s);
+    }
+    ol.appendChild(modal);
+    document.body.appendChild(ol);
+    return ol;
+  }
+
   function runAriaTriage(btn) {
     var emails = window._lastEmails || [];
     if (!emails.length) return;
     var origText = btn.innerHTML;
     btn.innerHTML = '✦ Triaging…'; btn.disabled = true;
+    var loadOl = showTriageLoading();
     var triageEmails = emails.slice(0, 20).map(function(e) {
       return { from: e.from, subject: e.subject, snippet: e.snippet };
     });
@@ -1640,9 +1673,10 @@
     .then(function(r) { return r.json(); })
     .then(function(d) {
       btn.innerHTML = origText; btn.disabled = false;
+      loadOl.remove();
       showTriageResults(d.triage || [], emails);
     })
-    .catch(function() { btn.innerHTML = origText; btn.disabled = false; });
+    .catch(function() { btn.innerHTML = origText; btn.disabled = false; loadOl.remove(); });
   }
 
   function showTriageResults(triage, emails) {
