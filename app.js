@@ -870,6 +870,17 @@
     ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
     document.body.appendChild(ol);
     textarea.focus();
+
+    /* Append Gmail signature if no prefill body */
+    if (!email._prefillBody) {
+      fetchGmailSignature(function(sig) {
+        if (sig && !textarea.value.trim()) {
+          textarea.value = '\n\n' + sig;
+          textarea.setSelectionRange(0, 0);
+          textarea.scrollTop = 0;
+        }
+      });
+    }
   };
 
   /* ── TRASH SYSTEM ── */
@@ -877,6 +888,47 @@
     if (typeof window.getProviderToken === 'function') return window.getProviderToken();
     return Promise.resolve(window.providerToken || null);
   }
+
+  /* ── Gmail signature fetch (cached) ── */
+  var _gmailSigCache = undefined; // undefined = not yet fetched, null = fetched but empty
+
+  function fetchGmailSignature(cb) {
+    if (_gmailSigCache !== undefined) { cb(_gmailSigCache || ''); return; }
+    fetchToken().then(function(token) {
+      if (!token) { _gmailSigCache = null; cb(''); return; }
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var list = d.sendAs || [];
+        var primary = null;
+        for (var i = 0; i < list.length; i++) { if (list[i].isPrimary) { primary = list[i]; break; } }
+        if (!primary && list.length) primary = list[0];
+        var sigHtml = (primary && primary.signature) || '';
+        /* convert HTML → plain text */
+        var plain = sigHtml
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n')
+          .replace(/<\/div>/gi, '\n')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+        _gmailSigCache = plain || null;
+        cb(plain);
+      })
+      .catch(function() { _gmailSigCache = null; cb(''); });
+    });
+  }
+
+  /* Pre-warm the cache shortly after load */
+  setTimeout(function() { fetchGmailSignature(function(){}); }, 4000);
 
   window.trashEmailCard = function(emailId, btn, emailData) {
     var card = btn ? btn.closest('.email-card-v2') : null;
@@ -1960,6 +2012,17 @@
     ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
     document.body.appendChild(ol);
     toInp.focus();
+
+    /* Append Gmail signature if textarea is empty */
+    if (!prefill.body) {
+      fetchGmailSignature(function(sig) {
+        if (sig && !textarea.value.trim()) {
+          textarea.value = '\n\n' + sig;
+          textarea.setSelectionRange(0, 0);
+          textarea.scrollTop = 0;
+        }
+      });
+    }
   };
 
   /* Remove a single email card from the open triage list (called after trash/delete) */
