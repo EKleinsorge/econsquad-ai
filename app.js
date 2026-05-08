@@ -1,5 +1,5 @@
 
-/* EconSquad App Extensions v05.06.1750 */
+/* EconSquad App Extensions v05.07.1755 */
 (function() {
   var TRASH_KEY = 'esq_trash_log';
   var TRASH_EMAILS_KEY = 'esq_trash_emails';
@@ -49,10 +49,13 @@
   }
   var CUSTOM_TAGS_KEY = 'esq_custom_tags';
   var DISABLED_BUILTINS_KEY = 'esq_disabled_builtins';
+  var PINNED_TAGS_KEY = 'esq_pinned_tags';
   function getCustomTags() { try { return JSON.parse(localStorage.getItem(CUSTOM_TAGS_KEY) || '[]'); } catch(e) { return []; } }
   function setCustomTags(d) { try { localStorage.setItem(CUSTOM_TAGS_KEY, JSON.stringify(d)); } catch(e) {} }
   function getDisabledBuiltins() { try { return JSON.parse(localStorage.getItem(DISABLED_BUILTINS_KEY) || '[]'); } catch(e) { return []; } }
   function setDisabledBuiltins(d) { try { localStorage.setItem(DISABLED_BUILTINS_KEY, JSON.stringify(d)); } catch(e) {} }
+  function getPinnedTags() { try { return JSON.parse(localStorage.getItem(PINNED_TAGS_KEY) || '[]'); } catch(e) { return []; } }
+  function setPinnedTags(d) { try { localStorage.setItem(PINNED_TAGS_KEY, JSON.stringify(d)); } catch(e) {} }
 
   var ALL_TAGS = [
     { label: 'RFI',       color: '#64afff', bg: 'rgba(100,175,255,0.15)', border: 'rgba(100,175,255,0.35)', icon: '&#128205;', priority: true },
@@ -533,16 +536,30 @@
     function rebuildBuiltinList() {
       builtinGrid.innerHTML = '';
       var disabled = getDisabledBuiltins();
+      var pinnedTagLabels = getPinnedTags();
       BUILTIN_RULES.forEach(function(r) {
         var row = cel('div', '');
         row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.02);';
         var isOn = disabled.indexOf(r.label) === -1;
+        var isPinned = pinnedTagLabels.indexOf(r.label) !== -1;
         var badge = cel('span', '');
         badge.style.cssText = 'font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + (isOn ? r.bg : 'rgba(255,255,255,0.04)') + ';color:' + (isOn ? r.color : '#4a5568') + ';border:1px solid ' + (isOn ? r.border : 'rgba(255,255,255,0.08)') + ';flex-shrink:0;min-width:64px;text-align:center;';
         badge.innerHTML = r.icon + ' ' + r.label;
         var kw = cel('div', '');
         kw.style.cssText = 'flex:1;font-size:11px;color:#4a5568;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
         kw.textContent = String(r.re).replace(/^\/|\/$/g,'').replace(/\\/g,'');
+        // Pin button
+        var pinTagBtn = cel('button', '', isPinned ? '📌' : '⬜');
+        pinTagBtn.title = isPinned ? 'Unpin from top' : 'Pin to top of inbox';
+        pinTagBtn.style.cssText = 'background:' + (isPinned ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (isPinned ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px;';
+        pinTagBtn.addEventListener('click', function() {
+          var pt = getPinnedTags();
+          var idx = pt.indexOf(r.label);
+          if (idx === -1) pt.push(r.label); else pt.splice(idx, 1);
+          setPinnedTags(pt);
+          rebuildBuiltinList();
+        });
+        // Enable toggle
         var tog = cel('div', '');
         tog.style.cssText = 'width:36px;height:20px;border-radius:10px;background:' + (isOn ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.1)') + ';border:1px solid ' + (isOn ? 'rgba(170,255,62,0.5)' : 'rgba(255,255,255,0.15)') + ';cursor:pointer;position:relative;flex-shrink:0;transition:background .2s;';
         var knob = cel('div', '');
@@ -555,7 +572,7 @@
           setDisabledBuiltins(d);
           rebuildBuiltinList();
         });
-        row.appendChild(badge); row.appendChild(kw); row.appendChild(tog);
+        row.appendChild(badge); row.appendChild(kw); row.appendChild(pinTagBtn); row.appendChild(tog);
         builtinGrid.appendChild(row);
       });
     }
@@ -1189,23 +1206,72 @@
     });
     var labels = Object.keys(tagMap);
     if (!labels.length) return;
+
+    var pinnedTags = getPinnedTags();
+    // Pinned tags first, then the rest alphabetically
+    var pinned = labels.filter(function(l) { return pinnedTags.indexOf(l) !== -1; });
+    var unpinned = labels.filter(function(l) { return pinnedTags.indexOf(l) === -1; });
+    var sorted = pinned.concat(unpinned);
+
     var bar = cel('div', '');
     bar.id = 'esq-filter-bar';
     bar.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px;';
-    function pill(text, active, onClick, tagObj) {
-      var btn = cel('button', '', text);
-      btn.style.cssText = 'font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;cursor:pointer;transition:all .15s;font-family:DM Sans,sans-serif;white-space:nowrap;' +
-        (active && tagObj ? 'background:' + tagObj.bg + ';border:1px solid ' + tagObj.border + ';color:' + tagObj.color + ';' :
-         active ? 'background:rgba(170,255,62,0.2);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;' :
-         'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;');
-      btn.addEventListener('click', onClick);
-      return btn;
-    }
-    bar.appendChild(pill('All', !activeTagFilter, function() { window.setTagFilter(null); }, null));
-    labels.forEach(function(label) {
+
+    // "All" pill
+    var allBtn = cel('button', '', 'All');
+    allBtn.style.cssText = 'font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;cursor:pointer;font-family:inherit;white-space:nowrap;' +
+      (!activeTagFilter ? 'background:rgba(170,255,62,0.2);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;' : 'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;');
+    allBtn.addEventListener('click', function() { window.setTagFilter(null); });
+    bar.appendChild(allBtn);
+
+    sorted.forEach(function(label) {
       var t = tagMap[label];
-      bar.appendChild(pill(t.icon + ' ' + label, activeTagFilter === label, function() { window.setTagFilter(label); }, t));
+      var isPinned = pinnedTags.indexOf(label) !== -1;
+      var isActive = activeTagFilter === label;
+
+      var wrap = cel('div', '');
+      wrap.style.cssText = 'display:inline-flex;align-items:center;border-radius:20px;overflow:hidden;' +
+        (isPinned ? 'box-shadow:0 0 0 1px rgba(170,255,62,0.4);' : '');
+
+      var filterBtn = cel('button', '', t.icon + ' ' + label);
+      filterBtn.style.cssText = 'font-size:11px;font-weight:700;padding:4px 8px 4px 11px;border-radius:0;cursor:pointer;font-family:inherit;white-space:nowrap;border:none;' +
+        (isActive ? 'background:' + t.bg + ';color:' + t.color + ';' :
+         isPinned ? 'background:rgba(170,255,62,0.08);color:' + t.color + ';' :
+         'background:rgba(255,255,255,0.06);color:#6b7a96;');
+      filterBtn.addEventListener('click', function() { window.setTagFilter(label); });
+
+      var pinBtn = cel('button', '', isPinned ? '📌' : '⬜');
+      pinBtn.title = isPinned ? 'Unpin tag' : 'Pin tag to top';
+      pinBtn.style.cssText = 'font-size:10px;padding:4px 7px 4px 4px;border-radius:0;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,0.08);' +
+        (isPinned ? 'background:rgba(170,255,62,0.12);color:#aaff3e;' : 'background:rgba(255,255,255,0.06);color:#4a5568;');
+      pinBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var pt = getPinnedTags();
+        var idx = pt.indexOf(label);
+        if (idx === -1) pt.push(label); else pt.splice(idx, 1);
+        setPinnedTags(pt);
+        renderFilterBar(emails);
+        _renderList(window._lastEmails || []);
+      });
+
+      wrap.appendChild(filterBtn);
+      wrap.appendChild(pinBtn);
+      bar.appendChild(wrap);
     });
+
+    // Divider hint if any pinned tags exist and there are unpinned ones too
+    if (pinned.length && unpinned.length) {
+      var div = bar.querySelector('.esq-fb-div');
+      if (!div) {
+        var divEl = cel('div', '');
+        divEl.className = 'esq-fb-div';
+        divEl.style.cssText = 'width:1px;height:18px;background:rgba(255,255,255,0.12);margin:0 2px;align-self:center;';
+        // Insert after the last pinned pill
+        var pills = bar.querySelectorAll('div');
+        if (pills[pinned.length]) bar.insertBefore(divEl, pills[pinned.length]);
+      }
+    }
+
     var bulkBar = eid('esq-bulk-bar'), trashBanner = eid('esq-trash-banner');
     list.parentElement.insertBefore(bar, bulkBar || trashBanner || list);
   }
@@ -1219,8 +1285,13 @@
     Object.keys(snoozed).forEach(function(id) { if (snoozed[id].until <= now) { delete snoozed[id]; changed = true; } });
     if (changed) setSnoozed(snoozed);
     var visible = (emails || []).filter(function(e) { return !trashLog[e.id] && !permDeleted[e.id] && !(snoozed[e.id] && snoozed[e.id].until > now); });
+    var overrides = getTagOverrides();
+    function emailTag(e) {
+      var ol = overrides[e.id];
+      return ol ? (findTag(ol) || getTag(e.from || '', e.subject || '', e.snippet || '')) : getTag(e.from || '', e.subject || '', e.snippet || '');
+    }
     var filtered = activeTagFilter ? visible.filter(function(e) {
-      var t = getTag(e.from || '', e.subject || '', e.snippet || '');
+      var t = emailTag(e);
       return t && t.label === activeTagFilter;
     }) : visible;
     renderFilterBar(emails);
@@ -1230,6 +1301,7 @@
       return;
     }
     var pinned = getPinned();
+    var pinnedTagLabels = getPinnedTags();
     var pinnedEmails = filtered.filter(function(e) { return pinned[e.id]; });
     var unpinned = filtered.filter(function(e) { return !pinned[e.id]; });
     if (pinnedEmails.length) {
@@ -1239,14 +1311,38 @@
       list.appendChild(pinHdr);
       pinnedEmails.forEach(function(e) { list.appendChild(renderCard(e)); });
       if (unpinned.length) {
-        var div = cel('div', '');
-        div.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:8px 0 10px;';
-        list.appendChild(div);
+        var sepDiv = cel('div', '');
+        sepDiv.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:8px 0 10px;';
+        list.appendChild(sepDiv);
       }
     }
-    var tagged = unpinned.filter(function(e) { return getTag(e.from || '', e.subject || '', e.snippet || '').priority; });
-    var others = unpinned.filter(function(e) { return !getTag(e.from || '', e.subject || '', e.snippet || '').priority; });
-    tagged.concat(others).forEach(function(e) { list.appendChild(renderCard(e)); });
+    // Sort unpinned: pinned-tag emails first (in pinned tag order), then priority, then rest
+    var tagPinnedEmails = [], priorityEmails = [], restEmails = [];
+    unpinned.forEach(function(e) {
+      var t = emailTag(e);
+      if (pinnedTagLabels.length && t && pinnedTagLabels.indexOf(t.label) !== -1) tagPinnedEmails.push(e);
+      else if (t && t.priority) priorityEmails.push(e);
+      else restEmails.push(e);
+    });
+    // Sort tag-pinned emails by pinned tag order
+    tagPinnedEmails.sort(function(a, b) {
+      return pinnedTagLabels.indexOf(emailTag(a).label) - pinnedTagLabels.indexOf(emailTag(b).label);
+    });
+    if (tagPinnedEmails.length && !activeTagFilter) {
+      var tagHdr = cel('div', '');
+      tagHdr.style.cssText = 'font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;padding:2px 2px 8px;';
+      tagHdr.textContent = '🏷 Pinned Tags';
+      list.appendChild(tagHdr);
+      tagPinnedEmails.forEach(function(e) { list.appendChild(renderCard(e)); });
+      if (priorityEmails.length || restEmails.length) {
+        var sep2 = cel('div', '');
+        sep2.style.cssText = 'height:1px;background:rgba(255,255,255,0.06);margin:8px 0 10px;';
+        list.appendChild(sep2);
+      }
+    } else {
+      tagPinnedEmails.forEach(function(e) { priorityEmails.unshift(e); });
+    }
+    priorityEmails.concat(restEmails).forEach(function(e) { list.appendChild(renderCard(e)); });
   }
 
   window.setTagFilter = function(tag) {
