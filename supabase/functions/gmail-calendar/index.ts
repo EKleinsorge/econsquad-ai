@@ -442,10 +442,64 @@ serve(async (req) => {
         }
       }
 
+      // ── Proxy external images that need server-side fetching ──────────────
+      // Gmail signature images are Google Drive public files at docs.google.com/uc
+      // The src attributes contain HTML-encoded URLs (&amp; instead of &).
+      // The browser can't fetch these cross-origin, so we do it here instead.
+      if (isHtml) {
+        // Decode HTML entities in a URL string
+        const decodeHtml = (s: string) =>
+          s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+
+        // Helper: ArrayBuffer → standard base64
+        const bufToB64 = (buf: ArrayBuffer): string => {
+          const bytes = new Uint8Array(buf)
+          let bin = ''; const chunk = 8192
+          for (let i = 0; i < bytes.length; i += chunk)
+            bin += String.fromCharCode(...bytes.subarray(i, i + chunk))
+          return btoa(bin)
+        }
+
+        // Find all external img src values (raw HTML, may have &amp;)
+        const srcRe = /src=["']([^"']+)["']/gi
+        const rawUrls = new Set<string>()
+        let sm: RegExpExecArray | null
+        while ((sm = srcRe.exec(processedBody)) !== null) {
+          const raw = sm[1]
+          if (!raw.startsWith('data:') && !raw.startsWith('cid:') && raw.startsWith('http'))
+            rawUrls.add(raw)
+        }
+
+        const urlMap = new Map<string, string>()   // raw HTML url → data URI
+        let fetched = 0
+        for (const rawUrl of rawUrls) {
+          if (fetched >= 12) break
+          const realUrl = decodeHtml(rawUrl)        // &amp; → &
+          try {
+            const r = await fetch(realUrl, { redirect: 'follow' })
+            if (r.ok) {
+              const ct  = r.headers.get('content-type') || 'image/jpeg'
+              // Only embed actual images (skip HTML redirect pages)
+              if (ct.startsWith('image/') || ct.startsWith('application/octet')) {
+                urlMap.set(rawUrl, `data:${ct.split(';')[0]};base64,${bufToB64(await r.arrayBuffer())}`)
+                fetched++
+              }
+            }
+          } catch (_) { /* skip */ }
+        }
+
+        if (urlMap.size > 0) {
+          processedBody = processedBody.replace(/src=["']([^"']+)["']/gi, (full, raw) => {
+            const embedded = urlMap.get(raw)
+            return embedded ? `src="${embedded}"` : full
+          })
+        }
+      }
+
       result = {
         from: getH('From'), to: getH('To'), subject: getH('Subject'),
         date: getH('Date'), body: processedBody, isHtml,
-        cidMap   // browser resolves remaining cid: refs directly via Gmail API
+        cidMap
       }
     }
 
