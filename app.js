@@ -392,15 +392,29 @@
         if (!data.body) { bodyEl.innerHTML = '<span style="color:#4a5568;font-style:italic;">Could not load email body.</span>'; return; }
         if (data.isHtml) {
           var iframe = document.createElement('iframe');
-          iframe.sandbox = 'allow-same-origin allow-scripts allow-popups';
           iframe.style.cssText = 'width:100%;border:none;background:#fff;border-radius:6px;min-height:300px;';
           bodyEl.innerHTML = '';
           bodyEl.appendChild(iframe);
-          iframe.srcdoc = data.body;
-          iframe.onload = function() {
-            var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
-            iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
-          };
+          // Use blob URL instead of srcdoc — avoids sandbox script-blocking errors,
+          // handles large base64 data URIs, and lets the browser load any remaining
+          // external resources using the user's existing browser cookies.
+          try {
+            var blob = new Blob([data.body], { type: 'text/html; charset=utf-8' });
+            var blobUrl = URL.createObjectURL(blob);
+            iframe.src = blobUrl;
+            iframe.onload = function() {
+              try { URL.revokeObjectURL(blobUrl); } catch(e) {}
+              var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
+              iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
+            };
+          } catch(e) {
+            // Blob API unavailable — fall back to srcdoc
+            iframe.srcdoc = data.body;
+            iframe.onload = function() {
+              var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
+              iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
+            };
+          }
         } else {
           bodyEl.style.whiteSpace = 'pre-wrap';
           bodyEl.textContent = data.body;
