@@ -2110,6 +2110,8 @@ function onSignedIn(user){
   }, 1200);
   /* load ARIA welcome */
   setTimeout(loadAriaWelcome,1000);
+  /* initialize notification system (bell icon + polling) */
+  setTimeout(function(){ if(typeof window.initNotifications==='function') window.initNotifications(); }, 2000);
   /* update last active */
   updateLastActive();
   /* update greeting with real first name */

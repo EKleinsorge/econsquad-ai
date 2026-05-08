@@ -1939,4 +1939,374 @@
   setTimeout(injectTagsBtn, 1500);
   setTimeout(injectTriageBtn, 1600);
   setTimeout(injectComposeBtn, 1700);
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     🔔  NOTIFICATION MODULE
+  ═══════════════════════════════════════════════════════════════════════ */
+  var _notifPollTimer     = null;
+  var _notifMeetTimers    = [];
+  var _notifKnownIds      = null;   // null = first run (seed only)
+  var NOTIF_KEY           = 'esq_notif_settings';
+  var NOTIF_DEFAULTS      = {
+    enabled:           false,
+    email_enabled:     true,
+    email_interval:    10,        // minutes
+    email_priority:    true,      // priority emails only
+    meeting_enabled:   true,
+    meeting_reminder:  10,        // minutes before start
+    sound_enabled:     true
+  };
+
+  function getNotifSettings() {
+    try { return Object.assign({}, NOTIF_DEFAULTS, JSON.parse(localStorage.getItem(NOTIF_KEY) || '{}')); }
+    catch(e) { return Object.assign({}, NOTIF_DEFAULTS); }
+  }
+  function saveNotifSettings(s) {
+    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); } catch(e) {}
+  }
+
+  /* ── Chime (Web Audio, no external file) ─────────────────────────── */
+  function playChime() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [[523.25, 0], [659.25, 0.13], [783.99, 0.26]].forEach(function(pair) {
+        var freq = pair[0], delay = pair[1];
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine'; osc.frequency.value = freq;
+        var t = ctx.currentTime + delay;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.28, t + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+        osc.start(t); osc.stop(t + 0.45);
+      });
+    } catch(e) {}
+  }
+
+  /* ── Core notification sender ────────────────────────────────────── */
+  function notify(title, body, tag, onClick) {
+    if (Notification.permission !== 'granted') return;
+    var s = getNotifSettings();
+    if (!s.enabled) return;
+    var n = new Notification(title, {
+      body: body,
+      tag:  tag || ('esq-' + Date.now()),
+      icon: 'https://ekleinsorge.github.io/econsquad-ai/favicon.ico',
+      silent: true   // we handle sound ourselves
+    });
+    if (s.sound_enabled) playChime();
+    n.onclick = function() {
+      try { window.focus(); } catch(e) {}
+      n.close();
+      if (typeof onClick === 'function') onClick();
+    };
+    setTimeout(function() { try { n.close(); } catch(e) {} }, 9000);
+  }
+
+  /* ── Email polling ───────────────────────────────────────────────── */
+  function pollEmails() {
+    var s = getNotifSettings();
+    if (!s.enabled || !s.email_enabled) return;
+    var token  = window.providerToken || window._providerToken;
+    var supaUrl = window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
+    var supaKey = window.SUPA_KEY || '';
+    if (!token || !window.currentUser) return;
+
+    fetch(supaUrl + '/functions/v1/gmail-calendar', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': supaKey, 'Authorization':'Bearer '+supaKey },
+      body: JSON.stringify({ action:'gmail_inbox', provider_token:token, period:'1d' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var emails = data.emails || [];
+
+      if (_notifKnownIds === null) {
+        // First run — just seed the known IDs, don't fire any notifications
+        _notifKnownIds = {};
+        emails.forEach(function(e) { if (e.id) _notifKnownIds[e.id] = true; });
+        return;
+      }
+
+      var fresh = emails.filter(function(e) { return e.id && !_notifKnownIds[e.id]; });
+      emails.forEach(function(e) { if (e.id) _notifKnownIds[e.id] = true; });
+
+      if (s.email_priority) {
+        fresh = fresh.filter(function(e) {
+          if (typeof window.getTag === 'function') {
+            var t = window.getTag(e.from||'', e.subject||'', e.snippet||'');
+            return t && t.priority;
+          }
+          return /urgent|grant|deadline|rfp|rfi|award|funded|meeting|today|required/i
+                   .test((e.subject||'') + ' ' + (e.snippet||''));
+        });
+      }
+
+      fresh.slice(0, 3).forEach(function(email, i) {
+        setTimeout(function() {
+          var from = (email.from || '').replace(/<[^>]+>/, '').trim() || 'New email';
+          notify(
+            '📧 ' + from,
+            email.subject || '(no subject)',
+            'email-' + email.id,
+            function() {
+              var navEl = document.getElementById('dash-nav-inbox');
+              if (typeof window.showDashTab === 'function')
+                window.showDashTab('inbox-tab', navEl);
+              setTimeout(function() {
+                if (typeof window.openEmailDetail === 'function') window.openEmailDetail(email);
+              }, 500);
+            }
+          );
+        }, i * 1600);
+      });
+    })
+    .catch(function() {});
+  }
+
+  /* ── Meeting reminders ───────────────────────────────────────────── */
+  function scheduleMeetingReminders() {
+    var s = getNotifSettings();
+    _notifMeetTimers.forEach(function(t) { clearTimeout(t); });
+    _notifMeetTimers = [];
+    if (!s.enabled || !s.meeting_enabled) return;
+
+    var events      = window._lastCalEvents || [];
+    var aheadMs     = (s.meeting_reminder || 10) * 60 * 1000;
+    var now         = Date.now();
+
+    events.forEach(function(evt) {
+      if (!evt.start) return;
+      var startMs  = new Date(evt.start).getTime();
+      var fireAt   = startMs - aheadMs;
+      var delay    = fireAt - now;
+      if (delay > 0 && delay < 25 * 60 * 60 * 1000) {
+        var t = setTimeout(function() {
+          var timeStr = new Date(startMs).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+          notify(
+            '📅 ' + (evt.title || 'Upcoming meeting'),
+            'Starting in ' + s.meeting_reminder + ' min · ' + timeStr +
+              (evt.location ? ' · ' + evt.location : ''),
+            'meet-' + (evt.id || startMs),
+            function() {
+              var navEl = document.getElementById('dash-nav-fullcal');
+              if (typeof window.showDashTab === 'function')
+                window.showDashTab('fullcal-tab', navEl);
+            }
+          );
+        }, delay);
+        _notifMeetTimers.push(t);
+      }
+    });
+  }
+
+  /* Re-schedule when calendar data refreshes */
+  window.refreshMeetingReminders = scheduleMeetingReminders;
+
+  /* ── Start / stop polling ────────────────────────────────────────── */
+  function startPolling() {
+    if (_notifPollTimer) clearInterval(_notifPollTimer);
+    var s = getNotifSettings();
+    if (!s.enabled) return;
+    var ms = Math.max(5, s.email_interval || 10) * 60 * 1000;
+    if (s.email_enabled) {
+      setTimeout(pollEmails, 30 * 1000);           // seed after 30s
+      _notifPollTimer = setInterval(pollEmails, ms);
+    }
+    if (s.meeting_enabled) {
+      scheduleMeetingReminders();
+      setInterval(scheduleMeetingReminders, 60 * 1000); // refresh reminders every minute
+    }
+  }
+
+  /* ── Settings modal ──────────────────────────────────────────────── */
+  window.openNotifSettings = function() {
+    var old = eid('esq-notif-ol'); if (old) old.remove();
+    var s   = getNotifSettings();
+
+    var ol    = cel('div', 'email-detail-overlay'); ol.id = 'esq-notif-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:460px;width:92%;';
+
+    var xBtn = cel('button', 'email-detail-close', '✕');
+    xBtn.addEventListener('click', function() { ol.remove(); });
+
+    var hdr = cel('div', '', '🔔 Notification Settings');
+    hdr.style.cssText = 'font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:18px;';
+
+    /* Permission banner */
+    if (Notification.permission !== 'granted') {
+      var banner = cel('div', '');
+      banner.style.cssText = 'background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;';
+      var bannerMsg = cel('span', '', Notification.permission === 'denied'
+        ? '⚠️ Notifications blocked — update your browser settings'
+        : '⚡ Allow notifications to enable alerts');
+      bannerMsg.style.cssText = 'font-size:12px;color:#f5c542;flex:1;';
+      banner.appendChild(bannerMsg);
+      if (Notification.permission !== 'denied') {
+        var allowBtn = cel('button', '', 'Allow →');
+        allowBtn.style.cssText = 'background:rgba(245,197,66,0.15);border:1px solid rgba(245,197,66,0.4);color:#f5c542;font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;white-space:nowrap;';
+        allowBtn.addEventListener('click', function() {
+          Notification.requestPermission().then(function(res) {
+            if (res === 'granted') {
+              banner.remove();
+              var ns = getNotifSettings(); ns.enabled = true; saveNotifSettings(ns);
+              masterChk.checked = true;
+              updateDot();
+              startPolling();
+            }
+          });
+        });
+        banner.appendChild(allowBtn);
+      }
+      modal.appendChild(banner);
+    }
+
+    /* Helper builders */
+    function row(label, sub) {
+      var r = cel('div',''); r.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:12px;';
+      var lw = cel('div',''); lw.style.cssText='flex:1;min-width:0;';
+      var lt = cel('div','',label); lt.style.cssText='font-size:13px;color:#eef3fc;font-weight:600;';
+      lw.appendChild(lt);
+      if (sub) { var ls=cel('div','',sub); ls.style.cssText='font-size:11px;color:#4a5568;margin-top:2px;'; lw.appendChild(ls); }
+      r.appendChild(lw); return r;
+    }
+
+    function toggle(checked, cb) {
+      var lbl = document.createElement('label');
+      lbl.style.cssText = 'position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex-shrink:0;';
+      var inp = document.createElement('input'); inp.type='checkbox'; inp.checked=checked;
+      inp.style.cssText='opacity:0;width:0;height:0;position:absolute;';
+      var track = cel('span',''); track.style.cssText='position:absolute;inset:0;border-radius:22px;transition:background .2s;background:'+(checked?'rgba(170,255,62,0.7)':'rgba(255,255,255,0.12)')+';';
+      var knob  = cel('span',''); knob.style.cssText='position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:'+(checked?'21px':'3px')+';transition:left .2s;';
+      track.appendChild(knob); lbl.appendChild(inp); lbl.appendChild(track);
+      inp.addEventListener('change',function(){
+        var on=inp.checked; track.style.background=on?'rgba(170,255,62,0.7)':'rgba(255,255,255,0.12)'; knob.style.left=on?'21px':'3px'; cb(on);
+      });
+      return lbl;
+    }
+
+    function select(opts, val, cb) {
+      var el = document.createElement('select');
+      el.style.cssText='background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#eef3fc;font-size:12px;padding:5px 8px;border-radius:6px;font-family:inherit;cursor:pointer;outline:none;flex-shrink:0;';
+      opts.forEach(function(o){var op=document.createElement('option');op.value=o.v;op.textContent=o.l;if(o.v==val)op.selected=true;el.appendChild(op);});
+      el.addEventListener('change',function(){cb(el.value);});
+      return el;
+    }
+
+    function sectionHead(label) {
+      var h=cel('div','',label); h.style.cssText='font-size:10px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;padding-top:16px;padding-bottom:2px;'; return h;
+    }
+
+    /* ── Master ── */
+    var masterRow = row('Enable Notifications','Get alerts for emails and meetings');
+    var masterChk = toggle(s.enabled, function(on) {
+      var ns=getNotifSettings(); ns.enabled=on; saveNotifSettings(ns);
+      updateDot();
+      if (on) { if(Notification.permission==='granted') startPolling(); else Notification.requestPermission().then(function(r){if(r==='granted')startPolling();}); }
+      else    { if(_notifPollTimer){clearInterval(_notifPollTimer);_notifPollTimer=null;} _notifMeetTimers.forEach(function(t){clearTimeout(t);}); _notifMeetTimers=[]; }
+    });
+    masterRow.appendChild(masterChk);
+
+    /* ── Email ── */
+    var emailRow = row('Notify on new emails','');
+    var emailChk = toggle(s.email_enabled, function(on){var ns=getNotifSettings();ns.email_enabled=on;saveNotifSettings(ns);startPolling();});
+    emailRow.appendChild(emailChk);
+
+    var freqRow = row('Check frequency','');
+    var freqSel = select([{v:5,l:'Every 5 min'},{v:10,l:'Every 10 min'},{v:15,l:'Every 15 min'},{v:30,l:'Every 30 min'}], s.email_interval, function(v){var ns=getNotifSettings();ns.email_interval=parseInt(v);saveNotifSettings(ns);startPolling();});
+    freqRow.appendChild(freqSel);
+
+    var priRow = row('Important emails only','Only flag urgent / priority emails');
+    var priChk = toggle(s.email_priority, function(on){var ns=getNotifSettings();ns.email_priority=on;saveNotifSettings(ns);});
+    priRow.appendChild(priChk);
+
+    /* ── Meetings ── */
+    var meetRow = row('Meeting reminders','');
+    var meetChk = toggle(s.meeting_enabled, function(on){var ns=getNotifSettings();ns.meeting_enabled=on;saveNotifSettings(ns);if(on)scheduleMeetingReminders();else{_notifMeetTimers.forEach(function(t){clearTimeout(t);});_notifMeetTimers=[];}});
+    meetRow.appendChild(meetChk);
+
+    var remRow = row('Remind me before','');
+    var remSel = select([{v:5,l:'5 minutes before'},{v:10,l:'10 minutes before'},{v:15,l:'15 minutes before'},{v:30,l:'30 minutes before'}], s.meeting_reminder, function(v){var ns=getNotifSettings();ns.meeting_reminder=parseInt(v);saveNotifSettings(ns);scheduleMeetingReminders();});
+    remRow.appendChild(remSel);
+
+    /* ── Sound ── */
+    var sndRow = row('Notification sound','');
+    var sndChk = toggle(s.sound_enabled, function(on){var ns=getNotifSettings();ns.sound_enabled=on;saveNotifSettings(ns);});
+    sndRow.appendChild(sndChk);
+
+    var testRow = cel('div',''); testRow.style.cssText='padding:14px 0 4px;display:flex;gap:10px;align-items:center;';
+    var testBtn = cel('button','','▶ Test Notification');
+    testBtn.style.cssText='background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    testBtn.addEventListener('click', function(){
+      playChime();
+      if (Notification.permission==='granted') {
+        notify('🔔 EconSquad AI', 'Notifications are working! Click to go to your inbox.', 'test-'+Date.now(), function(){
+          if(typeof window.showDashTab==='function') window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
+        });
+      } else {
+        testBtn.textContent='⚠️ Permission needed — click Allow above';
+        setTimeout(function(){testBtn.textContent='▶ Test Notification';},3000);
+      }
+    });
+    testRow.appendChild(testBtn);
+
+    /* Assemble */
+    modal.appendChild(xBtn); modal.appendChild(hdr);
+    modal.appendChild(masterRow);
+    modal.appendChild(sectionHead('📧 Email Alerts'));
+    modal.appendChild(emailRow); modal.appendChild(freqRow); modal.appendChild(priRow);
+    modal.appendChild(sectionHead('📅 Meeting Reminders'));
+    modal.appendChild(meetRow); modal.appendChild(remRow);
+    modal.appendChild(sectionHead('🔊 Sound'));
+    modal.appendChild(sndRow); modal.appendChild(testRow);
+
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e){ if(e.target===ol) ol.remove(); });
+    document.body.appendChild(ol);
+  };
+
+  /* ── Bell icon ───────────────────────────────────────────────────── */
+  function updateDot() {
+    var dot = eid('esq-notif-dot');
+    if (!dot) return;
+    var s = getNotifSettings();
+    dot.style.display = (!s.enabled || Notification.permission !== 'granted') ? 'block' : 'none';
+  }
+
+  function injectNotifBell() {
+    if (eid('esq-notif-bell')) return;
+    var anchor = eid('plan-badge');
+    if (!anchor) return;
+    var btn = cel('button','');
+    btn.id = 'esq-notif-bell';
+    btn.title = 'Notification settings';
+    btn.style.cssText = 'position:relative;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .2s;flex-shrink:0;padding:0;';
+    btn.innerHTML = '🔔';
+    btn.onmouseover = function(){ btn.style.borderColor='rgba(170,255,62,0.3)'; btn.style.color='#aaff3e'; };
+    btn.onmouseout  = function(){ btn.style.borderColor='rgba(255,255,255,0.1)'; btn.style.color='#6b7a96'; };
+    btn.addEventListener('click', function(){ window.openNotifSettings(); });
+
+    /* Yellow dot — shows when notifications not configured */
+    var dot = cel('span',''); dot.id='esq-notif-dot';
+    dot.style.cssText='position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#f5c542;display:none;pointer-events:none;';
+    btn.appendChild(dot);
+
+    anchor.insertAdjacentElement('afterend', btn);
+    updateDot();
+  }
+
+  /* ── Public init (called from onSignedIn) ────────────────────────── */
+  window.initNotifications = function() {
+    setTimeout(injectNotifBell, 1800);
+    var s = getNotifSettings();
+    if (s.enabled && Notification.permission === 'granted') {
+      startPolling();
+    } else if (Notification.permission !== 'granted') {
+      // Show dot — user hasn't set up notifications yet
+      updateDot();
+    }
+  };
+
 })();
