@@ -2194,12 +2194,17 @@
       var s = document.createElement('style');
       s.id = 'esq-splash-css';
       s.textContent = [
-        '@keyframes ariaSplashStarPulse{0%,100%{filter:drop-shadow(0 0 18px #aaff3e) drop-shadow(0 0 40px #aaff3e88);}50%{filter:drop-shadow(0 0 38px #aaff3e) drop-shadow(0 0 80px #aaff3eaa);}}',
         '@keyframes ariaSplashFadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}',
-        '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}',
-        '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.08) translateY(-60px);}100%{opacity:0;transform:scale(0.04) translateY(-80px);}}',
+        '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}',
+        '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.06) translateY(-80px);}100%{opacity:0;transform:scale(0.02) translateY(-120px);}}',
         '@keyframes ariaSplashOverlayOut{from{opacity:1;}to{opacity:0;}}',
-        '@keyframes starTwinkle{0%,100%{opacity:0.15;}50%{opacity:0.7;}}',
+        '@keyframes starTwinkle{0%,100%{opacity:0.1;}50%{opacity:0.6;}}',
+        '@keyframes splashOrb{0%,100%{box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);}50%{box-shadow:0 0 70px rgba(170,255,62,1),0 0 130px rgba(170,255,62,0.6),0 0 200px rgba(170,255,62,0.25);}}',
+        '@keyframes splashRing{0%,100%{opacity:0.25;transform:scale(1);}50%{opacity:0.6;transform:scale(1.05);}}',
+        '@keyframes splashSwirl1{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}',
+        '@keyframes splashSwirl2{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}',
+        '@keyframes splashSwirl3{from{transform:rotate(45deg);}to{transform:rotate(405deg);}}',
+        '@keyframes splashSmoke{0%,100%{opacity:0.06;transform:scale(1) rotate(0deg);}33%{opacity:0.14;transform:scale(1.08) rotate(120deg);}66%{opacity:0.08;transform:scale(0.95) rotate(240deg);}}',
       ].join('');
       document.head.appendChild(s);
     }
@@ -2235,13 +2240,73 @@
     content.id = 'esq-splash-content';
     content.style.cssText = 'display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 24px;max-width:700px;';
 
-    /* ARIA giant star icon */
+    /* ARIA ORB — landing page style, supersized */
     var iconWrap = document.createElement('div');
-    iconWrap.style.cssText = 'margin-bottom:28px;animation:ariaSplashFloat 3s ease-in-out infinite;';
-    var iconInner = document.createElement('div');
-    iconInner.style.cssText = 'animation:ariaSplashStarPulse 2s ease-in-out infinite;';
-    iconInner.innerHTML = '<svg width="120" height="120" viewBox="0 0 24 24" fill="#aaff3e"><path d="M12 2 L13.8 9.5 L21 12 L13.8 14.5 L12 22 L10.2 14.5 L3 12 L10.2 9.5 Z"/></svg>';
-    iconWrap.appendChild(iconInner);
+    iconWrap.style.cssText = 'margin-bottom:32px;animation:ariaSplashFloat 4s ease-in-out infinite;position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+
+    function makeRing(size, opacity, delay, dur) {
+      var r = document.createElement('div');
+      r.style.cssText = 'position:absolute;border-radius:50%;border:1px solid rgba(170,255,62,'+opacity+');'
+        +'width:'+size+'px;height:'+size+'px;'
+        +'animation:splashRing '+(dur||3)+'s ease-in-out infinite '+delay+'s;';
+      return r;
+    }
+    iconWrap.appendChild(makeRing(300, 0.08, 0,    3.2));
+    iconWrap.appendChild(makeRing(260, 0.12, 0.3,  3.0));
+    iconWrap.appendChild(makeRing(220, 0.16, 0.6,  2.8));
+    iconWrap.appendChild(makeRing(178, 0.22, 0.9,  2.6));
+    iconWrap.appendChild(makeRing(138, 0.28, 1.2,  2.4));
+
+    /* Smoky ghost swirls — blurred rotating ellipses */
+    function makeSwirl(w, h, opacity, animName, dur, offsetX, offsetY, blurPx) {
+      var sw = document.createElement('div');
+      sw.style.cssText = 'position:absolute;border-radius:50%;'
+        +'width:'+w+'px;height:'+h+'px;'
+        +'background:radial-gradient(ellipse, rgba(170,255,62,'+opacity+') 0%, transparent 70%);'
+        +'filter:blur('+blurPx+'px);'
+        +'left:calc(50% - '+(w/2 - offsetX)+'px);top:calc(50% - '+(h/2 - offsetY)+'px);'
+        +'animation:'+animName+' '+dur+'s linear infinite;'
+        +'transform-origin:center center;';
+      return sw;
+    }
+
+    /* Rotating swirl containers */
+    var swirlWrap1 = document.createElement('div');
+    swirlWrap1.style.cssText = 'position:absolute;width:220px;height:220px;border-radius:50%;animation:splashSwirl1 14s linear infinite;';
+    var sw1 = document.createElement('div');
+    sw1.style.cssText = 'position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:80px;height:40px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.18) 0%,transparent 70%);filter:blur(14px);';
+    swirlWrap1.appendChild(sw1);
+
+    var swirlWrap2 = document.createElement('div');
+    swirlWrap2.style.cssText = 'position:absolute;width:180px;height:180px;border-radius:50%;animation:splashSwirl2 10s linear infinite;';
+    var sw2 = document.createElement('div');
+    sw2.style.cssText = 'position:absolute;bottom:-14px;right:-10px;width:60px;height:30px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.15) 0%,transparent 70%);filter:blur(12px);';
+    swirlWrap2.appendChild(sw2);
+
+    var swirlWrap3 = document.createElement('div');
+    swirlWrap3.style.cssText = 'position:absolute;width:240px;height:100px;border-radius:50%;animation:splashSwirl3 18s linear infinite;';
+    var sw3 = document.createElement('div');
+    sw3.style.cssText = 'position:absolute;top:0;left:-20px;width:100px;height:36px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.1) 0%,transparent 70%);filter:blur(18px);';
+    swirlWrap3.appendChild(sw3);
+
+    /* Big ambient smoke blob */
+    var smoke = document.createElement('div');
+    smoke.style.cssText = 'position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(170,255,62,0.07) 0%,transparent 65%);filter:blur(24px);animation:splashSmoke 8s ease-in-out infinite;';
+
+    iconWrap.appendChild(smoke);
+    iconWrap.appendChild(swirlWrap1);
+    iconWrap.appendChild(swirlWrap2);
+    iconWrap.appendChild(swirlWrap3);
+
+    /* The orb itself */
+    var orb = document.createElement('div');
+    orb.style.cssText = 'position:relative;width:130px;height:130px;border-radius:50%;'
+      +'background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);'
+      +'box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);'
+      +'animation:splashOrb 3s ease-in-out infinite;'
+      +'display:flex;align-items:center;justify-content:center;z-index:2;';
+    orb.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(0,40,0,0.55)"><path d="M12 2 L13.5 9 L20 12 L13.5 15 L12 22 L10.5 15 L4 12 L10.5 9 Z"/></svg>';
+    iconWrap.appendChild(orb);
     content.appendChild(iconWrap);
 
     /* ARIA name */
