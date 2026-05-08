@@ -68,6 +68,44 @@ serve(async (req) => {
       })
     }
 
+    // ===== ARIA TRIAGE (no provider_token needed) =====
+    if (action === 'aria_triage') {
+      const { emails: triageEmails } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      const list = (triageEmails || []).map((e: any, i: number) =>
+        `${i + 1}. From: ${e.from} | Subject: ${e.subject} | Preview: ${e.snippet}`
+      ).join('\n')
+      const prompt = `You are ARIA, assistant for economic developers. Triage these unread emails:\n\n${list}\n\nReturn a JSON array only, no other text. Each item: {"index":number,"priority":"urgent"|"today"|"later"|"fyi","reason":"one short sentence"}\n\nurgent=same-day response needed, today=respond today, later=can wait days, fyi=no response needed.`
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
+      })
+      const cd = await cr.json()
+      const text = cd?.content?.[0]?.text || '[]'
+      let triage: any[] = []
+      try { const m = text.match(/\[[\s\S]*\]/); if (m) triage = JSON.parse(m[0]) } catch (_) {}
+      return new Response(JSON.stringify({ triage }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // ===== ARIA FOLLOW-UP DRAFT (no provider_token needed) =====
+    if (action === 'aria_followup') {
+      const { meetingTitle, meetingDate, attendees, liveNotes, savedNotes } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      const prompt = `Draft a professional follow-up email after this meeting:\n\nMeeting: ${meetingTitle}\nDate: ${meetingDate || 'Today'}\nAttendees: ${attendees || 'Not specified'}${liveNotes ? '\n\nMeeting notes:\n' + liveNotes : ''}${savedNotes ? '\n\nKey points:\n' + savedNotes : ''}\n\nWrite a concise professional follow-up: thank attendees, summarize key points, list action items, suggest next steps. Return only the email body text, no subject line.`
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
+      })
+      const cd = await cr.json()
+      return new Response(JSON.stringify({ draft: cd?.content?.[0]?.text || '' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     if (!provider_token) {
       return new Response(JSON.stringify({ error: 'No provider token' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -260,40 +298,6 @@ serve(async (req) => {
       const getH = (n: string) => headers.find((h: any) => h.name === n)?.value || ''
       const { content, isHtml } = extractBody(data.payload)
       result = { from: getH('From'), to: getH('To'), subject: getH('Subject'), date: getH('Date'), body: content, isHtml }
-    }
-
-    // ===== ARIA TRIAGE =====
-    if (action === 'aria_triage') {
-      const { emails: triageEmails } = body
-      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
-      const list = (triageEmails || []).map((e: any, i: number) =>
-        `${i + 1}. From: ${e.from} | Subject: ${e.subject} | Preview: ${e.snippet}`
-      ).join('\n')
-      const prompt = `You are ARIA, assistant for economic developers. Triage these unread emails:\n\n${list}\n\nReturn a JSON array only, no other text. Each item: {"index":number,"priority":"urgent"|"today"|"later"|"fyi","reason":"one short sentence"}\n\nurgent=same-day response needed, today=respond today, later=can wait days, fyi=no response needed.`
-      const cr = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
-      })
-      const cd = await cr.json()
-      const text = cd?.content?.[0]?.text || '[]'
-      let triage: any[] = []
-      try { const m = text.match(/\[[\s\S]*\]/); if (m) triage = JSON.parse(m[0]) } catch (_) {}
-      result = { triage }
-    }
-
-    // ===== ARIA FOLLOW-UP DRAFT =====
-    if (action === 'aria_followup') {
-      const { meetingTitle, meetingDate, attendees, liveNotes, savedNotes } = body
-      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
-      const prompt = `Draft a professional follow-up email after this meeting:\n\nMeeting: ${meetingTitle}\nDate: ${meetingDate || 'Today'}\nAttendees: ${attendees || 'Not specified'}${liveNotes ? '\n\nMeeting notes:\n' + liveNotes : ''}${savedNotes ? '\n\nKey points:\n' + savedNotes : ''}\n\nWrite a concise professional follow-up: thank attendees, summarize key points, list action items, suggest next steps. Return only the email body text, no subject line.`
-      const cr = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
-      })
-      const cd = await cr.json()
-      result = { draft: cd?.content?.[0]?.text || '' }
     }
 
     // ===== CALENDAR UPDATE (attendees + Google Meet) =====

@@ -6478,7 +6478,27 @@ function openCalEventDetail(evt){
     window.openReplyCompose({from:'',subject:'Meeting Package: '+evt.title,snippet:pkg,_prefillBody:pkg,_prefillSubject:'Meeting Package: '+evt.title});
   });
 
-  actBtns.appendChild(followupBtn); actBtns.appendChild(exportBtn);
+  // Email all attendees
+  var emailAllBtn=document.createElement('button');
+  emailAllBtn.innerHTML='✉️ Email All Attendees';
+  emailAllBtn.style.cssText='width:100%;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;';
+  emailAllBtn.onmouseover=function(){emailAllBtn.style.background='rgba(170,255,62,0.12)';};
+  emailAllBtn.onmouseout=function(){emailAllBtn.style.background='rgba(170,255,62,0.06)';};
+  emailAllBtn.addEventListener('click',function(){
+    var recipEmails=editAttendees.map(function(a){return a.email;}).filter(Boolean).join(', ');
+    if(!recipEmails){alert('No attendees to email.');return;}
+    ol.remove();
+    window.openReplyCompose({
+      from:'',
+      _prefillTo:recipEmails,
+      _prefillSubject:evt.title,
+      subject:evt.title,
+      snippet:'',
+      _prefillBody:'Hi team,\n\n'
+    });
+  });
+
+  actBtns.appendChild(followupBtn); actBtns.appendChild(exportBtn); actBtns.appendChild(emailAllBtn);
   left.appendChild(actSep); left.appendChild(actBtns);
 
   // RIGHT — ARIA chat

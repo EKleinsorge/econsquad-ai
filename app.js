@@ -670,8 +670,8 @@
     toLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
     var toEl;
     if (isDraft) {
-      toEl = document.createElement('input'); toEl.type = 'email';
-      toEl.placeholder = 'Recipient email address…'; toEl.value = '';
+      toEl = document.createElement('input'); toEl.type = 'text';
+      toEl.placeholder = 'Recipient email(s), comma-separated…'; toEl.value = email._prefillTo || '';
       toEl.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;';
       toEl.addEventListener('focus', function() { toEl.style.borderColor = 'rgba(170,255,62,0.4)'; });
       toEl.addEventListener('blur', function() { toEl.style.borderColor = 'rgba(255,255,255,0.1)'; });
