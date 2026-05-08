@@ -371,9 +371,11 @@
     closeBtn.addEventListener('click', function() { ol.remove(); });
     var replyDetBtn = cel('button', 'email-action-btn', '&#9993; Reply');
     replyDetBtn.addEventListener('click', function() { ol.remove(); window.openReplyCompose(email); });
+    var fwdDetBtn = cel('button', 'email-action-btn', '&#x27A1; Forward');
+    fwdDetBtn.addEventListener('click', function() { ol.remove(); window.openForwardCompose(email); });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
     trashBtn.addEventListener('click', function() { var eid_ = email.id || ''; window.trashEmailCard(eid_, null, email); ol.remove(); removeFromTriage(eid_); });
-    actRow.appendChild(closeBtn); actRow.appendChild(replyDetBtn); actRow.appendChild(trashBtn);
+    actRow.appendChild(closeBtn); actRow.appendChild(replyDetBtn); actRow.appendChild(fwdDetBtn); actRow.appendChild(trashBtn);
 
     modal.appendChild(hdr); modal.appendChild(bodyWrap); modal.appendChild(actRow);
     ol.appendChild(modal);
@@ -719,7 +721,7 @@
     var xBtn = cel('button', 'email-detail-close', '&#x2715;');
     xBtn.addEventListener('click', function() { ol.remove(); });
 
-    var title = cel('div', '', isDraft ? (email._prefillSubject || 'New Email') : 'Reply');
+    var title = cel('div', '', email._title || (isDraft ? (email._prefillSubject || 'New Email') : 'Reply'));
     title.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:14px;';
 
     var toRow = cel('div', '');
@@ -793,7 +795,7 @@
       }
     });
 
-    var bodyLbl = cel('div', '', 'Your Reply');
+    var bodyLbl = cel('div', '', email._bodyLabel || 'Your Reply');
     bodyLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
     var textarea = document.createElement('textarea');
     textarea.placeholder = 'Write your reply here...';
@@ -881,6 +883,32 @@
         }
       });
     }
+  };
+
+  /* ── FORWARD COMPOSE ── */
+  window.openForwardCompose = function(email) {
+    var fwdHeader = [
+      '',
+      '',
+      '---------- Forwarded Message ----------',
+      'From: ' + (email.from || ''),
+      'Subject: ' + (email.subject || '(no subject)'),
+      '',
+      email.snippet || ''
+    ].join('\n');
+
+    window.openReplyCompose({
+      from: '',                                          // blank → isDraft=true → editable To field
+      _title: '&#x27A1; Forward',
+      _bodyLabel: 'Your Message',
+      _prefillSubject: 'Fwd: ' + (email.subject || ''),
+      _prefillTo: '',
+      _prefillBody: fwdHeader,
+      _ariaContext: email,                              // lets ARIA Draft use original context
+      subject: email.subject,
+      snippet: email.snippet,
+      id: email.id,
+    });
   };
 
   /* ── TRASH SYSTEM ── */
