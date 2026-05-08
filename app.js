@@ -391,30 +391,74 @@
       .then(function(data) {
         if (!data.body) { bodyEl.innerHTML = '<span style="color:#4a5568;font-style:italic;">Could not load email body.</span>'; return; }
         if (data.isHtml) {
-          var iframe = document.createElement('iframe');
-          iframe.style.cssText = 'width:100%;border:none;background:#fff;border-radius:6px;min-height:300px;';
-          bodyEl.innerHTML = '';
-          bodyEl.appendChild(iframe);
-          // Use blob URL instead of srcdoc — avoids sandbox script-blocking errors,
-          // handles large base64 data URIs, and lets the browser load any remaining
-          // external resources using the user's existing browser cookies.
-          try {
-            var blob = new Blob([data.body], { type: 'text/html; charset=utf-8' });
-            var blobUrl = URL.createObjectURL(blob);
-            iframe.src = blobUrl;
-            iframe.onload = function() {
-              try { URL.revokeObjectURL(blobUrl); } catch(e) {}
-              var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
-              iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
-            };
-          } catch(e) {
-            // Blob API unavailable — fall back to srcdoc
-            iframe.srcdoc = data.body;
-            iframe.onload = function() {
-              var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
-              iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
-            };
+          // Resolve any remaining cid: references by fetching attachments directly
+          // from Gmail API using the browser's live OAuth token — more reliable than
+          // doing it server-side because the token is always fresh here.
+          var cidMap  = data.cidMap || {};
+          var token   = window.providerToken;
+          var msgId   = email.id;
+
+          // Find cid: refs still present in the HTML
+          var remaining = [];
+          var cidRe = /cid:([^"'\s>]+)/gi;
+          var m;
+          while ((m = cidRe.exec(data.body)) !== null) {
+            var cid = m[1];
+            if (cidMap[cid] && remaining.indexOf(cid) === -1) remaining.push(cid);
           }
+
+          function renderHtml(html) {
+            var iframe = document.createElement('iframe');
+            iframe.style.cssText = 'width:100%;border:none;background:#fff;border-radius:6px;min-height:300px;';
+            bodyEl.innerHTML = '';
+            bodyEl.appendChild(iframe);
+            try {
+              var blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+              var blobUrl = URL.createObjectURL(blob);
+              iframe.src = blobUrl;
+              iframe.onload = function() {
+                try { URL.revokeObjectURL(blobUrl); } catch(e) {}
+                var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
+                iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
+              };
+            } catch(e) {
+              iframe.srcdoc = html;
+              iframe.onload = function() {
+                var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
+                iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
+              };
+            }
+          }
+
+          if (!remaining.length || !token) {
+            renderHtml(data.body);
+            return;
+          }
+
+          // Fetch each attachment directly from Gmail API
+          Promise.all(remaining.map(function(cid) {
+            var info = cidMap[cid];
+            return fetch(
+              'https://gmail.googleapis.com/gmail/v1/users/me/messages/' + msgId + '/attachments/' + info.attachmentId,
+              { headers: { 'Authorization': 'Bearer ' + token } }
+            )
+            .then(function(r) { return r.json(); })
+            .then(function(att) {
+              if (!att.data) return null;
+              var b64 = att.data.replace(/-/g, '+').replace(/_/g, '/');
+              return { cid: cid, dataUri: 'data:' + info.mimeType + ';base64,' + b64 };
+            })
+            .catch(function() { return null; });
+          }))
+          .then(function(results) {
+            var html = data.body;
+            results.forEach(function(r) {
+              if (!r) return;
+              var esc = r.cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              html = html.replace(new RegExp('cid:' + esc, 'gi'), r.dataUri);
+            });
+            renderHtml(html);
+          });
         } else {
           bodyEl.style.whiteSpace = 'pre-wrap';
           bodyEl.textContent = data.body;
