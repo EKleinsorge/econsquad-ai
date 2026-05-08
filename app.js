@@ -2190,8 +2190,8 @@
     function _master() {
       if (!_ctx) return null;
       var comp = _ctx.createDynamicsCompressor();
-      comp.threshold.value = -6; comp.knee.value = 6;
-      comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+      comp.threshold.value = -3; comp.knee.value = 3;
+      comp.ratio.value = 3; comp.attack.value = 0.005; comp.release.value = 0.3;
       comp.connect(_ctx.destination);
       return comp;
     }
@@ -2202,31 +2202,31 @@
       /* Sub-bass rumble that wakes up — like a turbine starting deep underground */
       var sub = _ctx.createOscillator(), subG = _ctx.createGain();
       sub.type = 'sine'; sub.frequency.setValueAtTime(32, t); sub.frequency.linearRampToValueAtTime(48, t + 3.0);
-      subG.gain.setValueAtTime(0, t); subG.gain.linearRampToValueAtTime(0.28, t + 1.2);
-      subG.gain.linearRampToValueAtTime(0.12, t + 3.0); subG.gain.linearRampToValueAtTime(0, t + 4.0);
+      subG.gain.setValueAtTime(0, t); subG.gain.linearRampToValueAtTime(0.7, t + 1.2);
+      subG.gain.linearRampToValueAtTime(0.35, t + 3.0); subG.gain.linearRampToValueAtTime(0, t + 4.0);
       sub.connect(subG); subG.connect(dest); sub.start(t); sub.stop(t + 4.1);
       /* Filtered sawtooth body — low and warm, like a reactor spooling */
       var body = _ctx.createOscillator(), bodyG = _ctx.createGain(), bodyF = _ctx.createBiquadFilter();
       bodyF.type = 'lowpass'; bodyF.frequency.setValueAtTime(120, t + 0.8); bodyF.frequency.linearRampToValueAtTime(280, t + 3.2); bodyF.Q.value = 2;
       body.type = 'sawtooth'; body.frequency.setValueAtTime(38, t + 0.6); body.frequency.exponentialRampToValueAtTime(78, t + 3.0);
-      bodyG.gain.setValueAtTime(0, t + 0.6); bodyG.gain.linearRampToValueAtTime(0.09, t + 1.4);
-      bodyG.gain.linearRampToValueAtTime(0.04, t + 3.0); bodyG.gain.linearRampToValueAtTime(0, t + 3.8);
+      bodyG.gain.setValueAtTime(0, t + 0.6); bodyG.gain.linearRampToValueAtTime(0.22, t + 1.4);
+      bodyG.gain.linearRampToValueAtTime(0.10, t + 3.0); bodyG.gain.linearRampToValueAtTime(0, t + 3.8);
       body.connect(bodyF); bodyF.connect(bodyG); bodyG.connect(dest); body.start(t + 0.6); body.stop(t + 3.9);
       /* Mysterious resonant tone — low theremin-like bloom */
       var res = _ctx.createOscillator(), resG = _ctx.createGain(), resF = _ctx.createBiquadFilter();
       resF.type = 'bandpass'; resF.Q.value = 5; resF.frequency.setValueAtTime(82, t + 1.5); resF.frequency.linearRampToValueAtTime(146, t + 3.5);
       res.type = 'sine'; res.frequency.setValueAtTime(82, t + 1.5); res.frequency.linearRampToValueAtTime(110, t + 3.5);
-      resG.gain.setValueAtTime(0, t + 1.5); resG.gain.linearRampToValueAtTime(0.18, t + 2.4);
-      resG.gain.linearRampToValueAtTime(0.06, t + 3.5); resG.gain.linearRampToValueAtTime(0, t + 4.2);
+      resG.gain.setValueAtTime(0, t + 1.5); resG.gain.linearRampToValueAtTime(0.45, t + 2.4);
+      resG.gain.linearRampToValueAtTime(0.18, t + 3.5); resG.gain.linearRampToValueAtTime(0, t + 4.2);
       res.connect(resF); resF.connect(resG); resG.connect(dest); res.start(t + 1.5); res.stop(t + 4.3);
       /* Deep arrival bloom — low warm chord (A1 + E2) fades in as warmup completes */
       var ch1 = _ctx.createOscillator(), ch1G = _ctx.createGain();
       ch1.type = 'sine'; ch1.frequency.value = 55; /* A1 */
-      ch1G.gain.setValueAtTime(0, t + 2.8); ch1G.gain.linearRampToValueAtTime(0.14, t + 3.6); ch1G.gain.linearRampToValueAtTime(0, t + 5.0);
+      ch1G.gain.setValueAtTime(0, t + 2.8); ch1G.gain.linearRampToValueAtTime(0.38, t + 3.6); ch1G.gain.linearRampToValueAtTime(0, t + 5.0);
       ch1.connect(ch1G); ch1G.connect(dest); ch1.start(t + 2.8); ch1.stop(t + 5.1);
       var ch2 = _ctx.createOscillator(), ch2G = _ctx.createGain();
       ch2.type = 'sine'; ch2.frequency.value = 82.4; /* E2 — a fifth up, adds mystery */
-      ch2G.gain.setValueAtTime(0, t + 3.0); ch2G.gain.linearRampToValueAtTime(0.08, t + 3.8); ch2G.gain.linearRampToValueAtTime(0, t + 5.0);
+      ch2G.gain.setValueAtTime(0, t + 3.0); ch2G.gain.linearRampToValueAtTime(0.22, t + 3.8); ch2G.gain.linearRampToValueAtTime(0, t + 5.0);
       ch2.connect(ch2G); ch2G.connect(dest); ch2.start(t + 3.0); ch2.stop(t + 5.1);
     }
     function _startHum() {
@@ -2234,10 +2234,10 @@
       var dest = _master(); var t = _ctx.currentTime;
       /* Deep bass foundation — 38Hz sub-bass + detuned pair at 55/56.5Hz for warmth + 82Hz fifth */
       var specs = [
-        { freq: 38,   type: 'sine', gain: 0.22, rise: 3.5 },
-        { freq: 55,   type: 'sine', gain: 0.14, rise: 3.0 },
-        { freq: 56.5, type: 'sine', gain: 0.07, rise: 3.0 }, /* slight detune — adds thickness */
-        { freq: 82.4, type: 'sine', gain: 0.05, rise: 4.0 }, /* E2 fifth — mysterious color */
+        { freq: 38,   type: 'sine', gain: 0.55, rise: 3.5 },
+        { freq: 55,   type: 'sine', gain: 0.35, rise: 3.0 },
+        { freq: 56.5, type: 'sine', gain: 0.18, rise: 3.0 }, /* slight detune — adds thickness */
+        { freq: 82.4, type: 'sine', gain: 0.14, rise: 4.0 }, /* E2 fifth — mysterious color */
       ];
       specs.forEach(function(sp) {
         var o = _ctx.createOscillator(), g = _ctx.createGain();
@@ -2262,7 +2262,7 @@
       var o = _ctx.createOscillator(), g = _ctx.createGain();
       o.type = 'sine';
       o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.10);
-      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      g.gain.setValueAtTime(0.75, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
       o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.15);
       /* Low-passed noise transient — gives it body */
       try {
@@ -2271,7 +2271,7 @@
         for (var ii = 0; ii < d.length; ii++) d[ii] = (Math.random() * 2 - 1) * Math.pow(1 - ii / d.length, 1.5);
         var src = _ctx.createBufferSource(); src.buffer = buf;
         var flt = _ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 350;
-        var ng = _ctx.createGain(); ng.gain.value = 0.18;
+        var ng = _ctx.createGain(); ng.gain.value = 0.4;
         src.connect(flt); flt.connect(ng); ng.connect(dest); src.start(t);
       } catch(e) {}
     }
@@ -2282,7 +2282,7 @@
       /* Bass thump first */
       var thump = _ctx.createOscillator(), thumpG = _ctx.createGain();
       thump.type = 'sine'; thump.frequency.setValueAtTime(60, t); thump.frequency.exponentialRampToValueAtTime(28, t + 0.35);
-      thumpG.gain.setValueAtTime(0.45, t); thumpG.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      thumpG.gain.setValueAtTime(0.9, t); thumpG.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
       thump.connect(thumpG); thumpG.connect(dest); thump.start(t); thump.stop(t + 0.45);
       /* Filtered noise whoosh — descends from mid to sub */
       try {
@@ -2294,7 +2294,7 @@
         var flt = _ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.Q.value = 1.2;
         flt.frequency.setValueAtTime(700, t); flt.frequency.exponentialRampToValueAtTime(40, t + dur);
         var g = _ctx.createGain();
-        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.38, t + 0.12);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.8, t + 0.12);
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         src.connect(flt); flt.connect(g); g.connect(dest); src.start(t); src.stop(t + dur + 0.05);
       } catch(e) {}
