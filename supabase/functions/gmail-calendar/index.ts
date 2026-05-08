@@ -410,15 +410,14 @@ serve(async (req) => {
 
       let processedBody = content
 
-      // Resolve cid: inline image references → data: URIs so they render in the browser
+      // ── Layer 1: Resolve cid: inline attachment references → data: URIs ──────
       if (isHtml && data.payload) {
         const inlineParts = collectInlineParts(data.payload)
         for (const part of inlineParts) {
           let b64 = part.data
-          // If the attachment data wasn't inlined in the MIME part, fetch it separately
           if (!b64 && part.attachmentId) {
             try {
-              const attRes = await fetch(
+              const attRes  = await fetch(
                 `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${part.attachmentId}`,
                 { headers: { Authorization: `Bearer ${provider_token}` } }
               )
@@ -428,11 +427,72 @@ serve(async (req) => {
           }
           if (b64) {
             const standardB64 = b64.replace(/-/g, '+').replace(/_/g, '/')
-            const dataUri      = `data:${part.mimeType};base64,${standardB64}`
-            // Replace every cid:xxx occurrence (case-insensitive, with or without angle brackets)
-            const escapedCid   = part.cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const dataUri     = `data:${part.mimeType};base64,${standardB64}`
+            const escapedCid  = part.cid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            // Replace full CID match
             processedBody = processedBody.replace(new RegExp(`cid:${escapedCid}`, 'gi'), dataUri)
+            // Also try the local-part only (e.g. "ii_abc" when CID is "ii_abc@mail.gmail.com")
+            const localPart = part.cid.split('@')[0]
+            if (localPart && localPart !== part.cid) {
+              const escapedLocal = localPart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+              processedBody = processedBody.replace(new RegExp(`cid:${escapedLocal}(?=["' >])`, 'gi'), dataUri)
+            }
           }
+        }
+      }
+
+      // ── Layer 2: Proxy external images server-side (handles Google-hosted   ──
+      //   signature images that require auth, and any other blocked img URLs)    ──
+      if (isHtml) {
+        // Helper: convert ArrayBuffer → standard base64 string safely
+        function bufToBase64(buf: ArrayBuffer): string {
+          const bytes = new Uint8Array(buf)
+          let binary  = ''
+          const chunk = 8192
+          for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+          }
+          return btoa(binary)
+        }
+
+        // Collect unique external img src URLs (not already data: or cid:)
+        const imgSrcRe = /src=["']([^"']+)["']/gi
+        const urlSet   = new Set<string>()
+        let m: RegExpExecArray | null
+        while ((m = imgSrcRe.exec(processedBody)) !== null) {
+          const u = m[1]
+          if (!u.startsWith('data:') && !u.startsWith('cid:') && u.startsWith('http')) {
+            urlSet.add(u)
+          }
+        }
+
+        // Fetch up to 10 images server-side and embed as data URIs
+        const urlMap = new Map<string, string>()
+        let fetched  = 0
+        for (const url of urlSet) {
+          if (fetched >= 10) break
+          try {
+            // Send auth header for Google-hosted URLs; plain fetch for others
+            const fetchHeaders: Record<string,string> = {}
+            if (/googleusercontent\.com|mail\.google\.com|gmail\.com/.test(url)) {
+              fetchHeaders['Authorization'] = `Bearer ${provider_token}`
+            }
+            const imgRes = await fetch(url, { headers: fetchHeaders })
+            if (imgRes.ok) {
+              const ct      = imgRes.headers.get('content-type') || 'image/jpeg'
+              const imgB64  = bufToBase64(await imgRes.arrayBuffer())
+              urlMap.set(url, `data:${ct};base64,${imgB64}`)
+              fetched++
+            }
+          } catch (_) { /* skip */ }
+        }
+
+        // Replace src URLs with embedded data URIs
+        if (urlMap.size > 0) {
+          processedBody = processedBody.replace(/src=["']([^"']+)["']/gi, (full, url) => {
+            const embedded = urlMap.get(url)
+            return embedded ? `src="${embedded}"` : full
+          })
         }
       }
 

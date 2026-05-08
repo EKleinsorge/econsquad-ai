@@ -392,7 +392,7 @@
         if (!data.body) { bodyEl.innerHTML = '<span style="color:#4a5568;font-style:italic;">Could not load email body.</span>'; return; }
         if (data.isHtml) {
           var iframe = document.createElement('iframe');
-          iframe.sandbox = 'allow-same-origin';
+          iframe.sandbox = 'allow-same-origin allow-scripts allow-popups';
           iframe.style.cssText = 'width:100%;border:none;background:#fff;border-radius:6px;min-height:300px;';
           bodyEl.innerHTML = '';
           bodyEl.appendChild(iframe);
