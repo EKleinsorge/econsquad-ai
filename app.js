@@ -2181,125 +2181,183 @@
     var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     var name = firstName ? (', ' + firstName) : '';
 
-    /* Inject keyframe styles */
+    /* ── Web Audio engine ─────────────────────────────────────────────── */
+    var _ctx = null; var _humOsc = null; var _humGain = null; var _humOsc2 = null; var _humGain2 = null;
+    var _dismissed = false;
+    function _initAudio() {
+      try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); if (_ctx.state === 'suspended') _ctx.resume(); } catch(e) { _ctx = null; }
+    }
+    function _playWarmup() {
+      if (!_ctx) return;
+      /* Low sawtooth sweep — powering up */
+      var o = _ctx.createOscillator(), g = _ctx.createGain(), f = _ctx.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 1800;
+      o.connect(f); f.connect(g); g.connect(_ctx.destination);
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(55, _ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(280, _ctx.currentTime + 2.2);
+      g.gain.setValueAtTime(0, _ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.07, _ctx.currentTime + 0.5);
+      g.gain.linearRampToValueAtTime(0.03, _ctx.currentTime + 2.0);
+      g.gain.linearRampToValueAtTime(0, _ctx.currentTime + 2.5);
+      o.start(); o.stop(_ctx.currentTime + 2.6);
+      /* Bright startup ping at top of sweep */
+      var o2 = _ctx.createOscillator(), g2 = _ctx.createGain();
+      o2.type = 'sine';
+      o2.frequency.setValueAtTime(880, _ctx.currentTime + 1.8);
+      o2.frequency.exponentialRampToValueAtTime(1760, _ctx.currentTime + 2.4);
+      g2.gain.setValueAtTime(0, _ctx.currentTime + 1.8);
+      g2.gain.linearRampToValueAtTime(0.13, _ctx.currentTime + 2.0);
+      g2.gain.linearRampToValueAtTime(0, _ctx.currentTime + 2.6);
+      o2.connect(g2); g2.connect(_ctx.destination);
+      o2.start(_ctx.currentTime + 1.8); o2.stop(_ctx.currentTime + 2.7);
+    }
+    function _startHum() {
+      if (!_ctx) return;
+      _humOsc = _ctx.createOscillator(); _humGain = _ctx.createGain();
+      _humOsc.type = 'sine'; _humOsc.frequency.value = 55;
+      _humGain.gain.setValueAtTime(0, _ctx.currentTime);
+      _humGain.gain.linearRampToValueAtTime(0.038, _ctx.currentTime + 2.5);
+      _humOsc.connect(_humGain); _humGain.connect(_ctx.destination); _humOsc.start();
+      _humOsc2 = _ctx.createOscillator(); _humGain2 = _ctx.createGain();
+      _humOsc2.type = 'sine'; _humOsc2.frequency.value = 110;
+      _humGain2.gain.setValueAtTime(0, _ctx.currentTime);
+      _humGain2.gain.linearRampToValueAtTime(0.014, _ctx.currentTime + 2.5);
+      _humOsc2.connect(_humGain2); _humGain2.connect(_ctx.destination); _humOsc2.start();
+    }
+    function _stopHum() {
+      if (!_ctx) return;
+      try { _humGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.6); _humOsc.stop(_ctx.currentTime + 0.7); } catch(e) {}
+      try { _humGain2.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.6); _humOsc2.stop(_ctx.currentTime + 0.7); } catch(e) {}
+    }
+    function _playClick() {
+      if (!_ctx) return;
+      var o = _ctx.createOscillator(), g = _ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(1300, _ctx.currentTime); o.frequency.exponentialRampToValueAtTime(650, _ctx.currentTime + 0.07);
+      g.gain.setValueAtTime(0.22, _ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, _ctx.currentTime + 0.09);
+      o.connect(g); g.connect(_ctx.destination); o.start(); o.stop(_ctx.currentTime + 0.1);
+      try {
+        var buf = _ctx.createBuffer(1, Math.floor(_ctx.sampleRate * 0.045), _ctx.sampleRate);
+        var d = buf.getChannelData(0);
+        for (var ii = 0; ii < d.length; ii++) d[ii] = (Math.random() * 2 - 1) * (1 - ii / d.length);
+        var src = _ctx.createBufferSource(); src.buffer = buf;
+        var ng = _ctx.createGain(); ng.gain.value = 0.07;
+        src.connect(ng); ng.connect(_ctx.destination); src.start();
+      } catch(e2) {}
+    }
+    function _playWhoosh() {
+      if (!_ctx) return;
+      try {
+        var dur = 1.0;
+        var buf = _ctx.createBuffer(1, Math.floor(_ctx.sampleRate * dur), _ctx.sampleRate);
+        var d = buf.getChannelData(0);
+        for (var ii = 0; ii < d.length; ii++) d[ii] = Math.random() * 2 - 1;
+        var src = _ctx.createBufferSource(); src.buffer = buf;
+        var flt = _ctx.createBiquadFilter(); flt.type = 'bandpass'; flt.Q.value = 0.7;
+        flt.frequency.setValueAtTime(2200, _ctx.currentTime);
+        flt.frequency.exponentialRampToValueAtTime(140, _ctx.currentTime + dur);
+        var g = _ctx.createGain();
+        g.gain.setValueAtTime(0, _ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0.4, _ctx.currentTime + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, _ctx.currentTime + dur);
+        src.connect(flt); flt.connect(g); g.connect(_ctx.destination);
+        src.start(); src.stop(_ctx.currentTime + dur + 0.05);
+      } catch(e) {}
+    }
+    _initAudio();
+
+    /* ── Keyframe styles ────────────────────────────────────────────────── */
     if (!document.getElementById('esq-splash-css')) {
       var s = document.createElement('style');
       s.id = 'esq-splash-css';
       s.textContent = [
         '@keyframes ariaSplashFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}',
         '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}',
-        '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.06) translateY(-80px);}100%{opacity:0;transform:scale(0.02) translateY(-120px);}}',
+        '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.04) translateY(-100px);}100%{opacity:0;transform:scale(0.01) translateY(-140px);}}',
         '@keyframes ariaSplashOverlayOut{from{opacity:1;}to{opacity:0;}}',
         '@keyframes starTwinkle{0%,100%{opacity:0.1;}50%{opacity:0.6;}}',
         '@keyframes splashOrb{0%,100%{box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);}50%{box-shadow:0 0 70px rgba(170,255,62,1),0 0 130px rgba(170,255,62,0.6),0 0 200px rgba(170,255,62,0.25);}}',
-        '@keyframes splashOrbPowerup{0%{opacity:0.1;box-shadow:none;filter:brightness(0.2);}30%{opacity:0.6;filter:brightness(0.5);}50%{opacity:0.4;filter:brightness(0.3);}70%{opacity:0.9;filter:brightness(0.8);}85%{opacity:0.7;filter:brightness(0.6);}100%{opacity:1;filter:brightness(1);box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4);}}',
+        '@keyframes splashOrbPowerup{0%{opacity:0.05;box-shadow:none;filter:brightness(0.15);}20%{opacity:0.5;filter:brightness(0.4);}40%{opacity:0.25;filter:brightness(0.2);}60%{opacity:0.8;filter:brightness(0.7);}75%{opacity:0.55;filter:brightness(0.45);}90%{opacity:0.95;filter:brightness(0.95);}100%{opacity:1;filter:brightness(1);box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4);}}',
+        '@keyframes splashOrbWink{0%{transform:scaleY(1);}20%{transform:scaleY(0.08) scaleX(1.12);}55%{transform:scaleY(0.08) scaleX(1.12);}80%{transform:scaleY(1.12);}100%{transform:scaleY(1);}}',
         '@keyframes splashRing{0%,100%{opacity:0.25;transform:scale(1);}50%{opacity:0.6;transform:scale(1.05);}}',
         '@keyframes splashSwirl1{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}',
         '@keyframes splashSwirl2{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}',
         '@keyframes splashSwirl3{from{transform:rotate(45deg);}to{transform:rotate(405deg);}}',
         '@keyframes splashSmoke{0%,100%{opacity:0.06;transform:scale(1) rotate(0deg);}33%{opacity:0.14;transform:scale(1.08) rotate(120deg);}66%{opacity:0.08;transform:scale(0.95) rotate(240deg);}}',
         '@keyframes splashCheckPop{0%{transform:scale(0) rotate(-20deg);opacity:0;}70%{transform:scale(1.3) rotate(5deg);}100%{transform:scale(1) rotate(0deg);opacity:1;}}',
-        '@keyframes splashBarFill{from{width:0;}to{width:100%;}}',
-        '@keyframes splashStatusIn{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}',
-        '@keyframes splashPulse{0%,100%{opacity:1;}50%{opacity:0.4;}}',
+        '@keyframes splashStatusIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:translateX(0);}}',
+        '@keyframes splashPulse{0%,100%{opacity:1;}50%{opacity:0.3;}}',
+        '@keyframes splashCursorIn{from{opacity:0;transform:scale(0.7);}to{opacity:1;transform:scale(1);}}',
+        '@keyframes splashCursorClick{0%{transform:scale(1);}40%{transform:scale(0.78);}100%{transform:scale(1);}}',
       ].join('');
       document.head.appendChild(s);
     }
 
-    /* Build overlay */
+    /* ── Overlay ────────────────────────────────────────────────────────── */
     var overlay = document.createElement('div');
     overlay.id = 'esq-splash-overlay';
-    overlay.style.cssText = [
-      'position:fixed','inset:0','z-index:99999',
-      'background:radial-gradient(ellipse at 50% 40%, #0a1628 0%, #04050d 70%)',
-      'display:flex','flex-direction:column','align-items:center','justify-content:center',
-      'overflow:hidden','cursor:pointer',
-    ].join(';');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at 50% 40%,#0a1628 0%,#04050d 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;';
 
     /* Star field */
     var stars = document.createElement('div');
     stars.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
     for (var i = 0; i < 80; i++) {
       var star = document.createElement('div');
-      var size = Math.random() * 2.5 + 0.5;
-      var delay = Math.random() * 4;
-      var dur = 2 + Math.random() * 3;
-      star.style.cssText = 'position:absolute;border-radius:50%;background:#aaff3e;'
-        + 'width:' + size + 'px;height:' + size + 'px;'
-        + 'left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 100) + '%;'
-        + 'animation:starTwinkle ' + dur + 's ' + delay + 's ease-in-out infinite;opacity:0.15;';
+      var sz = Math.random() * 2.5 + 0.5, dl = Math.random() * 4, dr = 2 + Math.random() * 3;
+      star.style.cssText = 'position:absolute;border-radius:50%;background:#aaff3e;width:'+sz+'px;height:'+sz+'px;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:starTwinkle '+dr+'s '+dl+'s ease-in-out infinite;opacity:0.15;';
       stars.appendChild(star);
     }
     overlay.appendChild(stars);
 
-    /* Main content wrapper — this is what shrinks */
+    /* ── Main content ────────────────────────────────────────────────────── */
     var content = document.createElement('div');
     content.id = 'esq-splash-content';
     content.style.cssText = 'display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 24px;max-width:700px;';
 
-    /* ARIA ORB — landing page style, supersized */
+    /* ARIA ORB */
     var iconWrap = document.createElement('div');
-    iconWrap.style.cssText = 'margin-bottom:32px;animation:ariaSplashFloat 4s ease-in-out infinite;position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    iconWrap.style.cssText = 'margin-bottom:28px;animation:ariaSplashFloat 4.5s ease-in-out infinite;position:relative;width:300px;height:300px;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
 
     function makeRing(size, opacity, delay, dur) {
       var r = document.createElement('div');
-      r.style.cssText = 'position:absolute;border-radius:50%;border:1px solid rgba(170,255,62,'+opacity+');'
-        +'width:'+size+'px;height:'+size+'px;'
-        +'animation:splashRing '+(dur||3)+'s ease-in-out infinite '+delay+'s;';
+      r.style.cssText = 'position:absolute;border-radius:50%;border:1px solid rgba(170,255,62,'+opacity+');width:'+size+'px;height:'+size+'px;animation:splashRing '+(dur||3)+'s ease-in-out infinite '+delay+'s;';
       return r;
     }
-    iconWrap.appendChild(makeRing(300, 0.08, 0,    3.2));
-    iconWrap.appendChild(makeRing(260, 0.12, 0.3,  3.0));
-    iconWrap.appendChild(makeRing(220, 0.16, 0.6,  2.8));
-    iconWrap.appendChild(makeRing(178, 0.22, 0.9,  2.6));
-    iconWrap.appendChild(makeRing(138, 0.28, 1.2,  2.4));
+    iconWrap.appendChild(makeRing(300, 0.08, 0, 3.8));
+    iconWrap.appendChild(makeRing(260, 0.12, 0.4, 3.5));
+    iconWrap.appendChild(makeRing(220, 0.16, 0.8, 3.2));
+    iconWrap.appendChild(makeRing(178, 0.22, 1.2, 2.9));
+    iconWrap.appendChild(makeRing(138, 0.28, 1.6, 2.6));
 
-    /* Smoky ghost swirls — blurred rotating ellipses */
-    function makeSwirl(w, h, opacity, animName, dur, offsetX, offsetY, blurPx) {
-      var sw = document.createElement('div');
-      sw.style.cssText = 'position:absolute;border-radius:50%;'
-        +'width:'+w+'px;height:'+h+'px;'
-        +'background:radial-gradient(ellipse, rgba(170,255,62,'+opacity+') 0%, transparent 70%);'
-        +'filter:blur('+blurPx+'px);'
-        +'left:calc(50% - '+(w/2 - offsetX)+'px);top:calc(50% - '+(h/2 - offsetY)+'px);'
-        +'animation:'+animName+' '+dur+'s linear infinite;'
-        +'transform-origin:center center;';
-      return sw;
-    }
-
-    /* Rotating swirl containers */
+    /* Swirl containers */
     var swirlWrap1 = document.createElement('div');
     swirlWrap1.style.cssText = 'position:absolute;width:220px;height:220px;border-radius:50%;animation:splashSwirl1 14s linear infinite;';
     var sw1 = document.createElement('div');
     sw1.style.cssText = 'position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:80px;height:40px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.18) 0%,transparent 70%);filter:blur(14px);';
     swirlWrap1.appendChild(sw1);
-
     var swirlWrap2 = document.createElement('div');
     swirlWrap2.style.cssText = 'position:absolute;width:180px;height:180px;border-radius:50%;animation:splashSwirl2 10s linear infinite;';
     var sw2 = document.createElement('div');
     sw2.style.cssText = 'position:absolute;bottom:-14px;right:-10px;width:60px;height:30px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.15) 0%,transparent 70%);filter:blur(12px);';
     swirlWrap2.appendChild(sw2);
-
     var swirlWrap3 = document.createElement('div');
     swirlWrap3.style.cssText = 'position:absolute;width:240px;height:100px;border-radius:50%;animation:splashSwirl3 18s linear infinite;';
     var sw3 = document.createElement('div');
     sw3.style.cssText = 'position:absolute;top:0;left:-20px;width:100px;height:36px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.1) 0%,transparent 70%);filter:blur(18px);';
     swirlWrap3.appendChild(sw3);
-
-    /* Big ambient smoke blob */
     var smoke = document.createElement('div');
     smoke.style.cssText = 'position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(170,255,62,0.07) 0%,transparent 65%);filter:blur(24px);animation:splashSmoke 8s ease-in-out infinite;';
-
     iconWrap.appendChild(smoke);
     iconWrap.appendChild(swirlWrap1);
     iconWrap.appendChild(swirlWrap2);
     iconWrap.appendChild(swirlWrap3);
 
-    /* The orb itself — power-up flicker then steady glow */
+    /* Orb — slow power-up flicker then steady glow */
     var orb = document.createElement('div');
+    orb.id = 'esq-splash-orb';
     orb.style.cssText = 'position:relative;width:130px;height:130px;border-radius:50%;'
       +'background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);'
-      +'animation:splashOrbPowerup 1.4s ease-out forwards, splashOrb 3s ease-in-out 1.4s infinite;'
+      +'animation:splashOrbPowerup 2.2s ease-out forwards, splashOrb 3.5s ease-in-out 2.2s infinite;'
       +'display:flex;align-items:center;justify-content:center;z-index:2;';
     orb.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(0,40,0,0.55)"><path d="M12 2 L13.5 9 L20 12 L13.5 15 L12 22 L10.5 15 L4 12 L10.5 9 Z"/></svg>';
     iconWrap.appendChild(orb);
@@ -2307,98 +2365,101 @@
 
     /* ARIA name */
     var nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-family:Barlow Condensed,Barlow,sans-serif;font-size:clamp(56px,10vw,100px);font-weight:900;color:#aaff3e;letter-spacing:-.02em;line-height:1;margin-bottom:4px;text-shadow:0 0 60px rgba(170,255,62,0.4);opacity:0;animation:ariaSplashFadeUp .5s .3s ease forwards;';
+    nameEl.style.cssText = 'font-family:Barlow Condensed,Barlow,sans-serif;font-size:clamp(56px,10vw,100px);font-weight:900;color:#aaff3e;letter-spacing:-.02em;line-height:1;margin-bottom:4px;text-shadow:0 0 60px rgba(170,255,62,0.4);opacity:0;animation:ariaSplashFadeUp .6s .4s ease forwards;';
     nameEl.textContent = 'ARIA';
     content.appendChild(nameEl);
 
     /* Tagline */
     var tagEl = document.createElement('div');
-    tagEl.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(11px,1.6vw,14px);font-weight:600;color:#4a5568;letter-spacing:.18em;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:ariaSplashFadeUp .5s .6s ease forwards;';
+    tagEl.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(11px,1.6vw,14px);font-weight:600;color:#4a5568;letter-spacing:.18em;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:ariaSplashFadeUp .6s .9s ease forwards;';
     tagEl.textContent = 'AI Economic Development Squad';
     content.appendChild(tagEl);
 
-    /* ── Power-up status panel ── */
+    /* ── Power-up status panel ─────────────────────────────────────────── */
     var statusPanel = document.createElement('div');
-    statusPanel.style.cssText = 'width:320px;display:flex;flex-direction:column;gap:0;margin-bottom:28px;background:rgba(10,22,40,0.7);border:1px solid rgba(170,255,62,0.1);border-radius:14px;overflow:hidden;opacity:0;animation:ariaSplashFadeUp .4s 1.0s ease forwards;';
+    statusPanel.style.cssText = 'width:340px;display:flex;flex-direction:column;margin-bottom:28px;background:rgba(10,22,40,0.75);border:1px solid rgba(170,255,62,0.12);border-radius:14px;overflow:hidden;opacity:0;animation:ariaSplashFadeUp .5s 1.6s ease forwards;';
 
-    /* Status header */
     var statusHdr = document.createElement('div');
-    statusHdr.style.cssText = 'padding:10px 16px 8px;border-bottom:1px solid rgba(170,255,62,0.08);display:flex;align-items:center;gap:8px;';
+    statusHdr.style.cssText = 'padding:10px 16px 9px;border-bottom:1px solid rgba(170,255,62,0.08);display:flex;align-items:center;gap:8px;';
     var statusDot = document.createElement('div');
-    statusDot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#aaff3e;animation:splashPulse 1s ease-in-out infinite;';
+    statusDot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#aaff3e;animation:splashPulse 1.1s ease-in-out infinite;';
     var statusLbl = document.createElement('span');
-    statusLbl.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.12em;';
+    statusLbl.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.14em;';
     statusLbl.textContent = 'Powering up';
     statusHdr.appendChild(statusDot); statusHdr.appendChild(statusLbl);
     statusPanel.appendChild(statusHdr);
 
-    /* Status items */
+    /* Status items — spaced 1.4s apart, each takes 1.2s to resolve */
     var statusItems = [
-      { icon: '📧', label: 'Analyzing your inbox',   doneLabel: 'Emails analyzed',      delay: 1.6 },
-      { icon: '📅', label: 'Syncing your calendar',  doneLabel: 'Calendar considered',   delay: 2.5 },
-      { icon: '✅', label: 'Reviewing your tasks',   doneLabel: 'Tasks reviewed',        delay: 3.4 },
-      { icon: '⚡', label: 'Squad standing by',       doneLabel: 'Squad ready',           delay: 4.2 },
+      { icon: '📧', label: 'Analyzing your inbox',   doneLabel: 'Emails analyzed',     delay: 2.4 },
+      { icon: '📅', label: 'Syncing your calendar',  doneLabel: 'Calendar considered',  delay: 3.8 },
+      { icon: '✅', label: 'Reviewing your tasks',   doneLabel: 'Tasks reviewed',       delay: 5.2 },
+      { icon: '⚡', label: 'Squad standing by',       doneLabel: 'Squad ready',          delay: 6.5 },
     ];
     var statusEls = [];
-    statusItems.forEach(function(item) {
+    statusItems.forEach(function(item, idx) {
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);opacity:0;animation:splashStatusIn .35s '+item.delay+'s ease forwards;';
-
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.04);opacity:0;animation:splashStatusIn .4s '+item.delay+'s ease forwards;';
       var rowIcon = document.createElement('span');
       rowIcon.style.cssText = 'font-size:14px;width:20px;text-align:center;flex-shrink:0;';
       rowIcon.textContent = item.icon;
-
       var rowText = document.createElement('span');
       rowText.style.cssText = 'font-family:Barlow,sans-serif;font-size:12px;color:#6b7a96;flex:1;';
       rowText.textContent = item.label + '...';
-
       var rowCheck = document.createElement('span');
       rowCheck.style.cssText = 'font-size:13px;opacity:0;color:#aaff3e;font-weight:800;flex-shrink:0;';
       rowCheck.textContent = '✓';
-
       row.appendChild(rowIcon); row.appendChild(rowText); row.appendChild(rowCheck);
       statusPanel.appendChild(row);
-      statusEls.push({ row: row, text: rowText, check: rowCheck, item: item });
+      var captured = { row: row, text: rowText, check: rowCheck, item: item, idx: idx };
+      statusEls.push(captured);
 
-      /* After item appears, animate to "done" state */
-      setTimeout(function(el) {
-        return function() {
-          el.text.style.color = '#b8c8e0';
-          el.text.textContent = el.item.doneLabel;
-          el.check.style.animation = 'splashCheckPop .3s ease forwards';
-          el.check.style.opacity = '1';
-          el.row.style.borderBottomColor = 'rgba(170,255,62,0.06)';
-        };
-      }(statusEls[statusEls.length-1]), (item.delay + 0.7) * 1000);
+      /* Appear sound */
+      setTimeout(_playClick, item.delay * 1000);
+
+      /* Resolve to done after 1.2s */
+      setTimeout(function(el) { return function() {
+        el.text.style.cssText = 'font-family:Barlow,sans-serif;font-size:12px;color:#b8c8e0;flex:1;';
+        el.text.textContent = el.item.doneLabel;
+        el.check.style.animation = 'splashCheckPop .35s ease forwards';
+        el.check.style.opacity = '1';
+        el.row.style.borderBottomColor = 'rgba(170,255,62,0.05)';
+        _playClick();
+        /* Last item done → header goes green + solid */
+        if (el.idx === 3) {
+          statusDot.style.animation = 'none';
+          statusDot.style.boxShadow = '0 0 6px #aaff3e';
+          statusLbl.textContent = 'Online';
+        }
+      }; }(captured), (item.delay + 1.2) * 1000);
     });
     content.appendChild(statusPanel);
 
-    /* ── Greeting message ── */
+    /* ── Greeting lines ───────────────────────────────────────────────── */
     var msgWrap = document.createElement('div');
-    msgWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:36px;text-align:center;';
-
-    var greetDelay = 5.1;
+    msgWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:36px;text-align:center;';
+    var greetDelay = 8.8;
     var msgLines = [
-      { text: greeting + name + '.', color: '#eef3fc', size: 'clamp(18px,3vw,24px)', weight: '700', d: greetDelay },
-      { text: 'I\'m here to make your work more efficient', color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 0.4 },
-      { text: 'and your days less stressful.', color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 0.7 },
-      { text: 'Less work. More impact. Let\'s make today count.', color: '#aaff3e', size: 'clamp(13px,2vw,16px)', weight: '800', d: greetDelay + 1.1 },
+      { text: greeting + name + '.', color: '#eef3fc', size: 'clamp(19px,3vw,26px)', weight: '700', d: greetDelay },
+      { text: "I'm here to make your work more efficient", color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 0.65 },
+      { text: 'and your days less stressful.', color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 1.25 },
+      { text: "Less work. More impact. Let's make today count.", color: '#aaff3e', size: 'clamp(13px,2vw,16px)', weight: '800', d: greetDelay + 2.0 },
     ];
     msgLines.forEach(function(ml) {
       var p = document.createElement('div');
-      p.style.cssText = 'font-family:Barlow,sans-serif;font-size:'+ml.size+';font-weight:'+ml.weight+';color:'+ml.color+';line-height:1.5;opacity:0;animation:ariaSplashFadeUp .5s '+ml.d+'s ease forwards;';
+      p.style.cssText = 'font-family:Barlow,sans-serif;font-size:'+ml.size+';font-weight:'+ml.weight+';color:'+ml.color+';line-height:1.55;opacity:0;animation:ariaSplashFadeUp .65s '+ml.d+'s ease forwards;';
       p.textContent = ml.text;
       msgWrap.appendChild(p);
     });
     content.appendChild(msgWrap);
 
-    /* CTA button */
+    /* ── CTA Button ───────────────────────────────────────────────────── */
     var btn = document.createElement('button');
-    var btnDelay = greetDelay + 1.8;
+    var btnDelay = greetDelay + 3.2;
     btn.style.cssText = 'font-family:Barlow,sans-serif;font-size:15px;font-weight:800;'
-      + 'background:#aaff3e;color:#0a1a00;border:none;padding:14px 44px;border-radius:50px;'
+      + 'background:#aaff3e;color:#0a1a00;border:none;padding:14px 48px;border-radius:50px;'
       + 'cursor:pointer;letter-spacing:.04em;opacity:0;'
-      + 'animation:ariaSplashFadeUp .5s ' + btnDelay + 's ease forwards;'
+      + 'animation:ariaSplashFadeUp .6s ' + btnDelay + 's ease forwards;'
       + 'box-shadow:0 0 32px rgba(170,255,62,0.35);transition:transform .15s,box-shadow .15s;';
     btn.textContent = "Let's get started →";
     btn.onmouseover = function() { btn.style.transform='scale(1.05)'; btn.style.boxShadow='0 0 48px rgba(170,255,62,0.55)'; };
@@ -2409,34 +2470,94 @@
     var skip = document.createElement('div');
     skip.style.cssText = 'position:absolute;bottom:24px;right:32px;font-size:11px;color:#2a3448;font-family:Barlow,sans-serif;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:color .2s;';
     skip.textContent = 'Skip';
-    skip.onmouseover = function() { skip.style.color = '#4a5568'; };
-    skip.onmouseout  = function() { skip.style.color = '#2a3448'; };
+    skip.onmouseover = function() { skip.style.color='#4a5568'; };
+    skip.onmouseout  = function() { skip.style.color='#2a3448'; };
     overlay.appendChild(skip);
-
     overlay.appendChild(content);
     document.body.appendChild(overlay);
 
-    /* Dismiss → ARIA shrinks away */
+    /* ── Sound schedule ───────────────────────────────────────────────── */
+    setTimeout(_playWarmup, 300);
+    setTimeout(_startHum, 2800);
+
+    /* ── Dismiss ──────────────────────────────────────────────────────── */
     function dismiss() {
-      content.style.animation = 'ariaSplashShrink .8s cubic-bezier(.4,0,.2,1) forwards';
+      if (_dismissed) return; _dismissed = true;
+      _stopHum();
+      _playWhoosh();
+      content.style.animation = 'ariaSplashShrink 1.0s cubic-bezier(.4,0,.2,1) forwards';
       setTimeout(function() {
-        overlay.style.animation = 'ariaSplashOverlayOut .5s ease forwards';
+        overlay.style.animation = 'ariaSplashOverlayOut .6s ease forwards';
         setTimeout(function() {
           overlay.remove();
           if (typeof window.showDashTab === 'function') {
             window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
           }
-        }, 500);
-      }, 750);
+        }, 600);
+      }, 900);
     }
+    btn.addEventListener('click', function(e) { e.stopPropagation(); clearTimeout(autoTimer); clearTimeout(cursorTimer); dismiss(); });
+    skip.addEventListener('click', function(e) { e.stopPropagation(); clearTimeout(autoTimer); clearTimeout(cursorTimer); dismiss(); });
 
-    btn.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
-    skip.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
+    /* ── Animated cursor + wink sequence ─────────────────────────────── */
+    var cursorTimer = null;
+    var cursorEl = null;
+    var autoTimer = null;
 
-    /* Auto-dismiss 3s after button appears */
-    var autoTimer = setTimeout(dismiss, (btnDelay + 4) * 1000);
-    btn.addEventListener('click', function() { clearTimeout(autoTimer); });
-    skip.addEventListener('click', function() { clearTimeout(autoTimer); });
+    /* Cursor glides in from lower-right ~1.8s after button appears */
+    cursorTimer = setTimeout(function() {
+      cursorEl = document.createElement('div');
+      cursorEl.style.cssText = 'position:fixed;pointer-events:none;z-index:100001;animation:splashCursorIn .35s ease forwards;';
+      cursorEl.innerHTML = '<svg width="24" height="30" viewBox="0 0 24 30" fill="white" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7))"><path d="M0 0 L0 26 L6 20 L11 29 L14.5 27 L9.5 18 L17 18 Z"/><path d="M0 0 L0 26 L6 20 L11 29 L14.5 27 L9.5 18 L17 18 Z" fill="none" stroke="rgba(170,255,62,0.5)" stroke-width="0.5"/></svg>';
+
+      /* Start position: lower-right of screen */
+      var startX = window.innerWidth * 0.82;
+      var startY = window.innerHeight * 0.78;
+      cursorEl.style.left = startX + 'px';
+      cursorEl.style.top  = startY + 'px';
+      document.body.appendChild(cursorEl);
+
+      /* After cursor appears, glide to button over 1.4s */
+      setTimeout(function() {
+        var btnRect = btn.getBoundingClientRect();
+        var targetX = btnRect.left + btnRect.width * 0.55;
+        var targetY = btnRect.top  + btnRect.height * 0.45;
+        cursorEl.style.transition = 'left 1.4s cubic-bezier(0.25,0.8,0.25,1), top 1.4s cubic-bezier(0.25,0.8,0.25,1)';
+        cursorEl.style.left = targetX + 'px';
+        cursorEl.style.top  = targetY + 'px';
+
+        /* After arriving — pause, then click */
+        setTimeout(function() {
+          cursorEl.style.animation = 'splashCursorClick .22s ease forwards';
+          _playClick();
+          btn.style.transform = 'scale(0.94)';
+          btn.style.boxShadow = '0 0 60px rgba(170,255,62,0.7)';
+
+          /* Button springs back, orb winks */
+          setTimeout(function() {
+            btn.style.transform = 'scale(1.06)';
+            setTimeout(function() { btn.style.transform = ''; btn.style.boxShadow = '0 0 32px rgba(170,255,62,0.35)'; }, 150);
+
+            /* Wink */
+            orb.style.animation = 'splashOrbWink 0.42s ease, splashOrb 3.5s ease-in-out 0.42s infinite';
+
+            /* Cursor fades out */
+            setTimeout(function() {
+              if (cursorEl) { cursorEl.style.transition += ',opacity .3s'; cursorEl.style.opacity = '0'; }
+            }, 250);
+
+            /* Dismiss with whoosh */
+            setTimeout(function() {
+              if (cursorEl) { try { cursorEl.remove(); } catch(e) {} }
+              dismiss();
+            }, 700);
+          }, 200);
+        }, 1550); /* time for cursor to travel + brief hover */
+      }, 400); /* initial pause after cursor appears */
+    }, (btnDelay + 1.8) * 1000);
+
+    /* Safety net auto-dismiss if anything goes wrong */
+    autoTimer = setTimeout(dismiss, (btnDelay + 6.5) * 1000);
   };
 
   install();
