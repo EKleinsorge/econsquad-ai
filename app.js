@@ -3418,7 +3418,7 @@
   }
 
   /* ── Inbox widget ── */
-  function injectTasksWidget() {
+  function injectTasksWidget() { return; /* removed — Tasks tab accessible via right sidebar */
     var inboxTab = eid('inbox-tab');
     if (!inboxTab) return;
     var old = eid('esq-tasks-widget'); if (old) old.remove();
