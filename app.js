@@ -337,16 +337,55 @@
     subInp.addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
     subRow.appendChild(subLbl); subRow.appendChild(subInp);
 
+    // Original email panel (hidden by default, shown when expanded)
+    var emailPanel = cel('div', '');
+    emailPanel.style.cssText = 'display:none;width:45%;min-width:0;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.08);padding-right:18px;margin-right:18px;overflow-y:auto;max-height:480px;';
+    var epFrom = cel('div', '', escH(email.from || ''));
+    epFrom.style.cssText = 'font-size:12px;color:#6b7a96;margin-bottom:6px;';
+    var epSubj = cel('div', '', escH(email.subject || '(no subject)'));
+    epSubj.style.cssText = 'font-size:14px;font-weight:600;color:#eef3fc;margin-bottom:10px;';
+    var epBody = cel('div', '', escH(email.snippet || 'No preview available.'));
+    epBody.style.cssText = 'font-size:13px;color:#b0bfd8;line-height:1.7;white-space:pre-wrap;';
+    emailPanel.appendChild(epFrom); emailPanel.appendChild(epSubj); emailPanel.appendChild(epBody);
+
+    // Compose side (always visible)
+    var composePanel = cel('div', '');
+    composePanel.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;';
+
+    // Collapsed quote strip
     var quoteDiv = cel('div', '');
-    quoteDiv.style.cssText = 'background:rgba(255,255,255,0.03);border-left:3px solid rgba(170,255,62,0.25);border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#6b7a96;line-height:1.5;max-height:72px;overflow:hidden;';
+    quoteDiv.style.cssText = 'background:rgba(255,255,255,0.03);border-left:3px solid rgba(170,255,62,0.25);border-radius:0 6px 6px 0;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#6b7a96;line-height:1.5;max-height:60px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;';
     quoteDiv.textContent = email.snippet || '';
+
+    // Expand toggle button
+    var expandBtn = cel('button', 'email-action-btn', '&#x26F6; Expand Email');
+    expandBtn.style.cssText = 'font-size:11px;margin-bottom:12px;padding:4px 10px;';
+    var expanded = false;
+    expandBtn.addEventListener('click', function() {
+      expanded = !expanded;
+      if (expanded) {
+        modal.style.cssText = 'max-width:920px;width:96%;display:flex;flex-direction:column;';
+        var inner = eid('esq-compose-inner');
+        if (inner) { inner.style.cssText = 'display:flex;flex-direction:row;align-items:flex-start;flex:1;'; }
+        emailPanel.style.display = 'block';
+        quoteDiv.style.display = 'none';
+        expandBtn.innerHTML = '&#x2715; Collapse Email';
+      } else {
+        modal.style.cssText = 'max-width:560px;width:92%;';
+        var inner = eid('esq-compose-inner');
+        if (inner) { inner.style.cssText = 'display:block;'; }
+        emailPanel.style.display = 'none';
+        quoteDiv.style.display = '';
+        expandBtn.innerHTML = '&#x26F6; Expand Email';
+      }
+    });
 
     var bodyLbl = cel('div', '', 'Your Reply');
     bodyLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
     var textarea = document.createElement('textarea');
     textarea.placeholder = 'Write your reply here...';
     textarea.rows = 6;
-    textarea.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;margin-bottom:8px;';
+    textarea.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;margin-bottom:8px;flex:1;';
     textarea.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
     textarea.addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
 
@@ -392,11 +431,22 @@
     });
     actRow.appendChild(cancelBtn); actRow.appendChild(sendBtn2);
 
+    composePanel.appendChild(quoteDiv);
+    composePanel.appendChild(expandBtn);
+    composePanel.appendChild(bodyLbl);
+    composePanel.appendChild(textarea);
+    composePanel.appendChild(ariaBtn);
+    composePanel.appendChild(actRow);
+
+    // Inner wrapper for flex layout when expanded
+    var inner = cel('div', '');
+    inner.id = 'esq-compose-inner';
+    inner.appendChild(emailPanel);
+    inner.appendChild(composePanel);
+
     modal.appendChild(xBtn); modal.appendChild(title);
     modal.appendChild(toRow); modal.appendChild(subRow);
-    modal.appendChild(quoteDiv);
-    modal.appendChild(bodyLbl); modal.appendChild(textarea);
-    modal.appendChild(ariaBtn); modal.appendChild(actRow);
+    modal.appendChild(inner);
     ol.appendChild(modal);
     ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
     document.body.appendChild(ol);
