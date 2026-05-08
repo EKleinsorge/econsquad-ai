@@ -3786,6 +3786,16 @@
 
     document.body.appendChild(sidebar);
 
+    /* Seed badge from whatever the top nav already shows */
+    (function seedBadge() {
+      var topBadge = eid('inbox-badge');
+      var rsbBadge = eid('esq-rsb-email-badge');
+      if (topBadge && rsbBadge) {
+        var n = parseInt(topBadge.textContent, 10) || 0;
+        if (n > 0) { rsbBadge.textContent = n > 99 ? '99+' : n; rsbBadge.style.display = 'inline-block'; }
+      }
+    })();
+
     /* Hook into showDashTab to keep active state fresh */
     var _origSdt = window.showDashTab;
     window.showDashTab = function(tabId, el) {
