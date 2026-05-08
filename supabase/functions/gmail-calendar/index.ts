@@ -242,21 +242,23 @@ serve(async (req) => {
       }
     }
 
-    // ===== ARIA BRIEFING - inbox + calendar in parallel =====
+    // ===== ARIA BRIEFING - inbox + calendar + tasks in parallel =====
     if (action === 'aria_briefing') {
       const now = new Date()
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
       const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      // Fetch everything in parallel
-      const [gmailListRes, calTodayRes, calWeekRes] = await Promise.all([
+      // Fetch Gmail, Calendar, and Task lists all in parallel
+      const [gmailListRes, calTodayRes, calWeekRes, taskListsRes] = await Promise.all([
         fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=is:unread newer_than:1d&fields=messages,resultSizeEstimate',
           { headers: { Authorization: `Bearer ${provider_token}` } }),
         fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}&singleEvents=true&orderBy=startTime&fields=items(summary,start)`,
           { headers: { Authorization: `Bearer ${provider_token}` } }),
         fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${nextWeek}&singleEvents=true&orderBy=startTime&maxResults=10&fields=items(summary,start)`,
-          { headers: { Authorization: `Bearer ${provider_token}` } })
+          { headers: { Authorization: `Bearer ${provider_token}` } }),
+        fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=20',
+          { headers: { Authorization: `Bearer ${provider_token}` } }).catch(() => null)
       ])
 
       const [gmailList, calToday, calWeek] = await Promise.all([
@@ -282,6 +284,44 @@ serve(async (req) => {
         }
       })
 
+      // Fetch tasks from all lists, catch gracefully if Tasks API unavailable
+      let tasks_overdue: any[] = []
+      let tasks_today: any[] = []
+      let tasks_no_due: any[] = []
+      let tasks_total = 0
+      try {
+        if (taskListsRes && taskListsRes.ok) {
+          const taskListsData = await taskListsRes.json()
+          const taskLists = taskListsData.items || []
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+
+          const allTaskArrays = await Promise.all(
+            taskLists.slice(0, 10).map((list: any) =>
+              fetch(`https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&maxResults=100`,
+                { headers: { Authorization: `Bearer ${provider_token}` } }
+              ).then(r => r.json()).then((d: any) => (d.items || []).map((t: any) => ({ ...t, _list: list.title })))
+               .catch(() => [] as any[])
+            )
+          )
+          const allTasks = allTaskArrays.flat().filter((t: any) => t.status !== 'completed')
+          tasks_total = allTasks.length
+
+          tasks_overdue = allTasks
+            .filter((t: any) => t.due && new Date(t.due) < todayStart)
+            .map((t: any) => ({ title: t.title, due: t.due, list: t._list }))
+
+          tasks_today = allTasks
+            .filter((t: any) => t.due && new Date(t.due) >= todayStart && new Date(t.due) <= todayEnd)
+            .map((t: any) => ({ title: t.title, due: t.due, list: t._list }))
+
+          tasks_no_due = allTasks
+            .filter((t: any) => !t.due)
+            .slice(0, 5)
+            .map((t: any) => ({ title: t.title, list: t._list }))
+        }
+      } catch (_) { /* Tasks API not available — skip silently */ }
+
       result = {
         unread_count: gmailList.resultSizeEstimate || msgIds.length,
         emails,
@@ -290,7 +330,11 @@ serve(async (req) => {
         })),
         week_events: (calWeek.items || []).map((e: any) => ({
           title: e.summary, start: e.start?.dateTime || e.start?.date
-        }))
+        })),
+        tasks_overdue,
+        tasks_today,
+        tasks_no_due,
+        tasks_total,
       }
     }
 

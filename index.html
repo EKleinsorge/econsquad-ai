@@ -6096,6 +6096,30 @@ function buildAriaBriefing(data, textEl, actionsEl){
     }
   }
 
+  /* Tasks */
+  var tasksOverdue = data.tasks_overdue || [];
+  var tasksToday   = data.tasks_today   || [];
+  var tasksNoDue   = data.tasks_no_due  || [];
+  var tasksTotal   = data.tasks_total   || 0;
+  if(tasksTotal > 0){
+    var tParts = [];
+    if(tasksOverdue.length > 0){
+      var overdueNames = tasksOverdue.slice(0,2).map(function(t){return '<em>'+t.title+'</em>';}).join(', ');
+      tParts.push('<strong style="color:#f87171;">' + tasksOverdue.length + ' overdue task' + (tasksOverdue.length>1?'s':'') + '</strong> — ' + overdueNames + (tasksOverdue.length>2?' and '+(tasksOverdue.length-2)+' more':''));
+    }
+    if(tasksToday.length > 0){
+      var todayNames = tasksToday.slice(0,2).map(function(t){return '<em>'+t.title+'</em>';}).join(', ');
+      tParts.push('<strong style="color:#aaff3e;">' + tasksToday.length + ' task' + (tasksToday.length>1?'s':'') + ' due today</strong> — ' + todayNames + (tasksToday.length>2?' and more':''));
+    }
+    if(tParts.length > 0){
+      parts.push('Tasks: ' + tParts.join('. ') + '.');
+    } else {
+      parts.push('You have <strong style="color:#b8c8e0;">' + tasksTotal + ' open task' + (tasksTotal>1?'s':'') + '</strong> on your list — none due today.');
+    }
+  } else if(data.tasks_total === 0 && data.hasOwnProperty('tasks_total')){
+    parts.push('Your task list is clear — nothing pending.');
+  }
+
   /* Week ahead */
   var weekEvents = data.week_events || [];
   var tomorrow = new Date(now.getTime() + 24*60*60*1000);
