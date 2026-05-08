@@ -2860,19 +2860,36 @@
 
   /* ── Badge ── */
   function updateTasksBadge() {
-    var badge = eid('tasks-nav-badge');
-    if (!badge) return;
     var tasks = getAllTasks();
     var count = tasks.filter(function(t) {
-      return t.status !== 'completed' && (t.status === 'pending' || t.status === 'in_progress' || isOverdue(t));
+      return t.status !== 'completed' && (isOverdue(t) || isDueToday(t));
     }).length;
-    if (count > 0) {
-      badge.textContent = count;
-      badge.style.display = 'inline';
-    } else {
-      badge.style.display = 'none';
-    }
+    var badge = eid('tasks-nav-badge');
+    if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+    updateSidebarTasksBadge(count);
   }
+
+  function updateSidebarTasksBadge(count) {
+    if (count === undefined) {
+      var tasks = getAllTasks();
+      count = tasks.filter(function(t) {
+        return t.status !== 'completed' && (isOverdue(t) || isDueToday(t));
+      }).length;
+    }
+    var b = eid('esq-rsb-tasks-badge');
+    if (!b) return;
+    if (count > 0) { b.textContent = count > 99 ? '99+' : count; b.style.display = 'inline-block'; }
+    else { b.style.display = 'none'; }
+  }
+
+  window.updateSidebarCalBadge = function updateSidebarCalBadge() {
+    var evts = window._lastCalEvents || [];
+    var count = evts.length;
+    var b = eid('esq-rsb-cal-badge');
+    if (!b) return;
+    if (count > 0) { b.textContent = count > 99 ? '99+' : count; b.style.display = 'inline-block'; }
+    else { b.style.display = 'none'; }
+  };
 
   /* ── Filter / sort helpers ── */
   function filterTasks(tasks, filter, catFilter) {
@@ -3754,11 +3771,16 @@
       iconWrap.style.cssText = 'position:relative;display:flex;align-items:center;justify-content:center;';
       iconWrap.innerHTML = t.svg;
 
-      /* unread badge — only on the Email button */
-      if (t.id === 'esq-rsb-email') {
+      /* badges — email: unread, calendar: today's events, tasks: overdue+today */
+      var badgeCfg = {
+        'esq-rsb-email':    { id: 'esq-rsb-email-badge',    bg: '#f87171' },
+        'esq-rsb-cal':      { id: 'esq-rsb-cal-badge',      bg: '#64afff' },
+        'esq-rsb-tasks':    { id: 'esq-rsb-tasks-badge',    bg: '#f5c542' }
+      };
+      if (badgeCfg[t.id]) {
         var rsbBadge = cel('span', '');
-        rsbBadge.id = 'esq-rsb-email-badge';
-        rsbBadge.style.cssText = 'display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:#f87171;color:#fff;font-size:9px;font-weight:800;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;font-family:Barlow,sans-serif;border:1.5px solid rgba(6,8,15,0.9);';
+        rsbBadge.id = badgeCfg[t.id].id;
+        rsbBadge.style.cssText = 'display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:'+badgeCfg[t.id].bg+';color:#fff;font-size:9px;font-weight:800;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;font-family:Barlow,sans-serif;border:1.5px solid rgba(6,8,15,0.9);';
         iconWrap.appendChild(rsbBadge);
       }
 
@@ -3800,14 +3822,19 @@
 
     document.body.appendChild(sidebar);
 
-    /* Seed badge from whatever the top nav already shows */
-    (function seedBadge() {
+    /* Seed badges from whatever is already available */
+    (function seedBadges() {
+      /* email */
       var topBadge = eid('inbox-badge');
-      var rsbBadge = eid('esq-rsb-email-badge');
-      if (topBadge && rsbBadge) {
+      var rsbEmail = eid('esq-rsb-email-badge');
+      if (topBadge && rsbEmail) {
         var n = parseInt(topBadge.textContent, 10) || 0;
-        if (n > 0) { rsbBadge.textContent = n > 99 ? '99+' : n; rsbBadge.style.display = 'inline-block'; }
+        if (n > 0) { rsbEmail.textContent = n > 99 ? '99+' : n; rsbEmail.style.display = 'inline-block'; }
       }
+      /* tasks */
+      updateSidebarTasksBadge();
+      /* calendar */
+      updateSidebarCalBadge();
     })();
 
     /* Hook into showDashTab to keep active state fresh */
