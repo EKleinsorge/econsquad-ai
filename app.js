@@ -1557,6 +1557,67 @@
     list.parentElement.insertBefore(b, fb || bb || tb || list);
   }
 
+  /* ── INBOX AUTO-REFRESH ─────────────────────────────────────────── */
+  var _inboxLastRefreshed  = 0;
+  var _inboxAutoRefreshTmr = null;
+  var _inboxStatusInterv   = null;
+
+  /* Re-run current mode/period without resetting anything */
+  window._lightRefreshInbox = function() {
+    var token = window.providerToken || window._providerToken;
+    if (!token || !window.currentUser) {
+      if (typeof loadInbox === 'function') loadInbox();
+      return;
+    }
+    var mode = window._inboxMode || 'unread';
+    if (mode === 'read' && typeof loadReadEmailList === 'function') {
+      loadReadEmailList(token, window._readPeriod != null ? window._readPeriod : '30d');
+    } else if (mode === 'sent' && typeof loadSentEmailList === 'function') {
+      loadSentEmailList(token, window._sentPeriod != null ? window._sentPeriod : '30d');
+    } else if (typeof loadEmailList === 'function') {
+      loadEmailList(token, window._inboxPeriod != null ? window._inboxPeriod : '7d');
+    }
+  };
+
+  function updateInboxStatusEl() {
+    var el = eid('esq-inbox-status');
+    if (!el) return;
+    if (!_inboxLastRefreshed) { el.textContent = ''; return; }
+    var sec = Math.floor((Date.now() - _inboxLastRefreshed) / 1000);
+    if (sec < 30)        el.textContent = '· updated just now';
+    else if (sec < 90)   el.textContent = '· updated < 1 min ago';
+    else if (sec < 3540) el.textContent = '· updated ' + Math.floor(sec / 60) + ' min ago';
+    else                 el.textContent = '· updated ' + Math.floor(sec / 3600) + 'h ago';
+  }
+
+  function injectInboxStatusEl() {
+    if (eid('esq-inbox-status')) return;
+    var btn = document.querySelector('button[onclick="refreshInbox()"]');
+    if (!btn) return;
+    var sp = cel('span', '');
+    sp.id = 'esq-inbox-status';
+    sp.style.cssText = 'font-size:10px;color:#4a5568;margin-left:6px;white-space:nowrap;';
+    btn.insertAdjacentElement('afterend', sp);
+  }
+
+  function scheduleInboxAutoRefresh() {
+    /* Clear any previous timers */
+    if (_inboxAutoRefreshTmr) { clearTimeout(_inboxAutoRefreshTmr); _inboxAutoRefreshTmr = null; }
+    if (_inboxStatusInterv)   { clearInterval(_inboxStatusInterv);  _inboxStatusInterv = null; }
+
+    /* Update "X ago" label every 30 s */
+    _inboxStatusInterv = setInterval(function() {
+      var tab = document.getElementById('inbox-tab');
+      if (tab && tab.style.display !== 'none') updateInboxStatusEl();
+    }, 30000);
+
+    /* Auto-refresh after 2 minutes if inbox tab still visible */
+    _inboxAutoRefreshTmr = setTimeout(function() {
+      var tab = document.getElementById('inbox-tab');
+      if (tab && tab.style.display !== 'none') window._lightRefreshInbox();
+    }, 2 * 60 * 1000);
+  }
+
   /* ── INSTALL OVERRIDES ── */
   function install() {
     if (typeof window.showEmailList !== 'function' || typeof window.escHtml !== 'function') {
@@ -1619,7 +1680,19 @@
         foot.appendChild(gmailA);
       }
       list2.appendChild(foot);
+
+      /* ── Auto-refresh tracking ── */
+      _inboxLastRefreshed = Date.now();
+      injectInboxStatusEl();
+      updateInboxStatusEl();
+      scheduleInboxAutoRefresh();
     };
+
+    /* Override refreshInbox so it preserves the current period/mode */
+    window.refreshInbox = function() {
+      window._lightRefreshInbox();
+    };
+
     window.renderEmailCard = renderCard;
     injectReportBtn();
     initHomeChat();
