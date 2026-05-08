@@ -1591,6 +1591,32 @@
       });
       _renderList(emails);
       setTimeout(function() { window.autoPurgeTrash(); window.showTrashBanner(); updateSnoozeBanner(); }, 600);
+
+      /* Older emails footer */
+      var list2 = eid('email-list'); if (!list2) return;
+      var mode    = window._inboxMode  || 'unread';
+      var curPer  = mode === 'unread' ? (window._inboxPeriod || '7d') : (window._readPeriod || '30d');
+      var perLabels = { '7d':'last 7 days', '30d':'last 30 days', '90d':'last 90 days', '':'all time' };
+      var foot = cel('div','');
+      foot.style.cssText = 'margin-top:4px;padding:12px 14px;border:1px dashed rgba(255,255,255,0.09);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;';
+      var footLbl = cel('span','', 'Showing ' + (perLabels[curPer] || curPer));
+      footLbl.style.cssText = 'font-size:11px;color:#4a5568;';
+      foot.appendChild(footLbl);
+      if (curPer !== '') {
+        var olderBtn = cel('button','', 'Load older emails →');
+        olderBtn.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:4px 12px;border-radius:7px;cursor:pointer;font-family:inherit;';
+        olderBtn.onmouseover = function(){ olderBtn.style.borderColor='rgba(170,255,62,0.3)'; olderBtn.style.color='#aaff3e'; };
+        olderBtn.onmouseout  = function(){ olderBtn.style.borderColor='rgba(255,255,255,0.1)'; olderBtn.style.color='#6b7a96'; };
+        olderBtn.onclick = function(){ if (typeof window.loadOlderEmails === 'function') window.loadOlderEmails(); };
+        foot.appendChild(olderBtn);
+      } else {
+        var gmailA = document.createElement('a');
+        gmailA.href = 'https://mail.google.com'; gmailA.target = '_blank';
+        gmailA.textContent = 'Open Gmail for more →';
+        gmailA.style.cssText = 'font-size:11px;color:#aaff3e;text-decoration:none;font-weight:600;';
+        foot.appendChild(gmailA);
+      }
+      list2.appendChild(foot);
     };
     window.renderEmailCard = renderCard;
     injectReportBtn();
