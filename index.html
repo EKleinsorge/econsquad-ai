@@ -928,6 +928,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .hcs:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
 .scroll-area,#inbox-tab{padding-bottom:90px !important;}
 @media(max-width:768px){#inbox-grid{grid-template-columns:1fr !important;}}
+@media(max-width:600px){#esq-right-sidebar{display:none !important;}}
 .email-card-v2{background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .2s,transform .15s;}
 .email-card-v2:hover{border-color:rgba(170,255,62,0.25);background:rgba(20,28,50,0.92);transform:translateY(-1px);}
 .email-card-v2.tag-rfi{border-left:3px solid #64afff;}.email-card-v2.tag-grant{border-left:3px solid #f5c542;}.email-card-v2.tag-bre{border-left:3px solid #32e1c8;}.email-card-v2.tag-incentive{border-left:3px solid #c88cff;}.email-card-v2.tag-workforce{border-left:3px solid #aaff3e;}.email-card-v2.tag-prospect{border-left:3px solid #ff9b41;}.email-card-v2.tag-bounce{border-left:3px solid rgba(255,80,80,0.9);}.email-card-v2.tag-appt,.email-card-v2.tag-cal{border-left:3px solid #aaff3e;}.email-card-v2.tag-site{border-left:3px solid #64afff;}.email-card-v2.tag-system{border-left:3px solid rgba(165,185,210,0.5);}.email-card-v2.tag-market{border-left:3px solid #ff9b41;}.email-card-v2.tag-travel{border-left:3px solid #82dcff;}.email-card-v2.tag-subscr{border-left:3px solid #c88cff;}.email-card-v2.tag-health{border-left:3px solid #32e1c8;}.email-card-v2.tag-survey,.email-card-v2.tag-alert{border-left:3px solid #82dcff;}.email-card-v2.tag-promo{border-left:3px solid rgba(255,220,100,0.5);}.email-card-v2.tag-support,.email-card-v2.tag-email{border-left:3px solid rgba(255,255,255,0.12);}
@@ -2122,6 +2123,8 @@ function onSignedIn(user){
   setTimeout(function(){ if(typeof window.initNotifications==='function') window.initNotifications(); }, 2000);
   /* initialize task system (widget, alerts, badge) */
   setTimeout(function(){ if(typeof window.initTasks==='function') window.initTasks(); }, 2500);
+  /* initialize right sidebar (Email / Calendar / Tasks switcher) */
+  setTimeout(function(){ if(typeof window.initRightSidebar==='function') window.initRightSidebar(); }, 3000);
   /* update last active */
   updateLastActive();
   /* update greeting with real first name */

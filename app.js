@@ -1,5 +1,5 @@
 
-/* EconSquad App Extensions v05.07.1755 */
+/* EconSquad App Extensions v05.08.1130 */
 (function() {
   var TRASH_KEY = 'esq_trash_log';
   var TRASH_EMAILS_KEY = 'esq_trash_emails';
@@ -3551,6 +3551,184 @@
     updateTasksBadge();
     scheduleTaskAlerts();
     setTimeout(injectTasksWidget, 300);
+  };
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     🧭  RIGHT SIDEBAR — Gmail-style view switcher (Email / Calendar / Tasks)
+  ═══════════════════════════════════════════════════════════════════════ */
+  function injectRightSidebar() {
+    if (eid('esq-right-sidebar')) return;
+
+    var sidebar = cel('div', '');
+    sidebar.id = 'esq-right-sidebar';
+    sidebar.style.cssText = [
+      'position:fixed',
+      'right:0',
+      'top:50%',
+      'transform:translateY(-50%)',
+      'z-index:1200',
+      'display:flex',
+      'flex-direction:column',
+      'align-items:center',
+      'gap:6px',
+      'padding:10px 6px',
+      'background:rgba(6,8,15,0.92)',
+      'border:1px solid rgba(255,255,255,0.07)',
+      'border-right:none',
+      'border-radius:14px 0 0 14px',
+      'backdrop-filter:blur(12px)',
+      '-webkit-backdrop-filter:blur(12px)',
+      'box-shadow:-4px 0 24px rgba(0,0,0,0.4)',
+    ].join(';');
+
+    var tabs = [
+      {
+        id: 'esq-rsb-email',
+        tabId: 'inbox-tab',
+        navId: 'dash-nav-inbox',
+        label: 'Inbox',
+        svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><polyline points="2,4 12,13 22,4"/></svg>'
+      },
+      {
+        id: 'esq-rsb-cal',
+        tabId: 'fullcal-tab',
+        navId: 'dash-nav-fullcal',
+        label: 'Calendar',
+        svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><rect x="7" y="13" width="3" height="3" rx="0.5" fill="currentColor" stroke="none"/><rect x="14" y="13" width="3" height="3" rx="0.5" fill="currentColor" stroke="none"/></svg>'
+      },
+      {
+        id: 'esq-rsb-tasks',
+        tabId: 'tasks-tab',
+        navId: 'dash-nav-tasks',
+        label: 'Tasks',
+        svg: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,11 12,14 22,4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
+      }
+    ];
+
+    function getActiveTab() {
+      var pages = document.querySelectorAll('.page.main.dash-tab');
+      for (var i = 0; i < pages.length; i++) {
+        if (pages[i].style.display !== 'none') return pages[i].id;
+      }
+      return 'inbox-tab';
+    }
+
+    function updateActive() {
+      var active = getActiveTab();
+      tabs.forEach(function(t) {
+        var btn = eid(t.id);
+        if (!btn) return;
+        var isActive = active === t.tabId;
+        btn.style.background   = isActive ? 'rgba(170,255,62,0.18)' : 'transparent';
+        btn.style.color        = isActive ? '#aaff3e' : '#4a5568';
+        btn.style.borderColor  = isActive ? 'rgba(170,255,62,0.4)' : 'transparent';
+        btn.style.boxShadow    = isActive ? '0 0 12px rgba(170,255,62,0.15)' : 'none';
+        var dot = btn.querySelector('.rsb-dot');
+        if (dot) dot.style.opacity = isActive ? '1' : '0';
+      });
+    }
+
+    tabs.forEach(function(t) {
+      var wrap = cel('div', '');
+      wrap.style.cssText = 'position:relative;display:flex;align-items:center;';
+
+      /* active indicator dot on left edge */
+      var dot = cel('div', 'rsb-dot');
+      dot.style.cssText = 'position:absolute;left:-6px;width:3px;height:24px;background:#aaff3e;border-radius:2px;opacity:0;transition:opacity .2s;';
+
+      var btn = cel('button', '');
+      btn.id = t.id;
+      btn.title = t.label;
+      btn.innerHTML = t.svg;
+      btn.style.cssText = [
+        'width:42px',
+        'height:42px',
+        'border-radius:10px',
+        'border:1px solid transparent',
+        'background:transparent',
+        'color:#4a5568',
+        'cursor:pointer',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'transition:all .18s ease',
+        'font-family:inherit',
+        'flex-direction:column',
+        'gap:2px',
+        'padding:0',
+      ].join(';');
+
+      /* label beneath icon */
+      var lbl = cel('div', '');
+      lbl.style.cssText = 'font-size:8px;font-weight:700;letter-spacing:.04em;color:inherit;font-family:Barlow,sans-serif;line-height:1;';
+      lbl.textContent = t.label.toUpperCase();
+
+      /* rebuild btn to include label */
+      btn.innerHTML = '';
+      var iconWrap = cel('div', '');
+      iconWrap.innerHTML = t.svg;
+      iconWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;';
+      btn.appendChild(iconWrap);
+      btn.appendChild(lbl);
+
+      btn.addEventListener('mouseenter', function() {
+        if (btn.style.color !== 'rgb(170, 255, 62)') {
+          btn.style.background = 'rgba(255,255,255,0.05)';
+          btn.style.color = '#8a97b5';
+        }
+      });
+      btn.addEventListener('mouseleave', function() {
+        updateActive();
+      });
+
+      btn.addEventListener('click', function() {
+        if (t.tabId === 'fullcal-tab') {
+          if (typeof window.showDashTab === 'function') window.showDashTab(t.tabId, eid(t.navId));
+          if (typeof window.initFullCalendar === 'function') window.initFullCalendar();
+        } else {
+          if (typeof window.showDashTab === 'function') window.showDashTab(t.tabId, eid(t.navId));
+        }
+        setTimeout(updateActive, 60);
+      });
+
+      wrap.appendChild(dot);
+      wrap.appendChild(btn);
+      sidebar.appendChild(wrap);
+    });
+
+    /* ARIA sparkle brand mark at bottom */
+    var brand = cel('div', '');
+    brand.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;width:100%;';
+    var spark = cel('div', '');
+    spark.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#aaff3e" opacity="0.35"><path d="M12 2 L13.5 9 L20 12 L13.5 15 L12 22 L10.5 15 L4 12 L10.5 9 Z"/></svg>';
+    brand.appendChild(spark);
+    sidebar.appendChild(brand);
+
+    document.body.appendChild(sidebar);
+
+    /* Hook into showDashTab to keep active state fresh */
+    var _origSdt = window.showDashTab;
+    window.showDashTab = function(tabId, el) {
+      if (typeof _origSdt === 'function') _origSdt(tabId, el);
+      setTimeout(updateActive, 80);
+    };
+
+    updateActive();
+
+    /* Re-check visibility: only show when user is on the dashboard */
+    function syncVisibility() {
+      var dash = eid('dashboard-view') || eid('page-dashboard') || document.querySelector('.dash-wrap');
+      var onDash = dash ? dash.style.display !== 'none' : !!eid('inbox-tab');
+      sidebar.style.opacity = onDash ? '1' : '0';
+      sidebar.style.pointerEvents = onDash ? 'auto' : 'none';
+    }
+    setInterval(syncVisibility, 2000);
+    syncVisibility();
+  }
+
+  /* Expose so onSignedIn can call it */
+  window.initRightSidebar = function() {
+    setTimeout(injectRightSidebar, 800);
   };
 
 })();
