@@ -3518,56 +3518,70 @@
   window.syncGoogleTasks = function() {
     var supaUrl = window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
     var supaKey = window.SUPA_KEY || '';
-    var token = window.providerToken || window._providerToken;
 
-    // Update button state
     var btn = document.querySelector('[onclick="window.syncGoogleTasks()"]');
     if (btn) { btn.textContent = '↻ Syncing…'; btn.disabled = true; }
 
-    if (!token) {
-      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
-      showTaskScopeModal('No Google session found. Please sign in with Google to sync tasks.');
-      return;
-    }
-
-    fetch(supaUrl + '/functions/v1/gmail-calendar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
-      body: JSON.stringify({ action: 'google_tasks_list', provider_token: token })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
-      if (data.needsScope || data.error) {
-        showTaskScopeModal(data.error || 'Google Tasks access required.');
+    fetchToken().then(function(token) {
+      if (!token) {
+        if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+        showTaskScopeModal('No Google session found. Please sign in with Google to sync tasks.');
         return;
       }
-      var imported = 0;
-      var existing = getAllTasks();
-      var existingGIds = {};
-      existing.forEach(function(t) { if (t.googleTaskId) existingGIds[t.googleTaskId] = true; });
-      (data.tasks || []).forEach(function(gt) {
-        if (!gt.id || existingGIds[gt.id]) return;
-        createTask({
-          title: gt.title || 'Google Task',
-          description: gt.notes || '',
-          category: 'General',
-          priority: 'medium',
-          status: gt.status === 'completed' ? 'completed' : 'pending',
-          dueDate: gt.due ? new Date(gt.due).toISOString() : null,
-          googleTaskId: gt.id
+
+      fetch(supaUrl + '/functions/v1/gmail-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
+        body: JSON.stringify({ action: 'google_tasks_list', provider_token: token })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+        if (data.needsScope || (data.error && !data.tasks)) {
+          showTaskScopeModal(data.error || 'Google Tasks access required.');
+          return;
+        }
+        var imported = 0;
+        var updated  = 0;
+        var existing = getAllTasks();
+        /* build map of googleTaskId → local task id for upsert */
+        var gIdMap = {};
+        existing.forEach(function(t) { if (t.googleTaskId) gIdMap[t.googleTaskId] = t.id; });
+
+        (data.tasks || []).forEach(function(gt) {
+          if (!gt.id || !gt.title) return;
+          var status = gt.status === 'completed' ? 'completed' : 'pending';
+          var dueDate = gt.due ? new Date(gt.due).toISOString() : null;
+          if (gIdMap[gt.id]) {
+            /* update existing */
+            updateTask(gIdMap[gt.id], { title: gt.title, description: gt.notes || '', status: status, dueDate: dueDate });
+            updated++;
+          } else {
+            /* create new */
+            createTask({
+              title: gt.title,
+              description: gt.notes || '',
+              category: gt._listTitle || 'General',
+              priority: 'medium',
+              status: status,
+              dueDate: dueDate,
+              googleTaskId: gt.id
+            });
+            imported++;
+          }
         });
-        imported++;
+
+        if (eid('tasks-page-content')) window.loadTasks();
+        var msg = imported > 0 || updated > 0
+          ? (imported ? imported + ' imported' : '') + (imported && updated ? ', ' : '') + (updated ? updated + ' updated' : '') + ' from Google Tasks.'
+          : 'Google Tasks are up to date.';
+        showToastMsg(msg);
+      })
+      .catch(function(err) {
+        if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
+        showTaskScopeModal('Could not connect to Google Tasks. ' + (err.message || ''));
       });
-      if (eid('tasks-page-content')) window.loadTasks();
-      injectTasksWidget();
-      var msg = imported > 0 ? imported + ' tasks imported from Google Tasks.' : 'No new tasks to import.';
-      showToastMsg(msg);
-    })
-    .catch(function(err) {
-      if (btn) { btn.textContent = '↻ Google Tasks'; btn.disabled = false; }
-      showTaskScopeModal('Could not connect to Google Tasks. ' + (err.message || ''));
-    });
+    }); /* end fetchToken */
   };
 
   function showTaskScopeModal(msg) {

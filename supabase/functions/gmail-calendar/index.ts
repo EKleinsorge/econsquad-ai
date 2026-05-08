@@ -555,19 +555,29 @@ serve(async (req) => {
 
     // ===== GOOGLE TASKS LIST =====
     if (action === 'google_tasks_list') {
-      const listRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
+      const listRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=20', {
         headers: { Authorization: `Bearer ${provider_token}` }
       })
       const lists = await listRes.json()
       if (lists.error) {
-        result = { error: lists.error.message, needsScope: true }
+        result = { error: lists.error.message, needsScope: lists.error.status === 'PERMISSION_DENIED' }
       } else {
-        const firstList = lists.items?.[0]?.id || '@default'
-        const tasksRes = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${firstList}/tasks?showCompleted=false&maxResults=100`, {
-          headers: { Authorization: `Bearer ${provider_token}` }
-        })
-        const tasksData = await tasksRes.json()
-        result = { tasks: tasksData.items || [] }
+        const taskLists = lists.items || []
+        if (!taskLists.length) { result = { tasks: [] }; }
+        else {
+          // Fetch tasks from ALL lists and merge them
+          const allTasks: any[] = []
+          await Promise.all(taskLists.map(async (list: any) => {
+            try {
+              const url = `https://tasks.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=true&showHidden=true&maxResults=100`
+              const tasksRes = await fetch(url, { headers: { Authorization: `Bearer ${provider_token}` } })
+              const tasksData = await tasksRes.json()
+              const items = (tasksData.items || []).map((t: any) => ({ ...t, _listTitle: list.title }))
+              allTasks.push(...items)
+            } catch (_) { /* skip failed list */ }
+          }))
+          result = { tasks: allTasks }
+        }
       }
     }
 
