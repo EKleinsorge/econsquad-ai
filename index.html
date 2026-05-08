@@ -927,7 +927,6 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .hcs{font-size:12px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .hcs:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
 .scroll-area,#inbox-tab{padding-bottom:90px !important;}
-@media(max-width:768px){#inbox-grid{grid-template-columns:1fr !important;}}
 @media(max-width:600px){#esq-right-sidebar{display:none !important;}}
 @media(max-width:860px){#fullcal-tab>div:last-child{grid-template-columns:1fr !important;}#esq-schedule-panel{position:static !important;}}
 #esq-schedule-list::-webkit-scrollbar{width:4px;}
@@ -1563,45 +1562,28 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div id="aria-briefing-actions" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;"></div>
         </div>
 
-        <!-- TWO COLUMN: EMAIL + CALENDAR -->
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;" id="inbox-grid">
-
-          <!-- EMAIL PANEL -->
-          <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-              <div style="display:flex;gap:4px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
-                <button id="inbox-pill-unread" onclick="switchInboxMode('unread')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:rgba(170,255,62,0.15);color:#aaff3e;transition:all .2s;">📧 Unread</button>
-                <button id="inbox-pill-read" onclick="switchInboxMode('read')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:transparent;color:#6b7a96;transition:all .2s;">✉️ Read</button>
-                <button id="inbox-pill-sent" onclick="switchInboxMode('sent')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:transparent;color:#6b7a96;transition:all .2s;">📤 Sent</button>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px;">
-                <button id="inbox-select-btn" onclick="window.toggleSelectMode()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;font-family:'DM Sans',sans-serif;transition:all .2s;">Select</button>
-                <span id="unread-count-label" style="font-size:11px;color:#4a5568;"></span>
-              </div>
+        <!-- EMAIL LIST -->
+        <div id="inbox-grid">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;gap:4px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
+              <button id="inbox-pill-unread" onclick="switchInboxMode('unread')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:rgba(170,255,62,0.15);color:#aaff3e;transition:all .2s;">📧 Unread</button>
+              <button id="inbox-pill-read" onclick="switchInboxMode('read')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:transparent;color:#6b7a96;transition:all .2s;">✉️ Read</button>
+              <button id="inbox-pill-sent" onclick="switchInboxMode('sent')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:transparent;color:#6b7a96;transition:all .2s;">📤 Sent</button>
             </div>
-            <div id="email-list" style="display:flex;flex-direction:column;gap:10px;">
-              <div style="text-align:center;padding:40px;color:#4a5568;font-size:13px;">
-                <div style="font-size:24px;margin-bottom:8px;">📧</div>
-                Loading your inbox...
-              </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button id="inbox-select-btn" onclick="window.toggleSelectMode()" style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:7px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#6b7a96;font-family:'DM Sans',sans-serif;transition:all .2s;">Select</button>
+              <span id="unread-count-label" style="font-size:11px;color:#4a5568;"></span>
             </div>
           </div>
-
-          <!-- CALENDAR PANEL -->
-          <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;">📅 Today's Schedule</div>
-              <button onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:4px 12px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule</button>
+          <div id="email-list" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="text-align:center;padding:40px;color:#4a5568;font-size:13px;">
+              <div style="font-size:24px;margin-bottom:8px;">📧</div>
+              Loading your inbox...
             </div>
-            <div id="calendar-today" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
-              <div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Loading calendar...</div>
-            </div>
-            <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">
-              📆 Coming Up
-            </div>
-            <div id="calendar-week" style="display:flex;flex-direction:column;gap:6px;"></div>
           </div>
-
+          <!-- hidden stubs so calendar data functions don't error -->
+          <div id="calendar-today" style="display:none;"></div>
+          <div id="calendar-week"  style="display:none;"></div>
         </div>
       </div>
 
@@ -5931,7 +5913,7 @@ function loadInbox(){
   }
 
   if(lockEl) lockEl.style.display = 'none';
-  if(gridEl) gridEl.style.display = 'grid';
+  if(gridEl) gridEl.style.display = 'block';
 
   /* Get provider token */
   getProviderToken().then(function(token){
