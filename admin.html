@@ -13,7 +13,7 @@ body{background:#06080f;color:#dde4f0;font-family:'DM Sans',sans-serif;min-heigh
 .admin-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:#aaff3e;letter-spacing:.04em;}
 .admin-logout{background:none;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
 .admin-body{display:flex;min-height:calc(100vh - 56px);}
-.admin-sidebar{width:220px;background:rgba(8,12,24,0.6);border-right:1px solid rgba(255,255,255,0.06);padding:24px 0;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);}
+.admin-sidebar{width:220px;background:rgba(8,12,24,0.6);border-right:1px solid rgba(255,255,255,0.06);padding:24px 0;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;}
 .sidebar-section{font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;padding:0 20px;margin-bottom:8px;margin-top:20px;}
 .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:background .15s;font-size:13px;color:#8a97b5;border-left:2px solid transparent;}
 .sidebar-item:hover{background:rgba(255,255,255,0.04);color:#eef3fc;}
@@ -28,9 +28,13 @@ body{background:#06080f;color:#dde4f0;font-family:'DM Sans',sans-serif;min-heigh
 .stat-box{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;}
 .stat-box-val{font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;}
 .stat-box-lbl{font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
-.btn-lime{background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 20px;border:none;border-radius:8px;cursor:pointer;}
-.btn-ghost{background:none;border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-lime{background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 20px;border:none;border-radius:8px;cursor:pointer;transition:opacity .15s;}
+.btn-lime:hover{opacity:.88;}
+.btn-lime:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:none;border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color .15s,color .15s;}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.25);color:#eef3fc;}
 .btn-danger{background:none;border:1px solid rgba(255,80,80,0.3);color:#ff8080;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;}
+.btn-sm{font-size:11px;padding:5px 10px;}
 table{width:100%;border-collapse:collapse;}
 th{text-align:left;font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06);}
 td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:#b8c8e0;vertical-align:middle;}
@@ -41,6 +45,9 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-trial{background:rgba(245,197,66,0.15);color:#f5c542;}
 .badge-pending{background:rgba(245,197,66,0.15);color:#f5c542;}
 .badge-active{background:rgba(74,222,128,0.15);color:#4ade80;}
+.badge-suspended{background:rgba(255,80,80,0.15);color:#ff8080;}
+.badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
+.badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
 input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
 input:focus,select:focus,textarea:focus{border-color:rgba(170,255,62,0.4);}
 label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
@@ -52,6 +59,62 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 .color-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:6px;}
 #login-screen{position:fixed;inset:0;background:#06080f;display:flex;align-items:center;justify-content:center;z-index:9999;}
 .login-box{background:rgba(14,20,36,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:40px;width:380px;text-align:center;}
+
+/* Toast */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:rgba(14,20,36,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 18px;font-size:13px;color:#eef3fc;min-width:240px;max-width:340px;animation:slideInToast .2s ease;display:flex;align-items:center;gap:10px;}
+.toast.success{border-color:rgba(170,255,62,0.3);background:rgba(170,255,62,0.08);}
+.toast.error{border-color:rgba(255,80,80,0.3);background:rgba(255,80,80,0.08);color:#ff8080;}
+.toast.info{border-color:rgba(100,175,255,0.3);background:rgba(100,175,255,0.08);color:#64afff;}
+@keyframes slideInToast{from{transform:translateX(60px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.1);border-top-color:#aaff3e;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* User detail drawer */
+#user-drawer{position:fixed;top:56px;right:-440px;width:420px;height:calc(100vh - 56px);background:rgba(8,12,24,0.99);border-left:1px solid rgba(255,255,255,0.1);z-index:500;padding:24px;overflow-y:auto;transition:right .3s ease;}
+#user-drawer.open{right:0;}
+#drawer-close{position:absolute;top:16px;right:16px;background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;}
+
+/* Bar chart */
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.bar-label{font-size:12px;color:#8a97b5;width:140px;text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:20px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;background:linear-gradient(90deg,#aaff3e,#7acc28);border-radius:4px;transition:width .5s ease;}
+.bar-val{font-size:12px;color:#aaff3e;width:32px;flex-shrink:0;}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.filter-tab{background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.filter-tab.active{background:rgba(170,255,62,0.1);border-color:rgba(170,255,62,0.3);color:#aaff3e;}
+.filter-tab:hover:not(.active){border-color:rgba(255,255,255,0.15);color:#b8c8e0;}
+
+/* SQL banner */
+.sql-banner{background:rgba(100,175,255,0.06);border:1px solid rgba(100,175,255,0.2);border-radius:10px;padding:16px;margin-bottom:20px;}
+.sql-block{background:rgba(0,0,0,0.4);border-radius:6px;padding:12px;font-family:'Courier New',monospace;font-size:11px;color:#82dcff;margin-top:10px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;}
+
+/* Info box */
+.info-box{background:rgba(100,175,255,0.06);border:1px solid rgba(100,175,255,0.15);border-radius:10px;padding:16px;font-size:13px;color:#8a97b5;line-height:1.7;}
+
+/* Calendar preview panel */
+.cal-preview{background:rgba(170,255,62,0.04);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:16px;margin-top:16px;}
+.cal-preview-title{font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#aaff3e;margin-bottom:12px;}
+
+/* Refund search result */
+.refund-result{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px;margin-top:12px;}
+
+/* Action btn group in tables */
+.action-group{display:flex;gap:4px;flex-wrap:wrap;}
+
+/* Inline select */
+.inline-select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#eef3fc;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:auto;}
+
+/* Drawer sections */
+.drawer-section-title{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px;}
+.drawer-field{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.drawer-field-label{font-size:11px;color:#4a5568;text-transform:uppercase;letter-spacing:.06em;}
+.drawer-field-val{font-size:13px;color:#b8c8e0;}
 </style>
 </head>
 <body>
@@ -87,14 +150,23 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
   <!-- SIDEBAR -->
   <div class="admin-sidebar">
     <div class="sidebar-section">Dashboard</div>
-    <div class="sidebar-item active" onclick="showAdminSection('overview')">📊 Overview</div>
+    <div class="sidebar-item active" onclick="showAdminSection('overview',this)">📊 Overview</div>
+    <div class="sidebar-section">Analytics</div>
+    <div class="sidebar-item" onclick="showAdminSection('analytics',this)">📈 Usage Analytics</div>
+    <div class="sidebar-item" onclick="showAdminSection('revenue',this)">💰 Revenue</div>
     <div class="sidebar-section">Content</div>
-    <div class="sidebar-item" onclick="showAdminSection('specialists')">⚡ Specialists</div>
-    <div class="sidebar-item" onclick="showAdminSection('requests')">✦ Custom Requests</div>
+    <div class="sidebar-item" onclick="showAdminSection('specialists',this)">⚡ Specialists</div>
+    <div class="sidebar-item" onclick="showAdminSection('requests',this)">✦ Custom Requests</div>
     <div class="sidebar-section">Users</div>
-    <div class="sidebar-item" onclick="showAdminSection('users')">👤 All Users</div>
+    <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users</div>
+    <div class="sidebar-section">Communication</div>
+    <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
+    <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
+    <div class="sidebar-section">Support</div>
+    <div class="sidebar-item" onclick="showAdminSection('reports',this)">🚨 Problem Reports</div>
+    <div class="sidebar-item" onclick="showAdminSection('refunds',this)">↩️ Refunds</div>
     <div class="sidebar-section">Settings</div>
-    <div class="sidebar-item" onclick="showAdminSection('settings')">⚙️ Plan Settings</div>
+    <div class="sidebar-item" onclick="showAdminSection('settings',this)">⚙️ Plan Settings</div>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -115,6 +187,47 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <table>
           <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Signed up</th></tr></thead>
           <tbody id="recent-users-table"><tr><td colspan="4" style="color:#4a5568;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USAGE ANALYTICS -->
+    <div id="section-analytics" class="admin-section">
+      <div class="page-title">Usage Analytics</div>
+      <div class="page-sub">Task usage, top specialists, and user activity</div>
+
+      <div class="admin-card" style="margin-bottom:24px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;margin-bottom:16px;">Top 8 Specialists by Usage</div>
+        <div id="analytics-barchart"><div style="color:#4a5568;font-size:13px;">Loading chart...</div></div>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">All Users — Task Activity</div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Tasks Run</th><th>Last Active</th><th>Actions</th></tr></thead>
+          <tbody id="analytics-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div id="section-revenue" class="admin-section">
+      <div class="page-title">Revenue</div>
+      <div class="page-sub">Subscription overview and paying customers</div>
+      <div class="info-box" style="margin-bottom:20px;">
+        Actual revenue data — connect Stripe secret key to edge function for live data. MRR estimate: Starter × $49 + Pro × $149.
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-box-val" id="rev-trial">—</div><div class="stat-box-lbl">Trial users</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-starter">—</div><div class="stat-box-lbl">Starter users</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-pro">—</div><div class="stat-box-lbl">Pro users</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-mrr">—</div><div class="stat-box-lbl">Est. MRR</div></div>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">Paying Customers</div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Stripe Customer ID</th><th>Stripe</th></tr></thead>
+          <tbody id="revenue-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -154,9 +267,169 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="page-sub">Everyone who has signed up for EconSquad AI</div>
       <div class="admin-card" style="padding:0;overflow:hidden;">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Plan</th><th>Tasks</th><th>Joined</th></tr></thead>
-          <tbody id="users-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Plan</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="users-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="section-messages" class="admin-section">
+      <div class="page-title">Messages</div>
+      <div class="page-sub">Broadcast or send direct messages to users</div>
+
+      <div id="messages-setup-banner" class="sql-banner" style="display:none;">
+        <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#64afff;margin-bottom:6px;">Table Setup Required</div>
+        <div style="font-size:12px;color:#6b7a96;margin-bottom:8px;">Run this SQL in your Supabase SQL editor to enable the Messages feature:</div>
+        <div class="sql-block">CREATE TABLE admin_messages (
+  id uuid default gen_random_uuid() primary key,
+  title text,
+  body text,
+  type text default 'broadcast',
+  target_email text,
+  created_at timestamptz default now(),
+  expires_at timestamptz,
+  is_active boolean default true
+);</div>
+        <button class="btn-ghost btn-sm" style="margin-top:10px;" onclick="copySql()">Copy SQL</button>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;margin-bottom:16px;">Compose Message</div>
+        <div class="form-field"><label>Title</label><input id="msg-title" type="text" placeholder="Message title..."></div>
+        <div class="form-field"><label>Body</label><textarea id="msg-body" rows="4" placeholder="Message body..."></textarea></div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Type</label>
+            <select id="msg-type" onchange="toggleMsgTarget()">
+              <option value="broadcast">Broadcast All</option>
+              <option value="individual">Individual</option>
+            </select>
+          </div>
+          <div class="form-field" id="msg-target-field" style="display:none;">
+            <label>Target Email</label>
+            <input id="msg-target" type="email" placeholder="user@example.com">
+          </div>
+          <div class="form-field">
+            <label>Expires In</label>
+            <select id="msg-expires">
+              <option value="7">7 days</option>
+              <option value="14">14 days</option>
+              <option value="30" selected>30 days</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-lime" onclick="sendMessage()">Send Message →</button>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">All Messages</div>
+        <table>
+          <thead><tr><th>Title</th><th>Type</th><th>Target</th><th>Created</th><th>Expires</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="messages-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROBLEM REPORTS -->
+    <div id="section-reports" class="admin-section">
+      <div class="page-title">Problem Reports</div>
+      <div class="page-sub">Issues reported by users from within the app</div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterReports('all',this)">All</button>
+        <button class="filter-tab" onclick="filterReports('unresolved',this)">Unresolved</button>
+        <button class="filter-tab" onclick="filterReports('resolved',this)">Resolved</button>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>User</th><th>Problem</th><th>Version</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="reports-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REFUNDS -->
+    <div id="section-refunds" class="admin-section">
+      <div class="page-title">Refunds</div>
+      <div class="page-sub">Look up users and access Stripe for refund processing</div>
+
+      <div class="info-box" style="margin-bottom:20px;">
+        <strong style="color:#eef3fc;">To issue a refund:</strong><br>
+        1. Click "Open in Stripe" below to go to that customer's Stripe record<br>
+        2. Go to the Payments tab<br>
+        3. Find the charge you want to refund<br>
+        4. Click Refund<br>
+        <span style="color:#4a5568;font-size:12px;margin-top:6px;display:block;">Once Stripe secret key is configured in an Edge Function, refunds can be processed directly here.</span>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;margin-bottom:12px;">Look Up User</div>
+        <div style="display:flex;gap:10px;">
+          <input id="refund-search" type="email" placeholder="Enter user email..." style="max-width:340px;">
+          <button class="btn-lime" onclick="refundLookup()">Search →</button>
+        </div>
+        <div id="refund-result" style="display:none;"></div>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">All Paying Users</div>
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Stripe Customer ID</th><th>Stripe</th></tr></thead>
+          <tbody id="refunds-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CALENDAR INVITES -->
+    <div id="section-calendar" class="admin-section">
+      <div class="page-title">Calendar Invites</div>
+      <div class="page-sub">Generate .ics calendar invites and email drafts for users</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+        <div>
+          <div class="admin-card">
+            <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;margin-bottom:16px;">Event Details</div>
+            <div class="form-field"><label>Event Title</label><input id="cal-title" type="text" placeholder="e.g. EconSquad Onboarding Call" oninput="updateCalPreview()"></div>
+            <div class="form-grid">
+              <div class="form-field"><label>Date</label><input id="cal-date" type="date" oninput="updateCalPreview()"></div>
+              <div class="form-field"><label>Start Time</label><input id="cal-time" type="time" value="10:00" oninput="updateCalPreview()"></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-field">
+                <label>Duration</label>
+                <select id="cal-duration" onchange="updateCalPreview()">
+                  <option value="30">30 minutes</option>
+                  <option value="60" selected>60 minutes</option>
+                  <option value="90">90 minutes</option>
+                  <option value="120">120 minutes</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Recipient</label>
+                <select id="cal-recipient-type" onchange="toggleCalRecipient()">
+                  <option value="all">All users</option>
+                  <option value="specific">Specific email</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field" id="cal-recipient-field" style="display:none;"><label>Recipient Email</label><input id="cal-recipient" type="email" placeholder="user@example.com" oninput="updateCalPreview()"></div>
+            <div class="form-field"><label>Location</label><input id="cal-location" type="text" placeholder="e.g. Zoom / Google Meet link" oninput="updateCalPreview()"></div>
+            <div class="form-field"><label>Description / Notes</label><textarea id="cal-desc" rows="3" placeholder="Any notes or agenda..." oninput="updateCalPreview()"></textarea></div>
+            <div style="display:flex;gap:10px;margin-top:8px;">
+              <button class="btn-lime" onclick="downloadICS()">Download .ics File</button>
+              <button class="btn-ghost" onclick="copyEmailDraft()">Copy Email Draft</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="cal-preview">
+            <div class="cal-preview-title">Event Preview</div>
+            <div id="cal-preview-content" style="font-size:13px;color:#8a97b5;line-height:1.7;">
+              Fill in the form to see a preview...
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -172,8 +445,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /admin-main -->
+</div><!-- /admin-body -->
 
 <!-- EDIT/ADD SPECIALIST MODAL -->
 <div class="modal-overlay" id="specialist-modal">
@@ -234,14 +507,70 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
   </div>
 </div>
 
+<!-- EXTEND TRIAL MODAL -->
+<div class="modal-overlay" id="trial-modal">
+  <div class="modal-box" style="width:380px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;">Extend Trial</div>
+      <button onclick="closeTrialModal()" style="background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:13px;color:#8a97b5;margin-bottom:16px;" id="trial-modal-user">Extending trial for user</div>
+    <div class="form-field">
+      <label>Extend by</label>
+      <select id="trial-days">
+        <option value="7">+7 days</option>
+        <option value="14">+14 days</option>
+        <option value="30" selected>+30 days</option>
+      </select>
+    </div>
+    <input type="hidden" id="trial-modal-email">
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-lime" onclick="confirmExtendTrial()">Extend Trial →</button>
+      <button class="btn-ghost" onclick="closeTrialModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK MESSAGE MODAL -->
+<div class="modal-overlay" id="quick-msg-modal">
+  <div class="modal-box" style="width:480px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;">Quick Message</div>
+      <button onclick="closeQuickMsgModal()" style="background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div class="form-field"><label>To</label><input id="qmsg-to" type="email" readonly style="opacity:.7;"></div>
+    <div class="form-field"><label>Title</label><input id="qmsg-title" type="text" placeholder="Message title..."></div>
+    <div class="form-field"><label>Body</label><textarea id="qmsg-body" rows="4" placeholder="Message body..."></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn-lime" onclick="sendQuickMsg()">Send Message →</button>
+      <button class="btn-ghost" onclick="closeQuickMsgModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- USER DETAIL DRAWER -->
+<div id="user-drawer">
+  <button id="drawer-close" onclick="closeDrawer()">✕</button>
+  <div id="drawer-content">
+    <div style="color:#4a5568;font-size:13px;">Select a user to view details</div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
 <script>
 var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
 var ADMIN_EMAIL='eric@gslisolutions.com';
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var adminUser=null;
+var allReports=[];
+var allReportsFilter='all';
 
-/* ── AUTH ── */
+/* ═══════════════════════════════════════
+   AUTH
+═══════════════════════════════════════ */
 window.addEventListener('load',function(){
   supa.auth.getSession().then(function(res){
     if(res.data&&res.data.session&&res.data.session.user){
@@ -287,25 +616,60 @@ function adminLogout(){
   });
 }
 
-/* ── NAVIGATION ── */
-function showAdminSection(name){
+/* ═══════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════ */
+function showToast(msg,type){
+  type=type||'success';
+  var container=document.getElementById('toast-container');
+  var toast=document.createElement('div');
+  toast.className='toast '+type;
+  var icon=type==='success'?'✓':type==='error'?'✕':'ℹ';
+  toast.innerHTML='<span style="font-size:14px;font-weight:700;">'+icon+'</span><span>'+msg+'</span>';
+  container.appendChild(toast);
+  setTimeout(function(){
+    toast.style.transition='opacity .3s,transform .3s';
+    toast.style.opacity='0';
+    toast.style.transform='translateX(60px)';
+    setTimeout(function(){toast.remove();},300);
+  },3200);
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function showAdminSection(name,el){
   document.querySelectorAll('.admin-section').forEach(function(s){s.classList.remove('active');});
   document.querySelectorAll('.sidebar-item').forEach(function(s){s.classList.remove('active');});
   var sec=document.getElementById('section-'+name);
   if(sec)sec.classList.add('active');
-  event.currentTarget.classList.add('active');
+  if(el)el.classList.add('active');
+  else{
+    document.querySelectorAll('.sidebar-item').forEach(function(s){
+      if(s.getAttribute('onclick')&&s.getAttribute('onclick').indexOf("'"+name+"'")!==-1)s.classList.add('active');
+    });
+  }
 }
 
-/* ── LOAD ALL DATA ── */
+/* ═══════════════════════════════════════
+   LOAD ALL DATA
+═══════════════════════════════════════ */
 function loadAllData(){
   loadOverview();
   loadSpecialists();
   loadRequests();
   loadUsers();
   loadStarterSettings();
+  loadAnalytics();
+  loadRevenue();
+  loadMessages();
+  loadReports();
+  loadRefunds();
 }
 
-/* ── OVERVIEW ── */
+/* ═══════════════════════════════════════
+   OVERVIEW
+═══════════════════════════════════════ */
 function loadOverview(){
   supa.from('profiles').select('*',{count:'exact'}).then(function(res){
     document.getElementById('ov-total-users').textContent=res.count||0;
@@ -327,7 +691,9 @@ function loadOverview(){
   });
 }
 
-/* ── SPECIALISTS ── */
+/* ═══════════════════════════════════════
+   SPECIALISTS
+═══════════════════════════════════════ */
 var allSpecs=[];
 function loadSpecialists(){
   supa.from('specialists').select('*').order('sort_order').then(function(res){
@@ -350,7 +716,7 @@ function renderSpecialistsTable(specs){
       '<td><span class="badge badge-'+(s.plan==='starter'?'starter':'pro')+'">'+s.plan+'</span></td>'+
       '<td>'+(s.is_active?'<span style="color:#4ade80;">Active</span>':'<span style="color:#6b7a96;">Inactive</span>')+'</td>'+
       '<td style="color:#aaff3e;">'+s.hours_per_use+'h</td>'+
-      '<td><button class="btn-ghost" onclick="editSpecialist('+s.id+')" style="margin-right:6px;">Edit</button></td>'+
+      '<td><button class="btn-ghost btn-sm" onclick="editSpecialist('+s.id+')" style="margin-right:6px;">Edit</button></td>'+
     '</tr>';
   }).join('');
 }
@@ -419,7 +785,6 @@ function saveSpecialist(){
   if(id){
     promise=supa.from('specialists').update(data).eq('id',parseInt(id));
   } else {
-    /* get next ID */
     var maxId=allSpecs.reduce(function(m,s){return Math.max(m,s.id);},0);
     data.id=maxId+1;
     data.sort_order=maxId+1;
@@ -438,10 +803,13 @@ function saveSpecialist(){
     }
     closeSpecModal();
     loadSpecialists();
+    showToast('Specialist saved successfully!','success');
   });
 }
 
-/* ── CUSTOM REQUESTS ── */
+/* ═══════════════════════════════════════
+   CUSTOM REQUESTS
+═══════════════════════════════════════ */
 function loadRequests(){
   supa.from('specialist_requests').select('*').order('created_at',{ascending:false}).then(function(res){
     var tbody=document.getElementById('requests-table');
@@ -451,40 +819,593 @@ function loadRequests(){
       return '<tr>'+
         '<td>'+r.user_email+'</td>'+
         '<td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.description+'</td>'+
-        '<td>'+( r.use_case||'—')+'</td>'+
+        '<td>'+(r.use_case||'—')+'</td>'+
         '<td style="color:#aaff3e;">$'+r.price+'</td>'+
         '<td><span class="badge badge-'+r.status+'">'+r.status+'</span></td>'+
         '<td>'+new Date(r.created_at).toLocaleDateString()+'</td>'+
-        '<td><button class="btn-ghost" onclick="markRequestDone(\''+r.id+'\')">Mark done</button></td>'+
+        '<td><button class="btn-ghost btn-sm" onclick="markRequestDone(\''+r.id+'\')">Mark done</button></td>'+
       '</tr>';
     }).join('');
   });
 }
 
 function markRequestDone(id){
-  supa.from('specialist_requests').update({status:'completed'}).eq('id',id).then(function(){loadRequests();});
+  supa.from('specialist_requests').update({status:'completed'}).eq('id',id).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    loadRequests();
+    showToast('Request marked as completed','success');
+  });
 }
 
-/* ── USERS ── */
+/* ═══════════════════════════════════════
+   USERS
+═══════════════════════════════════════ */
+var allUsersData=[];
 function loadUsers(){
-  supa.from('profiles').select('*').order('created_at',{ascending:false}).then(function(res){
+  Promise.all([
+    supa.from('profiles').select('*').order('created_at',{ascending:false}),
+    supa.from('task_history').select('user_email')
+  ]).then(function(results){
+    var profiles=results[0].data||[];
+    var tasks=results[1].data||[];
+    allUsersData=profiles;
+    var taskMap={};
+    tasks.forEach(function(t){
+      if(t.user_email)taskMap[t.user_email]=(taskMap[t.user_email]||0)+1;
+    });
     var tbody=document.getElementById('users-table');
-    var data=res.data||[];
-    if(!data.length){tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">No users yet</td></tr>';return;}
-    tbody.innerHTML=data.map(function(u){
+    if(!profiles.length){tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No users yet</td></tr>';return;}
+    tbody.innerHTML=profiles.map(function(u){
+      var plan=u.plan||'trial';
+      var taskCount=taskMap[u.email]||0;
       return '<tr>'+
         '<td>'+(u.full_name||'—')+'</td>'+
         '<td>'+u.email+'</td>'+
         '<td>'+(u.organization||'—')+'</td>'+
-        '<td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td>'+
-        '<td style="color:#aaff3e;">—</td>'+
+        '<td><span class="badge badge-'+plan+'">'+plan+'</span></td>'+
+        '<td style="color:#aaff3e;">'+taskCount+'</td>'+
         '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
+        '<td><div class="action-group">'+buildUserActions(u)+'</div></td>'+
       '</tr>';
     }).join('');
   });
 }
 
-/* ── STARTER PLAN SETTINGS ── */
+function buildUserActions(u){
+  var actions='';
+  actions+='<select class="inline-select" onchange="changePlan(\''+u.email+'\',this)" title="Change plan"><option value="">Plan...</option><option value="trial">Trial</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="suspended">Suspend</option></select>';
+  actions+=' <button class="btn-ghost btn-sm" onclick="openExtendTrial(\''+u.email+'\',\''+escHtml(u.full_name||u.email)+'\')">+Trial</button>';
+  actions+=' <button class="btn-ghost btn-sm" onclick="openQuickMsg(\''+u.email+'\')">Msg</button>';
+  if(u.stripe_customer_id){
+    actions+=' <a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" class="btn-ghost btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;">Stripe ↗</a>';
+  }
+  return actions;
+}
+
+function escHtml(str){
+  return str.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════
+   USAGE ANALYTICS
+═══════════════════════════════════════ */
+var analyticsUsersData=[];
+function loadAnalytics(){
+  Promise.all([
+    supa.from('profiles').select('*').order('created_at',{ascending:false}),
+    supa.from('task_history').select('*').order('created_at',{ascending:false})
+  ]).then(function(results){
+    var profiles=results[0].data||[];
+    var tasks=results[1].data||[];
+    analyticsUsersData=profiles;
+
+    /* Build user task counts and last-active */
+    var taskCountMap={};
+    var lastActiveMap={};
+    var specCountMap={};
+    tasks.forEach(function(t){
+      var key=t.user_email||t.user_id||'unknown';
+      taskCountMap[key]=(taskCountMap[key]||0)+1;
+      if(!lastActiveMap[key]||t.created_at>lastActiveMap[key])lastActiveMap[key]=t.created_at;
+      if(t.specialist_name){
+        specCountMap[t.specialist_name]=(specCountMap[t.specialist_name]||0)+1;
+      }
+    });
+
+    /* Bar chart — top 8 specialists */
+    var specArr=Object.keys(specCountMap).map(function(k){return{name:k,count:specCountMap[k]};});
+    specArr.sort(function(a,b){return b.count-a.count;});
+    var top8=specArr.slice(0,8);
+    var chartEl=document.getElementById('analytics-barchart');
+    if(!top8.length){
+      chartEl.innerHTML='<div style="color:#4a5568;font-size:13px;">No task history data yet</div>';
+    } else {
+      var maxCount=top8[0].count;
+      chartEl.innerHTML=top8.map(function(s){
+        var pct=Math.round((s.count/maxCount)*100);
+        return '<div class="bar-row">'+
+          '<div class="bar-label" title="'+s.name+'">'+s.name+'</div>'+
+          '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div>'+
+          '<div class="bar-val">'+s.count+'</div>'+
+        '</div>';
+      }).join('');
+    }
+
+    /* Users table */
+    var tbody=document.getElementById('analytics-table');
+    if(!profiles.length){tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">No users yet</td></tr>';return;}
+    tbody.innerHTML=profiles.map(function(u){
+      var key=u.email;
+      var tc=taskCountMap[key]||0;
+      var la=lastActiveMap[key]?new Date(lastActiveMap[key]).toLocaleDateString():'Never';
+      var plan=u.plan||'trial';
+      return '<tr style="cursor:pointer;" onclick="openUserDrawer(\''+u.email+'\')">'+
+        '<td><strong style="color:#eef3fc;">'+(u.full_name||'—')+'</strong></td>'+
+        '<td>'+u.email+'</td>'+
+        '<td><span class="badge badge-'+plan+'">'+plan+'</span></td>'+
+        '<td style="color:#aaff3e;font-family:\'Barlow\',sans-serif;font-weight:700;">'+tc+'</td>'+
+        '<td style="color:#6b7a96;">'+la+'</td>'+
+        '<td onclick="event.stopPropagation()"><div class="action-group">'+buildUserActions(u)+'</div></td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+/* ═══════════════════════════════════════
+   USER DETAIL DRAWER
+═══════════════════════════════════════ */
+function openUserDrawer(email){
+  var drawer=document.getElementById('user-drawer');
+  var content=document.getElementById('drawer-content');
+  content.innerHTML='<div style="color:#4a5568;font-size:13px;display:flex;align-items:center;gap:8px;"><span class="spinner"></span> Loading...</div>';
+  drawer.classList.add('open');
+
+  Promise.all([
+    supa.from('profiles').select('*').eq('email',email).single(),
+    supa.from('task_history').select('*').eq('user_email',email).order('created_at',{ascending:false}).limit(30)
+  ]).then(function(results){
+    var u=results[0].data||{};
+    var tasks=results[1].data||[];
+    var plan=u.plan||'trial';
+
+    var html='';
+    html+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:4px;">'+(u.full_name||u.email||'User')+'</div>';
+    html+='<div style="font-size:12px;color:#6b7a96;margin-bottom:16px;">'+u.email+'</div>';
+    html+='<span class="badge badge-'+plan+'">'+plan+'</span>';
+    if(u.stripe_customer_id){html+=' <a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" class="btn-ghost btn-sm" style="text-decoration:none;margin-left:6px;">Stripe ↗</a>';}
+
+    html+='<div class="drawer-section-title">Profile</div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Organization</span><span class="drawer-field-val">'+(u.organization||'—')+'</span></div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Joined</span><span class="drawer-field-val">'+(u.created_at?new Date(u.created_at).toLocaleDateString():'—')+'</span></div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Stripe ID</span><span class="drawer-field-val" style="font-size:11px;">'+(u.stripe_customer_id||'—')+'</span></div>';
+
+    html+='<div class="drawer-section-title">Change Plan</div>';
+    html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">';
+    ['trial','starter','pro','suspended'].forEach(function(p){
+      var active=plan===p;
+      html+='<button onclick="changePlan(\''+u.email+'\',null,\''+p+'\')" style="padding:6px 12px;border-radius:6px;font-size:12px;font-family:\'DM Sans\',sans-serif;cursor:pointer;'+(active?'background:#aaff3e;color:#0a1a00;border:none;font-weight:700;':'background:none;border:1px solid rgba(255,255,255,0.12);color:#8a97b5;')+'" title="Set plan to '+p+'">'+p+'</button>';
+    });
+    html+='</div>';
+
+    html+='<div class="drawer-section-title">Last 30 Tasks</div>';
+    if(!tasks.length){
+      html+='<div style="font-size:12px;color:#4a5568;">No tasks yet</div>';
+    } else {
+      html+='<div style="max-height:300px;overflow-y:auto;">';
+      tasks.forEach(function(t){
+        html+='<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">';
+        html+='<div style="font-size:12px;color:#eef3fc;">'+(t.specialist_name||t.task_type||'Task')+'</div>';
+        html+='<div style="font-size:11px;color:#4a5568;">'+(t.created_at?new Date(t.created_at).toLocaleString():'—')+'</div>';
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+
+    content.innerHTML=html;
+  }).catch(function(err){
+    content.innerHTML='<div style="color:#ff8080;font-size:13px;">Error loading user: '+(err.message||'Unknown error')+'</div>';
+  });
+}
+
+function closeDrawer(){
+  document.getElementById('user-drawer').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════
+   REVENUE
+═══════════════════════════════════════ */
+function loadRevenue(){
+  supa.from('profiles').select('*').then(function(res){
+    var data=res.data||[];
+    var trial=data.filter(function(u){return (u.plan||'trial')==='trial';}).length;
+    var starter=data.filter(function(u){return u.plan==='starter';}).length;
+    var pro=data.filter(function(u){return u.plan==='pro';}).length;
+    var mrr=starter*49+pro*149;
+    document.getElementById('rev-trial').textContent=trial;
+    document.getElementById('rev-starter').textContent=starter;
+    document.getElementById('rev-pro').textContent=pro;
+    document.getElementById('rev-mrr').textContent='$'+mrr.toLocaleString();
+
+    /* Paying users table */
+    var paying=data.filter(function(u){return u.stripe_customer_id;});
+    var tbody=document.getElementById('revenue-table');
+    if(!paying.length){tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;">No paying users with Stripe IDs yet</td></tr>';return;}
+    tbody.innerHTML=paying.map(function(u){
+      return '<tr>'+
+        '<td>'+(u.full_name||'—')+'</td>'+
+        '<td>'+u.email+'</td>'+
+        '<td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td>'+
+        '<td style="font-family:monospace;font-size:11px;color:#6b7a96;">'+u.stripe_customer_id+'</td>'+
+        '<td><a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" style="color:#aaff3e;text-decoration:none;font-size:12px;">Open in Stripe →</a></td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+/* ═══════════════════════════════════════
+   USER CONTROLS — CHANGE PLAN / TRIAL / MSG
+═══════════════════════════════════════ */
+function changePlan(email,selectEl,forcePlan){
+  var plan=forcePlan||(selectEl?selectEl.value:'');
+  if(!plan)return;
+  var confirm_msg='Set plan for '+email+' to "'+plan+'"?';
+  if(!window.confirm(confirm_msg)){if(selectEl)selectEl.value='';return;}
+  supa.from('profiles').update({plan:plan}).eq('email',email).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    showToast('Plan updated to '+plan+' for '+email,'success');
+    loadUsers();loadAnalytics();loadRevenue();
+    /* refresh drawer if open */
+    var drawer=document.getElementById('user-drawer');
+    if(drawer.classList.contains('open'))openUserDrawer(email);
+  });
+}
+
+function openExtendTrial(email,name){
+  document.getElementById('trial-modal-email').value=email;
+  document.getElementById('trial-modal-user').textContent='Extending trial for: '+name;
+  document.getElementById('trial-modal').classList.add('show');
+}
+
+function closeTrialModal(){
+  document.getElementById('trial-modal').classList.remove('show');
+}
+
+function confirmExtendTrial(){
+  var email=document.getElementById('trial-modal-email').value;
+  var days=parseInt(document.getElementById('trial-days').value)||7;
+  var expires=new Date();
+  expires.setDate(expires.getDate()+days);
+  supa.from('profiles').update({plan:'trial',trial_expires_at:expires.toISOString()}).eq('email',email).then(function(res){
+    closeTrialModal();
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    showToast('Trial extended by '+days+' days for '+email,'success');
+    loadUsers();loadAnalytics();
+  });
+}
+
+function openQuickMsg(email){
+  document.getElementById('qmsg-to').value=email;
+  document.getElementById('qmsg-title').value='';
+  document.getElementById('qmsg-body').value='';
+  document.getElementById('quick-msg-modal').classList.add('show');
+}
+
+function closeQuickMsgModal(){
+  document.getElementById('quick-msg-modal').classList.remove('show');
+}
+
+function sendQuickMsg(){
+  var to=document.getElementById('qmsg-to').value;
+  var title=document.getElementById('qmsg-title').value.trim();
+  var body=document.getElementById('qmsg-body').value.trim();
+  if(!title||!body){showToast('Please fill in title and body','error');return;}
+  var expires=new Date();
+  expires.setDate(expires.getDate()+30);
+  supa.from('admin_messages').insert({
+    title:title,body:body,type:'individual',target_email:to,
+    expires_at:expires.toISOString(),is_active:true
+  }).then(function(res){
+    closeQuickMsgModal();
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    showToast('Message sent to '+to,'success');
+    loadMessages();
+  });
+}
+
+/* ═══════════════════════════════════════
+   MESSAGES
+═══════════════════════════════════════ */
+function toggleMsgTarget(){
+  var type=document.getElementById('msg-type').value;
+  document.getElementById('msg-target-field').style.display=type==='individual'?'block':'none';
+}
+
+function loadMessages(){
+  supa.from('admin_messages').select('*').order('created_at',{ascending:false}).then(function(res){
+    if(res.error){
+      /* Table might not exist */
+      document.getElementById('messages-setup-banner').style.display='block';
+      document.getElementById('messages-table').innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">Create the table above to enable messages</td></tr>';
+      return;
+    }
+    document.getElementById('messages-setup-banner').style.display='none';
+    var data=res.data||[];
+    var tbody=document.getElementById('messages-table');
+    if(!data.length){tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No messages yet</td></tr>';return;}
+    tbody.innerHTML=data.map(function(m){
+      var active=m.is_active?'<span class="badge badge-active">Active</span>':'<span style="color:#4a5568;font-size:11px;">Inactive</span>';
+      return '<tr>'+
+        '<td><strong style="color:#eef3fc;">'+(m.title||'—')+'</strong></td>'+
+        '<td><span class="badge badge-'+(m.type||'broadcast')+'">'+(m.type||'broadcast')+'</span></td>'+
+        '<td style="color:#6b7a96;font-size:12px;">'+(m.target_email||'All users')+'</td>'+
+        '<td>'+new Date(m.created_at).toLocaleDateString()+'</td>'+
+        '<td>'+(m.expires_at?new Date(m.expires_at).toLocaleDateString():'—')+'</td>'+
+        '<td>'+active+'</td>'+
+        '<td>'+(m.is_active?'<button class="btn-ghost btn-sm" onclick="deactivateMessage(\''+m.id+'\')">Deactivate</button>':'')+'</td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+function sendMessage(){
+  var title=document.getElementById('msg-title').value.trim();
+  var body=document.getElementById('msg-body').value.trim();
+  var type=document.getElementById('msg-type').value;
+  var target=document.getElementById('msg-target').value.trim();
+  var days=parseInt(document.getElementById('msg-expires').value)||30;
+  if(!title||!body){showToast('Please fill in title and body','error');return;}
+  if(type==='individual'&&!target){showToast('Please enter a target email','error');return;}
+  var expires=new Date();
+  expires.setDate(expires.getDate()+days);
+  supa.from('admin_messages').insert({
+    title:title,body:body,type:type,
+    target_email:type==='individual'?target:null,
+    expires_at:expires.toISOString(),is_active:true
+  }).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    document.getElementById('msg-title').value='';
+    document.getElementById('msg-body').value='';
+    document.getElementById('msg-target').value='';
+    loadMessages();
+    showToast('Message sent successfully','success');
+  });
+}
+
+function deactivateMessage(id){
+  supa.from('admin_messages').update({is_active:false}).eq('id',id).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    loadMessages();
+    showToast('Message deactivated','success');
+  });
+}
+
+function copySql(){
+  var sql='CREATE TABLE admin_messages (\n  id uuid default gen_random_uuid() primary key,\n  title text,\n  body text,\n  type text default \'broadcast\',\n  target_email text,\n  created_at timestamptz default now(),\n  expires_at timestamptz,\n  is_active boolean default true\n);';
+  navigator.clipboard.writeText(sql).then(function(){
+    showToast('SQL copied to clipboard','success');
+  }).catch(function(){
+    showToast('Copy failed — select the SQL manually','error');
+  });
+}
+
+/* ═══════════════════════════════════════
+   PROBLEM REPORTS
+═══════════════════════════════════════ */
+function loadReports(){
+  supa.from('problem_reports').select('*').order('timestamp',{ascending:false}).then(function(res){
+    if(res.error){
+      document.getElementById('reports-table').innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">Error loading reports: '+(res.error.message||'Table may not exist')+'</td></tr>';
+      return;
+    }
+    allReports=res.data||[];
+    renderReports();
+  });
+}
+
+function renderReports(){
+  var data=allReports;
+  if(allReportsFilter==='unresolved')data=data.filter(function(r){return !r.resolved;});
+  if(allReportsFilter==='resolved')data=data.filter(function(r){return r.resolved;});
+  var tbody=document.getElementById('reports-table');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">No reports in this filter</td></tr>';return;}
+  tbody.innerHTML=data.map(function(r){
+    var prob=r.problem||'';
+    var truncated=prob.length>120?prob.substring(0,120)+'…':prob;
+    var resolved=r.resolved;
+    var email=r.user||r.user_email||'';
+    var date=r.timestamp?new Date(r.timestamp).toLocaleDateString():(r.created_at?new Date(r.created_at).toLocaleDateString():'—');
+    return '<tr>'+
+      '<td style="font-size:12px;">'+email+'</td>'+
+      '<td title="'+prob.replace(/"/g,'&quot;')+'">'+truncated+'</td>'+
+      '<td style="color:#6b7a96;font-size:12px;">'+(r.version||'—')+'</td>'+
+      '<td>'+date+'</td>'+
+      '<td>'+(resolved?'<span class="badge badge-active">Resolved</span>':'<span class="badge badge-pending">Open</span>')+'</td>'+
+      '<td><div class="action-group">'+
+        (!resolved?'<button class="btn-ghost btn-sm" onclick="markReportResolved(\''+r.id+'\')">Resolve</button>':'')+
+        (email?'<a href="mailto:'+email+'?subject=Re: Your EconSquad Report" class="btn-ghost btn-sm" style="text-decoration:none;display:inline-block;">Reply</a>':'')+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function markReportResolved(id){
+  supa.from('problem_reports').update({resolved:true}).eq('id',id).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    var idx=allReports.findIndex(function(r){return r.id===id;});
+    if(idx!==-1)allReports[idx].resolved=true;
+    renderReports();
+    showToast('Report marked as resolved','success');
+  });
+}
+
+function filterReports(filter,el){
+  allReportsFilter=filter;
+  document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active');});
+  if(el)el.classList.add('active');
+  renderReports();
+}
+
+/* ═══════════════════════════════════════
+   REFUNDS
+═══════════════════════════════════════ */
+function loadRefunds(){
+  supa.from('profiles').select('*').then(function(res){
+    var data=(res.data||[]).filter(function(u){return u.stripe_customer_id;});
+    var tbody=document.getElementById('refunds-table');
+    if(!data.length){tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;">No users with Stripe IDs yet</td></tr>';return;}
+    tbody.innerHTML=data.map(function(u){
+      return '<tr>'+
+        '<td>'+(u.full_name||'—')+'</td>'+
+        '<td>'+u.email+'</td>'+
+        '<td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td>'+
+        '<td style="font-family:monospace;font-size:11px;color:#6b7a96;">'+u.stripe_customer_id+'</td>'+
+        '<td><a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" style="color:#aaff3e;text-decoration:none;font-size:12px;">Open in Stripe →</a></td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+function refundLookup(){
+  var email=document.getElementById('refund-search').value.trim();
+  if(!email){showToast('Enter an email address','error');return;}
+  var resultEl=document.getElementById('refund-result');
+  resultEl.innerHTML='<div style="color:#4a5568;font-size:13px;margin-top:12px;display:flex;align-items:center;gap:8px;"><span class="spinner"></span> Looking up...</div>';
+  resultEl.style.display='block';
+  supa.from('profiles').select('*').ilike('email',email).then(function(res){
+    var users=res.data||[];
+    if(!users.length){
+      resultEl.innerHTML='<div class="refund-result"><div style="color:#ff8080;font-size:13px;">No user found with email: '+email+'</div></div>';
+      return;
+    }
+    var u=users[0];
+    var plan=u.plan||'trial';
+    var html='<div class="refund-result">';
+    html+='<div style="font-family:\'Barlow\',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:8px;">'+(u.full_name||u.email)+'</div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Email</span><span class="drawer-field-val">'+u.email+'</span></div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Plan</span><span class="drawer-field-val"><span class="badge badge-'+plan+'">'+plan+'</span></span></div>';
+    html+='<div class="drawer-field"><span class="drawer-field-label">Stripe ID</span><span class="drawer-field-val" style="font-size:11px;font-family:monospace;">'+(u.stripe_customer_id||'—')+'</span></div>';
+    if(u.stripe_customer_id){
+      html+='<div style="margin-top:12px;"><a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" class="btn-lime" style="text-decoration:none;display:inline-block;">Open in Stripe Dashboard →</a></div>';
+    } else {
+      html+='<div style="margin-top:10px;font-size:12px;color:#6b7a96;">No Stripe customer ID on file — this user may not have a paid subscription.</div>';
+    }
+    html+='</div>';
+    resultEl.innerHTML=html;
+  });
+}
+
+/* ═══════════════════════════════════════
+   CALENDAR INVITES
+═══════════════════════════════════════ */
+function toggleCalRecipient(){
+  var type=document.getElementById('cal-recipient-type').value;
+  document.getElementById('cal-recipient-field').style.display=type==='specific'?'block':'none';
+}
+
+function getCalData(){
+  return {
+    title:document.getElementById('cal-title').value.trim()||'EconSquad Event',
+    date:document.getElementById('cal-date').value,
+    time:document.getElementById('cal-time').value||'10:00',
+    duration:parseInt(document.getElementById('cal-duration').value)||60,
+    location:document.getElementById('cal-location').value.trim(),
+    desc:document.getElementById('cal-desc').value.trim(),
+    recipientType:document.getElementById('cal-recipient-type').value,
+    recipient:document.getElementById('cal-recipient').value.trim()
+  };
+}
+
+function updateCalPreview(){
+  var d=getCalData();
+  var previewEl=document.getElementById('cal-preview-content');
+  if(!d.date){previewEl.innerHTML='<span style="color:#4a5568;">Fill in Date to see preview...</span>';return;}
+  var startDt=new Date(d.date+'T'+d.time);
+  var endDt=new Date(startDt.getTime()+d.duration*60000);
+  var dateStr=startDt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var timeStr=startDt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  var endStr=endDt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  var recipStr=d.recipientType==='specific'?(d.recipient||'(no email entered)'):'All EconSquad users';
+
+  previewEl.innerHTML=
+    '<div style="margin-bottom:8px;"><span style="color:#6b7a96;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">Event</span><br>'+
+    '<span style="color:#eef3fc;font-size:15px;font-family:\'Barlow\',sans-serif;font-weight:800;">'+d.title+'</span></div>'+
+    '<div style="margin-bottom:6px;"><span style="color:#6b7a96;font-size:11px;">📅 </span>'+dateStr+'</div>'+
+    '<div style="margin-bottom:6px;"><span style="color:#6b7a96;font-size:11px;">⏰ </span>'+timeStr+' – '+endStr+' ('+d.duration+' min)</div>'+
+    (d.location?'<div style="margin-bottom:6px;"><span style="color:#6b7a96;font-size:11px;">📍 </span>'+d.location+'</div>':'')+
+    '<div style="margin-bottom:6px;"><span style="color:#6b7a96;font-size:11px;">👥 </span>'+recipStr+'</div>'+
+    (d.desc?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#8a97b5;">'+d.desc+'</div>':'');
+}
+
+function formatICSDate(dt){
+  function p(n){return String(n).padStart(2,'0');}
+  return dt.getUTCFullYear()+p(dt.getUTCMonth()+1)+p(dt.getUTCDate())+'T'+p(dt.getUTCHours())+p(dt.getUTCMinutes())+'00Z';
+}
+
+function downloadICS(){
+  var d=getCalData();
+  if(!d.date){showToast('Please select a date','error');return;}
+  var start=new Date(d.date+'T'+d.time);
+  var end=new Date(start.getTime()+d.duration*60000);
+  var now=new Date();
+  var uid='econsquad-'+now.getTime()+'@econsquad.ai';
+  var desc=(d.desc||'').replace(/\n/g,'\\n');
+  var ics=[
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//EconSquad AI//Admin//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    'UID:'+uid,
+    'DTSTAMP:'+formatICSDate(now),
+    'DTSTART:'+formatICSDate(start),
+    'DTEND:'+formatICSDate(end),
+    'SUMMARY:'+d.title,
+    'DESCRIPTION:'+desc,
+    'LOCATION:'+d.location,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=(d.title.replace(/[^a-z0-9]/gi,'-').toLowerCase()||'event')+'.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('.ics file downloaded','success');
+}
+
+function copyEmailDraft(){
+  var d=getCalData();
+  if(!d.date){showToast('Please fill in event details first','error');return;}
+  var start=new Date(d.date+'T'+d.time);
+  var dateStr=start.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var timeStr=start.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  var draft='Subject: Calendar Invite — '+d.title+'\n\n'+
+    'Hi,\n\n'+
+    'Please find attached a calendar invite for the following event:\n\n'+
+    '📅 '+d.title+'\n'+
+    '🗓️ Date: '+dateStr+'\n'+
+    '⏰ Time: '+timeStr+' ('+d.duration+' minutes)\n'+
+    (d.location?'📍 Location: '+d.location+'\n':'')+
+    (d.desc?'\nNotes:\n'+d.desc+'\n':'')+
+    '\nPlease accept the attached .ics invite to add this event to your calendar.\n\n'+
+    'Best,\nEconSquad AI Team';
+  navigator.clipboard.writeText(draft).then(function(){
+    showToast('Email draft copied to clipboard','success');
+  }).catch(function(){
+    showToast('Copy failed — try again','error');
+  });
+}
+
+/* ═══════════════════════════════════════
+   STARTER PLAN SETTINGS
+═══════════════════════════════════════ */
 function renderStarterSettings(specs){
   var container=document.getElementById('starter-specialist-list');
   if(!container)return;
@@ -508,7 +1429,7 @@ function saveStarterPlan(){
     updates.push(supa.from('specialists').update({plan:cb.checked?'starter':'pro'}).eq('id',parseInt(cb.dataset.specId)));
   });
   Promise.all(updates).then(function(){
-    alert('Starter plan saved! Changes are live immediately.');
+    showToast('Starter plan saved! Changes are live immediately.','success');
     loadSpecialists();
   });
 }
