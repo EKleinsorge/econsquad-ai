@@ -117,9 +117,11 @@ serve(async (req) => {
 
     // ===== GMAIL INBOX - optimized with minimal fields =====
     if (action === 'gmail_inbox') {
+      const period = body.period || '7d'
+      const dateFilter = period ? `+newer_than:${period}` : ''
       // Step 1: Get list of unread message IDs (fast)
       const listRes = await fetch(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:unread newer_than:7d',
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:unread${dateFilter}`,
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const listData = await listRes.json()
@@ -267,8 +269,10 @@ serve(async (req) => {
 
     // ===== GMAIL READ EMAILS =====
     if (action === 'gmail_read') {
+      const period = body.period || '30d'
+      const dateFilter = period ? `+newer_than:${period}` : ''
       const listRes = await fetch(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:read+-in:trash+newer_than:30d',
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:read+-in:trash${dateFilter}`,
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const listData = await listRes.json()

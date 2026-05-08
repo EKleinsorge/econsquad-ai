@@ -5893,10 +5893,13 @@ function refreshInbox(){
 
 /* Toggle between Unread / Read views */
 var _inboxMode = 'unread';
+var _inboxPeriod = '7d';
+var _readPeriod  = '30d';
+
 function switchInboxMode(mode){
   _inboxMode = mode;
   var unreadPill = document.getElementById('inbox-pill-unread');
-  var readPill = document.getElementById('inbox-pill-read');
+  var readPill   = document.getElementById('inbox-pill-read');
   if(unreadPill && readPill){
     if(mode === 'unread'){
       unreadPill.style.background='rgba(170,255,62,0.15)'; unreadPill.style.color='#aaff3e';
@@ -5908,17 +5911,32 @@ function switchInboxMode(mode){
   }
   getProviderToken().then(function(token){
     if(!token) return;
-    if(mode === 'unread') loadEmailList(token);
-    else loadReadEmailList(token);
+    if(mode === 'unread') loadEmailList(token, _inboxPeriod);
+    else loadReadEmailList(token, _readPeriod);
   });
 }
 
-function loadReadEmailList(token){
+function loadOlderEmails(){
+  var STEPS = { '7d':'30d', '30d':'90d', '90d':'' };
+  getProviderToken().then(function(token){
+    if(!token) return;
+    if(_inboxMode === 'unread'){
+      _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
+      loadEmailList(token, _inboxPeriod);
+    } else {
+      _readPeriod = STEPS[_readPeriod] !== undefined ? STEPS[_readPeriod] : '';
+      loadReadEmailList(token, _readPeriod);
+    }
+  });
+}
+
+function loadReadEmailList(token, period){
+  period = period || '30d';
   var listEl = document.getElementById('email-list');
   var countEl = document.getElementById('unread-count-label');
   if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading read emails...</div>';
   supa.functions.invoke('gmail-calendar',{
-    body:{ action:'gmail_read', provider_token:token }
+    body:{ action:'gmail_read', provider_token:token, period:period }
   }).then(function(res){
     if(res.error || !res.data){ showEmailList([]); return; }
     var emails = res.data.emails || [];
@@ -6032,18 +6050,18 @@ function buildAriaBriefing(data, textEl, actionsEl){
 }
 
 /* Load email list */
-function loadEmailList(token){
+function loadEmailList(token, period){
+  period = period || '7d';
   var listEl = document.getElementById('email-list');
   if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading emails...</div>';
 
   supa.functions.invoke('gmail-calendar', {
-    body: { action: 'gmail_inbox', provider_token: token }
+    body: { action: 'gmail_inbox', provider_token: token, period: period }
   }).then(function(res){
     if(res.error || !res.data){ showEmailList([]); return; }
     var total = res.data.total_unread || 0;
     var countEl = document.getElementById('unread-count-label');
     if(countEl) countEl.textContent = total + ' unread';
-    /* update badge everywhere */
     document.querySelectorAll('#inbox-badge').forEach(function(b){
       if(total > 0){ b.textContent = total; b.style.display = 'inline'; }
     });
@@ -6145,6 +6163,33 @@ function showEmailList(emails){
     e.stopPropagation();
     replyWithEmma(btn.dataset.id, btn.dataset.subject, btn.dataset.from);
   };
+
+  /* Older emails footer */
+  var curPeriod = _inboxMode === 'unread' ? _inboxPeriod : _readPeriod;
+  var periodLabel = { '7d':'last 7 days', '30d':'last 30 days', '90d':'last 90 days', '':'all time' };
+  var footer = document.createElement('div');
+  footer.style.cssText = 'margin-top:6px;padding:14px 12px;border:1px dashed rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;';
+  var footerLabel = document.createElement('span');
+  footerLabel.style.cssText = 'font-size:11px;color:#4a5568;';
+  footerLabel.textContent = 'Showing ' + (periodLabel[curPeriod] || curPeriod);
+  footer.appendChild(footerLabel);
+  if(curPeriod !== ''){
+    var olderBtn = document.createElement('button');
+    olderBtn.textContent = 'Load older emails →';
+    olderBtn.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:4px 12px;border-radius:7px;cursor:pointer;font-family:inherit;transition:all .2s;';
+    olderBtn.onmouseover = function(){ olderBtn.style.borderColor='rgba(170,255,62,0.3)';olderBtn.style.color='#aaff3e'; };
+    olderBtn.onmouseout  = function(){ olderBtn.style.borderColor='rgba(255,255,255,0.1)';olderBtn.style.color='#6b7a96'; };
+    olderBtn.onclick = function(){ loadOlderEmails(); };
+    footer.appendChild(olderBtn);
+  } else {
+    var gmailLink = document.createElement('a');
+    gmailLink.href = 'https://mail.google.com';
+    gmailLink.target = '_blank';
+    gmailLink.textContent = 'Open Gmail for more →';
+    gmailLink.style.cssText = 'font-size:11px;color:#aaff3e;text-decoration:none;font-weight:600;';
+    footer.appendChild(gmailLink);
+  }
+  listEl.appendChild(footer);
 }
 
 /* Load calendar */
