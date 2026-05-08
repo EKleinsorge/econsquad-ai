@@ -167,6 +167,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-item" onclick="showAdminSection('refunds',this)">↩️ Refunds</div>
     <div class="sidebar-section">Settings</div>
     <div class="sidebar-item" onclick="showAdminSection('settings',this)">⚙️ Plan Settings</div>
+    <div class="sidebar-item" onclick="showAdminSection('admins',this)">👑 Admins</div>
   </div>
 
   <!-- MAIN CONTENT -->
@@ -445,8 +446,60 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
     </div>
 
+
+    <!-- ADMINS -->
+    <div id="section-admins" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">Admins</div>
+          <div class="page-sub">Manage who has access to this admin panel</div>
+        </div>
+        <button class="btn-lime" onclick="openAddAdminModal()">+ Add Admin</button>
+      </div>
+
+      <!-- SQL setup banner (shown if table missing) -->
+      <div id="admins-setup-banner" style="display:none;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#aaff3e;margin-bottom:8px;">⚙️ One-time setup required</div>
+        <div style="font-size:12px;color:#8a97b5;margin-bottom:12px;">Run this SQL in your Supabase SQL editor to create the admins table, then refresh this page:</div>
+        <pre id="admins-setup-sql" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;font-size:11px;color:#aaff3e;overflow-x:auto;white-space:pre-wrap;margin-bottom:10px;">CREATE TABLE IF NOT EXISTS admins (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  email text UNIQUE NOT NULL,
+  name text,
+  added_at timestamptz DEFAULT now(),
+  added_by text
+);
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON admins FOR ALL USING (true) WITH CHECK (true);
+INSERT INTO admins (email, name, added_by) VALUES ('eric@gslisolutions.com', 'Eric', 'system') ON CONFLICT DO NOTHING;</pre>
+        <button class="btn-ghost" onclick="copyAdminsSql()">📋 Copy SQL</button>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Added By</th><th>Action</th></tr></thead>
+          <tbody id="admins-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
   </div><!-- /admin-main -->
 </div><!-- /admin-body -->
+
+<!-- ADD ADMIN MODAL -->
+<div class="modal-overlay" id="add-admin-modal">
+  <div class="modal-box" style="width:400px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;">👑 Add Admin</div>
+      <button onclick="closeAddAdminModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="form-field"><label>Full Name</label><input id="new-admin-name" type="text" placeholder="e.g. Jane Smith"></div>
+    <div class="form-field"><label>Email Address</label><input id="new-admin-email" type="email" placeholder="e.g. jane@company.com"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn-ghost" onclick="closeAddAdminModal()">Cancel</button>
+      <button class="btn-lime" onclick="addAdmin()">Add Admin →</button>
+    </div>
+  </div>
+</div>
 
 <!-- EDIT/ADD SPECIALIST MODAL -->
 <div class="modal-overlay" id="specialist-modal">
@@ -582,7 +635,7 @@ window.addEventListener('load',function(){
 function adminLogin(){
   var email=document.getElementById('login-email').value.trim();
   var pass=document.getElementById('login-pass').value;
-  if(ADMIN_EMAILS.indexOf(email)===-1){showLoginMsg('Access denied. Admin only.','error');return;}
+  if(!email||!pass){showLoginMsg('Enter your email and password.','error');return;}
   supa.auth.signInWithPassword({email:email,password:pass}).then(function(res){
     if(res.error){showLoginMsg(res.error.message,'error');return;}
     checkAdminAccess(res.data.user);
@@ -590,11 +643,23 @@ function adminLogin(){
 }
 
 function checkAdminAccess(user){
-  if(ADMIN_EMAILS.indexOf(user.email)===-1){
-    showLoginMsg('Access denied. You are not an admin.','error');
-    supa.auth.signOut();
+  // First check hardcoded bootstrap list so we never get locked out
+  if(ADMIN_EMAILS.indexOf(user.email)!==-1){
+    grantAdminAccess(user);
     return;
   }
+  // Then check the admins table (supports dynamically added admins)
+  supa.from('admins').select('id').eq('email',user.email).limit(1).then(function(res){
+    if(res.data&&res.data.length>0){
+      grantAdminAccess(user);
+    } else {
+      showLoginMsg('Access denied. You are not an admin.','error');
+      supa.auth.signOut();
+    }
+  });
+}
+
+function grantAdminAccess(user){
   adminUser=user;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('admin-user-email').textContent=user.email;
@@ -665,6 +730,7 @@ function loadAllData(){
   loadMessages();
   loadReports();
   loadRefunds();
+  loadAdmins();
 }
 
 /* ═══════════════════════════════════════
@@ -1431,6 +1497,92 @@ function saveStarterPlan(){
   Promise.all(updates).then(function(){
     showToast('Starter plan saved! Changes are live immediately.','success');
     loadSpecialists();
+  });
+}
+
+/* ═══════════════════════════════════════
+   ADMINS
+═══════════════════════════════════════ */
+function loadAdmins(){
+  var tbody=document.getElementById('admins-table');
+  if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span> Loading...</td></tr>';
+  supa.from('admins').select('*').order('added_at',{ascending:true}).then(function(res){
+    if(res.error){
+      // Table probably doesn't exist yet — show setup banner
+      document.getElementById('admins-setup-banner').style.display='block';
+      tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;text-align:center;">Run the setup SQL above to create the admins table.</td></tr>';
+      return;
+    }
+    document.getElementById('admins-setup-banner').style.display='none';
+    var rows=res.data||[];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;text-align:center;">No admins found. Add one above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(function(a){
+      var added=a.added_at?new Date(a.added_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+      var isSelf=(adminUser&&adminUser.email===a.email);
+      var removeBtn=isSelf
+        ? '<span style="font-size:11px;color:#4a5568;">You</span>'
+        : '<button class="btn-danger btn-sm" onclick="removeAdmin(\''+a.id+'\',\''+a.email.replace(/'/g,"\\'")+'\')" title="Remove admin">Remove</button>';
+      return '<tr>'
+        +'<td><span style="font-weight:600;color:#eef3fc;">'+(a.name||'—')+'</span>'+(isSelf?' <span class="badge badge-active" style="font-size:9px;">You</span>':'')+'</td>'
+        +'<td style="font-family:monospace;font-size:12px;color:#8a97b5;">'+a.email+'</td>'
+        +'<td style="color:#6b7a96;font-size:12px;">'+added+'</td>'
+        +'<td style="color:#6b7a96;font-size:12px;">'+(a.added_by||'—')+'</td>'
+        +'<td>'+removeBtn+'</td>'
+        +'</tr>';
+    }).join('');
+  });
+}
+
+function openAddAdminModal(){
+  document.getElementById('new-admin-name').value='';
+  document.getElementById('new-admin-email').value='';
+  document.getElementById('add-admin-modal').classList.add('show');
+  setTimeout(function(){document.getElementById('new-admin-name').focus();},100);
+}
+function closeAddAdminModal(){
+  document.getElementById('add-admin-modal').classList.remove('show');
+}
+
+function addAdmin(){
+  var name=document.getElementById('new-admin-name').value.trim();
+  var email=document.getElementById('new-admin-email').value.trim().toLowerCase();
+  if(!email){showToast('Email is required.','error');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showToast('Enter a valid email address.','error');return;}
+  supa.from('admins').insert({
+    email:email,
+    name:name||null,
+    added_by:adminUser?adminUser.email:'unknown'
+  }).then(function(res){
+    if(res.error){
+      if(res.error.code==='23505'){showToast(email+' is already an admin.','error');}
+      else{showToast('Error: '+res.error.message,'error');}
+      return;
+    }
+    closeAddAdminModal();
+    showToast(name||email+' added as admin!','success');
+    loadAdmins();
+  });
+}
+
+function removeAdmin(id,email){
+  if(!confirm('Remove '+email+' as admin?\n\nThey will lose access to this panel immediately.')){return;}
+  supa.from('admins').delete().eq('id',id).then(function(res){
+    if(res.error){showToast('Error: '+res.error.message,'error');return;}
+    showToast(email+' removed from admins.','success');
+    loadAdmins();
+  });
+}
+
+function copyAdminsSql(){
+  var sql=document.getElementById('admins-setup-sql').textContent;
+  navigator.clipboard.writeText(sql).then(function(){
+    showToast('SQL copied to clipboard!','success');
+  }).catch(function(){
+    showToast('Copy failed — select the SQL manually.','error');
   });
 }
 </script>
