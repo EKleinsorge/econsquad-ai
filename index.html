@@ -6297,7 +6297,7 @@ function openCalEventDetail(evt){
     calInp.value=''; calInp.style.height='38px';
     fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
       body:JSON.stringify({action:'aria_chat', system:systemPrompt, messages:chatHistory})
     })
     .then(function(r){return r.json();})
