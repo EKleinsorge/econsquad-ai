@@ -1096,6 +1096,8 @@
     if (lbl) lbl.textContent = count + ' unread | ' + priority + ' priority';
     var badge = eid('inbox-badge');
     if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+    var rsbBadge = eid('esq-rsb-email-badge');
+    if (rsbBadge) { rsbBadge.textContent = count > 99 ? '99+' : count; rsbBadge.style.display = count > 0 ? 'inline-block' : 'none'; }
   }
 
   /* ── FLY-TO-TRASH ANIMATION ── */
