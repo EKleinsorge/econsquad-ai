@@ -1650,6 +1650,185 @@
     tagsBtn.insertAdjacentElement('afterend', btn);
   }
 
+  function injectComposeBtn() {
+    if (eid('inbox-compose-btn')) return;
+    var triageBtn = eid('inbox-triage-btn');
+    if (!triageBtn) return;
+    var btn = cel('button', '', '✉ Compose');
+    btn.id = 'inbox-compose-btn';
+    btn.style.cssText = 'background:var(--lime,#aaff3e);border:none;color:#1a3300;border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:800;letter-spacing:0.01em;';
+    btn.onmouseover = function() { btn.style.opacity = '0.88'; };
+    btn.onmouseout  = function() { btn.style.opacity = '1'; };
+    btn.addEventListener('click', function() { window.openNewCompose(); });
+    triageBtn.insertAdjacentElement('afterend', btn);
+  }
+
+  /* ── NEW EMAIL COMPOSE MODAL ── */
+  window.openNewCompose = function(prefill) {
+    prefill = prefill || {};
+    var old = eid('esq-new-compose-ol'); if (old) old.remove();
+
+    var ol = cel('div', 'email-detail-overlay');
+    ol.id = 'esq-new-compose-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:580px;width:92%;';
+
+    var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.addEventListener('click', function() { ol.remove(); });
+
+    var title = cel('div', 'email-detail-title', '✉ New Email');
+    title.style.cssText = 'font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:16px;';
+
+    // ── To ──
+    var toRow = cel('div', '');
+    toRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+    var toLbl = cel('span', '', 'To');
+    toLbl.style.cssText = 'font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:0.5px;width:40px;flex-shrink:0;';
+    var toInp = document.createElement('input');
+    toInp.type = 'email'; toInp.placeholder = 'recipient@example.com';
+    toInp.value = prefill.to || '';
+    toInp.style.cssText = 'flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:7px 10px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;';
+    toInp.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    toInp.addEventListener('blur',  function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+    toRow.appendChild(toLbl); toRow.appendChild(toInp);
+
+    // ── CC ──
+    var ccVisible = !!(prefill.cc);
+    var ccRow = cel('div', '');
+    ccRow.style.cssText = 'display:' + (ccVisible ? 'flex' : 'none') + ';align-items:center;gap:8px;margin-bottom:8px;';
+    var ccLbl = cel('span', '', 'CC');
+    ccLbl.style.cssText = 'font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:0.5px;width:40px;flex-shrink:0;';
+    var ccInp = document.createElement('input');
+    ccInp.type = 'email'; ccInp.placeholder = 'cc@example.com';
+    ccInp.value = prefill.cc || '';
+    ccInp.style.cssText = toInp.style.cssText;
+    ccInp.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    ccInp.addEventListener('blur',  function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+    ccRow.appendChild(ccLbl); ccRow.appendChild(ccInp);
+
+    // ── Subject ──
+    var subjRow = cel('div', '');
+    subjRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;';
+    var subjLbl = cel('span', '', 'Subject');
+    subjLbl.style.cssText = 'font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:0.5px;width:40px;flex-shrink:0;';
+    var subjInp = document.createElement('input');
+    subjInp.type = 'text'; subjInp.placeholder = 'Email subject';
+    subjInp.value = prefill.subject || '';
+    subjInp.style.cssText = toInp.style.cssText;
+    subjInp.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    subjInp.addEventListener('blur',  function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+    subjRow.appendChild(subjLbl); subjRow.appendChild(subjInp);
+
+    // ── CC toggle ──
+    var ccToggle = cel('button', '', '+ CC');
+    ccToggle.style.cssText = 'background:transparent;border:none;color:#6b7a96;font-size:11px;font-weight:600;cursor:pointer;padding:0;margin-bottom:10px;text-decoration:underline;font-family:inherit;';
+    ccToggle.addEventListener('click', function() {
+      ccVisible = !ccVisible;
+      ccRow.style.display = ccVisible ? 'flex' : 'none';
+      ccToggle.textContent = ccVisible ? '− Remove CC' : '+ CC';
+      if (ccVisible) ccInp.focus();
+    });
+
+    // ── Body ──
+    var bodyLbl = cel('div', '', 'Message');
+    bodyLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
+    var textarea = document.createElement('textarea');
+    textarea.placeholder = 'Write your message here, or let ARIA draft it for you…';
+    textarea.rows = 8;
+    textarea.value = prefill.body || '';
+    textarea.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;margin-bottom:8px;';
+    textarea.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
+    textarea.addEventListener('blur',  function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
+
+    // ── ARIA Draft button ──
+    var ariaBtn = cel('button', 'email-action-btn', '✦ ARIA: Draft This Email');
+    ariaBtn.style.cssText = 'background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;margin-bottom:14px;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:inherit;font-weight:700;';
+    ariaBtn.addEventListener('click', function() {
+      var to      = toInp.value.trim();
+      var subject = subjInp.value.trim();
+      if (!subject) { subjInp.style.borderColor = 'rgba(248,113,113,0.6)'; subjInp.focus(); return; }
+      ariaBtn.disabled = true; ariaBtn.textContent = 'Drafting…';
+      var supaUrl = (window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co');
+      var supaKey = window.SUPA_KEY || '';
+      fetch(supaUrl + '/functions/v1/gmail-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
+        body: JSON.stringify({ action: 'aria_compose', to: to, subject: subject, existing: textarea.value.trim() })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var draft = d.draft || '';
+        if (draft) {
+          textarea.value = draft;
+          textarea.style.borderColor = 'rgba(170,255,62,0.5)';
+          setTimeout(function() { textarea.style.borderColor = 'rgba(255,255,255,0.1)'; }, 1800);
+        }
+        ariaBtn.disabled = false; ariaBtn.innerHTML = '✦ ARIA: Draft This Email';
+      })
+      .catch(function() { ariaBtn.disabled = false; ariaBtn.innerHTML = '✦ ARIA: Draft This Email'; });
+    });
+
+    // ── Action row ──
+    var actRow = cel('div', 'email-detail-actions');
+    actRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;';
+
+    var leftBtns = cel('div', '');
+    leftBtns.style.cssText = 'display:flex;gap:8px;';
+    var cancelBtn = cel('button', 'email-action-btn', 'Cancel');
+    cancelBtn.addEventListener('click', function() { ol.remove(); });
+    leftBtns.appendChild(cancelBtn);
+
+    var sendBtn = cel('button', 'email-action-btn primary', '&#9993; Send');
+    sendBtn.style.cssText = 'background:var(--lime,#aaff3e);border:none;color:#1a3300;font-size:13px;font-weight:800;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:inherit;';
+    sendBtn.addEventListener('click', function() {
+      var to      = toInp.value.trim();
+      var subject = subjInp.value.trim();
+      var body    = textarea.value.trim();
+      var cc      = ccInp.value.trim();
+      if (!to)      { toInp.style.borderColor   = 'rgba(248,113,113,0.6)'; toInp.focus();   return; }
+      if (!subject) { subjInp.style.borderColor = 'rgba(248,113,113,0.6)'; subjInp.focus(); return; }
+      if (!body)    { textarea.style.borderColor = 'rgba(248,113,113,0.6)'; textarea.focus(); return; }
+
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      fetchToken().then(function(token) {
+        if (!token) { sendBtn.disabled = false; sendBtn.innerHTML = '&#9993; Send'; return; }
+        var headers = ['To: ' + to, 'Subject: ' + subject, 'Content-Type: text/plain; charset=utf-8'];
+        if (cc) headers.push('Cc: ' + cc);
+        headers.push('', body);
+        var rawEmail = headers.join('\n');
+        var encoded  = btoa(unescape(encodeURIComponent(rawEmail))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: encoded })
+        })
+        .then(function() {
+          sendBtn.innerHTML = '&#10003; Sent!';
+          setTimeout(function() { ol.remove(); }, 900);
+        })
+        .catch(function() { sendBtn.disabled = false; sendBtn.innerHTML = '&#9993; Send'; });
+      });
+    });
+
+    actRow.appendChild(leftBtns);
+    actRow.appendChild(sendBtn);
+
+    modal.appendChild(xBtn);
+    modal.appendChild(title);
+    modal.appendChild(toRow);
+    modal.appendChild(ccRow);
+    modal.appendChild(ccToggle);
+    modal.appendChild(subjRow);
+    modal.appendChild(bodyLbl);
+    modal.appendChild(textarea);
+    modal.appendChild(ariaBtn);
+    modal.appendChild(actRow);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+    toInp.focus();
+  };
+
   function showTriageLoading() {
     var old = eid('esq-triage-ol'); if (old) old.remove();
     var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol';
@@ -1757,4 +1936,5 @@
   setTimeout(initHomeChat, 1500);
   setTimeout(injectTagsBtn, 1500);
   setTimeout(injectTriageBtn, 1600);
+  setTimeout(injectComposeBtn, 1700);
 })();

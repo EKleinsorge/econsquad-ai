@@ -68,6 +68,33 @@ serve(async (req) => {
       })
     }
 
+    // ===== ARIA COMPOSE NEW EMAIL (no provider_token needed) =====
+    if (action === 'aria_compose') {
+      const { to, subject, existing } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      if (!anthropicKey) {
+        return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500
+        })
+      }
+      const existingNote = existing ? `\n\nThe user has already started writing:\n"${existing}"\n\nExpand and polish this into a complete professional email.` : ''
+      const prompt = `You are ARIA, an AI assistant for economic developers. Draft a professional email for an economic developer.\n\nTo: ${to || 'the recipient'}\nSubject: ${subject}${existingNote}\n\nWrite a complete, professional email body. Be concise but warm. Do not include a subject line or "To:" header — just the message body starting with a greeting. Sign off as the user (no specific name needed, just a professional closing).`
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 600,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+      const claudeData = await claudeRes.json()
+      const draft = claudeData?.content?.[0]?.text || ''
+      return new Response(JSON.stringify({ draft }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     // ===== ARIA TRIAGE (no provider_token needed) =====
     if (action === 'aria_triage') {
       const { emails: triageEmails } = body
@@ -117,7 +144,7 @@ serve(async (req) => {
 
     // ===== GMAIL INBOX - optimized with minimal fields =====
     if (action === 'gmail_inbox') {
-      const period = body.period || '7d'
+      const period = (body.period !== undefined && body.period !== null) ? body.period : '7d'
       const dateFilter = period ? `+newer_than:${period}` : ''
       // Step 1: Get list of unread message IDs (fast)
       const listRes = await fetch(
@@ -269,7 +296,7 @@ serve(async (req) => {
 
     // ===== GMAIL READ EMAILS =====
     if (action === 'gmail_read') {
-      const period = body.period || '30d'
+      const period = (body.period !== undefined && body.period !== null) ? body.period : '30d'
       const dateFilter = period ? `+newer_than:${period}` : ''
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:read+-in:trash${dateFilter}`,

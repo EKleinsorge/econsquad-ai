@@ -46,6 +46,7 @@ html,body{height:100%;overflow:hidden;background:#04050d;background-color:#04050
 .plan-badge.trial.urgent{background:rgba(255,80,80,0.15);color:#ff8080;border:1px solid rgba(255,80,80,0.3);animation:badgePulse 2s infinite;}
 .plan-badge.active{background:var(--lime);color:#1a3300;}
 .plan-badge.pro{background:rgba(170,255,62,0.15);color:#aaff3e;border:1px solid rgba(170,255,62,0.3);}
+.plan-badge.upgrade-prompt{background:rgba(170,255,62,0.08);color:#aaff3e;border:1px solid rgba(170,255,62,0.25);}
 @keyframes badgePulse{0%,100%{opacity:1;}50%{opacity:.6;}}
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--lime2),var(--lime3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#1a3300;cursor:pointer;font-family:'Barlow',sans-serif;overflow:hidden;}
 
@@ -4055,8 +4056,10 @@ function updatePlanBadge(user){
         pb.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' left in trial';
         pb.className='plan-badge trial'+(daysLeft<=2?' urgent':'');
       } else {
-        pb.textContent='Trial expired';
-        pb.className='plan-badge trial urgent';
+        pb.textContent='Upgrade →';
+        pb.className='plan-badge upgrade-prompt';
+        pb.style.cursor='pointer';
+        pb.onclick=function(){ openBillingModal(); };
       }
     } else if(plan==='starter'){
       pb.textContent='⚡ Starter';
