@@ -57,6 +57,23 @@
   function getPinnedTags() { try { return JSON.parse(localStorage.getItem(PINNED_TAGS_KEY) || '[]'); } catch(e) { return []; } }
   function setPinnedTags(d) { try { localStorage.setItem(PINNED_TAGS_KEY, JSON.stringify(d)); } catch(e) {} }
 
+  window.toggleTagPin = function(label) {
+    var pt = getPinnedTags();
+    var idx = pt.indexOf(label);
+    if (idx === -1) pt.push(label); else pt.splice(idx, 1);
+    setPinnedTags(pt);
+    var nowPinned = pt.indexOf(label) !== -1;
+    // Update any visible pin buttons for this label without rebuilding the whole list
+    document.querySelectorAll('[data-tagpin="' + label + '"]').forEach(function(btn) {
+      btn.textContent = nowPinned ? '📌' : '⬜';
+      btn.title = nowPinned ? 'Unpin from top' : 'Pin to top';
+      btn.style.background = nowPinned ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)';
+      btn.style.color = nowPinned ? '#aaff3e' : '#4a5568';
+      btn.style.borderColor = nowPinned ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)';
+    });
+    _renderList(window._lastEmails || []);
+  };
+
   var ALL_TAGS = [
     { label: 'RFI',       color: '#64afff', bg: 'rgba(100,175,255,0.15)', border: 'rgba(100,175,255,0.35)', icon: '&#128205;', priority: true },
     { label: 'GRANT',     color: '#f5c542', bg: 'rgba(245,197,66,0.15)',  border: 'rgba(245,197,66,0.35)',  icon: '&#128176;', priority: true },
@@ -552,15 +569,12 @@
         kw.textContent = String(r.re).replace(/^\/|\/$/g,'').replace(/\\/g,'');
         // Pin button
         var pinTagBtn = cel('button', '', isPinned ? '📌' : '⬜');
-        pinTagBtn.title = isPinned ? 'Unpin from top' : 'Pin to top of inbox';
-        pinTagBtn.style.cssText = 'background:' + (isPinned ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (isPinned ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px;';
-        pinTagBtn.addEventListener('click', function() {
-          var pt = getPinnedTags();
-          var idx = pt.indexOf(r.label);
-          if (idx === -1) pt.push(r.label); else pt.splice(idx, 1);
-          setPinnedTags(pt);
-          rebuildBuiltinList();
-          _renderList(window._lastEmails || []);
+        pinTagBtn.title = isPinned ? 'Unpin from top' : 'Pin to top';
+        pinTagBtn.dataset.tagpin = r.label;
+        pinTagBtn.style.cssText = 'background:' + (isPinned ? 'rgba(170,255,62,0.12)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (isPinned ? 'rgba(170,255,62,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:6px;padding:3px 7px;cursor:pointer;font-size:12px;color:' + (isPinned ? '#aaff3e' : '#4a5568') + ';';
+        pinTagBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          window.toggleTagPin(r.label);
         });
         // Enable toggle
         var tog = cel('div', '');
@@ -1246,16 +1260,12 @@
 
       var pinBtn = cel('button', '', isPinned ? '📌' : '⬜');
       pinBtn.title = isPinned ? 'Unpin tag' : 'Pin tag to top';
+      pinBtn.dataset.tagpin = label;
       pinBtn.style.cssText = 'font-size:10px;padding:4px 7px 4px 4px;border-radius:0;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,0.08);' +
         (isPinned ? 'background:rgba(170,255,62,0.12);color:#aaff3e;' : 'background:rgba(255,255,255,0.06);color:#4a5568;');
       pinBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var pt = getPinnedTags();
-        var idx = pt.indexOf(label);
-        if (idx === -1) pt.push(label); else pt.splice(idx, 1);
-        setPinnedTags(pt);
-        renderFilterBar(emails);
-        _renderList(window._lastEmails || []);
+        window.toggleTagPin(label);
       });
 
       wrap.appendChild(filterBtn);
