@@ -331,16 +331,33 @@
     var ol = cel('div', 'email-detail-overlay');
     ol.id = 'esq-ed';
     var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:720px;width:96%;max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;';
     var handle = cel('div', 'email-detail-handle');
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:16px 20px 12px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;';
     var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.style.cssText = 'position:absolute;top:12px;right:14px;';
     xBtn.addEventListener('click', function() { ol.remove(); });
     var tagEl = cel('span', 'email-type-tag');
-    tagEl.style.cssText = 'background:' + tag.bg + ';color:' + tag.color + ';border:1px solid ' + tag.border + ';margin-bottom:12px;display:inline-block;';
+    tagEl.style.cssText = 'background:' + tag.bg + ';color:' + tag.color + ';border:1px solid ' + tag.border + ';margin-bottom:8px;display:inline-block;';
     tagEl.innerHTML = tag.icon + ' ' + tag.label;
     var fromEl = cel('div', 'email-detail-from', escH(name) + ' &bull; ' + dateStr);
     var subEl = cel('div', 'email-detail-subject', escH(email.subject || '(no subject)'));
-    var bodyEl = cel('div', 'email-detail-body', escH(email.snippet || 'No preview available.'));
+    hdr.appendChild(handle); hdr.appendChild(xBtn); hdr.appendChild(tagEl); hdr.appendChild(fromEl); hdr.appendChild(subEl);
+
+    // Body area — scrollable
+    var bodyWrap = document.createElement('div');
+    bodyWrap.style.cssText = 'flex:1;overflow-y:auto;min-height:0;';
+    var bodyEl = document.createElement('div');
+    bodyEl.style.cssText = 'padding:16px 20px;font-size:13px;color:#b8c8e0;line-height:1.7;';
+    bodyEl.innerHTML = '<span style="color:#4a5568;font-style:italic;">Loading full email…</span>';
+    bodyWrap.appendChild(bodyEl);
+
+    // Actions
     var actRow = cel('div', 'email-detail-actions');
+    actRow.style.cssText = 'flex-shrink:0;border-top:1px solid rgba(255,255,255,0.07);padding:12px 20px;';
     if (tag.label === 'RFI') {
       var rfiBtn = cel('button', 'email-action-btn primary', 'Deploy Riley &#8599;');
       rfiBtn.addEventListener('click', function() { if (typeof deploy === 'function') deploy(21); ol.remove(); });
@@ -356,19 +373,43 @@
     replyDetBtn.addEventListener('click', function() { ol.remove(); window.openReplyCompose(email); });
     var trashBtn = cel('button', 'email-action-btn danger', '&#128465; Trash');
     trashBtn.addEventListener('click', function() { window.trashEmailCard(email.id || '', null, email); ol.remove(); });
-    actRow.appendChild(closeBtn);
-    actRow.appendChild(replyDetBtn);
-    actRow.appendChild(trashBtn);
-    modal.appendChild(handle);
-    modal.appendChild(xBtn);
-    modal.appendChild(tagEl);
-    modal.appendChild(fromEl);
-    modal.appendChild(subEl);
-    modal.appendChild(bodyEl);
-    modal.appendChild(actRow);
+    actRow.appendChild(closeBtn); actRow.appendChild(replyDetBtn); actRow.appendChild(trashBtn);
+
+    modal.appendChild(hdr); modal.appendChild(bodyWrap); modal.appendChild(actRow);
     ol.appendChild(modal);
     ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
     document.body.appendChild(ol);
+
+    // Fetch full body
+    if (email.id && window.SUPA_KEY && window.providerToken) {
+      fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': window.SUPA_KEY, 'Authorization': 'Bearer ' + window.SUPA_KEY },
+        body: JSON.stringify({ action: 'gmail_message', provider_token: window.providerToken, messageId: email.id })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.body) { bodyEl.innerHTML = '<span style="color:#4a5568;font-style:italic;">Could not load email body.</span>'; return; }
+        if (data.isHtml) {
+          var iframe = document.createElement('iframe');
+          iframe.sandbox = 'allow-same-origin';
+          iframe.style.cssText = 'width:100%;border:none;background:#fff;border-radius:6px;min-height:300px;';
+          bodyEl.innerHTML = '';
+          bodyEl.appendChild(iframe);
+          iframe.srcdoc = data.body;
+          iframe.onload = function() {
+            var h = iframe.contentDocument && iframe.contentDocument.body ? iframe.contentDocument.body.scrollHeight : 400;
+            iframe.style.height = Math.min(Math.max(h + 32, 200), 520) + 'px';
+          };
+        } else {
+          bodyEl.style.whiteSpace = 'pre-wrap';
+          bodyEl.textContent = data.body;
+        }
+      })
+      .catch(function() { bodyEl.innerHTML = escH(email.snippet || 'Preview only.'); });
+    } else {
+      bodyEl.innerHTML = escH(email.snippet || 'Preview only.');
+    }
   };
 
   /* ── TAG MANAGER ── */
@@ -609,7 +650,8 @@
     var old = eid('esq-compose-ol'); if (old) old.remove();
     var m = (email.from || '').match(/<([^>]+)>/);
     var toAddr = m ? m[1] : (email.from || '');
-    var subj = 'Re: ' + (email.subject || '');
+    var subj = email._prefillSubject || ('Re: ' + (email.subject || ''));
+    var isDraft = !email.from;
 
     var ol = cel('div', 'email-detail-overlay');
     ol.id = 'esq-compose-ol';
@@ -619,15 +661,24 @@
     var xBtn = cel('button', 'email-detail-close', '&#x2715;');
     xBtn.addEventListener('click', function() { ol.remove(); });
 
-    var title = cel('div', '', 'Reply');
+    var title = cel('div', '', isDraft ? (email._prefillSubject || 'New Email') : 'Reply');
     title.style.cssText = 'font-size:16px;font-weight:700;color:#eef3fc;margin-bottom:14px;';
 
     var toRow = cel('div', '');
     toRow.style.cssText = 'margin-bottom:10px;';
     var toLbl = cel('div', '', 'To');
     toLbl.style.cssText = 'font-size:11px;color:#6b7a96;margin-bottom:4px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;';
-    var toEl = cel('div', '', escH(email.from || ''));
-    toEl.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;';
+    var toEl;
+    if (isDraft) {
+      toEl = document.createElement('input'); toEl.type = 'email';
+      toEl.placeholder = 'Recipient email address…'; toEl.value = '';
+      toEl.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;';
+      toEl.addEventListener('focus', function() { toEl.style.borderColor = 'rgba(170,255,62,0.4)'; });
+      toEl.addEventListener('blur', function() { toEl.style.borderColor = 'rgba(255,255,255,0.1)'; });
+    } else {
+      toEl = cel('div', '', escH(email.from || ''));
+      toEl.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:13px;color:#eef3fc;';
+    }
     toRow.appendChild(toLbl); toRow.appendChild(toEl);
 
     var subRow = cel('div', '');
@@ -689,6 +740,7 @@
     var textarea = document.createElement('textarea');
     textarea.placeholder = 'Write your reply here...';
     textarea.rows = 6;
+    if (email._prefillBody) { textarea.value = email._prefillBody; textarea.rows = 10; }
     textarea.style.cssText = 'width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-size:13px;color:#eef3fc;outline:none;font-family:inherit;resize:vertical;margin-bottom:8px;flex:1;';
     textarea.addEventListener('focus', function() { this.style.borderColor = 'rgba(170,255,62,0.4)'; });
     textarea.addEventListener('blur', function() { this.style.borderColor = 'rgba(255,255,255,0.1)'; });
@@ -719,10 +771,12 @@
     var sendBtn2 = cel('button', 'email-action-btn primary', '&#9993; Send');
     sendBtn2.addEventListener('click', function() {
       var body = textarea.value.trim(); if (!body) return;
+      var sendTo = isDraft ? (toEl.value || '').trim() : toAddr;
+      if (!sendTo) { toEl.style.borderColor = 'rgba(248,113,113,0.6)'; return; }
       sendBtn2.disabled = true; sendBtn2.textContent = 'Sending…';
       fetchToken().then(function(token) {
         if (!token) { sendBtn2.disabled = false; sendBtn2.innerHTML = '&#9993; Send'; return; }
-        var rawEmail = ['To: ' + toAddr, 'Subject: ' + subInp.value, 'Content-Type: text/plain; charset=utf-8', '', body].join('\n');
+        var rawEmail = ['To: ' + sendTo, 'Subject: ' + subInp.value, 'Content-Type: text/plain; charset=utf-8', '', body].join('\n');
         var encoded = btoa(unescape(encodeURIComponent(rawEmail))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
           method: 'POST',
@@ -1554,8 +1608,90 @@
     selBtn.insertAdjacentElement('afterend', btn);
   }
 
+  function injectTriageBtn() {
+    if (eid('inbox-triage-btn')) return;
+    var tagsBtn = eid('inbox-tags-btn');
+    if (!tagsBtn) return;
+    var btn = cel('button', '', '✦ Triage');
+    btn.id = 'inbox-triage-btn';
+    btn.style.cssText = 'background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;';
+    btn.onmouseover = function() { btn.style.background = 'rgba(170,255,62,0.15)'; };
+    btn.onmouseout = function() { btn.style.background = 'rgba(170,255,62,0.08)'; };
+    btn.addEventListener('click', function() { runAriaTriage(btn); });
+    tagsBtn.insertAdjacentElement('afterend', btn);
+  }
+
+  function runAriaTriage(btn) {
+    var emails = window._lastEmails || [];
+    if (!emails.length) return;
+    var origText = btn.innerHTML;
+    btn.innerHTML = '✦ Triaging…'; btn.disabled = true;
+    var triageEmails = emails.slice(0, 20).map(function(e) {
+      return { from: e.from, subject: e.subject, snippet: e.snippet };
+    });
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': window.SUPA_KEY, 'Authorization': 'Bearer ' + window.SUPA_KEY },
+      body: JSON.stringify({ action: 'aria_triage', emails: triageEmails })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      btn.innerHTML = origText; btn.disabled = false;
+      showTriageResults(d.triage || [], emails);
+    })
+    .catch(function() { btn.innerHTML = origText; btn.disabled = false; });
+  }
+
+  function showTriageResults(triage, emails) {
+    var old = eid('esq-triage-ol'); if (old) old.remove();
+    var COLORS = { urgent: '#f87171', today: '#facc15', later: '#4ade80', fyi: '#6b7a96' };
+    var LABELS = { urgent: '🔴 Urgent', today: '🟡 Respond Today', later: '🟢 Can Wait', fyi: '⚪ FYI Only' };
+    var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-triage-ol';
+    var modal = cel('div', 'email-detail-modal');
+    modal.style.cssText = 'max-width:640px;width:96%;max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;';
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+    hdr.innerHTML = '<div><div style="font-size:15px;font-weight:700;color:#eef3fc;">✦ ARIA Email Triage</div><div style="font-size:11px;color:#4a5568;margin-top:2px;">'+triage.length+' emails analyzed</div></div>';
+    var xBtn = cel('button', 'email-detail-close', '&#x2715;');
+    xBtn.style.cssText = 'position:relative;top:0;right:0;'; xBtn.onclick = function() { ol.remove(); };
+    hdr.appendChild(xBtn);
+    var body = document.createElement('div');
+    body.style.cssText = 'flex:1;overflow-y:auto;min-height:0;padding:14px 20px;display:flex;flex-direction:column;gap:8px;';
+    var groups = { urgent: [], today: [], later: [], fyi: [] };
+    triage.forEach(function(t) {
+      var email = emails[t.index - 1];
+      if (email) groups[t.priority] = (groups[t.priority] || []);
+      if (email) groups[t.priority].push({ email: email, reason: t.reason });
+    });
+    ['urgent','today','later','fyi'].forEach(function(p) {
+      var items = groups[p]; if (!items || !items.length) return;
+      var sec = document.createElement('div');
+      var secHdr = document.createElement('div');
+      secHdr.style.cssText = 'font-size:11px;font-weight:700;color:'+(COLORS[p])+';text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;padding-top:4px;';
+      secHdr.textContent = LABELS[p] + ' (' + items.length + ')';
+      sec.appendChild(secHdr);
+      items.forEach(function(item) {
+        var card = document.createElement('div');
+        card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:3px solid '+COLORS[p]+';border-radius:8px;padding:8px 12px;cursor:pointer;';
+        card.onmouseover = function() { card.style.background = 'rgba(255,255,255,0.06)'; };
+        card.onmouseout = function() { card.style.background = 'rgba(255,255,255,0.03)'; };
+        card.innerHTML = '<div style="font-size:12px;font-weight:600;color:#eef3fc;margin-bottom:2px;">'+escH(item.email.subject||'(no subject)')+'</div>'
+          + '<div style="font-size:11px;color:#6b7a96;margin-bottom:4px;">'+escH(senderName(item.email.from||''))+'</div>'
+          + '<div style="font-size:11px;color:#8a97b5;font-style:italic;">'+escH(item.reason)+'</div>';
+        card.addEventListener('click', function() { ol.remove(); window.openEmailDetail(item.email); });
+        sec.appendChild(card);
+      });
+      body.appendChild(sec);
+    });
+    modal.appendChild(hdr); modal.appendChild(body);
+    ol.appendChild(modal);
+    ol.addEventListener('click', function(e) { if (e.target === ol) ol.remove(); });
+    document.body.appendChild(ol);
+  }
+
   install();
   setTimeout(injectReportBtn, 1500);
   setTimeout(initHomeChat, 1500);
   setTimeout(injectTagsBtn, 1500);
+  setTimeout(injectTriageBtn, 1600);
 })();

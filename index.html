@@ -938,7 +938,30 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .email-detail-from{font-size:12px;color:#4a5568;margin-bottom:4px;}.email-detail-subject{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:#eef3fc;margin-bottom:16px;line-height:1.3;}.email-detail-body{font-size:14px;color:#8a9bb8;line-height:1.7;white-space:pre-wrap;word-break:break-word;}.email-detail-actions{display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;}.email-detail-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#6b7a96;font-size:16px;cursor:pointer;}
 .trash-banner{background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;}.trash-banner-text{font-size:12px;color:#ff8080;}.trash-banner-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.35);color:#ff8080;}
 .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;}.confirm-modal{background:#0e1424;border:1px solid rgba(255,80,80,0.3);border-radius:16px;padding:28px 32px;max-width:420px;width:90%;text-align:center;}.confirm-modal h3{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:#eef3fc;margin-bottom:10px;}.confirm-modal p{font-size:13px;color:#6b7a96;line-height:1.6;margin-bottom:22px;}.confirm-modal-btns{display:flex;gap:10px;justify-content:center;}.confirm-btn-cancel{padding:9px 22px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#6b7a96;font-size:13px;font-weight:600;cursor:pointer;}.confirm-btn-delete{padding:9px 22px;border-radius:10px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.15);color:#ff8080;font-size:13px;font-weight:700;cursor:pointer;}
+/* ===== FULLCALENDAR DARK THEME OVERRIDES ===== */
+.fc { font-family: 'DM Sans', sans-serif; color: #b8c8e0; }
+.fc-theme-standard td, .fc-theme-standard th { border-color: rgba(255,255,255,0.07); }
+.fc-theme-standard .fc-scrollgrid { border-color: rgba(255,255,255,0.07); }
+.fc .fc-daygrid-day { background: rgba(14,20,36,0.6); }
+.fc .fc-daygrid-day:hover { background: rgba(14,20,36,0.9); }
+.fc .fc-daygrid-day.fc-day-today { background: rgba(170,255,62,0.06); }
+.fc .fc-col-header-cell { background: rgba(6,8,15,0.8); color: #6b7a96; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.fc .fc-daygrid-day-number { color: #6b7a96; font-size: 12px; }
+.fc .fc-day-today .fc-daygrid-day-number { color: #aaff3e; font-weight: 700; }
+.fc .fc-button { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #b8c8e0; font-family: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; }
+.fc .fc-button:hover { background: rgba(170,255,62,0.12); border-color: rgba(170,255,62,0.3); color: #aaff3e; }
+.fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active { background: rgba(170,255,62,0.15); border-color: rgba(170,255,62,0.35); color: #aaff3e; }
+.fc .fc-toolbar-title { font-size: 16px; font-weight: 700; color: #eef3fc; }
+.fc .fc-event { border: none; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; padding: 1px 5px; }
+.fc .fc-timegrid-slot { border-color: rgba(255,255,255,0.04); }
+.fc .fc-timegrid-slot-label { color: #4a5568; font-size: 10px; }
+.fc .fc-timegrid-col.fc-day-today { background: rgba(170,255,62,0.03); }
+.fc .fc-list-day-cushion { background: rgba(14,20,36,0.9); }
+.fc .fc-list-event:hover td { background: rgba(255,255,255,0.04); cursor: pointer; }
+.fc .fc-list-event-title { color: #b8c8e0; }
+.fc .fc-list-event-time { color: #4a5568; }
 </style>
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
 </head>
 <body>
 
@@ -997,6 +1020,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span>
           </a></li>
           <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
+          <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);initFullCalendar();" style="cursor:pointer;">Calendar</a></li>
           <li><a id="dash-nav-stats" onclick="showDashTab('stats-tab',this)" style="cursor:pointer;">My Stats</a></li>
           <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
         </ul>
@@ -1601,6 +1625,15 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
       </div>
 
+      <!-- ========== FULL CALENDAR TAB ========== -->
+      <div class="page main dash-tab" id="fullcal-tab" style="display:none;padding:24px 32px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#eef3fc;">📅 Calendar</div>
+          <button onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule Meeting</button>
+        </div>
+        <div id="esq-fullcal" style="background:rgba(14,20,36,0.6);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;"></div>
+      </div>
+
       <!-- ========== MY STATS TAB ========== -->
       <div class="page main dash-tab" id="stats-tab" style="display:none;padding:24px 32px;">
         <!-- Sub-tab nav -->
@@ -1677,6 +1710,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       
 
 
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
@@ -1783,6 +1817,77 @@ function showDashTab(tabId,el){
   if(el)el.classList.add('active');
   var sa=document.querySelector('.scroll-area');
   if(sa)sa.scrollTop=0;
+}
+
+var _fcInstance = null;
+function initFullCalendar(){
+  var el = document.getElementById('esq-fullcal');
+  if(!el || typeof FullCalendar === 'undefined') return;
+
+  // Convert stored events to FullCalendar format
+  var calMeetTypes = window.calMeetingTypes || {};
+  function evtColor(title){
+    var text = (title||'').toLowerCase();
+    if(/site visit|property tour/i.test(text)) return '#64afff';
+    if(/board|directors/i.test(text)) return '#f5c542';
+    if(/bre|retention/i.test(text)) return '#14b8a6';
+    if(/grant/i.test(text)) return '#f5c542';
+    if(/press|media/i.test(text)) return '#fb923c';
+    if(/council/i.test(text)) return '#a78bfa';
+    if(/prospect|site selector/i.test(text)) return '#aaff3e';
+    return '#6b7a96';
+  }
+
+  var rawEvents = window._lastCalEvents || [];
+  var fcEvents = rawEvents.map(function(evt){
+    return {
+      id: evt.id||evt.title,
+      title: evt.title,
+      start: evt.start,
+      end: evt.end||null,
+      allDay: !!evt.allDay,
+      backgroundColor: evtColor(evt.title),
+      borderColor: 'transparent',
+      extendedProps: { _raw: evt }
+    };
+  });
+
+  if(_fcInstance){
+    // Refresh events only
+    _fcInstance.removeAllEvents();
+    _fcInstance.addEventSource(fcEvents);
+    _fcInstance.render();
+    return;
+  }
+
+  _fcInstance = new FullCalendar.Calendar(el, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+    },
+    buttonText: { today:'Today', month:'Month', week:'Week', day:'Day', list:'Agenda' },
+    nowIndicator: true,
+    events: fcEvents,
+    eventClick: function(info){
+      openCalEventDetail(info.event.extendedProps._raw);
+    },
+    eventMouseEnter: function(info){
+      info.el.style.opacity = '0.85';
+      info.el.style.transform = 'scale(1.02)';
+    },
+    eventMouseLeave: function(info){
+      info.el.style.opacity = '';
+      info.el.style.transform = '';
+    },
+    noEventsContent: 'No events found. Connect your calendar to see events here.',
+    eventDidMount: function(info){
+      info.el.title = info.event.title;
+    }
+  });
+  _fcInstance.render();
 }
 
 /* ===== SMOOTH SCROLL ===== */
@@ -6318,6 +6423,63 @@ function openCalEventDetail(evt){
   lnTa.onblur=function(){lnTa.style.borderColor='rgba(255,255,255,0.08)';};
   lnTa.addEventListener('input',function(){localStorage.setItem(LIVE_NOTES_KEY,lnTa.value);});
   left.appendChild(lnSep); left.appendChild(lnHdr); left.appendChild(lnTa);
+
+  // Action buttons — follow-up draft + export
+  var actSep=document.createElement('div'); actSep.style.cssText='height:1px;background:rgba(255,255,255,0.06);margin:14px 0;';
+  var actBtns=document.createElement('div'); actBtns.style.cssText='display:flex;flex-direction:column;gap:8px;';
+
+  // Draft follow-up email
+  var followupBtn=document.createElement('button');
+  followupBtn.innerHTML='📧 Draft Follow-up Email';
+  followupBtn.style.cssText='width:100%;background:rgba(100,175,255,0.08);border:1px solid rgba(100,175,255,0.2);color:#64afff;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;';
+  followupBtn.onmouseover=function(){followupBtn.style.background='rgba(100,175,255,0.15)';};
+  followupBtn.onmouseout=function(){followupBtn.style.background='rgba(100,175,255,0.08)';};
+  followupBtn.addEventListener('click',function(){
+    followupBtn.innerHTML='Drafting…'; followupBtn.disabled=true;
+    var liveNotes=localStorage.getItem(LIVE_NOTES_KEY)||'';
+    var savedNotesText=savedNotes.map(function(n,i){return (i+1)+'. '+n.text;}).join('\n\n');
+    var attendeeNames=editAttendees.map(function(a){return a.name||a.email;}).join(', ');
+    fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/gmail-calendar',{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify({action:'aria_followup',meetingTitle:evt.title,meetingDate:dateStr,attendees:attendeeNames,liveNotes:liveNotes,savedNotes:savedNotesText})
+    }).then(function(r){return r.json();}).then(function(d){
+      followupBtn.innerHTML='📧 Draft Follow-up Email'; followupBtn.disabled=false;
+      if(!d.draft) return;
+      ol.remove();
+      window.openReplyCompose({
+        from:'',subject:'Follow-up: '+evt.title,snippet:d.draft,
+        _prefillBody:d.draft,_prefillSubject:'Follow-up: '+evt.title
+      });
+    }).catch(function(){followupBtn.innerHTML='📧 Draft Follow-up Email';followupBtn.disabled=false;});
+  });
+
+  // Export meeting package
+  var exportBtn=document.createElement('button');
+  exportBtn.innerHTML='📤 Export Meeting Package';
+  exportBtn.style.cssText='width:100%;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;font-family:inherit;text-align:left;';
+  exportBtn.onmouseover=function(){exportBtn.style.background='rgba(170,255,62,0.12)';};
+  exportBtn.onmouseout=function(){exportBtn.style.background='rgba(170,255,62,0.06)';};
+  exportBtn.addEventListener('click',function(){
+    var lines=['📅 MEETING PACKAGE','═'.repeat(40),''];
+    lines.push('Meeting: '+evt.title);
+    if(dateStr) lines.push('Date: '+dateStr);
+    if(timeStr) lines.push('Time: '+timeStr);
+    if(evt.location) lines.push('Location: '+evt.location);
+    if(evt.meetLink) lines.push('Meet: '+evt.meetLink);
+    if(editAttendees.length){ lines.push(''); lines.push('Attendees:'); editAttendees.forEach(function(a){lines.push('  • '+(a.name||a.email));});}
+    var checks={}; try{checks=JSON.parse(localStorage.getItem(PREP_CHECKS_KEY)||'{}');}catch(e){}
+    lines.push(''); lines.push('Prep Checklist:');
+    steps.forEach(function(s,i){lines.push('  '+(checks[i]?'[✓]':'[ ]')+' '+s);});
+    var liveNotes=localStorage.getItem(LIVE_NOTES_KEY)||'';
+    if(liveNotes){lines.push('');lines.push('Meeting Notes:');lines.push(liveNotes);}
+    if(savedNotes.length){lines.push('');lines.push('Saved ARIA Notes:');savedNotes.forEach(function(n,i){lines.push('');lines.push((i+1)+'. '+n.text);});}
+    var pkg=lines.join('\n');
+    ol.remove();
+    window.openReplyCompose({from:'',subject:'Meeting Package: '+evt.title,snippet:pkg,_prefillBody:pkg,_prefillSubject:'Meeting Package: '+evt.title});
+  });
+
+  actBtns.appendChild(followupBtn); actBtns.appendChild(exportBtn);
+  left.appendChild(actSep); left.appendChild(actBtns);
 
   // RIGHT — ARIA chat
   var right = document.createElement('div');

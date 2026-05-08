@@ -227,6 +227,75 @@ serve(async (req) => {
       }
     }
 
+    // ===== GMAIL FULL MESSAGE =====
+    if (action === 'gmail_message') {
+      const { messageId } = body
+      const res = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+        { headers: { Authorization: `Bearer ${provider_token}` } }
+      )
+      const data = await res.json()
+      function extractBody(payload: any): { content: string; isHtml: boolean } {
+        if (!payload) return { content: '', isHtml: false }
+        if (payload.body?.data) {
+          const content = atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'))
+          return { content, isHtml: payload.mimeType === 'text/html' }
+        }
+        if (payload.parts) {
+          const html = payload.parts.find((p: any) => p.mimeType === 'text/html')
+          const plain = payload.parts.find((p: any) => p.mimeType === 'text/plain')
+          const part = html || plain
+          if (part?.body?.data) {
+            const content = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'))
+            return { content, isHtml: !!html }
+          }
+          for (const part of payload.parts) {
+            const found = extractBody(part)
+            if (found.content) return found
+          }
+        }
+        return { content: '', isHtml: false }
+      }
+      const headers = data.payload?.headers || []
+      const getH = (n: string) => headers.find((h: any) => h.name === n)?.value || ''
+      const { content, isHtml } = extractBody(data.payload)
+      result = { from: getH('From'), to: getH('To'), subject: getH('Subject'), date: getH('Date'), body: content, isHtml }
+    }
+
+    // ===== ARIA TRIAGE =====
+    if (action === 'aria_triage') {
+      const { emails: triageEmails } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      const list = (triageEmails || []).map((e: any, i: number) =>
+        `${i + 1}. From: ${e.from} | Subject: ${e.subject} | Preview: ${e.snippet}`
+      ).join('\n')
+      const prompt = `You are ARIA, assistant for economic developers. Triage these unread emails:\n\n${list}\n\nReturn a JSON array only, no other text. Each item: {"index":number,"priority":"urgent"|"today"|"later"|"fyi","reason":"one short sentence"}\n\nurgent=same-day response needed, today=respond today, later=can wait days, fyi=no response needed.`
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
+      })
+      const cd = await cr.json()
+      const text = cd?.content?.[0]?.text || '[]'
+      let triage: any[] = []
+      try { const m = text.match(/\[[\s\S]*\]/); if (m) triage = JSON.parse(m[0]) } catch (_) {}
+      result = { triage }
+    }
+
+    // ===== ARIA FOLLOW-UP DRAFT =====
+    if (action === 'aria_followup') {
+      const { meetingTitle, meetingDate, attendees, liveNotes, savedNotes } = body
+      const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY') || ''
+      const prompt = `Draft a professional follow-up email after this meeting:\n\nMeeting: ${meetingTitle}\nDate: ${meetingDate || 'Today'}\nAttendees: ${attendees || 'Not specified'}${liveNotes ? '\n\nMeeting notes:\n' + liveNotes : ''}${savedNotes ? '\n\nKey points:\n' + savedNotes : ''}\n\nWrite a concise professional follow-up: thank attendees, summarize key points, list action items, suggest next steps. Return only the email body text, no subject line.`
+      const cr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] })
+      })
+      const cd = await cr.json()
+      result = { draft: cd?.content?.[0]?.text || '' }
+    }
+
     // ===== CALENDAR UPDATE (attendees + Google Meet) =====
     if (action === 'calendar_update') {
       const { eventId, attendeeEmails, addMeet, sendUpdates } = body
