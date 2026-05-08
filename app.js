@@ -2181,30 +2181,27 @@
     var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
     var name = firstName ? (', ' + firstName) : '';
 
-    var lines = [
-      greeting + name + '.',
-      'I\'m ARIA — your AI economic development squad.',
-      'I\'m here to clear your inbox, prep your meetings,',
-      'and handle the heavy lifting so you can focus on what matters.',
-      'Less work. More impact. Let\'s make today count.'
-    ];
-
     /* Inject keyframe styles */
     if (!document.getElementById('esq-splash-css')) {
       var s = document.createElement('style');
       s.id = 'esq-splash-css';
       s.textContent = [
-        '@keyframes ariaSplashFadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}',
-        '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}',
+        '@keyframes ariaSplashFadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}',
+        '@keyframes ariaSplashFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}',
         '@keyframes ariaSplashShrink{0%{opacity:1;transform:scale(1);}60%{opacity:1;transform:scale(0.06) translateY(-80px);}100%{opacity:0;transform:scale(0.02) translateY(-120px);}}',
         '@keyframes ariaSplashOverlayOut{from{opacity:1;}to{opacity:0;}}',
         '@keyframes starTwinkle{0%,100%{opacity:0.1;}50%{opacity:0.6;}}',
         '@keyframes splashOrb{0%,100%{box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);}50%{box-shadow:0 0 70px rgba(170,255,62,1),0 0 130px rgba(170,255,62,0.6),0 0 200px rgba(170,255,62,0.25);}}',
+        '@keyframes splashOrbPowerup{0%{opacity:0.1;box-shadow:none;filter:brightness(0.2);}30%{opacity:0.6;filter:brightness(0.5);}50%{opacity:0.4;filter:brightness(0.3);}70%{opacity:0.9;filter:brightness(0.8);}85%{opacity:0.7;filter:brightness(0.6);}100%{opacity:1;filter:brightness(1);box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4);}}',
         '@keyframes splashRing{0%,100%{opacity:0.25;transform:scale(1);}50%{opacity:0.6;transform:scale(1.05);}}',
         '@keyframes splashSwirl1{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}',
         '@keyframes splashSwirl2{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}',
         '@keyframes splashSwirl3{from{transform:rotate(45deg);}to{transform:rotate(405deg);}}',
         '@keyframes splashSmoke{0%,100%{opacity:0.06;transform:scale(1) rotate(0deg);}33%{opacity:0.14;transform:scale(1.08) rotate(120deg);}66%{opacity:0.08;transform:scale(0.95) rotate(240deg);}}',
+        '@keyframes splashCheckPop{0%{transform:scale(0) rotate(-20deg);opacity:0;}70%{transform:scale(1.3) rotate(5deg);}100%{transform:scale(1) rotate(0deg);opacity:1;}}',
+        '@keyframes splashBarFill{from{width:0;}to{width:100%;}}',
+        '@keyframes splashStatusIn{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}',
+        '@keyframes splashPulse{0%,100%{opacity:1;}50%{opacity:0.4;}}',
       ].join('');
       document.head.appendChild(s);
     }
@@ -2298,12 +2295,11 @@
     iconWrap.appendChild(swirlWrap2);
     iconWrap.appendChild(swirlWrap3);
 
-    /* The orb itself */
+    /* The orb itself — power-up flicker then steady glow */
     var orb = document.createElement('div');
     orb.style.cssText = 'position:relative;width:130px;height:130px;border-radius:50%;'
       +'background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);'
-      +'box-shadow:0 0 40px rgba(170,255,62,0.8),0 0 80px rgba(170,255,62,0.4),0 0 140px rgba(170,255,62,0.2);'
-      +'animation:splashOrb 3s ease-in-out infinite;'
+      +'animation:splashOrbPowerup 1.4s ease-out forwards, splashOrb 3s ease-in-out 1.4s infinite;'
       +'display:flex;align-items:center;justify-content:center;z-index:2;';
     orb.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(0,40,0,0.55)"><path d="M12 2 L13.5 9 L20 12 L13.5 15 L12 22 L10.5 15 L4 12 L10.5 9 Z"/></svg>';
     iconWrap.appendChild(orb);
@@ -2311,41 +2307,100 @@
 
     /* ARIA name */
     var nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-family:Barlow Condensed,Barlow,sans-serif;font-size:clamp(64px,12vw,120px);font-weight:900;color:#aaff3e;letter-spacing:-.02em;line-height:1;margin-bottom:8px;text-shadow:0 0 60px rgba(170,255,62,0.4);';
+    nameEl.style.cssText = 'font-family:Barlow Condensed,Barlow,sans-serif;font-size:clamp(56px,10vw,100px);font-weight:900;color:#aaff3e;letter-spacing:-.02em;line-height:1;margin-bottom:4px;text-shadow:0 0 60px rgba(170,255,62,0.4);opacity:0;animation:ariaSplashFadeUp .5s .3s ease forwards;';
     nameEl.textContent = 'ARIA';
     content.appendChild(nameEl);
 
     /* Tagline */
     var tagEl = document.createElement('div');
-    tagEl.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(13px,2vw,16px);font-weight:600;color:#4a5568;letter-spacing:.18em;text-transform:uppercase;margin-bottom:48px;';
+    tagEl.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(11px,1.6vw,14px);font-weight:600;color:#4a5568;letter-spacing:.18em;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:ariaSplashFadeUp .5s .6s ease forwards;';
     tagEl.textContent = 'AI Economic Development Squad';
     content.appendChild(tagEl);
 
-    /* Greeting lines — appear one by one */
-    var msgWrap = document.createElement('div');
-    msgWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:56px;';
+    /* ── Power-up status panel ── */
+    var statusPanel = document.createElement('div');
+    statusPanel.style.cssText = 'width:320px;display:flex;flex-direction:column;gap:0;margin-bottom:28px;background:rgba(10,22,40,0.7);border:1px solid rgba(170,255,62,0.1);border-radius:14px;overflow:hidden;opacity:0;animation:ariaSplashFadeUp .4s 1.0s ease forwards;';
 
-    lines.forEach(function(line, i) {
+    /* Status header */
+    var statusHdr = document.createElement('div');
+    statusHdr.style.cssText = 'padding:10px 16px 8px;border-bottom:1px solid rgba(170,255,62,0.08);display:flex;align-items:center;gap:8px;';
+    var statusDot = document.createElement('div');
+    statusDot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#aaff3e;animation:splashPulse 1s ease-in-out infinite;';
+    var statusLbl = document.createElement('span');
+    statusLbl.style.cssText = 'font-family:Barlow,sans-serif;font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.12em;';
+    statusLbl.textContent = 'Powering up';
+    statusHdr.appendChild(statusDot); statusHdr.appendChild(statusLbl);
+    statusPanel.appendChild(statusHdr);
+
+    /* Status items */
+    var statusItems = [
+      { icon: '📧', label: 'Analyzing your inbox',   doneLabel: 'Emails analyzed',      delay: 1.6 },
+      { icon: '📅', label: 'Syncing your calendar',  doneLabel: 'Calendar considered',   delay: 2.5 },
+      { icon: '✅', label: 'Reviewing your tasks',   doneLabel: 'Tasks reviewed',        delay: 3.4 },
+      { icon: '⚡', label: 'Squad standing by',       doneLabel: 'Squad ready',           delay: 4.2 },
+    ];
+    var statusEls = [];
+    statusItems.forEach(function(item) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);opacity:0;animation:splashStatusIn .35s '+item.delay+'s ease forwards;';
+
+      var rowIcon = document.createElement('span');
+      rowIcon.style.cssText = 'font-size:14px;width:20px;text-align:center;flex-shrink:0;';
+      rowIcon.textContent = item.icon;
+
+      var rowText = document.createElement('span');
+      rowText.style.cssText = 'font-family:Barlow,sans-serif;font-size:12px;color:#6b7a96;flex:1;';
+      rowText.textContent = item.label + '...';
+
+      var rowCheck = document.createElement('span');
+      rowCheck.style.cssText = 'font-size:13px;opacity:0;color:#aaff3e;font-weight:800;flex-shrink:0;';
+      rowCheck.textContent = '✓';
+
+      row.appendChild(rowIcon); row.appendChild(rowText); row.appendChild(rowCheck);
+      statusPanel.appendChild(row);
+      statusEls.push({ row: row, text: rowText, check: rowCheck, item: item });
+
+      /* After item appears, animate to "done" state */
+      setTimeout(function(el) {
+        return function() {
+          el.text.style.color = '#b8c8e0';
+          el.text.textContent = el.item.doneLabel;
+          el.check.style.animation = 'splashCheckPop .3s ease forwards';
+          el.check.style.opacity = '1';
+          el.row.style.borderBottomColor = 'rgba(170,255,62,0.06)';
+        };
+      }(statusEls[statusEls.length-1]), (item.delay + 0.7) * 1000);
+    });
+    content.appendChild(statusPanel);
+
+    /* ── Greeting message ── */
+    var msgWrap = document.createElement('div');
+    msgWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:36px;text-align:center;';
+
+    var greetDelay = 5.1;
+    var msgLines = [
+      { text: greeting + name + '.', color: '#eef3fc', size: 'clamp(18px,3vw,24px)', weight: '700', d: greetDelay },
+      { text: 'I\'m here to make your work more efficient', color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 0.4 },
+      { text: 'and your days less stressful.', color: '#8a97b5', size: 'clamp(13px,2vw,17px)', weight: '400', d: greetDelay + 0.7 },
+      { text: 'Less work. More impact. Let\'s make today count.', color: '#aaff3e', size: 'clamp(13px,2vw,16px)', weight: '800', d: greetDelay + 1.1 },
+    ];
+    msgLines.forEach(function(ml) {
       var p = document.createElement('div');
-      var isAccent = i === lines.length - 1;
-      p.style.cssText = 'font-family:Barlow,sans-serif;font-size:clamp(14px,2.2vw,19px);font-weight:' + (isAccent ? '800' : '400') + ';'
-        + 'color:' + (i === 0 ? '#eef3fc' : isAccent ? '#aaff3e' : '#8a97b5') + ';'
-        + 'line-height:1.6;opacity:0;'
-        + 'animation:ariaSplashFadeUp .6s ' + (0.6 + i * 0.35) + 's ease forwards;';
-      p.textContent = line;
+      p.style.cssText = 'font-family:Barlow,sans-serif;font-size:'+ml.size+';font-weight:'+ml.weight+';color:'+ml.color+';line-height:1.5;opacity:0;animation:ariaSplashFadeUp .5s '+ml.d+'s ease forwards;';
+      p.textContent = ml.text;
       msgWrap.appendChild(p);
     });
     content.appendChild(msgWrap);
 
     /* CTA button */
     var btn = document.createElement('button');
-    var btnDelay = 0.6 + lines.length * 0.35 + 0.4;
+    var btnDelay = greetDelay + 1.8;
     btn.style.cssText = 'font-family:Barlow,sans-serif;font-size:15px;font-weight:800;'
-      + 'background:#aaff3e;color:#0a1a00;border:none;padding:14px 40px;border-radius:50px;'
+      + 'background:#aaff3e;color:#0a1a00;border:none;padding:14px 44px;border-radius:50px;'
       + 'cursor:pointer;letter-spacing:.04em;opacity:0;'
       + 'animation:ariaSplashFadeUp .5s ' + btnDelay + 's ease forwards;'
       + 'box-shadow:0 0 32px rgba(170,255,62,0.35);transition:transform .15s,box-shadow .15s;';
-    btn.textContent = "Let's dive in →";
+    btn.textContent = "Let's get started →";
     btn.onmouseover = function() { btn.style.transform='scale(1.05)'; btn.style.boxShadow='0 0 48px rgba(170,255,62,0.55)'; };
     btn.onmouseout  = function() { btn.style.transform=''; btn.style.boxShadow='0 0 32px rgba(170,255,62,0.35)'; };
     content.appendChild(btn);
@@ -2368,7 +2423,6 @@
         overlay.style.animation = 'ariaSplashOverlayOut .5s ease forwards';
         setTimeout(function() {
           overlay.remove();
-          /* Navigate to inbox after splash */
           if (typeof window.showDashTab === 'function') {
             window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
           }
@@ -2379,8 +2433,8 @@
     btn.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
     skip.addEventListener('click', function(e) { e.stopPropagation(); dismiss(); });
 
-    /* Auto-dismiss after 7 seconds */
-    var autoTimer = setTimeout(dismiss, 7000);
+    /* Auto-dismiss 3s after button appears */
+    var autoTimer = setTimeout(dismiss, (btnDelay + 4) * 1000);
     btn.addEventListener('click', function() { clearTimeout(autoTimer); });
     skip.addEventListener('click', function() { clearTimeout(autoTimer); });
   };
