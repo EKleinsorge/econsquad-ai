@@ -2457,15 +2457,20 @@ function suSelectPlan(plan){
 }
 
 function suUpdatePlanSummary(){
-  var lbl=authEl('su-plan-label');
-  if(!lbl)return;
-  var planName=suSelectedPlan==='starter'?'Starter':'Pro Squad';
-  var price=suSelectedPlan==='starter'?(suBillingAnnual?'$290/yr':'$29/mo'):(suBillingAnnual?'$790/yr':'$79/mo');
-  lbl.textContent=planName+' · '+price;
+  /* Update plan card amounts when billing toggle switches */
+  var sAmt=authEl('su-starter-amt'); var sPer=authEl('su-starter-per');
+  var pAmt=authEl('su-pro-amt');     var pPer=authEl('su-pro-per');
+  if(suBillingAnnual){
+    if(sAmt)sAmt.textContent='$490'; if(sPer)sPer.textContent='/yr';
+    if(pAmt)pAmt.textContent='$990'; if(pPer)pPer.textContent='/yr';
+  } else {
+    if(sAmt)sAmt.textContent='$49'; if(sPer)sPer.textContent='/mo';
+    if(pAmt)pAmt.textContent='$99'; if(pPer)pPer.textContent='/mo';
+  }
 }
 
 function suNextStep(n){
-  /* validate step 1 */
+  /* validate step 1 before advancing */
   if(n===2){
     var fname=authEl('su-fname').value.trim();
     var email=authEl('su-email').value.trim();
@@ -2473,14 +2478,10 @@ function suNextStep(n){
     if(!fname||!email||!pass){showAuthMsg('Please fill in name, email and password.','error');return;}
     if(pass.length<8){showAuthMsg('Password must be at least 8 characters.','error');return;}
     clearAuthMsg();
-  }
-  /* mount Stripe card element when reaching step 3 */
-  if(n===3){
     suUpdatePlanSummary();
-    setTimeout(mountStripeCard,100);
   }
   /* show the correct step */
-  [1,2,3].forEach(function(i){
+  [1,2].forEach(function(i){
     var s=authEl('su-step-'+i);
     if(s)s.style.display=i===n?'block':'none';
   });
@@ -2532,7 +2533,7 @@ function mountStripeCard(){
   }
 }
 
-/* ── SIGN UP — full flow with card ── */
+/* ── SIGN UP — create account then redirect to Stripe ── */
 function doSignup(){
   var fname=authEl('su-fname').value.trim();
   var lname=authEl('su-lname').value.trim();
@@ -2543,79 +2544,33 @@ function doSignup(){
 
   if(!fname||!email||!pass){showAuthMsg('Please fill in all required fields.','error');return;}
   if(pass.length<8){showAuthMsg('Password must be at least 8 characters.','error');return;}
-  if(!stripeCardElement){showAuthMsg('Card element not loaded. Please refresh.','error');return;}
 
-  var btn=authEl('btn-start-trial');
-  if(btn){btn.disabled=true;btn.textContent='Setting up your squad...';}
+  var btn=authEl('btn-checkout');
+  if(btn){btn.disabled=true;btn.textContent='Creating your account...';}
 
-  /* Step 1: create Stripe payment method */
-  window._stripeInstance.createPaymentMethod({
-    type:'card',
-    card:stripeCardElement,
-    billing_details:{name:fname+' '+lname,email:email}
-  }).then(function(result){
-    if(result.error){
-      showAuthMsg(result.error.message,'error');
-      if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
+  /* Step 1: create Supabase account */
+  supa.auth.signUp({
+    email:email,
+    password:pass,
+    options:{data:{full_name:fname+' '+lname,organization:org,job_title:role}}
+  }).then(function(authRes){
+    if(authRes.error){
+      showAuthMsg(authRes.error.message,'error');
+      if(btn){btn.disabled=false;btn.textContent='Continue to checkout →';}
       return;
     }
 
-    var paymentMethodId=result.paymentMethod.id;
+    var userId=authRes.data&&authRes.data.user?authRes.data.user.id:'';
+
+    /* Step 2: redirect to Stripe Payment Link with user ID + email pre-filled */
     var priceKey=(suSelectedPlan==='starter'?'starter':'pro')+'_'+(suBillingAnnual?'annual':'monthly');
-    var priceId=PRICE_IDS[priceKey];
+    var paymentLink=PAYMENT_LINKS[priceKey];
 
-    /* Step 2: create Supabase account */
-    supa.auth.signUp({
-      email:email,
-      password:pass,
-      options:{data:{full_name:fname+' '+lname,organization:org,job_title:role}}
-    }).then(function(authRes){
-      if(authRes.error){
-        showAuthMsg(authRes.error.message,'error');
-        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
-        return;
-      }
+    /* Append client_reference_id so webhook can link Stripe customer to Supabase user */
+    var url=paymentLink+'?client_reference_id='+encodeURIComponent(userId)+'&prefilled_email='+encodeURIComponent(email);
 
-      var userId=authRes.data.user?authRes.data.user.id:'';
-
-      /* Step 3: call Edge Function to create Stripe subscription */
-      fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/create-subscription',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':'Bearer '+SUPA_KEY,
-          'apikey':SUPA_KEY
-        },
-        body:JSON.stringify({
-          email:email,
-          paymentMethodId:paymentMethodId,
-          priceId:priceId,
-          userId:userId,
-          fullName:fname+' '+lname,
-          couponId:activeCouponId||null
-        })
-      }).then(function(r){return r.json();}).then(function(subRes){
-        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
-        if(subRes.error){
-          showAuthMsg('Payment setup failed: '+subRes.error,'error');
-          return;
-        }
-        /* Update user profile with stripe customer id and plan */
-        if(userId){
-          supa.from('profiles').update({
-            stripe_customer_id:subRes.customerId,
-            plan:suSelectedPlan,
-          }).eq('id',userId);
-        }
-        /* Show confirmation */
-        authEl('panel-signup').style.display='none';
-        authEl('panel-confirm').style.display='block';
-        authEl('confirm-email').textContent=email;
-      }).catch(function(err){
-        if(btn){btn.disabled=false;btn.textContent='Start my free trial — $0 today →';}
-        showAuthMsg('Something went wrong. Please try again.','error');
-      });
-    });
+    if(btn){btn.textContent='Redirecting to Stripe...';}
+    window.location.href=url;
   });
 }
 
@@ -7910,8 +7865,8 @@ function drawLogo(){if(!logoCtx)return;
 
       <!-- STEP 1: Account details -->
       <div id="su-step-1">
-        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div><div class="step-dot"></div></div>
-        <div class="modal-eyebrow">Step 1 of 3 — Create your account</div>
+        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div></div>
+        <div class="modal-eyebrow">Step 1 of 2 — Create your account</div>
         <h2 class="modal-h2">Hire your <span>squad</span></h2>
         <div class="form-row">
           <div class="form-field"><label>First name</label><input id="su-fname" type="text" placeholder="Sarah"></div>
@@ -7936,8 +7891,8 @@ function drawLogo(){if(!logoCtx)return;
 
       <!-- STEP 2: Choose plan -->
       <div id="su-step-2" style="display:none;">
-        <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div><div class="step-dot"></div></div>
-        <div class="modal-eyebrow">Step 2 of 3 — Choose your plan</div>
+        <div class="step-dots"><div class="step-dot"></div><div class="step-dot active"></div></div>
+        <div class="modal-eyebrow">Step 2 of 2 — Choose your plan</div>
         <h2 class="modal-h2">Pick your <span>squad size</span></h2>
 
         <!-- Billing toggle -->
@@ -7953,65 +7908,27 @@ function drawLogo(){if(!logoCtx)return;
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;">
           <div id="su-plan-starter" onclick="suSelectPlan('starter')" style="border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(14,20,36,0.6);">
             <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Starter</div>
-            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-starter-amt">$29</span><span style="font-size:12px;color:#6b7a96;" id="su-starter-per">/mo</span></div>
-            <div style="font-size:11px;color:#6b7a96;">6 specialists</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-starter-amt">$49</span><span style="font-size:12px;color:#6b7a96;" id="su-starter-per">/mo</span></div>
+            <div style="font-size:11px;color:#6b7a96;margin-top:4px;">Core specialists</div>
+            <div style="font-size:10px;color:#4a5568;margin-top:2px;">No integrations</div>
           </div>
-          <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);">
-            <div style="font-size:9px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Most popular</div>
-            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">Pro Squad</div>
-            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$79</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
-            <div style="font-size:11px;color:#6b7a96;">All 18 specialists</div>
+          <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);position:relative;">
+            <div style="position:absolute;top:-1px;right:10px;font-size:9px;color:#0a1a00;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:#aaff3e;padding:2px 8px;border-radius:0 0 6px 6px;">7-day free trial</div>
+            <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;margin-top:8px;">Pro Squad</div>
+            <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$99</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
+            <div style="font-size:11px;color:#aaff3e;margin-top:4px;">All specialists</div>
+            <div style="font-size:10px;color:#6b7a96;margin-top:2px;">Gmail · Calendar · Tasks</div>
           </div>
         </div>
-        <button class="modal-btn" onclick="suNextStep(3)">Continue — add payment →</button>
+
+        <!-- Trust note -->
+        <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <span>🔒</span>
+          <div style="font-size:11px;color:#8a97b5;">You won't be charged for 7 days on Pro. Card entered securely on Stripe. Cancel anytime.</div>
+        </div>
+
+        <button class="modal-btn" id="btn-checkout" onclick="doSignup()">Continue to checkout →</button>
         <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(1)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
-      </div>
-
-      <!-- STEP 3: Card details -->
-      <div id="su-step-3" style="display:none;">
-        <div class="step-dots"><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot active"></div></div>
-        <div class="modal-eyebrow">Step 3 of 3 — Payment details</div>
-        <h2 class="modal-h2">Start your <span>free trial</span></h2>
-
-        <!-- Trust banner -->
-        <div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">🔒</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#aaff3e;">You won't be charged for 7 days</div>
-            <div style="font-size:11px;color:#6b7a96;">Cancel anytime before your trial ends and pay nothing. Ever.</div>
-          </div>
-        </div>
-
-        <!-- Selected plan summary -->
-        <div id="su-plan-summary" style="background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#8a97b5;">Selected plan</span>
-          <span id="su-plan-label" style="font-size:13px;font-weight:700;color:#eef3fc;">Pro Squad · $79/mo</span>
-        </div>
-
-        <!-- Promo code -->
-        <div class="form-field" style="margin-bottom:14px;">
-          <label>Promo code <span style="color:#4a5568;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
-          <div style="display:flex;gap:8px;">
-            <input id="su-promo" type="text" placeholder="Enter promo code" style="flex:1;text-transform:uppercase;letter-spacing:.06em;">
-            <button type="button" onclick="applyPromoCode()" id="promo-apply-btn" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:12px;font-weight:700;padding:0 16px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;">Apply</button>
-          </div>
-          <div id="promo-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
-        </div>
-
-        <!-- Stripe card element -->
-        <div class="form-field">
-          <label>Card details</label>
-          <div id="stripe-card-element" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 14px;min-height:44px;"></div>
-          <div id="stripe-card-error" style="color:#ff8080;font-size:12px;margin-top:6px;display:none;"></div>
-        </div>
-
-        <button class="modal-btn" id="btn-start-trial" onclick="doSignup()">Start my free trial — $0 today →</button>
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;">
-          <span style="font-size:11px;color:#4a5568;">Secured by</span>
-          <span style="font-size:12px;font-weight:700;color:#6b7a96;">Stripe</span>
-          <span style="font-size:11px;color:#4a5568;">· 256-bit encryption</span>
-        </div>
-        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(2)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
       </div>
 
     </div>
