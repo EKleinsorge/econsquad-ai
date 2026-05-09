@@ -9,11 +9,11 @@ const SUPABASE_SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 // Fill these in with your real Stripe Price IDs from the Dashboard.
 const PRICE_TO_PLAN: Record<string, string> = {
   // Starter monthly / annual
-  'price_starter_monthly': 'starter',
-  'price_starter_annual':  'starter',
+  'price_1TVAQmAdXRzmLVohuE3VIA4t': 'starter',  // Starter monthly $49/mo
+  'price_1TVARjAdXRzmLVohbaUYBIFM': 'starter',  // Starter annual  $490/yr
   // Pro monthly / annual
-  'price_pro_monthly':     'pro',
-  'price_pro_annual':      'pro',
+  'price_1TVAVUAdXRzmLVohbsc0ce61': 'pro',       // Pro monthly     $99/mo
+  'price_1TVAWTAdXRzmLVohvThiz5yz': 'pro',       // Pro annual      $990/yr
 }
 
 serve(async (req) => {
