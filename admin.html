@@ -48,8 +48,13 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-suspended{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
-input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
+input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;color-scheme:dark;}
 input:focus,select:focus,textarea:focus{border-color:rgba(170,255,62,0.4);}
+select option{background:#0d1526;color:#eef3fc;}
+select option:hover,select option:focus,select option:checked{background:#1a2d50;color:#aaff3e;}
+/* inline-select (Actions column dropdowns) */
+.inline-select option{background:#0d1526;color:#eef3fc;}
+.inline-select option:hover,.inline-select option:focus,.inline-select option:checked{background:#1a2d50;color:#aaff3e;}
 label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 .form-field{margin-bottom:14px;}
@@ -108,7 +113,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 .action-group{display:flex;gap:4px;flex-wrap:wrap;}
 
 /* Inline select */
-.inline-select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#eef3fc;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:auto;}
+.inline-select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;color:#eef3fc;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;width:auto;color-scheme:dark;}
 
 /* Drawer sections */
 .drawer-section-title{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px;}
