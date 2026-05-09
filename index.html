@@ -1370,20 +1370,20 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div class="price-card">
             <div class="price-tier">Starter</div>
             <div class="price-amount" id="price-starter">
-              <span class="sym">$</span><span id="starter-amt">29</span><span class="per" id="starter-per">/mo</span>
+              <span class="sym">$</span><span id="starter-amt">49</span><span class="per" id="starter-per">/mo</span>
             </div>
-            <div id="starter-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $58/year</div>
-            <div class="price-desc">Perfect for solo economic developers getting started with AI assistance.</div>
+            <div id="starter-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $98/year</div>
+            <div class="price-desc">The essential AI toolkit for economic developers ready to work smarter.</div>
             <hr class="price-divider">
             <ul class="price-features">
-              <li class="on"><span class="ck">✓</span> 6 specialist GPTs</li>
-              <li class="on"><span class="ck">✓</span> ARIA intelligence assistant</li>
+              <li class="on"><span class="ck">✓</span> Core AI specialists</li>
+              <li class="on"><span class="ck">✓</span> Grants, BRE, workforce & more</li>
               <li class="on"><span class="ck">✓</span> ROI calculator & tracking</li>
               <li class="on"><span class="ck">✓</span> Copy-ready outputs</li>
-              <li><span class="xx">✗</span> Team workspace</li>
-              <li><span class="xx">✗</span> Advanced analytics</li>
+              <li><span class="xx">✗</span> ARIA morning briefing</li>
+              <li><span class="xx">✗</span> Gmail · Calendar · Tasks</li>
             </ul>
-            <button class="price-btn outline" onclick="startCheckout('starter')">Start 7-day free trial</button>
+            <button class="price-btn outline" onclick="startCheckout('starter')">Get started</button>
             <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
 
@@ -1392,16 +1392,16 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <div class="price-popular">Most popular</div>
             <div class="price-tier">Pro Squad</div>
             <div class="price-amount" id="price-pro">
-              <span class="sym">$</span><span id="pro-amt">79</span><span class="per" id="pro-per">/mo</span>
+              <span class="sym">$</span><span id="pro-amt">99</span><span class="per" id="pro-per">/mo</span>
             </div>
-            <div id="pro-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $158/year</div>
-            <div class="price-desc">The full squad experience. Everything an economic developer needs to dominate their workload.</div>
+            <div id="pro-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $198/year</div>
+            <div class="price-desc">The full EconSquad experience. AI-powered command center connected to everything on your plate.</div>
             <hr class="price-divider">
             <ul class="price-features">
-              <li class="on"><span class="ck">✓</span> All 18 specialist GPTs</li>
-              <li class="on"><span class="ck">✓</span> ARIA with smart reminders</li>
-              <li class="on"><span class="ck">✓</span> Full ROI dashboard</li>
-              <li class="on"><span class="ck">✓</span> Email & SMS nudges</li>
+              <li class="on"><span class="ck">✓</span> All specialists + new as they ship</li>
+              <li class="on"><span class="ck">✓</span> ARIA morning briefing</li>
+              <li class="on"><span class="ck">✓</span> Gmail integration</li>
+              <li class="on"><span class="ck">✓</span> Google Calendar & Tasks</li>
               <li class="on"><span class="ck">✓</span> History & saved results</li>
               <li class="on"><span class="ck">✓</span> Priority support</li>
             </ul>
@@ -2422,17 +2422,17 @@ function suToggleBilling(){
     if(knob)knob.style.transform='translateX(20px)';
     if(lblM)lblM.style.color='#6b7a96';
     if(lblA)lblA.style.color='#eef3fc';
-    authEl('su-starter-amt').textContent='$290';
+    authEl('su-starter-amt').textContent='$490';
     authEl('su-starter-per').textContent='/yr';
-    authEl('su-pro-amt').textContent='$790';
+    authEl('su-pro-amt').textContent='$990';
     authEl('su-pro-per').textContent='/yr';
   } else {
     if(knob)knob.style.transform='translateX(0)';
     if(lblM)lblM.style.color='#eef3fc';
     if(lblA)lblA.style.color='#6b7a96';
-    authEl('su-starter-amt').textContent='$29';
+    authEl('su-starter-amt').textContent='$49';
     authEl('su-starter-per').textContent='/mo';
-    authEl('su-pro-amt').textContent='$79';
+    authEl('su-pro-amt').textContent='$99';
     authEl('su-pro-per').textContent='/mo';
   }
   suUpdatePlanSummary();
@@ -2923,8 +2923,8 @@ function toggleBilling(){
     var sa=document.getElementById('starter-amt');var sp=document.getElementById('starter-per');
     var pa=document.getElementById('pro-amt');var pp=document.getElementById('pro-per');
     var ss=document.getElementById('starter-savings');var ps=document.getElementById('pro-savings');
-    if(sa)sa.textContent='290';if(sp)sp.textContent='/yr';if(ss)ss.style.display='block';
-    if(pa)pa.textContent='790';if(pp)pp.textContent='/yr';if(ps)ps.style.display='block';
+    if(sa)sa.textContent='490';if(sp)sp.textContent='/yr';if(ss)ss.style.display='block';
+    if(pa)pa.textContent='990';if(pp)pp.textContent='/yr';if(ps)ps.style.display='block';
   } else {
     if(knob)knob.style.transform='translateX(0)';
     if(toggle)toggle.style.background='rgba(170,255,62,0.15)';
@@ -2933,8 +2933,8 @@ function toggleBilling(){
     var sa=document.getElementById('starter-amt');var sp=document.getElementById('starter-per');
     var pa=document.getElementById('pro-amt');var pp=document.getElementById('pro-per');
     var ss=document.getElementById('starter-savings');var ps=document.getElementById('pro-savings');
-    if(sa)sa.textContent='29';if(sp)sp.textContent='/mo';if(ss)ss.style.display='none';
-    if(pa)pa.textContent='79';if(pp)pp.textContent='/mo';if(ps)ps.style.display='none';
+    if(sa)sa.textContent='49';if(sp)sp.textContent='/mo';if(ss)ss.style.display='none';
+    if(pa)pa.textContent='99';if(pp)pp.textContent='/mo';if(ps)ps.style.display='none';
   }
 }
 
