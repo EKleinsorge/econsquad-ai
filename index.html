@@ -2939,16 +2939,16 @@ function deploy(id){
 
 /* ===== STRIPE BILLING ===== */
 var PAYMENT_LINKS={
-  starter_monthly:'https://buy.stripe.com/test_bJe28qb8z9li1IvbA70RG02',
-  starter_annual: 'https://buy.stripe.com/test_fZudR890r1SQ0Er47F0RG03',
-  pro_monthly:    'https://buy.stripe.com/test_fZubJ0ekLapm0Er7jR0RG04',
-  pro_annual:     'https://buy.stripe.com/test_00wfZgekL8hebj50Vt0RG05',
+  starter_monthly:'https://buy.stripe.com/test_starter_monthly', /* TODO: replace with real Stripe Payment Link */
+  starter_annual: 'https://buy.stripe.com/test_starter_annual',  /* TODO: replace with real Stripe Payment Link */
+  pro_monthly:    'https://buy.stripe.com/test_pro_monthly',     /* TODO: replace with real Stripe Payment Link */
+  pro_annual:     'https://buy.stripe.com/test_pro_annual',      /* TODO: replace with real Stripe Payment Link */
 };
 var PRICE_IDS={
-  starter_monthly:'price_1TQTsTAdXRzmLVohLggANl4w',
-  starter_annual: 'price_1TQTsTAdXRzmLVohU2VbC7qW',
-  pro_monthly:    'price_1TQTucAdXRzmLVohzhADNHzi',
-  pro_annual:     'price_1TQTucAdXRzmLVohjuUJxfbC',
+  starter_monthly:'price_1TVAQmAdXRzmLVohuE3VIA4t',
+  starter_annual: 'price_1TVARjAdXRzmLVohbaUYBIFM',
+  pro_monthly:    'price_1TVAVUAdXRzmLVohbsc0ce61',
+  pro_annual:     'price_1TVAWTAdXRzmLVohvThiz5yz',
 };
 var billingAnnual=false;
 
@@ -4171,13 +4171,17 @@ function updatePlanBadge(user){
     } else if(plan==='starter'){
       pb.textContent='⚡ Starter';
       pb.className='plan-badge active';
+      pb.title='Starter — $49/mo · Click to manage';
     } else if(plan==='pro'){
       pb.textContent='⚡ Pro Squad';
       pb.className='plan-badge pro';
+      pb.title='Pro Squad — $99/mo · Click to manage';
     } else {
       pb.textContent='⚡ Trial';
       pb.className='plan-badge trial';
+      pb.title='Free trial · Click to manage';
     }
+    pb.onclick=function(){ openBillingModal(); };
   });
 }
 
@@ -4209,15 +4213,9 @@ function loadBillingDetails(){
   if(!currentUser)return;
 
   supa.from('profiles').select('*').eq('id',currentUser.id).single().then(function(res){
-    if(res.error){
-      console.log('billing error:',res.error.message);
+    if(res.error||!res.data){
       var name=document.getElementById('billing-plan-name');
       if(name)name.textContent='Could not load billing info. Please refresh.';
-      return;
-    }
-    if(!res.data){
-      var name=document.getElementById('billing-plan-name');
-      if(name)name.textContent='No billing profile found.';
       return;
     }
     var d=res.data;
@@ -4225,7 +4223,6 @@ function loadBillingDetails(){
     var trialEnd=d.trial_end?new Date(d.trial_end):null;
     var now=new Date();
 
-    /* plan name and status */
     var nameEl=document.getElementById('billing-plan-name');
     var statusEl=document.getElementById('billing-plan-status');
     var badgeEl=document.getElementById('billing-plan-badge');
@@ -4235,69 +4232,111 @@ function loadBillingDetails(){
     var trialMsgEl=document.getElementById('billing-trial-msg');
     var cancelBtn=document.getElementById('billing-cancel-btn');
     var upgradeBtn=document.getElementById('billing-upgrade-btn');
+    var switchSection=document.getElementById('billing-switch-section');
 
-    if(plan==='trial'&&trialEnd){
-      var msLeft=trialEnd-now;
-      var daysLeft=Math.max(0,Math.ceil(msLeft/(1000*60*60*24)));
-      var totalDays=7;
-      var pct=Math.min(100,Math.max(0,Math.round((1-(msLeft/(totalDays*24*60*60*1000)))*100)));
+    /* hide all optional elements first */
+    if(trialBar)trialBar.style.display='none';
+    if(cancelBtn)cancelBtn.style.display='none';
+    if(upgradeBtn)upgradeBtn.style.display='none';
+    if(switchSection)switchSection.style.display='none';
 
-      if(nameEl)nameEl.textContent='7-Day Free Trial';
-      if(statusEl)statusEl.textContent='Includes all Pro Squad features during your trial';
-      if(badgeEl){badgeEl.textContent=daysLeft+' days left';badgeEl.style.background='rgba(245,197,66,0.15)';badgeEl.style.color='#f5c542';badgeEl.style.border='1px solid rgba(245,197,66,0.3)';}
+    if(plan==='trial'){
+      var daysLeft=0, pct=100;
+      if(trialEnd){
+        var msLeft=trialEnd-now;
+        daysLeft=Math.max(0,Math.ceil(msLeft/(1000*60*60*24)));
+        pct=Math.min(100,Math.max(0,Math.round((1-(msLeft/(7*24*60*60*1000)))*100)));
+      }
+      if(nameEl)nameEl.textContent='Pro Trial — Full Access';
+      if(statusEl)statusEl.textContent='You have full Pro Squad access during your 7-day trial';
+      if(badgeEl){badgeEl.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' left';badgeEl.style.background='rgba(245,197,66,0.15)';badgeEl.style.color='#f5c542';badgeEl.style.border='1px solid rgba(245,197,66,0.3)';}
       if(trialBar)trialBar.style.display='block';
       if(daysLeftEl)daysLeftEl.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' remaining';
-      if(progressEl)progressEl.style.width=pct+'%';
-      if(daysLeft<=2&&progressEl)progressEl.style.background='linear-gradient(90deg,#ff8080,#f5c542)';
+      if(progressEl){progressEl.style.width=pct+'%';if(daysLeft<=2)progressEl.style.background='linear-gradient(90deg,#ff8080,#f5c542)';}
       if(trialMsgEl){
-        if(daysLeft>0){
+        if(daysLeft>0&&trialEnd){
           var billDate=trialEnd.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-          trialMsgEl.textContent='Your card will be charged on '+billDate+'. Cancel anytime before then.';
+          trialMsgEl.innerHTML='After your trial, you\'ll be billed at <strong style="color:#aaff3e;">$99/mo for Pro</strong> on '+billDate+'. Choose your plan below or cancel anytime.';
         } else {
-          trialMsgEl.textContent='Your trial has ended. Please update your payment method to continue.';
-          trialMsgEl.style.color='#ff8080';
+          trialMsgEl.innerHTML='<span style="color:#ff8080;">Your trial has ended.</span> Choose a plan below to continue.';
         }
       }
-      if(cancelBtn)cancelBtn.style.display='block';
+      if(switchSection)switchSection.style.display='block';
+      if(cancelBtn){cancelBtn.textContent='Cancel & end trial';cancelBtn.style.display='block';}
 
     } else if(plan==='starter'){
       if(nameEl)nameEl.textContent='Starter Plan';
-      if(statusEl)statusEl.textContent='$29/month — 6 specialist GPTs';
+      if(statusEl)statusEl.textContent='$49/month — Core AI specialists';
       if(badgeEl){badgeEl.textContent='Active';badgeEl.style.background='rgba(170,255,62,0.15)';badgeEl.style.color='#aaff3e';badgeEl.style.border='1px solid rgba(170,255,62,0.3)';}
-      if(upgradeBtn)upgradeBtn.style.display='block';
-      if(cancelBtn)cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';
+      if(switchSection)switchSection.style.display='block';
+      if(cancelBtn){cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';}
 
     } else if(plan==='pro'){
-      if(nameEl)nameEl.textContent='Pro Squad Plan';
-      if(statusEl)statusEl.textContent='$79/month — All 18 specialists, unlimited tasks';
+      if(nameEl)nameEl.textContent='Pro Squad';
+      if(statusEl)statusEl.textContent='$99/month — Full platform, all integrations';
       if(badgeEl){badgeEl.textContent='Active';badgeEl.style.background='rgba(170,255,62,0.15)';badgeEl.style.color='#aaff3e';badgeEl.style.border='1px solid rgba(170,255,62,0.3)';}
-      if(cancelBtn)cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';
+      if(switchSection)switchSection.style.display='block';
+      if(cancelBtn){cancelBtn.textContent='Cancel subscription';cancelBtn.style.display='block';}
+
+    } else {
+      if(nameEl)nameEl.textContent='No Active Plan';
+      if(statusEl)statusEl.textContent='Choose a plan to get started';
+      if(badgeEl){badgeEl.textContent='Inactive';badgeEl.style.background='rgba(255,80,80,0.15)';badgeEl.style.color='#ff8080';badgeEl.style.border='1px solid rgba(255,80,80,0.3)';}
+      if(switchSection)switchSection.style.display='block';
     }
 
-    /* features list */
+    /* features */
     var featuresEl=document.getElementById('billing-features');
     if(featuresEl){
-      var features=plan==='starter'?
-        ['6 specialist GPTs','ARIA intelligence assistant','ROI calculator & tracking','Copy-ready outputs']:
-        ['All 18 specialist GPTs','ARIA intelligence briefings','Full ROI dashboard','History & saved results','Priority support','All future specialists included'];
+      var starterFeatures=['Core AI specialists (grants, BRE, workforce, incentives & more)','ARIA chat assistant','ROI calculator & copy-ready outputs','Task history & saved results'];
+      var proFeatures=['All specialists + new ones as they ship','ARIA morning briefing (emails, calendar, tasks)','Gmail integration — read, reply, forward, archive','Google Calendar integration','Google Tasks integration','Priority support'];
+      var features=(plan==='pro'||plan==='trial')?proFeatures:starterFeatures;
+      var locked=(plan==='starter')?proFeatures:[];
       featuresEl.innerHTML=features.map(function(f){
-        return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#b8c8e0;">'+
-          '<span style="color:#aaff3e;font-size:14px;">✓</span>'+f+'</div>';
-      }).join('');
+        return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#b8c8e0;"><span style="color:#aaff3e;font-size:14px;">✓</span>'+f+'</div>';
+      }).join('')+(locked.length?'<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">'+locked.map(function(f){return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4a5568;"><span style="font-size:14px;">🔒</span>'+f+'</div>';}).join('')+'</div>':'');
+    }
+
+    /* plan switch cards */
+    var switchCards=document.getElementById('billing-switch-cards');
+    if(switchCards){
+      var starterActive=(plan==='starter');
+      var proActive=(plan==='pro'||plan==='trial');
+      switchCards.innerHTML=
+        '<div onclick="switchPlan(\'starter\')" style="flex:1;border:2px solid '+(starterActive?'#aaff3e':'rgba(255,255,255,0.08)')+';border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;background:'+(starterActive?'rgba(170,255,62,0.06)':'rgba(255,255,255,0.02)')+';position:relative;">'+
+          (starterActive?'<div style="position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;background:#aaff3e;color:#0a1a00;padding:2px 7px;border-radius:8px;font-family:\'Barlow\',sans-serif;">CURRENT</div>':'')+
+          '<div style="font-family:\'Barlow\',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:4px;">Starter</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#aaff3e;font-family:\'Barlow\',sans-serif;">$49<span style="font-size:13px;font-weight:400;color:#6b7a96;">/mo</span></div>'+
+          '<div style="font-size:11px;color:#6b7a96;margin-top:6px;">Core specialists · No integrations</div>'+
+        '</div>'+
+        '<div onclick="switchPlan(\'pro\')" style="flex:1;border:2px solid '+(proActive?'#aaff3e':'rgba(255,255,255,0.08)')+';border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;background:'+(proActive?'rgba(170,255,62,0.06)':'rgba(255,255,255,0.02)')+';position:relative;">'+
+          (proActive?'<div style="position:absolute;top:8px;right:8px;font-size:9px;font-weight:800;background:#aaff3e;color:#0a1a00;padding:2px 7px;border-radius:8px;font-family:\'Barlow\',sans-serif;">'+(plan==='trial'?'TRIAL':'CURRENT')+'</div>':'')+
+          '<div style="font-family:\'Barlow\',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:4px;">Pro Squad</div>'+
+          '<div style="font-size:22px;font-weight:800;color:#aaff3e;font-family:\'Barlow\',sans-serif;">$99<span style="font-size:13px;font-weight:400;color:#6b7a96;">/mo</span></div>'+
+          '<div style="font-size:11px;color:#6b7a96;margin-top:6px;">Everything · Full integrations</div>'+
+        '</div>';
     }
   });
 }
 
+function switchPlan(targetPlan){
+  /* All plan changes go through Stripe Customer Portal */
+  openStripePortal();
+}
+
 function openStripePortal(){
-  /* Open Stripe customer portal */
-  /* For now link to Stripe billing page — full portal needs a backend endpoint */
+  /* Stripe Customer Portal — handles upgrades, downgrades, cancellations, payment method updates */
+  /* This URL is your test-mode portal. Swap for live URL when going live. */
+  if(!currentProfile||!currentProfile.stripe_customer_id){
+    alert('No billing account found. Please contact support.');
+    return;
+  }
   window.open('https://billing.stripe.com/p/login/test_00g6pE6u11pEf044gg','_blank');
 }
 
 function openUpgradeFlow(){
-  closeBillingModal();
-  /* scroll to pricing */
-  scrollToSection('sec-pricing');
+  /* Just open the billing modal — plan switching is done inline */
+  openBillingModal();
 }
 
 function confirmCancelTrial(){
@@ -7830,25 +7869,24 @@ function drawLogo(){if(!logoCtx)return;
       </div>
     </div>
 
+    <!-- Plan switch cards -->
+    <div id="billing-switch-section" style="display:none;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Your Plan</div>
+      <div id="billing-switch-cards" style="display:flex;gap:12px;"></div>
+      <div style="font-size:11px;color:#4a5568;margin-top:10px;text-align:center;">Plan changes take effect immediately via Stripe.</div>
+    </div>
+
     <!-- What's included -->
     <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:16px;margin-bottom:20px;">
       <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">What's included</div>
       <div id="billing-features" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
-    <!-- Invoices -->
-    <div style="margin-bottom:20px;">
-      <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Billing history</div>
-      <div id="billing-invoices">
-        <div style="font-size:13px;color:#4a5568;padding:12px 0;">No invoices yet — your first charge will appear here after your trial ends.</div>
-      </div>
-    </div>
-
     <!-- Actions -->
     <div style="display:flex;flex-direction:column;gap:10px;">
       <button onclick="openStripePortal()" style="width:100%;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border-radius:10px;cursor:pointer;">Manage billing & payment method →</button>
       <button onclick="openUpgradeFlow()" id="billing-upgrade-btn" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;padding:10px;border-radius:10px;cursor:pointer;display:none;">Upgrade to Pro Squad</button>
-      <button onclick="confirmCancelTrial()" id="billing-cancel-btn" style="width:100%;background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;padding:6px;">Cancel trial</button>
+      <button onclick="confirmCancelTrial()" id="billing-cancel-btn" style="width:100%;background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;padding:6px;display:none;">Cancel trial</button>
     </div>
   
   </div></div>
