@@ -1851,16 +1851,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <span id="r-hourly" style="color:#eef3fc;font-weight:700;">$36.06</span>
               </div>
               <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                <span style="color:#8a97b5;font-size:13px;">Annual value saved (61.5 hrs)</span>
+                <span style="color:#8a97b5;font-size:13px;">Annual value saved (<span id="r-hours-label">61.5</span> hrs)</span>
                 <span id="r-saved" style="color:#aaff3e;font-weight:700;font-size:16px;">$2,218</span>
               </div>
               <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                <span style="color:#8a97b5;font-size:13px;">Projected 2-year value</span>
-                <span id="r-proj" style="color:#f5c542;font-weight:700;">$4,436</span>
+                <span style="color:#8a97b5;font-size:13px;">Projected annual value</span>
+                <span id="r-proj" style="color:#f5c542;font-weight:700;">$2,218</span>
               </div>
               <div style="display:flex;justify-content:space-between;padding:12px 0;">
-                <span style="color:#8a97b5;font-size:13px;">Return on investment</span>
-                <span id="r-mult" style="color:#aaff3e;font-weight:900;font-size:18px;">5x</span>
+                <div>
+                  <span style="color:#8a97b5;font-size:13px;">Return on investment</span>
+                  <div style="font-size:10px;color:#3d4f6b;margin-top:2px;">projected annual value ÷ annual subscription</div>
+                </div>
+                <span id="r-mult" style="color:#aaff3e;font-weight:900;font-size:18px;">4x</span>
               </div>
             </div>
           </div>
@@ -2304,19 +2307,31 @@ function escHtml(s){
 
 function calcMktROI(){
   var sal=parseFloat(document.getElementById('mkt-sal').value)||75000;
-  var hr=sal/2080;var saved=hr*61.5;var mult=Math.round(saved/429);
+  var hr=sal/2080; var proj=hr*61.5;
+  var subYr=588; /* starter $49/mo × 12 */
+  var mult=proj>0?Math.max(1,Math.round(proj/subYr)):0;
   var ms=document.getElementById('mkt-saved');var mm=document.getElementById('mkt-mult');
-  if(ms)ms.textContent='$'+Math.round(saved).toLocaleString();
+  if(ms)ms.textContent='$'+Math.round(proj).toLocaleString();
   if(mm)mm.textContent=mult+'x';
 }
 function calcROI(){
   var salEl=document.getElementById('sal');
   if(!salEl)return; /* ROI calculator not on current page */
   var sal=parseFloat(salEl.value)||75000;
-  var hr=sal/2080;var saved=hr*61.5;var proj=saved*2;
-  var mult=Math.round(saved/429);var net=saved-429;
+  var hr=sal/2080;
+  /* use actual hours saved if available, otherwise fall back to 61.5 demo */
+  var hours=(window._overviewStats&&window._overviewStats.totalHours>0)
+              ?window._overviewStats.totalHours:61.5;
+  var saved=hr*hours;
+  var proj=saved; /* Projected Annual Value = annual savings at current pace */
+  /* subscription cost based on user's plan */
+  var plan=(window.currentProfile&&window.currentProfile.plan)||'starter';
+  var subYr=plan==='pro'?1188:588; /* pro $99×12 or starter $49×12 */
+  var mult=proj>0?Math.max(1,Math.round(proj/subYr)):0;
+  var net=proj-subYr;
   var els={
     'r-hourly':'$'+hr.toFixed(2),
+    'r-hours-label':hours.toFixed(1),
     'r-saved':'$'+Math.round(saved).toLocaleString(),
     'r-proj':'$'+Math.round(proj).toLocaleString(),
     'r-mult':mult+'x',
