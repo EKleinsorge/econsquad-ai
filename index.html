@@ -1800,35 +1800,33 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             </div>
           </div>
 
-          <!-- ARIA's Analysis -->
-          <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:22px 24px;margin-bottom:28px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <!-- Most Used Specialists -->
+          <h3 style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Most Used Specialists</h3>
+          <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:8px;color:#4a5568;font-size:13px;margin-bottom:28px;">Complete missions to see your most used specialists here.</div>
+
+          <!-- ARIA's Analysis — auto-generated, pinned to bottom -->
+          <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:22px 24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,180,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">✦</div>
+                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,180,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">✦</div>
                 <div>
                   <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;">ARIA's Analysis</div>
-                  <div style="font-size:11px;color:#6b7a96;margin-top:1px;">AI-generated executive summary of your ROI &amp; progress</div>
+                  <div style="font-size:11px;color:#6b7a96;margin-top:1px;">Personalized executive summary of your progress &amp; ROI</div>
                 </div>
               </div>
-              <button id="aria-analysis-btn" onclick="generateAriaAnalysis()"
-                style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0;"
-                onmouseover="this.style.background='rgba(170,255,62,0.18)'" onmouseout="this.style.background='rgba(170,255,62,0.1)'">
-                ✦ Generate Analysis
+              <button id="aria-analysis-btn" onclick="generateAriaAnalysis(true)"
+                style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0;"
+                onmouseover="this.style.borderColor='rgba(170,255,62,0.3)';this.style.color='#aaff3e'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#6b7a96'">
+                ↻ Refresh
               </button>
             </div>
-
-            <!-- Analysis output -->
-            <div id="aria-analysis-output" style="min-height:80px;">
+            <div id="aria-analysis-output">
               <div style="display:flex;align-items:center;gap:10px;color:#3d4f6b;font-size:13px;">
-                <span style="font-size:20px;">✦</span>
-                <span>Click "Generate Analysis" to get a personalized executive summary from ARIA based on your usage data and ROI.</span>
+                <div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+                <span>ARIA is preparing your analysis...</span>
               </div>
             </div>
           </div>
-
-          <!-- Most Used Specialists -->
-          <h3 style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Most Used Specialists</h3>
-          <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:8px;color:#4a5568;font-size:13px;">Complete missions to see your most used specialists here.</div>
 
         </div>
 
@@ -2209,6 +2207,9 @@ function recalcOverviewROI(){
     projectedAnnual: projectedAnnual,
     roiPct: roiPct, subYr: subYr, plan: plan,
   };
+
+  /* auto-generate ARIA analysis the first time stats load */
+  generateAriaAnalysis();
 }
 
 /* Restore saved hourly rate on page load */
@@ -2223,10 +2224,13 @@ function recalcOverviewROI(){
 })();
 
 /* ── ARIA Analysis ── */
-function generateAriaAnalysis(){
+var _ariaAnalysisDone = false; // only auto-run once per session
+
+function generateAriaAnalysis(force){
+  if(!force && _ariaAnalysisDone) return; // skip if already ran this session
   var btn    = document.getElementById('aria-analysis-btn');
   var output = document.getElementById('aria-analysis-output');
-  if(!currentUser){ showToast('Please sign in first.','warning'); return; }
+  if(!currentUser) return; // not signed in yet — will retry when stats load
 
   var stats = window._overviewStats || {};
   var roi   = window._overviewROI   || {};
@@ -2237,8 +2241,8 @@ function generateAriaAnalysis(){
   }
 
   /* Show loading state */
-  if(btn){ btn.textContent = '✦ Analyzing...'; btn.disabled = true; }
-  if(output) output.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:18px;height:18px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
+  if(btn){ btn.textContent = '↻ Refreshing...'; btn.disabled = true; }
+  if(output) output.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
 
   /* Build top specialists string */
   var topSpecs = '';
@@ -2266,7 +2270,7 @@ function generateAriaAnalysis(){
 
   supa.functions.invoke('aria-analysis', { body: payload })
     .then(function(res){
-      if(btn){ btn.textContent = '✦ Regenerate'; btn.disabled = false; }
+      if(btn){ btn.disabled = false; }
       if(res.error || (res.data && res.data.error)){
         var errMsg = (res.error && res.error.message) || (res.data && res.data.error) || 'Unknown error';
         if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Could not generate analysis: ' + errMsg + '</div>';
@@ -2277,6 +2281,7 @@ function generateAriaAnalysis(){
         if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
         return;
       }
+      _ariaAnalysisDone = true;
       /* Render the analysis */
       var html = text
         .split('\n')
@@ -2292,7 +2297,7 @@ function generateAriaAnalysis(){
       if(output) output.innerHTML = html;
     })
     .catch(function(err){
-      if(btn){ btn.textContent = '✦ Generate Analysis'; btn.disabled = false; }
+      if(btn){ btn.textContent = '↻ Refresh'; btn.disabled = false; }
       if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Error: ' + (err.message||'connection failed') + '</div>';
     });
 }
