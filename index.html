@@ -965,6 +965,22 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .fc .fc-list-event:hover td { background: rgba(255,255,255,0.04); cursor: pointer; }
 .fc .fc-list-event-title { color: #b8c8e0; }
 .fc .fc-list-event-time { color: #4a5568; }
+
+/* ===== SMS ALERT MODAL ===== */
+.sms-type-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;transition:background .15s;cursor:default;}
+.sms-type-row:hover{background:rgba(255,255,255,0.03);}
+.sms-type-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
+.sms-type-info{flex:1;min-width:0;}
+.sms-type-label{font-size:13px;font-weight:600;color:#eef3fc;}
+.sms-type-sub{font-size:11px;color:#6b7a96;margin-top:1px;}
+.sms-type-toggle-wrap{flex-shrink:0;}
+.sms-type-toggle{width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);cursor:pointer;position:relative;transition:all .25s;}
+.sms-type-toggle.on{background:rgba(170,255,62,0.25);border-color:rgba(170,255,62,0.4);}
+.sms-type-knob{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#6b7a96;transition:all .25s;}
+.sms-type-toggle.on .sms-type-knob{left:21px;background:#aaff3e;}
+#sms-modal .sms-disabled .sms-type-toggle{opacity:.35;pointer-events:none;}
+#sms-modal .sms-disabled .sms-type-label{opacity:.45;}
+#sms-modal .sms-disabled .sms-type-sub{opacity:.35;}
 </style>
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
 </head>
@@ -1099,6 +1115,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div onclick="showDashTab('stats-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">📊</span>
                 <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
+              </div>
+              <div onclick="openSmsModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">📱</span>
+                <span style="font-size:12px;color:#eef3fc;">SMS Alerts</span>
               </div>
               <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
               <div onclick="doSignout()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,60,60,0.08)'" onmouseout="this.style.background='transparent'">
@@ -1383,7 +1403,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li><span class="xx">✗</span> ARIA morning briefing</li>
               <li><span class="xx">✗</span> Gmail · Calendar · Tasks</li>
             </ul>
-            <button class="price-btn outline" onclick="startCheckout('starter')">Get started</button>
+            <button class="price-btn outline" onclick="startCheckout('starter')">Start 7-day free trial</button>
             <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
 
@@ -3918,10 +3938,11 @@ function saveTaskToHistory(output){
   if(!s)return;
   var sp=SPECIALIST_NAMES[chatState.specialistId];
   var userMsgs=chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | ');
+  var specialistDisplayName = sp ? (sp.name+' — '+s.name) : s.name;
   supa.from('task_history').insert({
     user_id:currentUser.id,
     specialist_id:chatState.specialistId,
-    specialist_name:sp?(sp.name+' — '+s.name):s.name,
+    specialist_name:specialistDisplayName,
     specialist_color:s.color,
     category:s.cat||'',
     prompt:userMsgs.slice(0,500),
@@ -3930,6 +3951,10 @@ function saveTaskToHistory(output){
   }).then(function(){
     loadUserStats();
     setTimeout(runBadgeCheck,1000);
+    /* ── SMS: specialist task complete ── */
+    sendSmsAlert('specialist_complete',
+      specialistDisplayName+' finished your task. Log in to review your results: https://econsquad.ai'
+    );
   });
 }
 
@@ -5777,6 +5802,20 @@ function runARIAAnalysis(emails, btn) {
   buildARIASummary(categories, sorted);
 
   if (btn) { btn.textContent = '✦ Re-analyze'; btn.disabled = false; }
+
+  /* ── SMS: important email alert ─────────────────────────────────────────── */
+  var urgentEmails = emails.filter(function(e){
+    var cat = categorizeEmail(e);
+    return cat === 'deadline' || cat === 'grant' || cat === 'rfi' || cat === 'action';
+  });
+  if(urgentEmails.length > 0){
+    var firstUrgent = urgentEmails[0];
+    var catLabel = {deadline:'deadline alert',grant:'new grant/funding email',rfi:'site selection inquiry',action:'action required email'}[categorizeEmail(firstUrgent)] || 'important email';
+    var msg = urgentEmails.length === 1
+      ? 'You have a '+catLabel+' from '+( firstUrgent.from||'unknown sender')+': "'+( firstUrgent.subject||'(no subject)').slice(0,60)+'"'
+      : urgentEmails.length+' important emails need your attention. Log in to review: https://econsquad.ai';
+    sendSmsAlert('email_important', msg);
+  }
 }
 
 function showEmailListAnalyzed(emails) {
@@ -7979,6 +8018,159 @@ function drawLogo(){if(!logoCtx)return;
   </div>
 </div>
 
+<!-- ======================================================
+     SMS ALERTS SETTINGS MODAL
+     ====================================================== -->
+<div id="sms-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:#0d1526;border:1px solid rgba(170,255,62,0.2);border-radius:18px;width:100%;max-width:460px;margin:16px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+
+    <!-- Header -->
+    <div style="padding:24px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;">📱 SMS Alerts</div>
+        <div style="font-size:12px;color:#6b7a96;margin-top:3px;">Get texts when your squad needs your attention</div>
+      </div>
+      <button onclick="closeSmsModal()" style="background:rgba(255,255,255,0.06);border:none;color:#6b7a96;font-size:18px;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+
+    <div style="padding:24px;">
+
+      <!-- Phone number -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Mobile Phone Number</label>
+        <div style="display:flex;gap:8px;">
+          <input id="sms-phone" type="tel" placeholder="(555) 867-5309" maxlength="20"
+            style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 14px;color:#eef3fc;font-size:14px;font-family:'DM Sans',sans-serif;color-scheme:dark;"
+            oninput="formatSmsPhone(this)">
+          <button onclick="sendTestSms()" id="sms-test-btn"
+            style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:0 16px;border-radius:10px;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;"
+            onmouseover="this.style.background='rgba(170,255,62,0.2)'" onmouseout="this.style.background='rgba(170,255,62,0.1)'">
+            Send Test
+          </button>
+        </div>
+        <div id="sms-phone-status" style="font-size:11px;color:#6b7a96;margin-top:6px;min-height:16px;"></div>
+      </div>
+
+      <!-- Master toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(170,255,62,0.04);border:1px solid rgba(170,255,62,0.15);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#eef3fc;">Enable SMS Alerts</div>
+          <div style="font-size:11px;color:#6b7a96;margin-top:2px;">Master on/off for all text notifications</div>
+        </div>
+        <div onclick="toggleSmsMaster()" id="sms-master-toggle"
+          style="width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.12);cursor:pointer;position:relative;transition:all .25s;flex-shrink:0;">
+          <div id="sms-master-knob" style="position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:#6b7a96;transition:all .25s;"></div>
+        </div>
+      </div>
+
+      <!-- Alert type toggles -->
+      <div id="sms-types-section">
+        <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Alert Types</div>
+        <div id="sms-types-list" style="display:flex;flex-direction:column;gap:2px;">
+
+          <!-- specialist_complete -->
+          <div class="sms-type-row" data-key="specialist_complete">
+            <div class="sms-type-icon">✅</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Specialist task complete</div>
+              <div class="sms-type-sub">Text when a specialist finishes your request</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- email_important -->
+          <div class="sms-type-row" data-key="email_important">
+            <div class="sms-type-icon">📬</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Important email received</div>
+              <div class="sms-type-sub">Grants, RFPs, key business contacts</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- grant_deadline -->
+          <div class="sms-type-row" data-key="grant_deadline">
+            <div class="sms-type-icon">📅</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Grant &amp; calendar deadlines</div>
+              <div class="sms-type-sub">Reminders 7 days and 1 day before</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- bre_response -->
+          <div class="sms-type-row" data-key="bre_response">
+            <div class="sms-type-icon">📊</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">BRE survey response</div>
+              <div class="sms-type-sub">Alert when a business submits a BRE survey</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- payment_failed -->
+          <div class="sms-type-row" data-key="payment_failed">
+            <div class="sms-type-icon">💳</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Payment failed</div>
+              <div class="sms-type-sub">Alert if your subscription payment doesn't go through</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- weekly_digest -->
+          <div class="sms-type-row" data-key="weekly_digest">
+            <div class="sms-type-icon">📈</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Weekly squad summary</div>
+              <div class="sms-type-sub">Monday morning recap: missions run, hours saved</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Save -->
+      <button onclick="saveSmsSettings()" id="sms-save-btn"
+        style="width:100%;margin-top:24px;background:#aaff3e;color:#0a1a00;border:none;font-family:Barlow,sans-serif;font-size:15px;font-weight:900;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.02em;transition:opacity .2s;"
+        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+        Save SMS Settings
+      </button>
+      <div id="sms-save-status" style="text-align:center;font-size:12px;color:#aaff3e;margin-top:10px;min-height:18px;"></div>
+
+      <!-- Carrier note -->
+      <p style="font-size:10px;color:#3d4f6b;text-align:center;margin-top:12px;line-height:1.5;">
+        Standard message &amp; data rates may apply. US numbers only (for now). Reply STOP to unsubscribe.
+      </p>
+    </div>
+  </div>
+</div>
+
 <!-- ARIA FOOTER BAR -->
 <div class="aria-footer" id="aria-footer-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9990;display:none;">
   <div class="aria-orb-f" onclick="toggleAria()">✦</div>
@@ -8003,6 +8195,244 @@ function drawLogo(){if(!logoCtx)return;
   s.src='https://ekleinsorge.github.io/econsquad-ai/app.js?v='+Date.now();
   document.body.appendChild(s);
 })();
+</script>
+
+<!-- ===== SMS ALERT SYSTEM ===== -->
+<script>
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+var _smsSettings = {
+  phone:       '',
+  sms_alerts:  false,
+  sms_alert_types: {
+    specialist_complete: true,
+    email_important:     true,
+    grant_deadline:      true,
+    bre_response:        true,
+    payment_failed:      true,
+    weekly_digest:       false,
+  }
+};
+
+/* ── Open modal ─────────────────────────────────────────────────────────── */
+function openSmsModal(){
+  var modal = document.getElementById('sms-modal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  // Load current settings from profile
+  if(currentUser){
+    supa.from('profiles')
+      .select('phone, sms_alerts, sms_alert_types')
+      .eq('id', currentUser.id)
+      .single()
+      .then(function(res){
+        if(res.data){
+          _smsSettings.phone       = res.data.phone || '';
+          _smsSettings.sms_alerts  = !!res.data.sms_alerts;
+          if(res.data.sms_alert_types){
+            Object.assign(_smsSettings.sms_alert_types, res.data.sms_alert_types);
+          }
+        }
+        renderSmsModal();
+      });
+  }
+}
+
+/* ── Close modal ────────────────────────────────────────────────────────── */
+function closeSmsModal(){
+  var modal = document.getElementById('sms-modal');
+  if(modal) modal.style.display = 'none';
+}
+// Close on backdrop click
+document.addEventListener('click', function(e){
+  var modal = document.getElementById('sms-modal');
+  if(modal && e.target === modal) closeSmsModal();
+});
+
+/* ── Render modal state ─────────────────────────────────────────────────── */
+function renderSmsModal(){
+  // Phone
+  var phoneEl = document.getElementById('sms-phone');
+  if(phoneEl) phoneEl.value = formatPhoneDisplay(_smsSettings.phone);
+
+  // Master toggle
+  setSmsToggleState('sms-master-toggle', 'sms-master-knob', _smsSettings.sms_alerts);
+
+  // Per-type toggles
+  var rows = document.querySelectorAll('#sms-types-list .sms-type-row');
+  rows.forEach(function(row){
+    var key    = row.getAttribute('data-key');
+    var toggle = row.querySelector('.sms-type-toggle');
+    var knob   = row.querySelector('.sms-type-knob');
+    if(!toggle || !key) return;
+    var on = _smsSettings.sms_alert_types[key] !== false; // default true
+    if(on){ toggle.classList.add('on'); } else { toggle.classList.remove('on'); }
+  });
+
+  // Dim rows if master is off
+  var section = document.getElementById('sms-types-section');
+  if(section){
+    if(_smsSettings.sms_alerts){
+      section.classList.remove('sms-disabled');
+    } else {
+      section.classList.add('sms-disabled');
+    }
+  }
+}
+
+/* ── Master toggle ──────────────────────────────────────────────────────── */
+function toggleSmsMaster(){
+  _smsSettings.sms_alerts = !_smsSettings.sms_alerts;
+  setSmsToggleState('sms-master-toggle', 'sms-master-knob', _smsSettings.sms_alerts);
+  var section = document.getElementById('sms-types-section');
+  if(section){
+    if(_smsSettings.sms_alerts){ section.classList.remove('sms-disabled'); }
+    else { section.classList.add('sms-disabled'); }
+  }
+}
+
+/* ── Per-type toggle ────────────────────────────────────────────────────── */
+function toggleSmsType(wrap){
+  var row    = wrap.closest('.sms-type-row');
+  var key    = row ? row.getAttribute('data-key') : null;
+  var toggle = wrap.querySelector('.sms-type-toggle');
+  if(!key || !toggle) return;
+  var isOn = toggle.classList.contains('on');
+  if(isOn){ toggle.classList.remove('on'); _smsSettings.sms_alert_types[key] = false; }
+  else    { toggle.classList.add('on');    _smsSettings.sms_alert_types[key] = true;  }
+}
+
+/* ── Toggle helper ──────────────────────────────────────────────────────── */
+function setSmsToggleState(toggleId, knobId, on){
+  var toggle = document.getElementById(toggleId);
+  var knob   = document.getElementById(knobId);
+  if(!toggle || !knob) return;
+  if(on){
+    toggle.style.background = 'rgba(170,255,62,0.25)';
+    toggle.style.borderColor = 'rgba(170,255,62,0.4)';
+    knob.style.left = '24px';
+    knob.style.background = '#aaff3e';
+  } else {
+    toggle.style.background = 'rgba(255,255,255,0.1)';
+    toggle.style.borderColor = 'rgba(255,255,255,0.12)';
+    knob.style.left = '4px';
+    knob.style.background = '#6b7a96';
+  }
+}
+
+/* ── Phone formatter ────────────────────────────────────────────────────── */
+function formatPhoneDisplay(raw){
+  var d = (raw||'').replace(/\D/g,'');
+  if(d.length === 10) return '('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);
+  if(d.length === 11 && d[0]==='1') return '('+d.slice(1,4)+') '+d.slice(4,7)+'-'+d.slice(7);
+  return raw || '';
+}
+function formatSmsPhone(input){
+  var d = input.value.replace(/\D/g,'').slice(0,10);
+  if(d.length > 6)       input.value = '('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);
+  else if(d.length > 3)  input.value = '('+d.slice(0,3)+') '+d.slice(3);
+  else if(d.length > 0)  input.value = '('+d;
+  else                   input.value = '';
+}
+
+/* ── Save settings ──────────────────────────────────────────────────────── */
+function saveSmsSettings(){
+  if(!currentUser){showToast('Please sign in first.','warning');return;}
+  var phoneEl    = document.getElementById('sms-phone');
+  var statusEl   = document.getElementById('sms-save-status');
+  var btn        = document.getElementById('sms-save-btn');
+  var rawPhone   = phoneEl ? phoneEl.value.replace(/\D/g,'') : '';
+
+  if(_smsSettings.sms_alerts && rawPhone.length < 10){
+    var ps = document.getElementById('sms-phone-status');
+    if(ps){ ps.textContent = '⚠ Enter a valid 10-digit US number to enable alerts.'; ps.style.color='#f87171'; }
+    return;
+  }
+
+  _smsSettings.phone = rawPhone;
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  if(statusEl) statusEl.textContent = '';
+
+  supa.from('profiles').update({
+    phone:           rawPhone || null,
+    sms_alerts:      _smsSettings.sms_alerts,
+    sms_alert_types: _smsSettings.sms_alert_types,
+  }).eq('id', currentUser.id).then(function(res){
+    if(btn){ btn.disabled = false; btn.textContent = 'Save SMS Settings'; }
+    if(res.error){
+      if(statusEl){ statusEl.textContent = '✗ '+res.error.message; statusEl.style.color='#f87171'; }
+    } else {
+      if(statusEl){ statusEl.textContent = '✓ Settings saved!'; statusEl.style.color='#aaff3e'; }
+      setTimeout(function(){ if(statusEl) statusEl.textContent=''; }, 3000);
+      var ps = document.getElementById('sms-phone-status');
+      if(ps){ ps.textContent = ''; }
+    }
+  });
+}
+
+/* ── Send test SMS ──────────────────────────────────────────────────────── */
+function sendTestSms(){
+  if(!currentUser){showToast('Please sign in first.','warning');return;}
+  var phoneEl  = document.getElementById('sms-phone');
+  var statusEl = document.getElementById('sms-phone-status');
+  var btn      = document.getElementById('sms-test-btn');
+  var rawPhone = phoneEl ? phoneEl.value.replace(/\D/g,'') : '';
+
+  if(rawPhone.length < 10){
+    if(statusEl){ statusEl.textContent = '⚠ Enter a valid phone number first.'; statusEl.style.color='#f87171'; }
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Sending...'; }
+  if(statusEl){ statusEl.textContent = ''; }
+
+  /* Temporarily save the phone to the profile so the function can look it up */
+  supa.from('profiles').update({
+    phone: rawPhone,
+    sms_alerts: true,
+    sms_alert_types: { test: true }
+  }).eq('id', currentUser.id).then(function(){
+    supa.functions.invoke('send-sms', {
+      body: {
+        user_id:    currentUser.id,
+        alert_type: 'test',
+        message:    'This is a test alert from EconSquad AI. Your SMS notifications are working!'
+      }
+    }).then(function(res){
+      if(btn){ btn.disabled = false; btn.textContent = 'Send Test'; }
+      if(res.error || (res.data && res.data.error)){
+        var err = res.error || res.data;
+        if(statusEl){ statusEl.textContent = '✗ Error: '+(err.message||err.error||JSON.stringify(err)); statusEl.style.color='#f87171'; }
+      } else {
+        if(statusEl){ statusEl.textContent = '✓ Test message sent! Check your phone.'; statusEl.style.color='#aaff3e'; }
+        setTimeout(function(){ if(statusEl) statusEl.textContent=''; }, 5000);
+      }
+      // Restore real settings
+      supa.from('profiles').update({
+        sms_alerts:      _smsSettings.sms_alerts,
+        sms_alert_types: _smsSettings.sms_alert_types
+      }).eq('id', currentUser.id);
+    });
+  });
+}
+
+/* ── Core send function (called from triggers throughout the app) ─────── */
+function sendSmsAlert(alertType, message){
+  if(!currentUser) return;
+  // Fire-and-forget — don't block the UI
+  supa.functions.invoke('send-sms', {
+    body: {
+      user_id:    currentUser.id,
+      alert_type: alertType,
+      message:    message,
+    }
+  }).then(function(res){
+    if(res.data && res.data.sent)  console.log('[SMS] sent:', alertType);
+    if(res.data && res.data.skipped) console.log('[SMS] skipped:', res.data.skipped);
+    if(res.error) console.warn('[SMS] error:', res.error);
+  });
+}
+
 </script>
 </body>
 </html>

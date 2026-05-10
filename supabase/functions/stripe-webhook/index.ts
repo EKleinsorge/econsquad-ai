@@ -66,12 +66,22 @@ serve(async (req) => {
         break
       }
 
-      // Payment failed — optionally downgrade or mark
+      // Payment failed — notify user via SMS
       case 'invoice.payment_failed': {
         const invoice    = event.data.object
         const customerId = invoice.customer as string
         console.log('Payment failed for customer', customerId)
-        // You could set plan back to 'trial' or add a flag here if desired
+        // Look up user by stripe_customer_id and fire SMS alert
+        const { data: profile } = await supa
+          .from('profiles')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .single()
+        if (profile?.id) {
+          await sendSmsAlert(profile.id, 'payment_failed',
+            'Your EconSquad AI payment failed. Please update your billing info to keep your squad running: https://econsquad.ai'
+          )
+        }
         break
       }
 
@@ -156,6 +166,23 @@ async function linkCustomer(supa: any, customerId: string, uid: string | null) {
       .update({ stripe_customer_id: customerId })
       .eq('id', uid)
     if (error) console.error('linkCustomer (uid) error:', error.message)
+  }
+}
+
+/** Fire an SMS via the send-sms Edge Function (best-effort, never throws) */
+async function sendSmsAlert(userId: string, alertType: string, message: string) {
+  try {
+    const fnUrl = `${SUPABASE_URL}/functions/v1/send-sms`
+    await fetch(fnUrl, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ user_id: userId, alert_type: alertType, message }),
+    })
+  } catch (err) {
+    console.error('sendSmsAlert error:', err)
   }
 }
 
