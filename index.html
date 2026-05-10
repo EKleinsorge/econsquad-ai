@@ -1805,7 +1805,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
           <!-- ARIA's Analysis — triggered by button -->
           <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:22px 24px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+
+            <!-- Small header — visible only in CTA state -->
+            <div id="aria-hdr-row" style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
               <div id="aria-hdr-orb-wrap" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;">
                 <canvas id="aria-hdr-cv" width="36" height="36" data-dorb="aria-hdr-orb" style="position:absolute;top:0;left:0;width:36px;height:36px;"></canvas>
                 <div id="aria-hdr-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;z-index:2;"></div>
@@ -1815,6 +1817,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <div style="font-size:11px;color:#6b7a96;margin-top:2px;">Personalized executive summary of your progress &amp; ROI</div>
               </div>
             </div>
+
             <!-- Animation container — shown while computing -->
             <div id="aria-compute-inner" style="display:none;min-height:220px;border-radius:10px;overflow:hidden;"></div>
 
@@ -1828,14 +1831,16 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               </button>
               <div style="font-size:11px;color:#3d4f6b;margin-top:10px;">AI-powered executive summary of your performance &amp; ROI</div>
             </div>
-            <!-- Output — hidden until analysis runs -->
+
+            <!-- Output — hidden until analysis runs; large centered header injected by JS -->
             <div id="aria-analysis-output" style="display:none;"></div>
+
             <!-- Re-run button — shown after analysis -->
-            <div id="aria-rerun-wrap" style="display:none;text-align:right;margin-top:14px;">
+            <div id="aria-rerun-wrap" style="display:none;text-align:center;margin-top:20px;">
               <button id="aria-analysis-btn" onclick="conductAriaAnalysis()"
-                style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:5px 14px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;"
-                onmouseover="this.style.borderColor='rgba(170,255,62,0.3)';this.style.color='#aaff3e'"
-                onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#6b7a96'">
+                style="background:transparent;border:1px solid rgba(170,255,62,0.2);color:#6b7a96;font-size:11px;font-weight:600;padding:6px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;"
+                onmouseover="this.style.borderColor='rgba(170,255,62,0.4)';this.style.color='#aaff3e'"
+                onmouseout="this.style.borderColor='rgba(170,255,62,0.2)';this.style.color='#6b7a96'">
                 ↻ Run Again
               </button>
             </div>
@@ -2306,10 +2311,12 @@ function conductAriaAnalysis(){
 
 /* Renders the analysis text into the output div with slide-in */
 function _renderAriaOutput(res){
+  var hdrRow = document.getElementById('aria-hdr-row');
   var cta    = document.getElementById('aria-analysis-cta');
   var output = document.getElementById('aria-analysis-output');
   var rerun  = document.getElementById('aria-rerun-wrap');
 
+  if(hdrRow) hdrRow.style.display = 'none';
   if(cta)    cta.style.display    = 'none';
   if(output) output.style.display = 'block';
   if(rerun)  rerun.style.display  = 'block';
@@ -2330,6 +2337,19 @@ function _renderAriaOutput(res){
     output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
     return;
   }
+
+  /* Large centered ARIA header */
+  var orbHtml = '<div style="text-align:center;padding:28px 0 22px;">'
+    + '<div style="display:inline-flex;flex-direction:column;align-items:center;gap:14px;">'
+    + '<div style="position:relative;width:96px;height:96px;">'
+    + '<canvas id="aria-result-cv" width="96" height="96" data-dorb="aria-result-orb" style="position:absolute;top:0;left:0;width:96px;height:96px;"></canvas>'
+    + '<div id="aria-result-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;z-index:2;pointer-events:none;"></div>'
+    + '</div>'
+    + '<div style="font-family:\'Barlow\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;letter-spacing:.02em;">ARIA\'s Analysis</div>'
+    + '<div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,rgba(170,255,62,0.6),transparent);border-radius:2px;"></div>'
+    + '</div>'
+    + '</div>';
+
   var html = text.split('\n').filter(function(l){ return l.trim(); })
     .map(function(line){
       if(/^[✅💰🚀📈⭐🎯💡🏆]/.test(line.trim())){
@@ -2338,7 +2358,25 @@ function _renderAriaOutput(res){
       }
       return '<p class="aco-result-enter" style="font-size:13px;color:#b0bcd4;line-height:1.75;margin:0 0 12px;">' + escHtml(line) + '</p>';
     }).join('');
-  output.innerHTML = html;
+
+  output.innerHTML = orbHtml + '<div style="padding:0 4px;">' + html + '</div>';
+
+  /* Boot the result orb (same engine as all other site orbs) */
+  setTimeout(function(){
+    if(!window.initDashOrb) return;
+    window.initDashOrb('aria-result-orb', 'lime');
+    var st = window.dashOrbStates && window.dashOrbStates['aria-result-orb'];
+    if(!st) return;
+    st.targetEnergy = 0.9;
+    var col = st.col; var r = col.r;
+    var sph = document.getElementById('aria-result-sph');
+    if(sph){
+      st.sphereEl = sph;
+      sph.style.background  = 'radial-gradient(circle at 38% 35%,' + col.mid + ' 0%,' + col.lo + ' 70%)';
+      sph.style.boxShadow   = '0 0 18px rgba('+r[0]+','+r[1]+','+r[2]+',0.7),inset 0 2px 4px rgba(255,255,255,0.2)';
+    }
+    if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
+  }, 50);
 }
 
 /* Legacy hook so loadUserStats doesn't break */
@@ -5167,6 +5205,8 @@ function switchStatsTab(tab, btn){
     var aoOut   = document.getElementById('aria-analysis-output');
     var aoRerun = document.getElementById('aria-rerun-wrap');
     var aoInner = document.getElementById('aria-compute-inner');
+    var aoHdr   = document.getElementById('aria-hdr-row');
+    if(aoHdr)   { aoHdr.style.display = 'flex'; }
     if(aoCta)   { aoCta.style.display = 'block'; }
     if(aoOut)   { aoOut.style.display = 'none'; aoOut.innerHTML = ''; }
     if(aoRerun) { aoRerun.style.display = 'none'; }
