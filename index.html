@@ -2213,8 +2213,6 @@ function recalcOverviewROI(){
     roiPct: roiMult, subYr: subYr, plan: plan,
   };
 
-  /* auto-generate ARIA analysis the first time stats load */
-  generateAriaAnalysis();
 }
 
 /* Restore saved annual salary on page load */
@@ -3494,8 +3492,9 @@ function loadUserStats(){
         specUsage:       specUsage,
       };
 
-      /* populate overview ROI cards */
+      /* populate overview ROI cards, then generate ARIA analysis */
       recalcOverviewROI();
+      generateAriaAnalysis();
 
       /* check ARIA milestones */
       var salary=75000;
