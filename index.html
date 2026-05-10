@@ -1812,6 +1812,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <div style="font-size:11px;color:#6b7a96;margin-top:2px;">Personalized executive summary of your progress &amp; ROI</div>
               </div>
             </div>
+            <!-- Animation container — shown while computing -->
+            <div id="aria-compute-inner" style="display:none;min-height:220px;border-radius:10px;overflow:hidden;"></div>
+
             <!-- CTA button — shown before analysis runs -->
             <div id="aria-analysis-cta" style="text-align:center;padding:20px 0 8px;">
               <button onclick="conductAriaAnalysis()"
@@ -2281,12 +2284,17 @@ function conductAriaAnalysis(){
       tryRender();
     });
 
-  /* Show the cinematic animation; on complete reveal results */
+  /* Hide CTA, show animation container, then reveal results when both done */
+  var ctaEl    = document.getElementById('aria-analysis-cta');
+  var innerEl  = document.getElementById('aria-compute-inner');
+  if(ctaEl)   ctaEl.style.display   = 'none';
+  if(innerEl) innerEl.style.display = 'block';
+
   if(window.ariaCompute){
     window.ariaCompute.show('aria', function(){
       animDone = true;
       tryRender();
-    });
+    }, 'aria-compute-inner');
   } else {
     animDone = true;
     tryRender();
@@ -5133,9 +5141,11 @@ function switchStatsTab(tab, btn){
     var aoCta   = document.getElementById('aria-analysis-cta');
     var aoOut   = document.getElementById('aria-analysis-output');
     var aoRerun = document.getElementById('aria-rerun-wrap');
+    var aoInner = document.getElementById('aria-compute-inner');
     if(aoCta)   { aoCta.style.display = 'block'; }
     if(aoOut)   { aoOut.style.display = 'none'; aoOut.innerHTML = ''; }
     if(aoRerun) { aoRerun.style.display = 'none'; }
+    if(aoInner) { aoInner.style.display = 'none'; aoInner.innerHTML = ''; }
     loadUserStats();
   }
 }
