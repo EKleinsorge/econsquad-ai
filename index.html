@@ -1731,28 +1731,105 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
         <!-- OVERVIEW sub-tab -->
         <div id="statsview-overview" style="display:block;">
-          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:20px;">Your Impact</h2>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;">
-            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
-              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Total Missions</div>
-              <div class="stat-val" id="stat-missions-big" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#aaff3e;">—</div>
+
+          <!-- Impact stat cards -->
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:14px;letter-spacing:.01em;">Your Impact</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:28px;">
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 16px;">
+              <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Total Missions</div>
+              <div id="stat-missions-big" style="font-family:'Barlow',sans-serif;font-size:34px;font-weight:900;color:#aaff3e;line-height:1;">—</div>
             </div>
-            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
-              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Hours Saved</div>
-              <div class="stat-val gold" id="stat-hours-big" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#f5c542;">—</div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 16px;">
+              <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Hours Saved</div>
+              <div id="stat-hours-big" style="font-family:'Barlow',sans-serif;font-size:34px;font-weight:900;color:#f5c542;line-height:1;">—</div>
             </div>
-            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
-              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Specialists Used</div>
-              <div class="stat-val" id="stat-specialists-big" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#aaff3e;">—</div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 16px;">
+              <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Specialists Used</div>
+              <div id="stat-specialists-big" style="font-family:'Barlow',sans-serif;font-size:34px;font-weight:900;color:#aaff3e;line-height:1;">—</div>
             </div>
-            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;">
-              <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Days on EconSquad</div>
-              <div class="stat-val green" id="stat-days-big" style="font-family:'Barlow',sans-serif;font-size:36px;font-weight:900;color:#aaff3e;">—</div>
+            <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 16px;">
+              <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Days on EconSquad</div>
+              <div id="stat-days-big" style="font-family:'Barlow',sans-serif;font-size:34px;font-weight:900;color:#4ade80;line-height:1;">—</div>
             </div>
           </div>
+
+          <!-- ROI Calculator -->
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:14px;letter-spacing:.01em;">Return on Investment</h2>
+          <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(170,255,62,0.15);border-radius:16px;padding:22px 24px;margin-bottom:28px;">
+
+            <!-- Hourly rate input row -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+              <label style="font-size:12px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;">Your Hourly Rate</label>
+              <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 12px;flex-shrink:0;">
+                <span style="color:#6b7a96;font-size:14px;font-weight:700;">$</span>
+                <input id="ov-hourly-rate" type="number" min="1" max="999" value="36"
+                  oninput="recalcOverviewROI()"
+                  style="width:56px;background:none;border:none;outline:none;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;">
+                <span style="color:#6b7a96;font-size:12px;">/hr</span>
+              </div>
+              <span style="font-size:11px;color:#3d4f6b;">(edit to match your actual rate)</span>
+            </div>
+
+            <!-- 4 ROI metric cards -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+
+              <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Your Hourly Rate</div>
+                <div id="ov-roi-hourly" style="font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;">$36</div>
+                <div style="font-size:10px;color:#3d4f6b;margin-top:4px;">per hour</div>
+              </div>
+
+              <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(170,255,62,0.15);border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Annual Value Saved YTD</div>
+                <div id="ov-roi-saved" style="font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;">$0</div>
+                <div style="font-size:10px;color:#3d4f6b;margin-top:4px;">hours × hourly rate</div>
+              </div>
+
+              <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(245,197,66,0.15);border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Projected Annual Value</div>
+                <div id="ov-roi-projected" style="font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#f5c542;">$0</div>
+                <div style="font-size:10px;color:#3d4f6b;margin-top:4px;">at current pace × 12 mo</div>
+              </div>
+
+              <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(74,222,128,0.15);border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Return on Investment</div>
+                <div id="ov-roi-percent" style="font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#4ade80;">—</div>
+                <div style="font-size:10px;color:#3d4f6b;margin-top:4px;">value vs. subscription</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ARIA's Analysis -->
+          <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:22px 24px;margin-bottom:28px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,180,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">✦</div>
+                <div>
+                  <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;">ARIA's Analysis</div>
+                  <div style="font-size:11px;color:#6b7a96;margin-top:1px;">AI-generated executive summary of your ROI &amp; progress</div>
+                </div>
+              </div>
+              <button id="aria-analysis-btn" onclick="generateAriaAnalysis()"
+                style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0;"
+                onmouseover="this.style.background='rgba(170,255,62,0.18)'" onmouseout="this.style.background='rgba(170,255,62,0.1)'">
+                ✦ Generate Analysis
+              </button>
+            </div>
+
+            <!-- Analysis output -->
+            <div id="aria-analysis-output" style="min-height:80px;">
+              <div style="display:flex;align-items:center;gap:10px;color:#3d4f6b;font-size:13px;">
+                <span style="font-size:20px;">✦</span>
+                <span>Click "Generate Analysis" to get a personalized executive summary from ARIA based on your usage data and ROI.</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Most Used Specialists -->
-          <h3 style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;">Most Used Specialists</h3>
-          <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:10px;color:#4a5568;font-size:13px;">Complete missions to see your most used specialists here.</div>
+          <h3 style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Most Used Specialists</h3>
+          <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:8px;color:#4a5568;font-size:13px;">Complete missions to see your most used specialists here.</div>
+
         </div>
 
         <!-- BADGES sub-tab -->
@@ -2090,6 +2167,140 @@ var squad=[
 ];
 
 /* ===== ROI CALCULATORS ===== */
+/* ── Overview ROI cards (uses real hours from task history) ── */
+function recalcOverviewROI(){
+  var stats = window._overviewStats || {};
+  var totalHours = stats.totalHours || 0;
+  var daysSince  = stats.daysSince  || 1;
+
+  /* Read hourly rate from input — fall back to localStorage → 36 */
+  var hrEl = document.getElementById('ov-hourly-rate');
+  var hr   = hrEl ? (parseFloat(hrEl.value) || 36) : 36;
+  try { localStorage.setItem('esq_hourly_rate', String(hr)); } catch(e){}
+
+  /* Value saved YTD */
+  var valueSaved = totalHours * hr;
+
+  /* Projected annual — extrapolate from actual pace */
+  var monthsElapsed = Math.max(1, daysSince / 30.4);
+  var projectedAnnual = (valueSaved / monthsElapsed) * 12;
+
+  /* Subscription cost (use plan from currentProfile if available) */
+  var plan = (window.currentProfile && window.currentProfile.plan) || 'trial';
+  var subMo = plan === 'pro' ? 99 : plan === 'starter' ? 49 : 0;
+  var subYr  = subMo * 12;
+
+  /* ROI % */
+  var roiPct = subYr > 0 ? Math.round((valueSaved / subYr) * 100) : null;
+
+  /* Update display */
+  var fmt = function(n){ return '$' + Math.round(n).toLocaleString(); };
+  var el = function(id){ return document.getElementById(id); };
+
+  if(el('ov-roi-hourly'))   el('ov-roi-hourly').textContent   = '$' + hr.toFixed(0);
+  if(el('ov-roi-saved'))    el('ov-roi-saved').textContent    = fmt(valueSaved);
+  if(el('ov-roi-projected'))el('ov-roi-projected').textContent = fmt(projectedAnnual);
+  if(el('ov-roi-percent'))  el('ov-roi-percent').textContent  =
+    roiPct !== null ? roiPct + '%' : (subYr === 0 ? 'N/A' : '—');
+
+  /* cache for ARIA analysis */
+  window._overviewROI = {
+    hr: hr, valueSaved: valueSaved,
+    projectedAnnual: projectedAnnual,
+    roiPct: roiPct, subYr: subYr, plan: plan,
+  };
+}
+
+/* Restore saved hourly rate on page load */
+(function(){
+  try {
+    var saved = localStorage.getItem('esq_hourly_rate');
+    if(saved){
+      var el = document.getElementById('ov-hourly-rate');
+      if(el) el.value = saved;
+    }
+  } catch(e){}
+})();
+
+/* ── ARIA Analysis ── */
+function generateAriaAnalysis(){
+  var btn    = document.getElementById('aria-analysis-btn');
+  var output = document.getElementById('aria-analysis-output');
+  if(!currentUser){ showToast('Please sign in first.','warning'); return; }
+
+  var stats = window._overviewStats || {};
+  var roi   = window._overviewROI   || {};
+
+  if(!stats.missions && stats.missions !== 0){
+    if(output) output.innerHTML = '<div style="color:#6b7a96;font-size:13px;">Load your stats page first, then try again.</div>';
+    return;
+  }
+
+  /* Show loading state */
+  if(btn){ btn.textContent = '✦ Analyzing...'; btn.disabled = true; }
+  if(output) output.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:18px;height:18px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
+
+  /* Build top specialists string */
+  var topSpecs = '';
+  if(stats.specUsage){
+    topSpecs = Object.keys(stats.specUsage)
+      .sort(function(a,b){ return stats.specUsage[b] - stats.specUsage[a]; })
+      .slice(0,3)
+      .map(function(k){ return k + ' (' + stats.specUsage[k] + 'x)'; })
+      .join(', ');
+  }
+
+  var payload = {
+    missions:          stats.missions        || 0,
+    totalHours:        stats.totalHours      || 0,
+    specialistsUsed:   stats.specCount       || 0,
+    daysSince:         stats.daysSince       || 0,
+    hourlyRate:        roi.hr                || 36,
+    valueSavedYTD:     roi.valueSaved        || 0,
+    projectedAnnual:   roi.projectedAnnual   || 0,
+    roiPercent:        roi.roiPct            || 0,
+    plan:              roi.plan              || 'trial',
+    subscriptionCostYr: roi.subYr            || 0,
+    topSpecialists:    topSpecs,
+  };
+
+  supa.functions.invoke('aria-analysis', { body: payload })
+    .then(function(res){
+      if(btn){ btn.textContent = '✦ Regenerate'; btn.disabled = false; }
+      if(res.error || (res.data && res.data.error)){
+        var errMsg = (res.error && res.error.message) || (res.data && res.data.error) || 'Unknown error';
+        if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Could not generate analysis: ' + errMsg + '</div>';
+        return;
+      }
+      var text = (res.data && res.data.analysis) || '';
+      if(!text){
+        if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
+        return;
+      }
+      /* Render the analysis */
+      var html = text
+        .split('\n')
+        .filter(function(l){ return l.trim(); })
+        .map(function(line){
+          /* Highlight emoji lines as callout rows */
+          if(/^[✅💰🚀📈⭐🎯💡🏆]/.test(line.trim())){
+            return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:rgba(170,255,62,0.04);border-radius:8px;margin-bottom:6px;font-size:13px;color:#c8d4a0;line-height:1.55;">' + escHtml(line) + '</div>';
+          }
+          return '<p style="font-size:13px;color:#b0bcd4;line-height:1.7;margin:0 0 10px;">' + escHtml(line) + '</p>';
+        })
+        .join('');
+      if(output) output.innerHTML = html;
+    })
+    .catch(function(err){
+      if(btn){ btn.textContent = '✦ Generate Analysis'; btn.disabled = false; }
+      if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Error: ' + (err.message||'connection failed') + '</div>';
+    });
+}
+
+function escHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function calcMktROI(){
   var sal=parseFloat(document.getElementById('mkt-sal').value)||75000;
   var hr=sal/2080;var saved=hr*61.5;var mult=Math.round(saved/429);
@@ -3242,6 +3453,19 @@ function loadUserStats(){
       var bh=document.getElementById('stat-hours-big');if(bh)bh.textContent=(totalHours>0?totalHours.toFixed(1):0)+' hrs';
       var bs=document.getElementById('stat-specialists-big');if(bs)bs.textContent=specCount;
       var bd=document.getElementById('stat-days-big');if(bd)bd.textContent=daysSince;
+
+      /* store stats globally for ARIA analysis */
+      window._overviewStats = {
+        missions:        tasks.length,
+        missionCount:    missionCount,
+        totalHours:      totalHours,
+        specCount:       specCount,
+        daysSince:       daysSince,
+        specUsage:       specUsage,
+      };
+
+      /* populate overview ROI cards */
+      recalcOverviewROI();
 
       /* check ARIA milestones */
       var salary=75000;
