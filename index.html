@@ -2313,11 +2313,13 @@ function conductAriaAnalysis(){
 function _renderAriaOutput(res){
   var hdrRow = document.getElementById('aria-hdr-row');
   var cta    = document.getElementById('aria-analysis-cta');
+  var inner  = document.getElementById('aria-compute-inner');
   var output = document.getElementById('aria-analysis-output');
   var rerun  = document.getElementById('aria-rerun-wrap');
 
   if(hdrRow) hdrRow.style.display = 'none';
   if(cta)    cta.style.display    = 'none';
+  if(inner)  { inner.style.display = 'none'; inner.innerHTML = ''; }
   if(output) output.style.display = 'block';
   if(rerun)  rerun.style.display  = 'block';
 

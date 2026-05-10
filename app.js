@@ -4553,27 +4553,29 @@
     ctx.font = 'bold 13px "Barlow",monospace';
 
     function frame() {
-      ctx.fillStyle = 'rgba(4,5,13,0.18)';   /* lighter trail — richer glow */
+      /* faster bg clear = shorter, crisper trails that don't linger */
+      ctx.fillStyle = 'rgba(4,5,13,0.32)';
       ctx.fillRect(0, 0, w, h);
 
       for (var i = 0; i < cols; i++) {
         var y = drops[i] * colW;
         if (y < -colW) { drops[i] += speeds[i]; continue; }
 
-        /* leading char — bright white-green head */
-        ctx.fillStyle = 'rgba(230,255,200,0.98)';
-        var ch = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
-        ctx.fillText(ch, i * colW + 1, y);
-
-        /* 2nd-4th chars — vivid lime trail */
-        for (var t = 1; t <= 3; t++) {
+        /* trailing chars first (drawn behind) — fade away upward */
+        for (var t = 3; t >= 1; t--) {
           if (drops[i] > t) {
-            var alpha = (0.75 - t * 0.18).toFixed(2);
+            /* alpha drops sharply with distance: 0.22 → 0.10 → 0.04 */
+            var alpha = (0.22 - t * 0.06).toFixed(2);
             ctx.fillStyle = 'rgba(170,255,62,' + alpha + ')';
             var tc = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
             ctx.fillText(tc, i * colW + 1, y - t * colW);
           }
         }
+
+        /* leading char — drawn on top, bright but not overpowering */
+        ctx.fillStyle = 'rgba(200,255,140,0.62)';
+        var ch = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
+        ctx.fillText(ch, i * colW + 1, y);
 
         drops[i] += speeds[i];
 
