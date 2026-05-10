@@ -19,7 +19,7 @@
 html,body{height:100%;overflow:hidden;background:#04050d;background-color:#04050d;font-family:'DM Sans',sans-serif;color:var(--text);}
 #orb-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 .shell{position:relative;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-.sticky-top{flex-shrink:0;}
+.sticky-top{flex-shrink:0;position:relative;z-index:1000;}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.12) transparent;}
 .scroll-area::-webkit-scrollbar{width:4px;}
 .scroll-area::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.15);border-radius:2px;}
@@ -743,32 +743,18 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   .salary-row { flex-direction: column !important; gap: 8px !important; }
   .salary-input { width: 100% !important; max-width: 200px !important; }
 
-  /* NAV */
-  .nav-bar { padding: 0 16px !important; height: 56px !important; }
-  .nav-links { display: none !important; }
-  #nav-ctas-marketing { gap: 6px !important; }
-  .btn-ghost-sm { padding: 6px 12px !important; font-size: 12px !important; }
-  .btn-lime { padding: 8px 14px !important; font-size: 12px !important; }
-  #main-nav .logo-text { font-size: 18px !important; }
-
-  /* DASHBOARD NAV */
-  #nav-dashboard .nav-links {
-    display: flex !important;
-    gap: 0 !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    padding: 0 8px !important;
-  }
-  #nav-dashboard .nav-links::-webkit-scrollbar { display: none; }
-  #nav-dashboard .nav-links a { 
-    white-space: nowrap !important; 
-    font-size: 12px !important;
-    padding: 8px 10px !important;
-  }
-  #nav-ctas-dashboard { gap: 4px !important; }
-  #plan-badge { font-size: 9px !important; padding: 3px 6px !important; }
-  #user-avatar { width: 28px !important; height: 28px !important; font-size: 10px !important; }
+  /* NAV — mobile hamburger layout */
+  .nav-bar { padding: 0 14px !important; height: 56px !important; position: relative !important; }
+  #nav-marketing  { display: none !important; }
+  #nav-dashboard  { display: none !important; }
+  #nav-ctas-marketing { display: none !important; }
+  #level-badge    { display: none !important; }
+  #mob-menu-btn   { display: flex !important; }
+  #nav-ctas-dashboard { gap: 8px !important; }
+  #plan-badge { font-size: 9px !important; padding: 3px 8px !important; }
+  #user-avatar { width: 30px !important; height: 30px !important; font-size: 10px !important; }
+  .logo-sub { display: none !important; }
+  .logo-text { font-size: 17px !important; }
 
   /* HERO DASH */
   .hero-dash { 
@@ -886,7 +872,6 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 @media (max-width: 480px) {
   .hero-section h1 { font-size: 42px !important; }
   .stat-cards { grid-template-columns: 1fr 1fr !important; }
-  #nav-dashboard .nav-links a { font-size: 11px !important; padding: 8px 8px !important; }
 }
 
 
@@ -965,6 +950,12 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .fc .fc-list-event:hover td { background: rgba(255,255,255,0.04); cursor: pointer; }
 .fc .fc-list-event-title { color: #b8c8e0; }
 .fc .fc-list-event-time { color: #4a5568; }
+
+/* ===== MOBILE DRAWER ===== */
+.mob-nav-item{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;font-size:15px;font-weight:600;color:#eef3fc;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .15s;font-family:'DM Sans',sans-serif;}
+.mob-nav-item:hover{background:rgba(170,255,62,0.05);color:#aaff3e;}
+.mob-nav-item.active{color:#aaff3e;}
+#mob-nav-drawer.open{max-height:560px !important;}
 
 /* ===== SMS ALERT MODAL ===== */
 .sms-type-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;transition:background .15s;cursor:default;}
@@ -1130,9 +1121,65 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
       </div>
 
+      <!-- HAMBURGER BUTTON — mobile only -->
+      <button id="mob-menu-btn" onclick="toggleMobileMenu()" aria-label="Open menu"
+        style="display:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:9px;cursor:pointer;flex-shrink:0;padding:0;transition:background .2s;">
+        <span id="mob-bar1" style="display:block;width:18px;height:2px;background:#eef3fc;border-radius:2px;transition:all .25s;"></span>
+        <span id="mob-bar2" style="display:block;width:18px;height:2px;background:#eef3fc;border-radius:2px;transition:all .25s;"></span>
+        <span id="mob-bar3" style="display:block;width:18px;height:2px;background:#eef3fc;border-radius:2px;transition:all .25s;"></span>
+      </button>
+
     </nav>
 
+    <!-- MOBILE SLIDE-DOWN DRAWER -->
+    <div id="mob-nav-drawer" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(6,8,15,0.99);border-bottom:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(24px);z-index:9998;overflow:hidden;max-height:0;transition:max-height .32s ease;">
 
+      <!-- Marketing links (shown when not logged in) -->
+      <div id="mob-marketing-links">
+        <div onclick="scrollToSection('sec-how');closeMobileMenu();" class="mob-nav-item">How it works</div>
+        <div onclick="scrollToSection('sec-squad');closeMobileMenu();" class="mob-nav-item">Specialists</div>
+        <div onclick="scrollToSection('sec-pricing');closeMobileMenu();" class="mob-nav-item">Pricing</div>
+        <div onclick="scrollToSection('sec-aria');closeMobileMenu();" class="mob-nav-item">About ARIA</div>
+        <div style="padding:12px 20px;display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(255,255,255,0.06);">
+          <button onclick="openAuth('signin');closeMobileMenu();" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#eef3fc;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;padding:12px;border-radius:10px;cursor:pointer;">Sign in</button>
+          <button onclick="openAuth('signup');closeMobileMenu();" style="width:100%;background:#aaff3e;border:none;color:#0a1a00;font-family:Barlow,sans-serif;font-size:14px;font-weight:900;padding:13px;border-radius:10px;cursor:pointer;letter-spacing:.02em;">Start free trial →</button>
+        </div>
+      </div>
+
+      <!-- Dashboard links (shown when logged in) -->
+      <div id="mob-dashboard-links" style="display:none;">
+        <div onclick="showDashTab('home-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-home">
+          <span>My Squad</span>
+        </div>
+        <div onclick="showDashTab('inbox-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-inbox">
+          <span>Inbox</span>
+          <span id="mob-inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+        </div>
+        <div onclick="showDashTab('fullcal-tab',null);initFullCalendar();closeMobileMenu();" class="mob-nav-item" id="mob-nav-cal">
+          <span>Calendar</span>
+          <span id="mob-cal-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+        </div>
+        <div onclick="showDashTab('tasks-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-tasks">
+          <span>Tasks</span>
+          <span id="mob-tasks-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+        </div>
+        <div onclick="showDashTab('history-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-history">
+          <span>History</span>
+        </div>
+        <div onclick="showDashTab('stats-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-stats">
+          <span>My Stats</span>
+        </div>
+        <div onclick="openBillingModal();closeMobileMenu();" class="mob-nav-item" id="mob-nav-billing">
+          <span>Billing</span>
+        </div>
+        <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
+        <div onclick="doSignout();closeMobileMenu();" class="mob-nav-item" style="color:#ff8080 !important;">
+          <span>Sign out</span>
+        </div>
+        <div style="height:12px;"></div>
+      </div>
+
+    </div>
 
     <!-- Dashboard sub-bars (hidden on marketing) -->
     <div id="dash-bars" style="display:none;">
@@ -8190,6 +8237,138 @@ function drawLogo(){if(!logoCtx)return;
   var s=document.createElement('script');
   s.src='https://ekleinsorge.github.io/econsquad-ai/app.js?v='+Date.now();
   document.body.appendChild(s);
+})();
+</script>
+
+<!-- ===== MOBILE NAV ===== -->
+<script>
+var _mobMenuOpen = false;
+
+function toggleMobileMenu(){
+  _mobMenuOpen ? closeMobileMenu() : openMobileMenu();
+}
+
+function openMobileMenu(){
+  _mobMenuOpen = true;
+  var drawer = document.getElementById('mob-nav-drawer');
+  var btn    = document.getElementById('mob-menu-btn');
+  if(!drawer) return;
+  drawer.style.display = 'block';
+  // force reflow then animate
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      drawer.classList.add('open');
+    });
+  });
+  // Animate hamburger → X
+  var b1 = document.getElementById('mob-bar1');
+  var b2 = document.getElementById('mob-bar2');
+  var b3 = document.getElementById('mob-bar3');
+  if(b1){ b1.style.transform='translateY(7px) rotate(45deg)'; }
+  if(b2){ b2.style.opacity='0'; b2.style.transform='scaleX(0)'; }
+  if(b3){ b3.style.transform='translateY(-7px) rotate(-45deg)'; }
+  if(btn) btn.style.background='rgba(170,255,62,0.1)';
+  // Show correct section
+  var mktLinks  = document.getElementById('mob-marketing-links');
+  var dashLinks = document.getElementById('mob-dashboard-links');
+  if(currentUser){
+    if(mktLinks)  mktLinks.style.display='none';
+    if(dashLinks) dashLinks.style.display='block';
+  } else {
+    if(mktLinks)  mktLinks.style.display='block';
+    if(dashLinks) dashLinks.style.display='none';
+  }
+}
+
+function closeMobileMenu(){
+  _mobMenuOpen = false;
+  var drawer = document.getElementById('mob-nav-drawer');
+  var btn    = document.getElementById('mob-menu-btn');
+  if(drawer){ drawer.classList.remove('open'); }
+  // Animate X → hamburger
+  var b1 = document.getElementById('mob-bar1');
+  var b2 = document.getElementById('mob-bar2');
+  var b3 = document.getElementById('mob-bar3');
+  if(b1){ b1.style.transform=''; }
+  if(b2){ b2.style.opacity='1'; b2.style.transform=''; }
+  if(b3){ b3.style.transform=''; }
+  if(btn) btn.style.background='rgba(255,255,255,0.06)';
+  // Hide drawer after transition
+  setTimeout(function(){
+    if(!_mobMenuOpen && drawer) drawer.style.display='none';
+  }, 350);
+}
+
+// Close on outside tap
+document.addEventListener('click', function(e){
+  if(!_mobMenuOpen) return;
+  var drawer = document.getElementById('mob-nav-drawer');
+  var btn    = document.getElementById('mob-menu-btn');
+  if(drawer && !drawer.contains(e.target) && btn && !btn.contains(e.target)){
+    closeMobileMenu();
+  }
+});
+
+// Sync mobile badges with desktop badges
+function syncMobileBadges(){
+  var pairs = [
+    ['inbox-badge',    'mob-inbox-badge'],
+    ['cal-nav-badge',  'mob-cal-badge'],
+    ['tasks-nav-badge','mob-tasks-badge'],
+  ];
+  pairs.forEach(function(p){
+    var src  = document.getElementById(p[0]);
+    var dest = document.getElementById(p[1]);
+    if(!src || !dest) return;
+    dest.textContent = src.textContent;
+    dest.style.display = src.style.display;
+  });
+}
+// Run sync whenever badges might update
+var _origSetBadge = window.setBadge;
+setInterval(syncMobileBadges, 3000);
+
+// Highlight active mobile tab
+function setMobileActiveTab(tabId){
+  var map = {
+    'home-tab':    'mob-nav-home',
+    'inbox-tab':   'mob-nav-inbox',
+    'fullcal-tab': 'mob-nav-cal',
+    'tasks-tab':   'mob-nav-tasks',
+    'history-tab': 'mob-nav-history',
+    'stats-tab':   'mob-nav-stats',
+  };
+  Object.values(map).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+  if(map[tabId]){
+    var active = document.getElementById(map[tabId]);
+    if(active) active.classList.add('active');
+  }
+}
+
+// Hook into showDashTab to keep mobile active state in sync
+(function(){
+  var _orig = window.showDashTab;
+  if(typeof _orig === 'function'){
+    window.showDashTab = function(tabId, el){
+      _orig(tabId, el);
+      setMobileActiveTab(tabId);
+    };
+  } else {
+    // showDashTab may not be defined yet — patch when it is
+    var _interval = setInterval(function(){
+      if(typeof window.showDashTab === 'function' && window.showDashTab !== arguments.callee){
+        var _orig2 = window.showDashTab;
+        window.showDashTab = function(tabId, el){
+          _orig2(tabId, el);
+          setMobileActiveTab(tabId);
+        };
+        clearInterval(_interval);
+      }
+    }, 200);
+  }
 })();
 </script>
 
