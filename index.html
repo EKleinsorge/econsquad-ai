@@ -1724,9 +1724,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <div class="page main dash-tab" id="stats-tab" style="display:none;padding:24px 32px;">
         <!-- Sub-tab nav -->
         <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:24px;">
-          <div id="subtab-overview" onclick="switchStatsTab('overview',this)" style="background:none;border:none;border-bottom:2px solid #aaff3e;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Overview</div>
-          <div id="subtab-badges" onclick="switchStatsTab('badges',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Badges</div>
-          <div id="subtab-roi" onclick="switchStatsTab('roi',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">ROI Calculator</div>
+          <div id="subtab-overview" class="stats-subtab" onclick="switchStatsTab('overview',this)" style="background:none;border:none;border-bottom:2px solid #aaff3e;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Overview</div>
+          <div id="subtab-badges" class="stats-subtab" onclick="switchStatsTab('badges',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">Badges</div>
+          <div id="subtab-roi" class="stats-subtab" onclick="switchStatsTab('roi',this)" style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7a96;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;">ROI Calculator</div>
         </div>
 
         <!-- OVERVIEW sub-tab -->
@@ -2183,29 +2183,29 @@ function recalcOverviewROI(){
   var monthsElapsed = Math.max(1, daysSince / 30.4);
   var projectedAnnual = (valueSaved / monthsElapsed) * 12;
 
-  /* Subscription cost (use plan from currentProfile if available) */
-  var plan = (window.currentProfile && window.currentProfile.plan) || 'trial';
-  var subMo = plan === 'pro' ? 99 : plan === 'starter' ? 49 : 0;
-  var subYr  = subMo * 12;
+  /* Subscription cost — default to starter if on trial or unknown */
+  var plan  = (window.currentProfile && window.currentProfile.plan) || 'trial';
+  var subMo = plan === 'pro' ? 99 : 49;   // treat trial same as starter ($49)
+  var subYr = subMo * 12;                 // $588 or $1,188
 
-  /* ROI % */
-  var roiPct = subYr > 0 ? Math.round((valueSaved / subYr) * 100) : null;
+  /* ROI multiplier — same formula as ROI Calculator tab: value ÷ annual sub cost */
+  var roiMult = valueSaved > 0 ? Math.max(1, Math.round(valueSaved / subYr)) : 0;
 
   /* Update display */
   var fmt = function(n){ return '$' + Math.round(n).toLocaleString(); };
-  var el = function(id){ return document.getElementById(id); };
+  var el  = function(id){ return document.getElementById(id); };
 
-  if(el('ov-roi-hourly'))   el('ov-roi-hourly').textContent   = '$' + hr.toFixed(0);
-  if(el('ov-roi-saved'))    el('ov-roi-saved').textContent    = fmt(valueSaved);
-  if(el('ov-roi-projected'))el('ov-roi-projected').textContent = fmt(projectedAnnual);
-  if(el('ov-roi-percent'))  el('ov-roi-percent').textContent  =
-    roiPct !== null ? roiPct + '%' : (subYr === 0 ? 'N/A' : '—');
+  if(el('ov-roi-hourly'))    el('ov-roi-hourly').textContent    = '$' + hr.toFixed(0);
+  if(el('ov-roi-saved'))     el('ov-roi-saved').textContent     = fmt(valueSaved);
+  if(el('ov-roi-projected')) el('ov-roi-projected').textContent = fmt(projectedAnnual);
+  if(el('ov-roi-percent'))   el('ov-roi-percent').textContent   =
+    valueSaved > 0 ? roiMult + 'x' : '—';
 
   /* cache for ARIA analysis */
   window._overviewROI = {
     hr: hr, valueSaved: valueSaved,
     projectedAnnual: projectedAnnual,
-    roiPct: roiPct, subYr: subYr, plan: plan,
+    roiPct: roiMult, subYr: subYr, plan: plan,
   };
 
   /* auto-generate ARIA analysis the first time stats load */
@@ -2224,13 +2224,10 @@ function recalcOverviewROI(){
 })();
 
 /* ── ARIA Analysis ── */
-var _ariaAnalysisDone = false; // only auto-run once per session
-
 function generateAriaAnalysis(force){
-  if(!force && _ariaAnalysisDone) return; // skip if already ran this session
   var btn    = document.getElementById('aria-analysis-btn');
   var output = document.getElementById('aria-analysis-output');
-  if(!currentUser) return; // not signed in yet — will retry when stats load
+  if(!currentUser) return;
 
   var stats = window._overviewStats || {};
   var roi   = window._overviewROI   || {};
@@ -2281,7 +2278,6 @@ function generateAriaAnalysis(force){
         if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
         return;
       }
-      _ariaAnalysisDone = true;
       /* Render the analysis */
       var html = text
         .split('\n')
@@ -5068,8 +5064,15 @@ function switchStatsTab(tab, btn){
       }
     }
   }
-  if(tab==='roi')calcROI();
-  if(tab==='overview')loadUserStats();
+  if(tab==='roi') calcROI();
+  if(tab==='overview'){
+    /* reset analysis to spinner so fresh result appears */
+    var ao = document.getElementById('aria-analysis-output');
+    if(ao) ao.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
+    var ab = document.getElementById('aria-analysis-btn');
+    if(ab){ ab.textContent = '↻ Refresh'; ab.disabled = false; }
+    loadUserStats();
+  }
 }
 
 
