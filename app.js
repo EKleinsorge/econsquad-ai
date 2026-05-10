@@ -4358,34 +4358,61 @@
       'opacity:0;transition:opacity .5s ease;backdrop-filter:blur(16px);}' +
       '#aco-overlay.aco-vis{opacity:1;}' +
 
-      /* Shared inner shell — used in both modes */
+      /* Shared inner shell */
       '.aco-shell{position:relative;display:flex;flex-direction:column;align-items:center;' +
-      'width:100%;overflow:hidden;border-radius:12px;}' +
+      'width:100%;border-radius:12px;background:rgba(4,5,13,0.6);}' +
 
-      /* Matrix rain canvas — sits behind everything */
-      '.aco-rain{position:absolute;inset:0;z-index:0;pointer-events:none;}' +
+      /* Matrix rain canvas — clipped to shell via clip-path wrapper */
+      '.aco-rain-wrap{position:absolute;inset:0;overflow:hidden;border-radius:12px;z-index:0;pointer-events:none;}' +
+      '.aco-rain{width:100%;height:100%;}' +
 
-      /* Orb zone */
-      '.aco-orb-zone{position:relative;z-index:2;display:flex;align-items:center;' +
-      'justify-content:center;width:140px;height:140px;margin:24px auto 10px;}' +
-      '.aco-orb-cv{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
-      'width:130px;height:130px;}' +
-      '.aco-orb-sph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
-      'width:52px;height:52px;border-radius:50%;z-index:3;pointer-events:none;}' +
+      /* Orb zone — big, allows rings to show outside canvas center */
+      '.aco-orb-zone{position:relative;z-index:2;width:280px;height:280px;' +
+      'display:flex;align-items:center;justify-content:center;margin:20px auto 4px;flex-shrink:0;}' +
 
-      /* Text layer */
+      /* Expanding pulse rings — like the ARIA home page */
+      '.aco-ring{position:absolute;top:50%;left:50%;border-radius:50%;' +
+      'border:1.5px solid rgba(175,255,65,0.45);' +
+      'transform:translate(-50%,-50%) scale(0.7);opacity:0;' +
+      'animation:acoRingPulse 2.6s cubic-bezier(.25,0,.6,1) infinite;}' +
+      '.aco-ring.r1{width:190px;height:190px;animation-delay:0s;}' +
+      '.aco-ring.r2{width:240px;height:240px;animation-delay:0.72s;border-color:rgba(175,255,65,0.3);}' +
+      '.aco-ring.r3{width:295px;height:295px;animation-delay:1.44s;border-color:rgba(175,255,65,0.18);}' +
+      '@keyframes acoRingPulse{' +
+      '  0%{opacity:0;transform:translate(-50%,-50%) scale(0.65);}' +
+      '  15%{opacity:0.85;}' +
+      '  100%{opacity:0;transform:translate(-50%,-50%) scale(1.08);}' +
+      '}' +
+
+      /* Site orb canvas — 96px pixel-perfect, scaled up via CSS */
+      '.aco-orb-cv{position:absolute;top:50%;left:50%;' +
+      'transform:translate(-50%,-50%);width:192px;height:192px;z-index:2;}' +
+
+      /* Sphere div — must be bigger to match scale */
+      '.aco-orb-sph{position:absolute;top:50%;left:50%;' +
+      'transform:translate(-50%,-50%);width:88px;height:88px;border-radius:50%;z-index:3;pointer-events:none;}' +
+
+      /* ARIA label under orb */
+      '.aco-orb-label{position:relative;z-index:2;font-family:"Barlow Condensed",sans-serif;' +
+      'font-size:22px;font-weight:900;letter-spacing:.18em;color:#aaff3e;' +
+      'text-shadow:0 0 18px rgba(170,255,62,.6);margin-bottom:2px;}' +
+      '.aco-orb-sub{position:relative;z-index:2;font-family:"Barlow",sans-serif;font-size:9px;' +
+      'font-weight:700;color:rgba(170,255,62,.4);text-transform:uppercase;letter-spacing:.22em;' +
+      'margin-bottom:22px;}' +
+
+      /* Typewriter message */
       '.aco-text-zone{position:relative;z-index:2;width:100%;text-align:center;' +
-      'padding:0 16px;margin-bottom:20px;}' +
+      'padding:0 20px;margin-bottom:16px;min-height:26px;}' +
       '.aco-msg{display:inline-block;font-family:"Barlow",monospace;font-size:13px;font-weight:600;' +
       'letter-spacing:.07em;color:rgba(170,255,62,.92);opacity:0;transform:translateY(6px);' +
-      'transition:opacity .22s ease,transform .22s ease;white-space:nowrap;height:22px;}' +
+      'transition:opacity .25s ease,transform .25s ease;white-space:nowrap;}' +
       '.aco-msg.aco-mv{opacity:1;transform:translateY(0);}' +
       '.aco-cursor{display:inline-block;width:2px;height:12px;background:#aaff3e;' +
       'vertical-align:middle;margin-left:2px;animation:acoBlink .7s step-end infinite;}' +
       '@keyframes acoBlink{0%,100%{opacity:1;}50%{opacity:0;}}' +
 
       /* Progress bar */
-      '.aco-bar-wrap{position:relative;z-index:2;width:calc(100% - 32px);height:2px;' +
+      '.aco-bar-wrap{position:relative;z-index:2;width:calc(100% - 40px);height:2px;' +
       'background:rgba(170,255,62,.1);border-radius:1px;overflow:hidden;margin-bottom:16px;}' +
       '.aco-bar{height:100%;width:0;border-radius:1px;' +
       'background:linear-gradient(90deg,#3d8000,#aaff3e,#d4ff80);' +
@@ -4393,8 +4420,8 @@
 
       /* Footer */
       '.aco-foot{position:relative;z-index:2;font-family:"Barlow",sans-serif;font-size:9px;' +
-      'font-weight:700;color:rgba(170,255,62,.3);text-transform:uppercase;letter-spacing:.2em;' +
-      'margin-bottom:20px;}' +
+      'font-weight:700;color:rgba(170,255,62,.28);text-transform:uppercase;letter-spacing:.22em;' +
+      'margin-bottom:24px;}' +
 
       /* Slide-in for results */
       '.aco-result-enter{animation:acoIn .4s cubic-bezier(.2,.8,.4,1) both;}' +
@@ -4406,42 +4433,53 @@
   function buildShell(container, uid) {
     injectCSS();
 
-    /* shell */
     var shell = document.createElement('div');
     shell.className = 'aco-shell';
     shell.id = 'aco-shell-' + uid;
 
-    /* matrix rain canvas */
+    /* matrix rain — wrapped for clipping */
+    var rainWrap = document.createElement('div');
+    rainWrap.className = 'aco-rain-wrap';
     var rain = document.createElement('canvas');
     rain.className = 'aco-rain';
     rain.id = 'aco-rain-' + uid;
-    shell.appendChild(rain);
+    rainWrap.appendChild(rain);
+    shell.appendChild(rainWrap);
 
     /* orb zone */
     var orbZone = document.createElement('div');
     orbZone.className = 'aco-orb-zone';
 
-    /* site orb canvas — picked up automatically by runDashAnim */
+    /* 3 expanding pulse rings */
+    ['r1','r2','r3'].forEach(function(cls) {
+      var ring = document.createElement('div');
+      ring.className = 'aco-ring ' + cls;
+      orbZone.appendChild(ring);
+    });
+
+    /* site orb canvas — 96×96 pixel canvas, CSS-scaled to 192×192 */
     var orbCv = document.createElement('canvas');
     orbCv.className = 'aco-orb-cv';
     orbCv.width  = 96;
     orbCv.height = 96;
     orbCv.setAttribute('data-dorb', 'aco-orb-' + uid);
 
-    /* sphere div — required by drawDashOrb */
+    /* sphere div */
     var sph = document.createElement('div');
     sph.className = 'aco-orb-sph';
 
-    /* Init the site orb using existing engine */
+    /* Initialise using the site orb engine */
     if (window.initDashOrb && window.dashOrbStates) {
       window.initDashOrb('aco-orb-' + uid, 'lime');
-      var st = window.dashOrbStates['aco-orb-' + uid];
+      var st  = window.dashOrbStates['aco-orb-' + uid];
       var col = st.col;
       var r   = col.r;
       st.sphereEl = sph;
       st.sphBg    = 'radial-gradient(circle at 36% 32%,rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',.16),rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',.06) 55%,rgba(0,0,0,.5))';
-      sph.style.background = 'radial-gradient(circle at 36% 32%,' + col.hi + ',' + col.mid + ' 48%,' + col.lo + ')';
-      sph.style.boxShadow  = '0 0 18px rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',.55)';
+      sph.style.cssText = 'position:absolute;top:50%;left:50%;' +
+        'transform:translate(-50%,-50%);width:88px;height:88px;border-radius:50%;z-index:3;' +
+        'background:radial-gradient(circle at 36% 32%,' + col.hi + ',' + col.mid + ' 48%,' + col.lo + ');' +
+        'box-shadow:0 0 32px rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',.7),0 0 60px rgba(' + r[0] + ',' + r[1] + ',' + r[2] + ',.3);';
       st.targetEnergy = 1.0;
       if (window.runDashAnim && !window.dashAnimRunning) window.runDashAnim();
     }
@@ -4449,6 +4487,16 @@
     orbZone.appendChild(orbCv);
     orbZone.appendChild(sph);
     shell.appendChild(orbZone);
+
+    /* "ARIA" label */
+    var lbl = document.createElement('div');
+    lbl.className = 'aco-orb-label';
+    lbl.textContent = 'ARIA';
+    shell.appendChild(lbl);
+    var sub = document.createElement('div');
+    sub.className = 'aco-orb-sub';
+    sub.textContent = 'AI Resource & Intelligence Assistant';
+    shell.appendChild(sub);
 
     /* typewriter message */
     var textZone = document.createElement('div');
@@ -4490,47 +4538,48 @@
     var w = containerEl ? containerEl.offsetWidth  : window.innerWidth;
     var h = containerEl ? containerEl.offsetHeight : window.innerHeight;
     if (w < 10) w = 400;
-    if (h < 10) h = 260;
+    if (h < 50) h = 340;
     canvas.width  = w;
     canvas.height = h;
-    var ctx    = canvas.getContext('2d');
-    var colW   = 14;   /* px per column */
-    var cols   = Math.floor(w / colW);
-    var drops  = [];   /* y position (in rows) for each column */
-    var speeds = [];   /* rows per frame */
+    var ctx   = canvas.getContext('2d');
+    var colW  = 15;
+    var cols  = Math.floor(w / colW);
+    var drops = [];
+    var speeds = [];
     for (var c = 0; c < cols; c++) {
-      drops[c]  = Math.random() * -(h / 14);   /* stagger start above canvas */
-      speeds[c] = 0.12 + Math.random() * 0.22; /* slow to medium fall */
+      drops[c]  = Math.random() * -(h / colW) * 1.5;   /* stagger well above top */
+      speeds[c] = 0.04 + Math.random() * 0.08;          /* SLOW fall — 0.04–0.12 rows/frame */
     }
-    var fontSize = 12;
-    ctx.font = 'bold ' + fontSize + 'px "Barlow",monospace';
+    ctx.font = 'bold 13px "Barlow",monospace';
 
     function frame() {
-      /* dim with semi-transparent black — creates the trail */
-      ctx.fillStyle = 'rgba(4,5,13,0.2)';
+      ctx.fillStyle = 'rgba(4,5,13,0.18)';   /* lighter trail — richer glow */
       ctx.fillRect(0, 0, w, h);
 
       for (var i = 0; i < cols; i++) {
+        var y = drops[i] * colW;
+        if (y < -colW) { drops[i] += speeds[i]; continue; }
+
+        /* leading char — bright white-green head */
+        ctx.fillStyle = 'rgba(230,255,200,0.98)';
         var ch = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
-        var x  = i * colW + 2;
-        var y  = drops[i] * colW;
+        ctx.fillText(ch, i * colW + 1, y);
 
-        /* leading character — bright white-green */
-        ctx.fillStyle = 'rgba(220,255,180,0.95)';
-        ctx.fillText(ch, x, y);
-
-        /* second char below — lime */
-        if (drops[i] > 1) {
-          var ch2 = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
-          ctx.fillStyle = 'rgba(170,255,62,0.75)';
-          ctx.fillText(ch2, x, y - colW);
+        /* 2nd-4th chars — vivid lime trail */
+        for (var t = 1; t <= 3; t++) {
+          if (drops[i] > t) {
+            var alpha = (0.75 - t * 0.18).toFixed(2);
+            ctx.fillStyle = 'rgba(170,255,62,' + alpha + ')';
+            var tc = MTX_CHARS[Math.floor(Math.random() * MTX_CHARS.length)];
+            ctx.fillText(tc, i * colW + 1, y - t * colW);
+          }
         }
 
         drops[i] += speeds[i];
 
-        /* reset when column exits bottom — random restart above top */
-        if (drops[i] * colW > h + colW && Math.random() > 0.975) {
-          drops[i] = -Math.floor(Math.random() * 12);
+        /* reset column: only when off-screen AND random chance */
+        if (drops[i] * colW > h + colW * 3 && Math.random() > 0.97) {
+          drops[i] = -Math.floor(Math.random() * 20);
         }
       }
       _matRaf = requestAnimationFrame(frame);
@@ -4542,22 +4591,42 @@
     if (_matRaf) { cancelAnimationFrame(_matRaf); _matRaf = null; }
   }
 
-  /* ── Slow typewriter (75ms/char) ── */
-  function typeMsg(uid, text) {
+  /* ── Sequential chained typewriter — ONE message at a time, 55ms/char ── */
+  function typeMsgChain(uid, messages, idx) {
+    if (idx >= messages.length) return;
     var msgEl = document.getElementById('aco-msg-' + uid);
     if (!msgEl) return;
+
+    /* fade out current text */
     msgEl.classList.remove('aco-mv');
     setTimeout(function() {
-      while (msgEl.firstChild && msgEl.firstChild.nodeType === 3) msgEl.removeChild(msgEl.firstChild);
+      /* clear old text nodes */
+      while (msgEl.firstChild && msgEl.firstChild.nodeType === 3) {
+        msgEl.removeChild(msgEl.firstChild);
+      }
       var cursor = msgEl.querySelector('.aco-cursor');
-      if (!cursor) { cursor = document.createElement('span'); cursor.className = 'aco-cursor'; msgEl.appendChild(cursor); }
-      var i = 0;
-      var iv = setInterval(function() {
-        if (i < text.length) { msgEl.insertBefore(document.createTextNode(text[i]), cursor); i++; }
-        else clearInterval(iv);
-      }, 75);
+      if (!cursor) {
+        cursor = document.createElement('span');
+        cursor.className = 'aco-cursor';
+        msgEl.appendChild(cursor);
+      }
+
       msgEl.classList.add('aco-mv');
-    }, 200);
+      var text = messages[idx];
+      var i    = 0;
+      var iv   = setInterval(function() {
+        if (i < text.length) {
+          msgEl.insertBefore(document.createTextNode(text[i]), cursor);
+          i++;
+        } else {
+          clearInterval(iv);
+          /* short pause then move to next message */
+          setTimeout(function() {
+            typeMsgChain(uid, messages, idx + 1);
+          }, 320);
+        }
+      }, 55);
+    }, idx === 0 ? 400 : 180);
   }
 
   /* ── State ── */
@@ -4611,17 +4680,15 @@
     /* Build the shell inside the container */
     var shell = buildShell(container, uid);
 
-    /* Size the matrix rain canvas to the shell after layout */
+    /* Size matrix rain to shell after layout paints */
     setTimeout(function() {
       startMatrix('aco-rain-' + uid, shell);
-    }, 50);
+    }, 60);
 
-    /* Typewriter messages — spaced evenly over 80% of totalMs */
-    var msgWindow = totalMs * 0.80;
-    var msgStep   = msgWindow / msgs.length;
-    msgs.forEach(function(m, idx) {
-      _timers.push(setTimeout(function() { typeMsg(uid, m); }, 300 + idx * msgStep));
-    });
+    /* Chained typewriter — messages play one after another, no overlap */
+    _timers.push(setTimeout(function() {
+      typeMsgChain(uid, msgs, 0);
+    }, 200));
 
     /* Progress bar — rAF driven over totalMs */
     var startTs = null;
