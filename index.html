@@ -1764,7 +1764,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <span style="color:#6b7a96;font-size:14px;font-weight:700;">$</span>
                 <input id="ov-annual-salary" type="number" min="1" value="75000"
                   oninput="recalcOverviewROI()"
-                  style="width:88px;background:none;border:none;outline:none;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color-scheme:dark;">
+                  style="width:110px;background:none;border:none;outline:none;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color-scheme:dark;">
               </div>
               <span style="font-size:11px;color:#3d4f6b;">used to calculate your hourly rate</span>
             </div>
@@ -2177,6 +2177,9 @@ function recalcOverviewROI(){
   var salEl  = document.getElementById('ov-annual-salary');
   var salary = salEl ? (parseFloat(salEl.value) || 75000) : 75000;
   try { localStorage.setItem('esq_annual_salary', String(salary)); } catch(e){}
+  /* Sync to ROI Calculator tab input */
+  var roiSalEl = document.getElementById('sal');
+  if(roiSalEl && roiSalEl.value != String(salary)) roiSalEl.value = salary;
 
   /* 1. Hourly Rate = Annual Salary / 2080 */
   var hr = salary / 2080;
