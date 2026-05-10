@@ -4324,3 +4324,400 @@
   };
 
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ✦  ARIA COMPUTE ANIMATION  —  cinematic overlay for specialist deploys
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function() {
+
+  /* ── Specialist-category message sequences ── */
+  var COMPUTE_MESSAGES = {
+    grants: [
+      'Scanning federal grant databases...',
+      'Matching eligibility criteria...',
+      'Calculating funding potential...',
+      'Drafting proposal strategy...'
+    ],
+    site: [
+      'Analyzing site selection criteria...',
+      'Reviewing prospect requirements...',
+      'Calculating competitive advantages...',
+      'Preparing site response package...'
+    ],
+    BRE: [
+      'Connecting to business retention data...',
+      'Analyzing workforce & growth trends...',
+      'Identifying retention risk signals...',
+      'Building engagement strategy...'
+    ],
+    data: [
+      'Loading dataset for analysis...',
+      'Running statistical models...',
+      'Extracting key economic insights...',
+      'Formatting analytical report...'
+    ],
+    incentives: [
+      'Scanning available incentive programs...',
+      'Calculating qualifying thresholds...',
+      'Modeling ROI scenarios...',
+      'Structuring incentive package...'
+    ],
+    marketing: [
+      'Analyzing market positioning...',
+      'Reviewing competitive landscape...',
+      'Identifying target audiences...',
+      'Crafting messaging strategy...'
+    ],
+    workforce: [
+      'Analyzing regional labor market data...',
+      'Scanning workforce pipeline sources...',
+      'Identifying critical skill gaps...',
+      'Building talent attraction strategy...'
+    ],
+    reporting: [
+      'Gathering performance metrics...',
+      'Analyzing economic impact data...',
+      'Building narrative framework...',
+      'Compiling executive report...'
+    ],
+    aria: [
+      'Analyzing your mission history...',
+      'Computing ROI & value metrics...',
+      'Benchmarking your performance...',
+      'Generating executive insights...'
+    ]
+  };
+
+  function getMsgs(cat) {
+    return COMPUTE_MESSAGES[cat] || COMPUTE_MESSAGES.grants;
+  }
+
+  /* ── Inject CSS once ── */
+  function injectCSS() {
+    if (document.getElementById('aria-compute-css')) return;
+    var s = document.createElement('style');
+    s.id = 'aria-compute-css';
+    s.textContent = [
+      /* Overlay */
+      '#aria-compute-overlay{',
+      '  position:fixed;inset:0;z-index:99999;',
+      '  background:rgba(4,5,13,0.97);',
+      '  display:none;flex-direction:column;align-items:center;justify-content:center;',
+      '  opacity:0;transition:opacity 0.55s cubic-bezier(.4,0,.2,1);',
+      '  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);',
+      '}',
+      '#aria-compute-overlay.aco-vis{opacity:1;}',
+
+      /* Particle canvas */
+      '#aria-compute-particles{position:absolute;inset:0;pointer-events:none;}',
+
+      /* Orb wrapper */
+      '.aco-orb-wrap{',
+      '  position:relative;width:180px;height:180px;',
+      '  display:flex;align-items:center;justify-content:center;',
+      '  margin-bottom:44px;',
+      '}',
+
+      /* Expanding rings */
+      '.aco-ring{',
+      '  position:absolute;border-radius:50%;',
+      '  border:1px solid rgba(170,255,62,0.22);',
+      '  animation:acoRing 2.4s cubic-bezier(.4,0,.6,1) infinite;',
+      '}',
+      '.aco-ring:nth-child(1){width:170px;height:170px;animation-delay:0s;}',
+      '.aco-ring:nth-child(2){width:230px;height:230px;animation-delay:0.65s;}',
+      '.aco-ring:nth-child(3){width:295px;height:295px;animation-delay:1.3s;}',
+      '.aco-ring:nth-child(4){width:370px;height:370px;animation-delay:1.95s;border-color:rgba(170,255,62,0.1);}',
+      '@keyframes acoRing{',
+      '  0%{opacity:.75;transform:scale(.82);}',
+      '  100%{opacity:0;transform:scale(1.12);}',
+      '}',
+
+      /* Core orb */
+      '.aco-orb-core{',
+      '  width:112px;height:112px;border-radius:50%;position:relative;z-index:2;',
+      '  background:radial-gradient(circle at 32% 28%, #d4ff80 0%, #aaff3e 28%, #3a9900 60%, #0d2200 100%);',
+      '  box-shadow:',
+      '    0 0 0 2px rgba(170,255,62,0.25),',
+      '    0 0 30px rgba(170,255,62,0.55),',
+      '    0 0 70px rgba(170,255,62,0.28),',
+      '    0 0 140px rgba(170,255,62,0.12);',
+      '  animation:acoOrbPulse 2s cubic-bezier(.4,0,.6,1) infinite;',
+      '  display:flex;align-items:center;justify-content:center;',
+      '}',
+      '@keyframes acoOrbPulse{',
+      '  0%,100%{transform:scale(1);',
+      '    box-shadow:0 0 0 2px rgba(170,255,62,.25),0 0 30px rgba(170,255,62,.55),0 0 70px rgba(170,255,62,.28),0 0 140px rgba(170,255,62,.12);}',
+      '  50%{transform:scale(1.07);',
+      '    box-shadow:0 0 0 3px rgba(170,255,62,.35),0 0 50px rgba(170,255,62,.75),0 0 100px rgba(170,255,62,.4),0 0 180px rgba(170,255,62,.18);}',
+      '}',
+
+      /* Orb label */
+      '.aco-orb-label{',
+      '  font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:36px;',
+      '  color:rgba(10,26,0,0.92);letter-spacing:-.02em;user-select:none;',
+      '}',
+
+      /* Message typewriter */
+      '.aco-msg-wrap{height:26px;text-align:center;margin-bottom:30px;min-width:340px;overflow:hidden;}',
+      '.aco-msg{',
+      '  display:inline-block;',
+      '  font-family:"Barlow",monospace;font-size:14px;font-weight:600;letter-spacing:.06em;',
+      '  color:rgba(170,255,62,.9);',
+      '  opacity:0;transform:translateY(8px);',
+      '  transition:opacity .25s ease,transform .25s ease;',
+      '}',
+      '.aco-msg.aco-msg-vis{opacity:1;transform:translateY(0);}',
+      '.aco-cursor{',
+      '  display:inline-block;width:2px;height:13px;background:#aaff3e;',
+      '  vertical-align:middle;margin-left:2px;',
+      '  animation:acoCursor .65s step-end infinite;',
+      '}',
+      '@keyframes acoCursor{0%,100%{opacity:1;}50%{opacity:0;}}',
+
+      /* Progress bar */
+      '.aco-prog-wrap{',
+      '  width:340px;height:3px;background:rgba(170,255,62,.1);',
+      '  border-radius:2px;overflow:hidden;margin-bottom:18px;',
+      '}',
+      '.aco-prog-bar{',
+      '  height:100%;width:0;border-radius:2px;',
+      '  background:linear-gradient(90deg,#6ad400,#aaff3e,#d4ff80);',
+      '  box-shadow:0 0 14px rgba(170,255,62,.7);',
+      '  transition:width .08s linear;',
+      '}',
+
+      /* Footer label */
+      '.aco-footer-label{',
+      '  font-family:"Barlow",sans-serif;font-size:10px;font-weight:700;',
+      '  color:rgba(170,255,62,.35);text-transform:uppercase;letter-spacing:.18em;',
+      '}',
+
+      /* Results slide-in */
+      '.aco-result-enter{',
+      '  animation:acoSlideIn .45s cubic-bezier(.2,.8,.4,1) both;',
+      '}',
+      '@keyframes acoSlideIn{',
+      '  from{opacity:0;transform:translateY(18px);}',
+      '  to{opacity:1;transform:translateY(0);}',
+      '}'
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
+  /* ── Build overlay DOM ── */
+  function buildOverlay() {
+    if (document.getElementById('aria-compute-overlay')) return;
+    injectCSS();
+
+    var el = document.createElement('div');
+    el.id = 'aria-compute-overlay';
+
+    /* Particle canvas */
+    var canvas = document.createElement('canvas');
+    canvas.id = 'aria-compute-particles';
+    el.appendChild(canvas);
+
+    /* Center content */
+    var center = document.createElement('div');
+    center.style.cssText = 'position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;';
+
+    /* Orb wrapper */
+    var orbWrap = document.createElement('div');
+    orbWrap.className = 'aco-orb-wrap';
+    for (var r = 0; r < 4; r++) {
+      var ring = document.createElement('div');
+      ring.className = 'aco-ring';
+      orbWrap.appendChild(ring);
+    }
+    var core = document.createElement('div');
+    core.className = 'aco-orb-core';
+    var lbl = document.createElement('span');
+    lbl.className = 'aco-orb-label';
+    lbl.textContent = 'A';
+    core.appendChild(lbl);
+    orbWrap.appendChild(core);
+    center.appendChild(orbWrap);
+
+    /* Message line */
+    var msgWrap = document.createElement('div');
+    msgWrap.className = 'aco-msg-wrap';
+    var msgEl = document.createElement('span');
+    msgEl.className = 'aco-msg';
+    msgEl.id = 'aco-msg';
+    var cur = document.createElement('span');
+    cur.className = 'aco-cursor';
+    msgEl.appendChild(cur);
+    msgWrap.appendChild(msgEl);
+    center.appendChild(msgWrap);
+
+    /* Progress bar */
+    var progWrap = document.createElement('div');
+    progWrap.className = 'aco-prog-wrap';
+    var progBar = document.createElement('div');
+    progBar.className = 'aco-prog-bar';
+    progBar.id = 'aco-prog';
+    progWrap.appendChild(progBar);
+    center.appendChild(progWrap);
+
+    /* Footer label */
+    var foot = document.createElement('div');
+    foot.className = 'aco-footer-label';
+    foot.textContent = 'ARIA is computing';
+    center.appendChild(foot);
+
+    el.appendChild(center);
+    document.body.appendChild(el);
+  }
+
+  /* ── Particle system (canvas-based) ── */
+  var _particles = [];
+  var _pRaf = null;
+
+  function startParticles() {
+    var canvas = document.getElementById('aria-compute-particles');
+    if (!canvas) return;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    var ctx = canvas.getContext('2d');
+    _particles = [];
+    for (var i = 0; i < 55; i++) {
+      _particles.push({
+        x: Math.random() * canvas.width,
+        y: canvas.height * (0.35 + Math.random() * 0.55),
+        r: 1 + Math.random() * 3.5,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -(0.6 + Math.random() * 1.4),
+        alpha: 0.15 + Math.random() * 0.55,
+        decay: 0.003 + Math.random() * 0.007,
+        hue: 90 + Math.random() * 40   /* lime to yellow-green */
+      });
+    }
+    function drawFrame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      _particles.forEach(function(p) {
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+          /* recycle */
+          p.x = Math.random() * canvas.width;
+          p.y = canvas.height * (0.35 + Math.random() * 0.55);
+          p.alpha = 0.2 + Math.random() * 0.55;
+          p.vy = -(0.6 + Math.random() * 1.4);
+          p.vx = (Math.random() - 0.5) * 0.8;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'hsl(' + p.hue + ',100%,65%)';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(170,255,62,0.6)';
+        ctx.fill();
+        ctx.restore();
+      });
+      _pRaf = requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+  }
+
+  function stopParticles() {
+    if (_pRaf) { cancelAnimationFrame(_pRaf); _pRaf = null; }
+    var canvas = document.getElementById('aria-compute-particles');
+    if (canvas) { var ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+  }
+
+  /* ── Typewriter for a single message ── */
+  function typeMessage(text, done) {
+    var msgEl = document.getElementById('aco-msg');
+    if (!msgEl) { if (done) done(); return; }
+    msgEl.classList.remove('aco-msg-vis');
+    setTimeout(function() {
+      /* clear previous text nodes */
+      while (msgEl.firstChild && msgEl.firstChild.nodeType === 3) msgEl.removeChild(msgEl.firstChild);
+      var cursor = msgEl.querySelector('.aco-cursor');
+      if (!cursor) { cursor = document.createElement('span'); cursor.className = 'aco-cursor'; msgEl.appendChild(cursor); }
+      var i = 0;
+      var iv = setInterval(function() {
+        if (i < text.length) {
+          msgEl.insertBefore(document.createTextNode(text[i]), cursor);
+          i++;
+        } else {
+          clearInterval(iv);
+          if (done) done();
+        }
+      }, 28);
+      msgEl.classList.add('aco-msg-vis');
+    }, 180);
+  }
+
+  /* ── Main show / hide API ── */
+  var _timers = [];
+  var _rafProg = null;
+
+  function show(category, onComplete) {
+    buildOverlay();
+    var el  = document.getElementById('aria-compute-overlay');
+    var bar = document.getElementById('aco-prog');
+    if (!el) { if (onComplete) onComplete(); return; }
+
+    /* clear any leftover timers */
+    _timers.forEach(clearTimeout);
+    _timers = [];
+    if (_rafProg) { cancelAnimationFrame(_rafProg); _rafProg = null; }
+
+    /* reset progress */
+    if (bar) bar.style.width = '0%';
+
+    /* show overlay */
+    el.style.display = 'flex';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { el.classList.add('aco-vis'); });
+    });
+
+    startParticles();
+
+    var msgs         = getMsgs(category || 'grants');
+    var totalMs      = 3800;
+    var msgStep      = totalMs / msgs.length;
+
+    /* queue typewriter messages */
+    msgs.forEach(function(msg, idx) {
+      _timers.push(setTimeout(function() { typeMessage(msg); }, idx * msgStep + 80));
+    });
+
+    /* smooth progress bar */
+    var startTs = null;
+    function animProg(ts) {
+      if (!startTs) startTs = ts;
+      var pct = Math.min(100, ((ts - startTs) / totalMs) * 100);
+      if (bar) bar.style.width = pct + '%';
+      if (pct < 100) _rafProg = requestAnimationFrame(animProg);
+    }
+    _rafProg = requestAnimationFrame(animProg);
+
+    /* complete after animation */
+    _timers.push(setTimeout(function() {
+      hide(function() { if (onComplete) onComplete(); });
+    }, totalMs + 500));
+  }
+
+  function hide(cb) {
+    stopParticles();
+    if (_rafProg) { cancelAnimationFrame(_rafProg); _rafProg = null; }
+    var el = document.getElementById('aria-compute-overlay');
+    if (!el) { if (cb) cb(); return; }
+    el.classList.remove('aco-vis');
+    setTimeout(function() {
+      el.style.display = 'none';
+      var bar = document.getElementById('aco-prog');
+      if (bar) bar.style.width = '0%';
+      if (cb) cb();
+    }, 520);
+  }
+
+  /* ── Expose globally ── */
+  window.ariaCompute = { show: show, hide: hide };
+
+})();

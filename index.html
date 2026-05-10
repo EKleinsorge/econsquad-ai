@@ -1803,27 +1803,35 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <h3 style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Most Used Specialists</h3>
           <div id="stats-top-specialists" style="display:flex;flex-direction:column;gap:8px;color:#4a5568;font-size:13px;margin-bottom:28px;">Complete missions to see your most used specialists here.</div>
 
-          <!-- ARIA's Analysis — auto-generated, pinned to bottom -->
+          <!-- ARIA's Analysis — triggered by button -->
           <div style="background:rgba(8,12,24,0.85);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:22px 24px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(100,180,255,0.1));border:1px solid rgba(170,255,62,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">✦</div>
-                <div>
-                  <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;">ARIA's Analysis</div>
-                  <div style="font-size:11px;color:#6b7a96;margin-top:1px;">Personalized executive summary of your progress &amp; ROI</div>
-                </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(200,255,100,0.25),rgba(170,255,62,0.1));border:1px solid rgba(170,255,62,0.35);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 14px rgba(170,255,62,0.15);">✦</div>
+              <div>
+                <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;">ARIA's Analysis</div>
+                <div style="font-size:11px;color:#6b7a96;margin-top:2px;">Personalized executive summary of your progress &amp; ROI</div>
               </div>
-              <button id="aria-analysis-btn" onclick="generateAriaAnalysis(true)"
-                style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;flex-shrink:0;"
-                onmouseover="this.style.borderColor='rgba(170,255,62,0.3)';this.style.color='#aaff3e'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#6b7a96'">
-                ↻ Refresh
-              </button>
             </div>
-            <div id="aria-analysis-output">
-              <div style="display:flex;align-items:center;gap:10px;color:#3d4f6b;font-size:13px;">
-                <div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-                <span>ARIA is preparing your analysis...</span>
-              </div>
+            <!-- CTA button — shown before analysis runs -->
+            <div id="aria-analysis-cta" style="text-align:center;padding:20px 0 8px;">
+              <button onclick="conductAriaAnalysis()"
+                style="background:linear-gradient(135deg,rgba(170,255,62,0.15),rgba(100,200,40,0.08));border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:14px 32px;border-radius:12px;cursor:pointer;letter-spacing:.04em;transition:all .25s;box-shadow:0 0 20px rgba(170,255,62,0.1);"
+                onmouseover="this.style.background='linear-gradient(135deg,rgba(170,255,62,0.25),rgba(100,200,40,0.14))';this.style.boxShadow='0 0 30px rgba(170,255,62,0.25)';"
+                onmouseout="this.style.background='linear-gradient(135deg,rgba(170,255,62,0.15),rgba(100,200,40,0.08))';this.style.boxShadow='0 0 20px rgba(170,255,62,0.1)';">
+                ✦ Conduct an ARIA Analysis
+              </button>
+              <div style="font-size:11px;color:#3d4f6b;margin-top:10px;">AI-powered executive summary of your performance &amp; ROI</div>
+            </div>
+            <!-- Output — hidden until analysis runs -->
+            <div id="aria-analysis-output" style="display:none;"></div>
+            <!-- Re-run button — shown after analysis -->
+            <div id="aria-rerun-wrap" style="display:none;text-align:right;margin-top:14px;">
+              <button id="aria-analysis-btn" onclick="conductAriaAnalysis()"
+                style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:600;padding:5px 14px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;"
+                onmouseover="this.style.borderColor='rgba(170,255,62,0.3)';this.style.color='#aaff3e'"
+                onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='#6b7a96'">
+                ↻ Run Again
+              </button>
             </div>
           </div>
 
@@ -2229,80 +2237,101 @@ function recalcOverviewROI(){
   } catch(e){}
 })();
 
-/* ── ARIA Analysis ── */
-function generateAriaAnalysis(force){
-  var btn    = document.getElementById('aria-analysis-btn');
-  var output = document.getElementById('aria-analysis-output');
+/* ── ARIA Analysis — called by button, plays animation first ── */
+function conductAriaAnalysis(){
   if(!currentUser) return;
-
   var stats = window._overviewStats || {};
   var roi   = window._overviewROI   || {};
 
-  if(!stats.missions && stats.missions !== 0){
-    if(output) output.innerHTML = '<div style="color:#6b7a96;font-size:13px;">Load your stats page first, then try again.</div>';
-    return;
+  /* Kick off the API call immediately (runs in parallel with animation) */
+  var apiDone  = false;
+  var animDone = false;
+  var apiResult = null;
+
+  function tryRender(){
+    if(!apiDone || !animDone) return;
+    _renderAriaOutput(apiResult);
   }
 
-  /* Show loading state */
-  if(btn){ btn.textContent = '↻ Refreshing...'; btn.disabled = true; }
-  if(output) output.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
-
-  /* Build top specialists string */
+  /* Build payload */
   var topSpecs = '';
   if(stats.specUsage){
     topSpecs = Object.keys(stats.specUsage)
-      .sort(function(a,b){ return stats.specUsage[b] - stats.specUsage[a]; })
-      .slice(0,3)
-      .map(function(k){ return k + ' (' + stats.specUsage[k] + 'x)'; })
-      .join(', ');
+      .sort(function(a,b){ return stats.specUsage[b]-stats.specUsage[a]; })
+      .slice(0,3).map(function(k){ return k+' ('+stats.specUsage[k]+'x)'; }).join(', ');
   }
-
   var payload = {
-    missions:          stats.missions        || 0,
-    totalHours:        stats.totalHours      || 0,
-    specialistsUsed:   stats.specCount       || 0,
-    daysSince:         stats.daysSince       || 0,
-    hourlyRate:        roi.hr                || 36,
-    valueSavedYTD:     roi.valueSaved        || 0,
-    projectedAnnual:   roi.projectedAnnual   || 0,
-    roiPercent:        roi.roiPct            || 0,
-    plan:              roi.plan              || 'trial',
-    subscriptionCostYr: roi.subYr            || 0,
-    topSpecialists:    topSpecs,
+    missions: stats.missions||0, totalHours: stats.totalHours||0,
+    specialistsUsed: stats.specCount||0, daysSince: stats.daysSince||0,
+    hourlyRate: roi.hr||36, valueSavedYTD: roi.valueSaved||0,
+    projectedAnnual: roi.projectedAnnual||0, roiPercent: roi.roiPct||0,
+    plan: roi.plan||'trial', subscriptionCostYr: roi.subYr||0,
+    topSpecialists: topSpecs,
   };
 
   supa.functions.invoke('aria-analysis', { body: payload })
     .then(function(res){
-      if(btn){ btn.disabled = false; }
-      if(res.error || (res.data && res.data.error)){
-        var errMsg = (res.error && res.error.message) || (res.data && res.data.error) || 'Unknown error';
-        if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Could not generate analysis: ' + errMsg + '</div>';
-        return;
-      }
-      var text = (res.data && res.data.analysis) || '';
-      if(!text){
-        if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
-        return;
-      }
-      /* Render the analysis */
-      var html = text
-        .split('\n')
-        .filter(function(l){ return l.trim(); })
-        .map(function(line){
-          /* Highlight emoji lines as callout rows */
-          if(/^[✅💰🚀📈⭐🎯💡🏆]/.test(line.trim())){
-            return '<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:rgba(170,255,62,0.04);border-radius:8px;margin-bottom:6px;font-size:13px;color:#c8d4a0;line-height:1.55;">' + escHtml(line) + '</div>';
-          }
-          return '<p style="font-size:13px;color:#b0bcd4;line-height:1.7;margin:0 0 10px;">' + escHtml(line) + '</p>';
-        })
-        .join('');
-      if(output) output.innerHTML = html;
+      apiDone = true;
+      apiResult = res;
+      tryRender();
     })
     .catch(function(err){
-      if(btn){ btn.textContent = '↻ Refresh'; btn.disabled = false; }
-      if(output) output.innerHTML = '<div style="color:#f87171;font-size:12px;">Error: ' + (err.message||'connection failed') + '</div>';
+      apiDone = true;
+      apiResult = { _err: err.message || 'connection failed' };
+      tryRender();
     });
+
+  /* Show the cinematic animation; on complete reveal results */
+  if(window.ariaCompute){
+    window.ariaCompute.show('aria', function(){
+      animDone = true;
+      tryRender();
+    });
+  } else {
+    animDone = true;
+    tryRender();
+  }
 }
+
+/* Renders the analysis text into the output div with slide-in */
+function _renderAriaOutput(res){
+  var cta    = document.getElementById('aria-analysis-cta');
+  var output = document.getElementById('aria-analysis-output');
+  var rerun  = document.getElementById('aria-rerun-wrap');
+
+  if(cta)    cta.style.display    = 'none';
+  if(output) output.style.display = 'block';
+  if(rerun)  rerun.style.display  = 'block';
+
+  if(!output) return;
+
+  if(res && res._err){
+    output.innerHTML = '<div style="color:#f87171;font-size:12px;">Error: ' + escHtml(res._err) + '</div>';
+    return;
+  }
+  if(!res || (res.error) || (res.data && res.data.error)){
+    var errMsg = (res && res.error && res.error.message) || (res && res.data && res.data.error) || 'Unknown error';
+    output.innerHTML = '<div style="color:#f87171;font-size:12px;">Could not generate analysis: ' + escHtml(errMsg) + '</div>';
+    return;
+  }
+  var text = (res.data && res.data.analysis) || '';
+  if(!text){
+    output.innerHTML = '<div style="color:#f87171;font-size:12px;">No analysis returned. Try again.</div>';
+    return;
+  }
+  var html = text.split('\n').filter(function(l){ return l.trim(); })
+    .map(function(line){
+      if(/^[✅💰🚀📈⭐🎯💡🏆]/.test(line.trim())){
+        return '<div class="aco-result-enter" style="display:flex;gap:10px;align-items:flex-start;padding:10px 14px;background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.1);border-radius:10px;margin-bottom:8px;font-size:13px;color:#c8d4a0;line-height:1.6;">'
+               + escHtml(line) + '</div>';
+      }
+      return '<p class="aco-result-enter" style="font-size:13px;color:#b0bcd4;line-height:1.75;margin:0 0 12px;">' + escHtml(line) + '</p>';
+    }).join('');
+  output.innerHTML = html;
+}
+
+/* Legacy hook so loadUserStats doesn't break */
+function generateAriaAnalysis(){ /* no-op — use conductAriaAnalysis() button */ }
 
 function escHtml(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -3953,14 +3982,14 @@ function continueChat(){
   if(chatPanel)chatPanel.style.display='flex';
 }
 
-function addChatMessage(role, text){
+function addChatMessage(role, text, animate){
   var sp=SPECIALIST_NAMES[chatState.specialistId]||{name:'AI',emoji:'✦'};
   var col=chatState.specialistColor?ORB_C[chatState.specialistColor]:null;
   var msgs=document.getElementById('chat-messages');
   if(!msgs)return;
 
   var wrapper=document.createElement('div');
-  wrapper.className='chat-msg '+(role==='user'?'user':'');
+  wrapper.className='chat-msg '+(role==='user'?'user':'')+(animate&&role==='specialist'?' aco-result-enter':'');
 
   var avatar=document.createElement('div');
   avatar.className='chat-avatar';
@@ -4077,7 +4106,36 @@ function callSpecialist(userMessage){
   chatState.isTyping=true;
   var btn=document.getElementById('chat-send-btn');
   if(btn){btn.disabled=true;btn.style.opacity='0.5';}
-  showTyping();
+
+  /* Show ARIA compute animation only on the first message of a session */
+  var isFirstMsg = chatState.messages.length === 1;
+  var animDone   = !isFirstMsg;   /* skip wait if follow-up message */
+  var pendingData = null;         /* holds API response until anim finishes */
+
+  if(isFirstMsg && window.ariaCompute){
+    var specInfo = squad && squad.find(function(x){return x.id===chatState.specialistId;});
+    var cat = specInfo ? (specInfo.cat||'grants') : 'grants';
+    window.ariaCompute.show(cat, function(){
+      animDone = true;
+      if(pendingData !== null) applyReply(pendingData);
+    });
+  } else {
+    showTyping();
+  }
+
+  function applyReply(data){
+    if(!isFirstMsg) hideTyping();
+    chatState.isTyping=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
+    if(data.error){ addChatMessage('specialist','Error: ' + data.error); return; }
+    var reply=data.reply||'';
+    if(!reply){ addChatMessage('specialist','No response — please try again.'); return; }
+    /* slide the message bubble in with the result animation class */
+    addChatMessage('specialist', reply, true);
+    if(reply.length>400&&(reply.includes('##')||reply.includes('**')||reply.includes('\n\n'))){
+      showFinalOutput(reply);
+    }
+  }
 
   (function(){
     var payload={
@@ -4087,41 +4145,18 @@ function callSpecialist(userMessage){
       }),
       userId:currentUser?String(currentUser.id):''
     };
-    var bodyStr=JSON.stringify(payload);
     return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':SUPA_KEY
-      },
-      body:bodyStr
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      body:JSON.stringify(payload)
     });
   })().then(function(r){return r.json();}).then(function(data){
-    hideTyping();
-    chatState.isTyping=false;
-    if(btn){btn.disabled=false;btn.style.opacity='1';}
-
-    if(data.error){
-      addChatMessage('specialist','DEBUG ERROR: ' + data.error);
-      return;
-    }
-
-    var reply=data.reply||'';
-    if(!reply){
-      addChatMessage('specialist','DEBUG: No reply in response. Raw: '+JSON.stringify(data).slice(0,200));
-      return;
-    }
-    addChatMessage('specialist',reply);
-
-    /* check if this looks like a final output — long response with structured content */
-    if(reply.length>400&&(reply.includes('##')||reply.includes('**')||reply.includes('\n\n'))){
-      showFinalOutput(reply);
-    }
+    if(animDone){ applyReply(data); } else { pendingData = data; }
   }).catch(function(err){
-    hideTyping();
+    if(!isFirstMsg) hideTyping();
     chatState.isTyping=false;
     if(btn){btn.disabled=false;btn.style.opacity='1';}
-    addChatMessage('specialist','DEBUG CATCH: ' + (err ? err.message : 'unknown'));
+    addChatMessage('specialist','Connection error — please try again.');
   });
 }
 
@@ -5094,11 +5129,13 @@ function switchStatsTab(tab, btn){
   }
   if(tab==='roi') calcROI();
   if(tab==='overview'){
-    /* reset analysis to spinner so fresh result appears */
-    var ao = document.getElementById('aria-analysis-output');
-    if(ao) ao.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#6b7a96;font-size:13px;"><div style="width:16px;height:16px;border:2px solid rgba(170,255,62,0.15);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>ARIA is reviewing your data...</div>';
-    var ab = document.getElementById('aria-analysis-btn');
-    if(ab){ ab.textContent = '↻ Refresh'; ab.disabled = false; }
+    /* Reset ARIA section back to CTA state each time Overview opens */
+    var aoCta   = document.getElementById('aria-analysis-cta');
+    var aoOut   = document.getElementById('aria-analysis-output');
+    var aoRerun = document.getElementById('aria-rerun-wrap');
+    if(aoCta)   { aoCta.style.display = 'block'; }
+    if(aoOut)   { aoOut.style.display = 'none'; aoOut.innerHTML = ''; }
+    if(aoRerun) { aoRerun.style.display = 'none'; }
     loadUserStats();
   }
 }
