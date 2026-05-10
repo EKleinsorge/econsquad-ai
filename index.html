@@ -3951,10 +3951,6 @@ function saveTaskToHistory(output){
   }).then(function(){
     loadUserStats();
     setTimeout(runBadgeCheck,1000);
-    /* ── SMS: specialist task complete ── */
-    sendSmsAlert('specialist_complete',
-      specialistDisplayName+' finished your task. Log in to review your results: https://econsquad.ai'
-    );
   });
 }
 
@@ -8068,26 +8064,12 @@ function drawLogo(){if(!logoCtx)return;
         <div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;">Alert Types</div>
         <div id="sms-types-list" style="display:flex;flex-direction:column;gap:2px;">
 
-          <!-- specialist_complete -->
-          <div class="sms-type-row" data-key="specialist_complete">
-            <div class="sms-type-icon">✅</div>
-            <div class="sms-type-info">
-              <div class="sms-type-label">Specialist task complete</div>
-              <div class="sms-type-sub">Text when a specialist finishes your request</div>
-            </div>
-            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
-              <div class="sms-type-toggle">
-                <div class="sms-type-knob"></div>
-              </div>
-            </div>
-          </div>
-
           <!-- email_important -->
           <div class="sms-type-row" data-key="email_important">
             <div class="sms-type-icon">📬</div>
             <div class="sms-type-info">
-              <div class="sms-type-label">Important email received</div>
-              <div class="sms-type-sub">Grants, RFPs, key business contacts</div>
+              <div class="sms-type-label">Important emails received</div>
+              <div class="sms-type-sub">Grants, RFPs, deadlines, and key business contacts</div>
             </div>
             <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
               <div class="sms-type-toggle">
@@ -8096,12 +8078,12 @@ function drawLogo(){if(!logoCtx)return;
             </div>
           </div>
 
-          <!-- grant_deadline -->
-          <div class="sms-type-row" data-key="grant_deadline">
+          <!-- calendar_deadline -->
+          <div class="sms-type-row" data-key="calendar_deadline">
             <div class="sms-type-icon">📅</div>
             <div class="sms-type-info">
-              <div class="sms-type-label">Grant &amp; calendar deadlines</div>
-              <div class="sms-type-sub">Reminders 7 days and 1 day before</div>
+              <div class="sms-type-label">Calendar deadline approaching</div>
+              <div class="sms-type-sub">Reminders 7 days and 1 day before events</div>
             </div>
             <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
               <div class="sms-type-toggle">
@@ -8110,26 +8092,12 @@ function drawLogo(){if(!logoCtx)return;
             </div>
           </div>
 
-          <!-- bre_response -->
-          <div class="sms-type-row" data-key="bre_response">
-            <div class="sms-type-icon">📊</div>
+          <!-- task_reminder -->
+          <div class="sms-type-row" data-key="task_reminder">
+            <div class="sms-type-icon">✅</div>
             <div class="sms-type-info">
-              <div class="sms-type-label">BRE survey response</div>
-              <div class="sms-type-sub">Alert when a business submits a BRE survey</div>
-            </div>
-            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
-              <div class="sms-type-toggle">
-                <div class="sms-type-knob"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- payment_failed -->
-          <div class="sms-type-row" data-key="payment_failed">
-            <div class="sms-type-icon">💳</div>
-            <div class="sms-type-info">
-              <div class="sms-type-label">Payment failed</div>
-              <div class="sms-type-sub">Alert if your subscription payment doesn't go through</div>
+              <div class="sms-type-label">Task needs completed</div>
+              <div class="sms-type-sub">Nudge when you have open tasks waiting on you</div>
             </div>
             <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
               <div class="sms-type-toggle">
@@ -8144,6 +8112,34 @@ function drawLogo(){if(!logoCtx)return;
             <div class="sms-type-info">
               <div class="sms-type-label">Weekly squad summary</div>
               <div class="sms-type-sub">Monday morning recap: missions run, hours saved</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- dormant_reminder -->
+          <div class="sms-type-row" data-key="dormant_reminder">
+            <div class="sms-type-icon">💤</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Dormant system reminder</div>
+              <div class="sms-type-sub">Reminder when your squad hasn't been used in 3+ days</div>
+            </div>
+            <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
+              <div class="sms-type-toggle">
+                <div class="sms-type-knob"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- daily_motivational -->
+          <div class="sms-type-row" data-key="daily_motivational">
+            <div class="sms-type-icon">☀️</div>
+            <div class="sms-type-info">
+              <div class="sms-type-label">Daily morning motivational</div>
+              <div class="sms-type-sub">Short daily message to start your ED day strong</div>
             </div>
             <div class="sms-type-toggle-wrap" onclick="toggleSmsType(this)">
               <div class="sms-type-toggle">
@@ -8205,12 +8201,12 @@ var _smsSettings = {
   phone:       '',
   sms_alerts:  false,
   sms_alert_types: {
-    specialist_complete: true,
-    email_important:     true,
-    grant_deadline:      true,
-    bre_response:        true,
-    payment_failed:      true,
-    weekly_digest:       false,
+    email_important:   true,
+    calendar_deadline: true,
+    task_reminder:     true,
+    weekly_digest:     true,
+    dormant_reminder:  true,
+    daily_motivational:false,
   }
 };
 
