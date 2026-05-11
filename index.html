@@ -2531,6 +2531,10 @@ function onSignedIn(user){
       if(!window._lastCalEvents && !window._lastCalWeekEvents){
         loadCalendar(token);
       }
+      /* auto-sync Google Tasks silently so tasks tab is populated on arrival */
+      setTimeout(function(){
+        if(typeof window.syncGoogleTasksSilent === 'function') window.syncGoogleTasksSilent(token);
+      }, 1500);
     });
   }, 2000);
   /* load voice preference */

@@ -4077,6 +4077,44 @@
     }); /* end fetchToken */
   };
 
+  /* Silent background sync — called on sign-in, no UI feedback, no modals */
+  window.syncGoogleTasksSilent = function(token) {
+    if (!token) return;
+    var supaUrl = window.SUPA_URL || 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
+    var supaKey = window.SUPA_KEY || '';
+    fetch(supaUrl + '/functions/v1/gmail-calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': supaKey, 'Authorization': 'Bearer ' + supaKey },
+      body: JSON.stringify({ action: 'google_tasks_list', provider_token: token })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.needsScope || !data.tasks) return; /* silently skip if no Tasks scope */
+      var imported = 0, updated = 0;
+      var existing = getAllTasks();
+      var gIdMap = {};
+      existing.forEach(function(t) { if (t.googleTaskId) gIdMap[t.googleTaskId] = t.id; });
+      (data.tasks || []).forEach(function(gt) {
+        if (!gt.id || !gt.title) return;
+        var status  = gt.status === 'completed' ? 'completed' : 'pending';
+        var dueDate = gt.due ? new Date(gt.due).toISOString() : null;
+        if (gIdMap[gt.id]) {
+          updateTask(gIdMap[gt.id], { title: gt.title, description: gt.notes || '', status: status, dueDate: dueDate });
+          updated++;
+        } else {
+          createTask({ title: gt.title, description: gt.notes || '', category: gt._listTitle || 'General',
+            priority: 'medium', status: status, dueDate: dueDate, googleTaskId: gt.id });
+          imported++;
+        }
+      });
+      /* Refresh Tasks tab if it's already open */
+      if (eid('tasks-page-content')) window.loadTasks();
+      /* Always update the badge */
+      updateTasksBadge();
+    })
+    .catch(function() {}); /* silent failure — no UI impact */
+  };
+
   function showTaskScopeModal(msg) {
     var old = eid('esq-scope-ol'); if (old) old.remove();
     var ol = cel('div', 'email-detail-overlay'); ol.id = 'esq-scope-ol';
