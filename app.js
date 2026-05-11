@@ -4752,6 +4752,7 @@
 (function() {
 
   var NOTIF_KEY = 'esq_aria_notifs';
+  function eid(id){ return document.getElementById(id); }
 
   /* ── Storage ─────────────────────────────────────────────────────────── */
   function getNotifs() {
