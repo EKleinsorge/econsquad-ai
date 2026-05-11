@@ -4860,8 +4860,8 @@
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:8px;padding-left:24px;';
 
-    /* KEEP button — marks read + moves to Archive */
-    if (!isRead) {
+    /* KEEP button — always shown for active alerts; moves to Archive */
+    if (!archived) {
       var keepBtn = document.createElement('button');
       keepBtn.textContent = '✓ Keep';
       keepBtn.title = 'Save to archive';
@@ -4973,9 +4973,9 @@
     hdr.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'
       + '<span style="font-size:14px;">🔔</span>'
       + '<span style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">ARIA Alerts</span>'
-      + '<span style="font-size:10px;color:#3d4f6b;font-family:DM Sans,sans-serif;margin-left:2px;">'
-      + '— proactive insights</span>'
-      + '</div>';
+      + '</div>'
+      + '<button id="aria-notif-dismiss-all" style="background:transparent;border:none;color:#4a5568;font-size:11px;'
+      + 'cursor:pointer;font-family:DM Sans,sans-serif;padding:0;transition:color .15s;">Dismiss all</button>';
     panel.appendChild(hdr);
 
     /* List */
@@ -4996,7 +4996,32 @@
 
     rebuildArchiveSection(list);
     panel.appendChild(list);
+
+    /* Footer — clear archive */
+    var arc = getArchive();
+    if (arc.length) {
+      var foot = document.createElement('div');
+      foot.style.cssText = 'padding:9px 16px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;text-align:center;';
+      foot.innerHTML = '<button id="aria-clear-archive" style="background:transparent;border:none;color:#2d3748;'
+        + 'font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:color .15s;">Clear archive</button>';
+      panel.appendChild(foot);
+    }
+
     document.body.appendChild(panel);
+
+    /* Dismiss-all handler */
+    var dismissAllBtn = document.getElementById('aria-notif-dismiss-all');
+    if (dismissAllBtn) dismissAllBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      saveNotifs([]); refreshBell(); panel.remove();
+    });
+
+    /* Clear-archive handler */
+    var clearArcBtn = document.getElementById('aria-clear-archive');
+    if (clearArcBtn) clearArcBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      saveArchive([]); panel.remove();
+    });
 
     /* Close on outside click */
     setTimeout(function() {
