@@ -3319,20 +3319,20 @@
   /* ── Badge ── */
   function updateTasksBadge() {
     var tasks = getAllTasks();
-    var count = tasks.filter(function(t) {
-      return t.status !== 'completed' && (isOverdue(t) || isDueToday(t));
-    }).length;
+    /* Show all pending (non-completed) tasks */
+    var count = tasks.filter(function(t) { return t.status !== 'completed'; }).length;
+    var label = count > 99 ? '99+' : String(count);
     var badge = eid('tasks-nav-badge');
-    if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+    if (badge) { badge.textContent = label; badge.style.display = count > 0 ? 'inline' : 'none'; }
+    var mobBadge = eid('mob-tasks-badge');
+    if (mobBadge) { mobBadge.textContent = label; mobBadge.style.display = count > 0 ? 'inline' : 'none'; }
     updateSidebarTasksBadge(count);
   }
 
   function updateSidebarTasksBadge(count) {
     if (count === undefined) {
       var tasks = getAllTasks();
-      count = tasks.filter(function(t) {
-        return t.status !== 'completed' && (isOverdue(t) || isDueToday(t));
-      }).length;
+      count = tasks.filter(function(t) { return t.status !== 'completed'; }).length;
     }
     var b = eid('esq-rsb-tasks-badge');
     if (!b) return;
@@ -3342,12 +3342,12 @@
 
   window.updateSidebarCalBadge = function updateSidebarCalBadge() {
     var evts = window._lastCalEvents || [];
-    /* Only badge events happening within the next 24 hours */
+    /* Show events in the next 7 days */
     var now = Date.now();
-    var in24 = now + 86400000;
+    var in7d = now + 7 * 86400000;
     var count = evts.filter(function(e) {
       var t = new Date((e.start && (e.start.dateTime || e.start.date)) || 0).getTime();
-      return t >= now && t <= in24;
+      return t >= now && t <= in7d;
     }).length;
     var label = count > 99 ? '99+' : String(count);
     var b = eid('esq-rsb-cal-badge');
