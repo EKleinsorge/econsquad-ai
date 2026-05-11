@@ -4856,11 +4856,16 @@
           + 'cursor:pointer;transition:background .15s;display:flex;gap:10px;align-items:flex-start;'
           + (n.read ? '' : 'border-left:3px solid rgba(170,255,62,0.6);');
         var icon = TYPE_ICON[n.type] || '✦';
+        var readTag = n.read
+          ? '<span style="font-size:9px;font-weight:700;color:#3d4f6b;letter-spacing:.04em;margin-left:6px;'
+            + 'font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
+          : '';
         item.innerHTML = '<div style="font-size:18px;flex-shrink:0;margin-top:1px;">' + icon + '</div>'
           + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:12px;font-weight:700;color:' + (n.read?'#6b7a96':'#eef3fc') + ';'
-          + 'font-family:Barlow,sans-serif;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-          + escN(n.title) + '</div>'
+          + '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;margin-bottom:3px;'
+          + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+          + 'color:' + (n.read ? '#4a5568' : '#aaff3e') + ';">'
+          + escN(n.title) + readTag + '</div>'
           + '<div style="font-size:11px;color:#4a5568;line-height:1.5;font-family:DM Sans,sans-serif;">'
           + escN(n.body) + '</div>'
           + '<div style="font-size:10px;color:#2d3748;margin-top:4px;font-family:DM Sans,sans-serif;">'
