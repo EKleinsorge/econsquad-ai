@@ -4789,7 +4789,7 @@
   /* ── Update bell badge count ─────────────────────────────────────────── */
   function refreshBell() {
     var bell = eid('esq-notif-bell');
-    if (!bell) return;
+    if (!bell) { setTimeout(refreshBell, 400); return; } /* retry until bell is in DOM */
     bell.style.position = 'relative';
     var unread = getNotifs().filter(function(n){ return !n.read; }).length;
     var badge  = bell.querySelector('.aria-notif-badge');
@@ -5138,7 +5138,7 @@
     refreshBell();
   };
 
-  /* ── Boot: refresh bell on init ──────────────────────────────────────── */
-  setTimeout(refreshBell, 2500);
+  /* ── Boot: refresh bell — retries every 400ms until bell is in DOM ───── */
+  setTimeout(refreshBell, 800);
 
 })();
