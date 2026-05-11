@@ -8614,18 +8614,18 @@ function drawLogo(){if(!logoCtx)return;
 
 <!-- ARIA FOOTER BAR -->
 <div class="aria-footer" id="aria-footer-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9990;display:none;">
-  <div class="aria-orb-f" onclick="toggleAria()">✦</div>
+  <div class="aria-orb-f" onclick="openAriaRouting()">✦</div>
   <div class="aria-f-id">
     <div class="afname">ARIA</div>
     <div class="afull">AI Resource &amp; Intelligence Assistant</div>
   </div>
   <div class="aria-f-pulse"></div>
   <div class="aria-f-div"></div>
-  <div class="aria-f-msg" id="aria-f-msg" onclick="toggleAria()">
+  <div class="aria-f-msg" id="aria-f-msg" onclick="openAriaRouting()">
     Your squad is standing by. <span class="ahl">Ask me anything →</span>
   </div>
   <div class="aria-f-btns">
-    <button class="afbtn" onclick="toggleAria()">Ask ARIA ✦</button>
+    <button class="afbtn" onclick="openAriaRouting()">Ask ARIA ✦</button>
     <button class="afbtn ghost" onclick="document.getElementById('aria-footer-bar').style.display='none'">✕</button>
   </div>
 </div>
