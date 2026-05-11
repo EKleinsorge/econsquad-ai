@@ -2516,16 +2516,21 @@ function onSignedIn(user){
   setTimeout(loadBadges,700);
   /* pre-load billing so it's instant when clicked */
   setTimeout(loadBillingDetails,1200);
-  /* pre-load inbox badge count */
+  /* pre-load inbox badge count + calendar data (needed regardless of active tab) */
   setTimeout(function(){
     getProviderToken().then(function(token){
       if(!token) return;
+      /* inbox unread badge */
       supa.functions.invoke('gmail-calendar',{body:{action:'gmail_inbox',provider_token:token}}).then(function(res){
         if(res.data && res.data.total_unread > 0){
           var badge = document.getElementById('inbox-badge');
           if(badge){ badge.textContent = res.data.total_unread; badge.style.display='inline'; }
         }
       });
+      /* preload calendar so badges + schedule panel work on any tab */
+      if(!window._lastCalEvents && !window._lastCalWeekEvents){
+        loadCalendar(token);
+      }
     });
   }, 2000);
   /* load voice preference */
@@ -4545,6 +4550,12 @@ showDashTab=function(tabId,el){
   _origShowDashTab(tabId,el);
   if(tabId==='history-tab')loadHistory();
   if(tabId==='inbox-tab')loadInbox();
+  if(tabId==='fullcal-tab'){
+    /* Load calendar data if not yet fetched (e.g. user landed directly on Calendar tab) */
+    if(!window._lastCalEvents && !window._lastCalWeekEvents){
+      getProviderToken().then(function(token){ if(token) loadCalendar(token); });
+    }
+  }
   if(tabId==='tasks-tab'){if(typeof window.loadTasks==='function')window.loadTasks();}
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
   if(tabId==='stats-tab'){
