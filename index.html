@@ -1535,7 +1535,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <p>You've recovered <strong id="dash-hours-saved">0 hours</strong> this year — <span id="dash-days-saved">getting started</span>. <span id="dash-top-specialist" style="display:none;">Top squad member: <strong id="dash-top-name" style="color:var(--lime);"></strong>.</span> Your squad is ready to deploy.</p>
           </div>
           <div class="hero-btns">
-            <button class="btn-primary">Deploy squad ↗</button>
+            <button class="btn-primary" onclick="(function(){var el=document.getElementById('squad-tab-all');if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}})()">Deploy squad ↗</button>
             <button class="btn-outline" onclick="openAriaRouting()">Ask ARIA ✦</button>
             <button class="btn-outline" onclick="openCustomSpec()" style="border-color:rgba(170,255,62,0.3);color:#aaff3e;">+ Custom Specialist</button>
           </div>
