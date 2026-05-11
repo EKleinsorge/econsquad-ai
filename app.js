@@ -4985,9 +4985,56 @@
         addNotif('milestone', '🏆 ' + Math.floor(hours) + ' Hours Saved', t.msg, 'stats');
       }
     });
-    if (missions >= 10) {
-      addNotif('milestone', '🚀 ' + missions + ' Missions Completed',
-        'You\'ve run ' + missions + ' missions with EconSquad AI. Your squad is earning its keep.', 'stats');
+    var mTiers = [
+      {m:5,  msg:'5 missions complete — you\'re building real momentum with your squad.'},
+      {m:10, msg:'10 missions in. Your specialists are working hard for you.'},
+      {m:25, msg:'25 missions completed. EconSquad AI is becoming a core part of your workflow.'},
+      {m:50, msg:'50 missions! You\'re getting more done in less time than ever.'},
+    ];
+    mTiers.forEach(function(t) {
+      if (missions >= t.m) {
+        addNotif('milestone', '🚀 ' + missions + ' Missions Completed', t.msg, 'stats');
+      }
+    });
+  }
+
+  /* ── Proactive check: ROI insight from stats ─────────────────────────── */
+  function checkROIInsights() {
+    var stats  = window._overviewStats || {};
+    var roi    = window._overviewROI   || {};
+    var hours  = stats.totalHours  || 0;
+    var days   = stats.daysSince   || 0;
+    var missions = stats.missions  || 0;
+    if (!missions || !hours) return;
+
+    /* Specialists breadth */
+    var specCount = stats.specCount || 0;
+    if (specCount === 1 && missions >= 2) {
+      addNotif('stats', '💡 Expand Your Squad',
+        'You\'ve only used 1 specialist so far. Try deploying a second — users who use 3+ see 4× more value.',
+        'home');
+    }
+
+    /* Trial urgency */
+    var plan = (window.currentProfile && window.currentProfile.plan) || 'trial';
+    if (plan === 'trial' && days >= 7) {
+      addNotif('stats', '⏳ Trial Ending Soon',
+        'You\'re ' + days + ' days in with real ROI already. Lock in your results by upgrading before your trial ends.',
+        'home');
+    }
+
+    /* Pace insight */
+    if (hours > 0 && days > 3) {
+      var projectedAnnual = Math.round((hours / Math.max(1, days / 30.4)) * 12);
+      var salary = 75000;
+      try { var si = eid('ov-annual-salary') || eid('sal'); if(si) salary = parseFloat(si.value)||75000; } catch(e){}
+      var hr  = salary / 2080;
+      var val = Math.round(projectedAnnual * hr);
+      if (val > 500) {
+        addNotif('stats', '📈 You\'re On Pace for ' + projectedAnnual + ' hrs Saved',
+          'At your current pace ARIA projects $' + val.toLocaleString() + ' in annual value — and you\'re just getting started.',
+          'stats');
+      }
     }
   }
 
@@ -4997,6 +5044,7 @@
     try { checkEmailDeadlines(); } catch(e){}
     try { checkInactivity();     } catch(e){}
     try { checkMilestones();     } catch(e){}
+    try { checkROIInsights();    } catch(e){}
     refreshBell();
   };
 
