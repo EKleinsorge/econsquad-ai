@@ -3341,13 +3341,24 @@
   }
 
   window.updateSidebarCalBadge = function updateSidebarCalBadge() {
-    var evts = window._lastCalEvents || [];
-    /* Show events in the next 7 days */
-    var now = Date.now();
-    var in7d = now + 7 * 86400000;
+    /* Merge today + week events (same as schedule panel), deduplicate by id/title */
+    var todayEvts = window._lastCalEvents    || [];
+    var weekEvts  = window._lastCalWeekEvents || [];
+    var seen = {};
+    var evts = [];
+    todayEvts.concat(weekEvts).forEach(function(e) {
+      var key = e.id || e.title || e.summary || JSON.stringify(e);
+      if (!seen[key]) { seen[key] = true; evts.push(e); }
+    });
+    /* Use start-of-today (midnight local) so all-day events aren't filtered as "past" */
+    var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+    var startMs = todayMidnight.getTime();
+    var in7d    = startMs + 7 * 86400000;
     var count = evts.filter(function(e) {
-      var t = new Date((e.start && (e.start.dateTime || e.start.date)) || 0).getTime();
-      return t >= now && t <= in7d;
+      var raw = (e.start && (e.start.dateTime || e.start.date)) || (typeof e.start === 'string' ? e.start : null);
+      if (!raw) return false;
+      var t = new Date(raw).getTime();
+      return t >= startMs && t <= in7d;
     }).length;
     var label = count > 99 ? '99+' : String(count);
     var b = eid('esq-rsb-cal-badge');

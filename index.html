@@ -7559,6 +7559,8 @@ function showCalendarWeek(events){
   }
   /* also refresh the split-pane schedule panel */
   renderSchedulePanel(null);
+  /* update calendar badge now that week events are available */
+  setTimeout(function(){ if(typeof window.updateSidebarCalBadge==='function') window.updateSidebarCalBadge(); }, 150);
 }
 
 /* ── Schedule panel renderer ──────────────────────────────────────────── */
