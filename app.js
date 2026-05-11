@@ -4751,15 +4751,25 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 (function() {
 
-  var NOTIF_KEY = 'esq_aria_notifs';
+  var NOTIF_KEY   = 'esq_aria_notifs';
+  var ARCHIVE_KEY = 'esq_aria_archive';
+  /* Action types get archived; insight types are deleted on dismiss */
+  var ACTION_TYPES = { calendar:1, grant:1, email:1 };
   function eid(id){ return document.getElementById(id); }
 
   /* ── Storage ─────────────────────────────────────────────────────────── */
-  function getNotifs() {
-    try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]'); } catch(e) { return []; }
-  }
-  function saveNotifs(n) {
-    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(n.slice(0,60))); } catch(e) {}
+  function getNotifs()   { try { return JSON.parse(localStorage.getItem(NOTIF_KEY)   || '[]'); } catch(e) { return []; } }
+  function getArchive()  { try { return JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'); } catch(e) { return []; } }
+  function saveNotifs(n) { try { localStorage.setItem(NOTIF_KEY,   JSON.stringify(n.slice(0,60)));  } catch(e) {} }
+  function saveArchive(a){ try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(a.slice(0,120))); } catch(e) {} }
+
+  /* ── Archive a notification (action types only, keep 30 days) ─────────── */
+  function archiveNotif(n) {
+    var arc = getArchive();
+    var cutoff = Date.now() - 30 * 86400000;
+    arc = arc.filter(function(a){ return a.created > cutoff; }); /* purge >30d */
+    if (!arc.some(function(a){ return a.id === n.id; })) arc.unshift(n);
+    saveArchive(arc);
   }
 
   /* ── Add a notification (dedupes within 24h by title+type) ───────────── */
@@ -4811,17 +4821,123 @@
   }
   function escN(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  /* ── Build one notification row ─────────────────────────────────────── */
+  var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'🚀' };
+
+  function buildNotifRow(n, notifArray, listEl, archived) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:10px 12px 10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);'
+      + 'transition:background .15s;display:flex;gap:10px;align-items:flex-start;'
+      + (n.read || archived ? '' : 'border-left:3px solid rgba(170,255,62,0.6);');
+
+    var icon = TYPE_ICON[n.type] || '✦';
+    var readTag = (n.read || archived)
+      ? '<span style="font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
+        + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
+      : '';
+
+    /* Body — clicking navigates, does NOT mark read */
+    var body = document.createElement('div');
+    body.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+    body.innerHTML = '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;margin-bottom:3px;'
+      + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+      + 'color:' + ((n.read || archived) ? '#4a5568' : '#aaff3e') + ';">'
+      + escN(n.title) + readTag + '</div>'
+      + '<div style="font-size:11px;color:#4a5568;line-height:1.5;font-family:DM Sans,sans-serif;">'
+      + escN(n.body) + '</div>'
+      + '<div style="font-size:10px;color:#2d3748;margin-top:4px;font-family:DM Sans,sans-serif;">'
+      + timeAgo(n.created) + '</div>';
+    body.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (n.action && window.showDashTab) {
+        var tabMap = { calendar:'fullcal-tab', inbox:'inbox-tab', stats:'stats-tab', home:'home-tab' };
+        var t = tabMap[n.action]; if (t) window.showDashTab(t, null);
+      }
+    });
+
+    /* Trash icon — marks read, archives or deletes, removes row */
+    var trash = document.createElement('button');
+    trash.title = ACTION_TYPES[n.type] ? 'Dismiss & archive' : 'Dismiss';
+    trash.style.cssText = 'background:transparent;border:none;cursor:pointer;color:#2d3748;'
+      + 'font-size:13px;padding:2px 4px;flex-shrink:0;transition:color .15s;line-height:1;margin-top:1px;';
+    trash.innerHTML = '🗑';
+    trash.addEventListener('mouseover', function(){ trash.style.color='#f87171'; });
+    trash.addEventListener('mouseout',  function(){ trash.style.color='#2d3748'; });
+    trash.addEventListener('click', function(e) {
+      e.stopPropagation();
+      n.read = true;
+      /* Archive if action type; insight types just disappear */
+      if (ACTION_TYPES[n.type]) archiveNotif(n);
+      /* Remove from active list */
+      var idx = notifArray.indexOf(n);
+      if (idx > -1) notifArray.splice(idx, 1);
+      saveNotifs(notifArray);
+      refreshBell();
+      /* Animate row out */
+      item.style.transition = 'opacity .2s,max-height .25s';
+      item.style.opacity = '0'; item.style.maxHeight = '0'; item.style.overflow = 'hidden';
+      item.style.padding = '0';
+      setTimeout(function(){ item.remove(); rebuildArchiveSection(listEl); }, 260);
+    });
+
+    item.appendChild(document.createElement('div')).innerHTML
+      = '<div style="font-size:18px;margin-top:1px;">' + icon + '</div>';
+    item.firstChild.style.cssText = 'font-size:18px;flex-shrink:0;margin-top:1px;';
+    item.firstChild.textContent = '';
+    item.firstChild.innerHTML = icon;
+    item.appendChild(body);
+    item.appendChild(trash);
+    item.addEventListener('mouseover', function(){ item.style.background='rgba(255,255,255,0.025)'; });
+    item.addEventListener('mouseout',  function(){ item.style.background=''; });
+    return item;
+  }
+
+  /* ── Rebuild / inject archive section at bottom of list ─────────────── */
+  function rebuildArchiveSection(listEl) {
+    var existing = listEl.querySelector('.aria-archive-section');
+    if (existing) existing.remove();
+    var arc = getArchive();
+    if (!arc.length) return;
+    var section = document.createElement('div');
+    section.className = 'aria-archive-section';
+
+    var toggle = document.createElement('div');
+    toggle.style.cssText = 'padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;'
+      + 'border-top:1px solid rgba(255,255,255,0.06);user-select:none;';
+    toggle.innerHTML = '<span style="font-size:10px;color:#3d4f6b;font-family:Barlow,sans-serif;font-weight:700;'
+      + 'letter-spacing:.06em;text-transform:uppercase;">🗂 Archive (' + arc.length + ')</span>'
+      + '<span id="arc-chevron" style="font-size:9px;color:#3d4f6b;margin-left:auto;">▼</span>';
+
+    var arcList = document.createElement('div');
+    arcList.style.cssText = 'display:none;';
+
+    arc.forEach(function(n) {
+      arcList.appendChild(buildNotifRow(n, arc, listEl, true));
+    });
+
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var open = arcList.style.display !== 'none';
+      arcList.style.display = open ? 'none' : 'block';
+      toggle.querySelector('#arc-chevron').textContent = open ? '▼' : '▲';
+    });
+
+    section.appendChild(toggle);
+    section.appendChild(arcList);
+    listEl.appendChild(section);
+  }
+
   /* ── Notification panel ──────────────────────────────────────────────── */
   window.toggleAriaNotifPanel = function() {
     var existing = document.getElementById('aria-notif-panel');
     if (existing) { existing.remove(); return; }
 
-    var bell = eid('esq-notif-bell');
+    var bell   = eid('esq-notif-bell');
     var notifs = getNotifs();
 
     var panel = document.createElement('div');
     panel.id = 'aria-notif-panel';
-    panel.style.cssText = 'position:fixed;right:68px;top:58px;width:320px;max-height:460px;'
+    panel.style.cssText = 'position:fixed;right:68px;top:58px;width:320px;max-height:500px;'
       + 'background:#0a0f1e;border:1px solid rgba(170,255,62,0.25);border-radius:14px;'
       + 'z-index:99999;box-shadow:0 24px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden;';
 
@@ -4832,9 +4948,9 @@
     hdr.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'
       + '<span style="font-size:14px;">🔔</span>'
       + '<span style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">ARIA Alerts</span>'
-      + '</div>'
-      + '<button id="aria-notif-read-all" style="background:transparent;border:none;color:#4a5568;font-size:11px;'
-      + 'cursor:pointer;font-family:DM Sans,sans-serif;padding:0;transition:color .15s;">Mark all read</button>';
+      + '<span style="font-size:10px;color:#3d4f6b;font-family:DM Sans,sans-serif;margin-left:2px;">'
+      + '— click 🗑 to dismiss</span>'
+      + '</div>';
     panel.appendChild(hdr);
 
     /* List */
@@ -4848,78 +4964,14 @@
         + '<span style="font-size:11px;color:#2d3748;margin-top:6px;display:block;">Alerts will appear here.</span>'
         + '</div>';
     } else {
-      var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'🚀' };
-      notifs.forEach(function(n, idx) {
-        var item = document.createElement('div');
-        item.dataset.idx = idx;
-        item.style.cssText = 'padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.04);'
-          + 'cursor:pointer;transition:background .15s;display:flex;gap:10px;align-items:flex-start;'
-          + (n.read ? '' : 'border-left:3px solid rgba(170,255,62,0.6);');
-        var icon = TYPE_ICON[n.type] || '✦';
-        var readTag = n.read
-          ? '<span style="font-size:9px;font-weight:700;color:#3d4f6b;letter-spacing:.04em;margin-left:6px;'
-            + 'font-family:Barlow,sans-serif;vertical-align:middle;color:#f87171;">— READ</span>'
-          : '';
-        item.innerHTML = '<div style="font-size:18px;flex-shrink:0;margin-top:1px;">' + icon + '</div>'
-          + '<div style="flex:1;min-width:0;">'
-          + '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;margin-bottom:3px;'
-          + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-          + 'color:' + (n.read ? '#4a5568' : '#aaff3e') + ';">'
-          + escN(n.title) + readTag + '</div>'
-          + '<div style="font-size:11px;color:#4a5568;line-height:1.5;font-family:DM Sans,sans-serif;">'
-          + escN(n.body) + '</div>'
-          + '<div style="font-size:10px;color:#2d3748;margin-top:4px;font-family:DM Sans,sans-serif;">'
-          + timeAgo(n.created) + '</div>'
-          + '</div>';
-        item.addEventListener('mouseover', function(){ this.style.background='rgba(255,255,255,0.03)'; });
-        item.addEventListener('mouseout',  function(){ this.style.background=''; });
-        item.addEventListener('click', function() {
-          n.read = true; saveNotifs(notifs); refreshBell();
-          /* Update this item visually in-place — don't close the panel */
-          var titleEl = item.querySelector('div > div:first-child');
-          if (titleEl) {
-            titleEl.style.color = '#4a5568';
-            if (!titleEl.querySelector('.read-tag')) {
-              var tag = document.createElement('span');
-              tag.className = 'read-tag';
-              tag.style.cssText = 'font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
-                + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;';
-              tag.textContent = '— READ';
-              titleEl.appendChild(tag);
-            }
-          }
-          item.style.borderLeft = 'none';
-        });
-        list.appendChild(item);
+      notifs.forEach(function(n) {
+        list.appendChild(buildNotifRow(n, notifs, list, false));
       });
     }
+
+    rebuildArchiveSection(list);
     panel.appendChild(list);
-
-    /* Footer — clear all */
-    if (notifs.length) {
-      var foot = document.createElement('div');
-      foot.style.cssText = 'padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;text-align:center;';
-      foot.innerHTML = '<button id="aria-notif-clear" style="background:transparent;border:none;color:#3d4f6b;'
-        + 'font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:color .15s;">Clear all notifications</button>';
-      panel.appendChild(foot);
-    }
-
     document.body.appendChild(panel);
-
-    /* Mark-all-read handler */
-    var readAllBtn = document.getElementById('aria-notif-read-all');
-    if (readAllBtn) readAllBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var ns = getNotifs(); ns.forEach(function(n){ n.read=true; }); saveNotifs(ns); refreshBell();
-      panel.remove();
-    });
-
-    /* Clear-all handler */
-    var clearBtn = document.getElementById('aria-notif-clear');
-    if (clearBtn) clearBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      saveNotifs([]); refreshBell(); panel.remove();
-    });
 
     /* Close on outside click */
     setTimeout(function() {
