@@ -4860,10 +4860,11 @@
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;gap:8px;padding-left:24px;';
 
-    /* KEEP button — marks as read, stays in list */
+    /* KEEP button — marks read + moves to Archive */
     if (!isRead) {
       var keepBtn = document.createElement('button');
       keepBtn.textContent = '✓ Keep';
+      keepBtn.title = 'Save to archive';
       keepBtn.style.cssText = 'font-size:11px;font-weight:700;font-family:Barlow,sans-serif;'
         + 'padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s;'
         + 'background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.35);color:#aaff3e;';
@@ -4871,30 +4872,25 @@
       keepBtn.addEventListener('mouseout',  function(){ keepBtn.style.background='rgba(170,255,62,0.12)'; });
       keepBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        n.read = true; saveNotifs(notifArray); refreshBell();
-        /* Update visuals in place */
-        var titleDiv = topRow.querySelector('div');
-        if (titleDiv) {
-          titleDiv.style.color = '#4a5568';
-          if (!titleDiv.querySelector('.read-tag')) {
-            var tag = document.createElement('span');
-            tag.className = 'read-tag';
-            tag.style.cssText = 'font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
-              + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;';
-            tag.textContent = '— READ';
-            titleDiv.appendChild(tag);
-          }
-        }
-        item.style.borderLeft = 'none';
-        keepBtn.remove();
+        n.read = true;
+        archiveNotif(n);                          /* ALL kept alerts → archive */
+        var idx = notifArray.indexOf(n);
+        if (idx > -1) notifArray.splice(idx, 1);
+        saveNotifs(notifArray); refreshBell();
+        /* Slide row out */
+        item.style.transition = 'opacity .2s,max-height .3s,padding .3s';
+        item.style.opacity = '0'; item.style.maxHeight = '0';
+        item.style.overflow = 'hidden'; item.style.padding = '0';
+        setTimeout(function(){ item.remove(); rebuildArchiveSection(listEl); }, 310);
       });
       btnRow.appendChild(keepBtn);
     }
 
-    /* DISMISS button — archives action types, deletes insight types */
+    /* DISMISS button — permanently deletes, nothing saved */
     if (!archived) {
       var dismissBtn = document.createElement('button');
       dismissBtn.innerHTML = '🗑 Dismiss';
+      dismissBtn.title = 'Delete permanently';
       dismissBtn.style.cssText = 'font-size:11px;font-weight:700;font-family:Barlow,sans-serif;'
         + 'padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s;'
         + 'background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);color:#f87171;';
@@ -4902,8 +4898,7 @@
       dismissBtn.addEventListener('mouseout',  function(){ dismissBtn.style.background='rgba(248,113,113,0.08)'; });
       dismissBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        n.read = true;
-        if (ACTION_TYPES[n.type]) archiveNotif(n);
+        /* Remove from active — no archive */
         var idx = notifArray.indexOf(n);
         if (idx > -1) notifArray.splice(idx, 1);
         saveNotifs(notifArray); refreshBell();
