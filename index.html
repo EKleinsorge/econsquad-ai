@@ -300,9 +300,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
 /* ==================== ARIA FOOTER ==================== */
 .aria-footer{background:rgba(5,7,16,0.98);backdrop-filter:blur(24px);border-top:1px solid rgba(170,255,62,0.2);padding:0 28px;height:66px;display:flex;align-items:center;gap:14px;}
-.aria-orb-f{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 14px rgba(170,255,62,0.7),0 0 28px rgba(170,255,62,0.3);animation:abreathe 3s ease-in-out infinite;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:19px;transition:transform .2s;}
-.aria-orb-f:hover{transform:scale(1.1);}
-@keyframes abreathe{0%,100%{box-shadow:0 0 14px rgba(170,255,62,0.7),0 0 28px rgba(170,255,62,0.3);}50%{box-shadow:0 0 26px rgba(170,255,62,0.95),0 0 52px rgba(170,255,62,0.45);}}
+.aria-orb-f{width:44px;height:44px;border-radius:50%;background:transparent;cursor:pointer;flex-shrink:0;transition:transform .2s;position:relative;}
+.aria-orb-f:hover{transform:scale(1.08);}
 .aria-f-id .afname{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:var(--lime);letter-spacing:.08em;line-height:1.1;}
 .aria-f-id .afull{font-size:9px;color:var(--text2);line-height:1.4;}
 .aria-f-pulse{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pp 2s ease-in-out infinite;flex-shrink:0;}
@@ -2533,10 +2532,25 @@ function onSignedIn(user){
   setTimeout(loadVoicePreference,800);
   /* load user level */
   setTimeout(loadUserLevel,900);
-  /* show ARIA footer bar */
+  /* show ARIA footer bar + init animated orb */
   setTimeout(function(){
     var af = document.getElementById('aria-footer-bar');
     if(af) af.style.display='flex';
+    setTimeout(function(){
+      if(!window.initDrawerOrb) return;
+      window.initDrawerOrb('aria-footer-orb','lime');
+      var st = window.dashOrbStates && window.dashOrbStates['aria-footer-orb'];
+      if(!st) return;
+      st.targetEnergy = 0.9;
+      var col = st.col; var r = col.r;
+      var sph = document.getElementById('aria-footer-sph');
+      if(sph){
+        st.sphereEl = sph;
+        sph.style.background = 'radial-gradient(circle at 38% 35%,'+col.mid+' 0%,'+col.lo+' 70%)';
+        sph.style.boxShadow  = '0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),inset 0 1px 3px rgba(255,255,255,0.25)';
+      }
+      if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
+    }, 300);
   }, 1200);
   /* load ARIA welcome */
   setTimeout(loadAriaWelcome,1000);
@@ -8614,7 +8628,10 @@ function drawLogo(){if(!logoCtx)return;
 
 <!-- ARIA FOOTER BAR -->
 <div class="aria-footer" id="aria-footer-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9990;display:none;">
-  <div class="aria-orb-f" onclick="openAriaRouting()">✦</div>
+  <div class="aria-orb-f" onclick="openAriaRouting()" style="position:relative;overflow:visible;">
+    <canvas id="aria-footer-cv" width="48" height="48" data-dorb="aria-footer-orb" style="position:absolute;top:0;left:0;width:44px;height:44px;border-radius:50%;"></canvas>
+    <div id="aria-footer-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;z-index:2;pointer-events:none;"></div>
+  </div>
   <div class="aria-f-id">
     <div class="afname">ARIA</div>
     <div class="afull">AI Resource &amp; Intelligence Assistant</div>
