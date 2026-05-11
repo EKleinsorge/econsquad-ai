@@ -4858,7 +4858,7 @@
         var icon = TYPE_ICON[n.type] || '✦';
         var readTag = n.read
           ? '<span style="font-size:9px;font-weight:700;color:#3d4f6b;letter-spacing:.04em;margin-left:6px;'
-            + 'font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
+            + 'font-family:Barlow,sans-serif;vertical-align:middle;color:#f87171;">— READ</span>'
           : '';
         item.innerHTML = '<div style="font-size:18px;flex-shrink:0;margin-top:1px;">' + icon + '</div>'
           + '<div style="flex:1;min-width:0;">'
