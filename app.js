@@ -4129,6 +4129,12 @@
     updateTasksBadge();
     scheduleTaskAlerts();
     setTimeout(injectTasksWidget, 300);
+    /* If the Tasks tab is already visible (e.g. last-tab restored before app.js loaded),
+       render the task list now that we're ready */
+    var tt = document.getElementById('tasks-tab');
+    if (tt && tt.style.display !== 'none') {
+      setTimeout(function() { window.loadTasks(); }, 50);
+    }
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
