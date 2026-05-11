@@ -4848,7 +4848,7 @@
         + '<span style="font-size:11px;color:#2d3748;margin-top:6px;display:block;">Alerts will appear here.</span>'
         + '</div>';
     } else {
-      var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'📈' };
+      var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'🚀' };
       notifs.forEach(function(n, idx) {
         var item = document.createElement('div');
         item.dataset.idx = idx;
@@ -5015,7 +5015,7 @@
     /* Specialists breadth */
     var specCount = stats.specCount || 0;
     if (specCount === 1 && missions >= 2) {
-      addNotif('stats', '💡 Expand Your Squad',
+      addNotif('stats', '✦ Expand Your Squad',
         'You\'ve only used 1 specialist so far. Try deploying a second — users who use 3+ see 4× more value.',
         'home');
     }
@@ -5023,7 +5023,7 @@
     /* Trial urgency */
     var plan = (window.currentProfile && window.currentProfile.plan) || 'trial';
     if (plan === 'trial' && days >= 7) {
-      addNotif('stats', '⏳ Trial Ending Soon',
+      addNotif('stats', '⚡ Trial Ending Soon',
         'You\'re ' + days + ' days in with real ROI already. Lock in your results by upgrading before your trial ends.',
         'home');
     }
@@ -5036,7 +5036,7 @@
       var hr  = salary / 2080;
       var val = Math.round(projectedAnnual * hr);
       if (val > 500) {
-        addNotif('stats', '📈 You\'re On Pace for ' + projectedAnnual + ' hrs Saved',
+        addNotif('stats', '🚀 You\'re On Pace for ' + projectedAnnual + ' hrs Saved',
           'At your current pace ARIA projects $' + val.toLocaleString() + ' in annual value — and you\'re just getting started.',
           'stats');
       }
