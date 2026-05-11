@@ -4826,69 +4826,99 @@
 
   function buildNotifRow(n, notifArray, listEl, archived) {
     var item = document.createElement('div');
-    item.style.cssText = 'padding:10px 12px 10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);'
-      + 'transition:background .15s;display:flex;gap:10px;align-items:flex-start;'
+    item.style.cssText = 'padding:12px 14px 10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);'
       + (n.read || archived ? '' : 'border-left:3px solid rgba(170,255,62,0.6);');
 
     var icon = TYPE_ICON[n.type] || '✦';
-    var readTag = (n.read || archived)
+    var isRead = n.read || archived;
+    var readTag = isRead
       ? '<span style="font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
         + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
       : '';
 
-    /* Body — clicking navigates, does NOT mark read */
-    var body = document.createElement('div');
-    body.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
-    body.innerHTML = '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;margin-bottom:3px;'
+    /* Top row: icon + title */
+    var topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
+    topRow.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span>'
+      + '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;flex:1;min-width:0;'
       + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-      + 'color:' + ((n.read || archived) ? '#4a5568' : '#aaff3e') + ';">'
-      + escN(n.title) + readTag + '</div>'
-      + '<div style="font-size:11px;color:#4a5568;line-height:1.5;font-family:DM Sans,sans-serif;">'
-      + escN(n.body) + '</div>'
-      + '<div style="font-size:10px;color:#2d3748;margin-top:4px;font-family:DM Sans,sans-serif;">'
-      + timeAgo(n.created) + '</div>';
-    body.addEventListener('click', function(e) {
-      e.stopPropagation();
-      if (n.action && window.showDashTab) {
-        var tabMap = { calendar:'fullcal-tab', inbox:'inbox-tab', stats:'stats-tab', home:'home-tab' };
-        var t = tabMap[n.action]; if (t) window.showDashTab(t, null);
-      }
-    });
+      + 'color:' + (isRead ? '#4a5568' : '#aaff3e') + ';">'
+      + escN(n.title) + readTag + '</div>';
 
-    /* Trash icon — marks read, archives or deletes, removes row */
-    var trash = document.createElement('button');
-    trash.title = ACTION_TYPES[n.type] ? 'Dismiss & archive' : 'Dismiss';
-    trash.style.cssText = 'background:transparent;border:none;cursor:pointer;color:#2d3748;'
-      + 'font-size:13px;padding:2px 4px;flex-shrink:0;transition:color .15s;line-height:1;margin-top:1px;';
-    trash.innerHTML = '🗑';
-    trash.addEventListener('mouseover', function(){ trash.style.color='#f87171'; });
-    trash.addEventListener('mouseout',  function(){ trash.style.color='#2d3748'; });
-    trash.addEventListener('click', function(e) {
-      e.stopPropagation();
-      n.read = true;
-      /* Archive if action type; insight types just disappear */
-      if (ACTION_TYPES[n.type]) archiveNotif(n);
-      /* Remove from active list */
-      var idx = notifArray.indexOf(n);
-      if (idx > -1) notifArray.splice(idx, 1);
-      saveNotifs(notifArray);
-      refreshBell();
-      /* Animate row out */
-      item.style.transition = 'opacity .2s,max-height .25s';
-      item.style.opacity = '0'; item.style.maxHeight = '0'; item.style.overflow = 'hidden';
-      item.style.padding = '0';
-      setTimeout(function(){ item.remove(); rebuildArchiveSection(listEl); }, 260);
-    });
+    /* Body text */
+    var bodyText = document.createElement('div');
+    bodyText.style.cssText = 'font-size:11px;color:#5a6a84;line-height:1.55;font-family:DM Sans,sans-serif;'
+      + 'padding-left:24px;margin-bottom:8px;';
+    bodyText.textContent = n.body;
 
-    item.appendChild(document.createElement('div')).innerHTML
-      = '<div style="font-size:18px;margin-top:1px;">' + icon + '</div>';
-    item.firstChild.style.cssText = 'font-size:18px;flex-shrink:0;margin-top:1px;';
-    item.firstChild.textContent = '';
-    item.firstChild.innerHTML = icon;
-    item.appendChild(body);
-    item.appendChild(trash);
-    item.addEventListener('mouseover', function(){ item.style.background='rgba(255,255,255,0.025)'; });
-    item.addEventListener('mouseout',  function(){ item.style.background=''; });
+    /* Time */
+    var timeEl = document.createElement('div');
+    timeEl.style.cssText = 'font-size:10px;color:#2d3748;padding-left:24px;margin-bottom:9px;font-family:DM Sans,sans-serif;';
+    timeEl.textContent = timeAgo(n.created);
+
+    /* Action buttons row */
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;padding-left:24px;';
+
+    /* KEEP button — marks as read, stays in list */
+    if (!isRead) {
+      var keepBtn = document.createElement('button');
+      keepBtn.textContent = '✓ Keep';
+      keepBtn.style.cssText = 'font-size:11px;font-weight:700;font-family:Barlow,sans-serif;'
+        + 'padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s;'
+        + 'background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.35);color:#aaff3e;';
+      keepBtn.addEventListener('mouseover', function(){ keepBtn.style.background='rgba(170,255,62,0.22)'; });
+      keepBtn.addEventListener('mouseout',  function(){ keepBtn.style.background='rgba(170,255,62,0.12)'; });
+      keepBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        n.read = true; saveNotifs(notifArray); refreshBell();
+        /* Update visuals in place */
+        var titleDiv = topRow.querySelector('div');
+        if (titleDiv) {
+          titleDiv.style.color = '#4a5568';
+          if (!titleDiv.querySelector('.read-tag')) {
+            var tag = document.createElement('span');
+            tag.className = 'read-tag';
+            tag.style.cssText = 'font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
+              + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;';
+            tag.textContent = '— READ';
+            titleDiv.appendChild(tag);
+          }
+        }
+        item.style.borderLeft = 'none';
+        keepBtn.remove();
+      });
+      btnRow.appendChild(keepBtn);
+    }
+
+    /* DISMISS button — archives action types, deletes insight types */
+    if (!archived) {
+      var dismissBtn = document.createElement('button');
+      dismissBtn.innerHTML = '🗑 Dismiss';
+      dismissBtn.style.cssText = 'font-size:11px;font-weight:700;font-family:Barlow,sans-serif;'
+        + 'padding:4px 12px;border-radius:6px;cursor:pointer;transition:all .15s;'
+        + 'background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);color:#f87171;';
+      dismissBtn.addEventListener('mouseover', function(){ dismissBtn.style.background='rgba(248,113,113,0.18)'; });
+      dismissBtn.addEventListener('mouseout',  function(){ dismissBtn.style.background='rgba(248,113,113,0.08)'; });
+      dismissBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        n.read = true;
+        if (ACTION_TYPES[n.type]) archiveNotif(n);
+        var idx = notifArray.indexOf(n);
+        if (idx > -1) notifArray.splice(idx, 1);
+        saveNotifs(notifArray); refreshBell();
+        item.style.transition = 'opacity .2s,max-height .3s,padding .3s';
+        item.style.opacity = '0'; item.style.maxHeight = '0';
+        item.style.overflow = 'hidden'; item.style.padding = '0';
+        setTimeout(function(){ item.remove(); rebuildArchiveSection(listEl); }, 310);
+      });
+      btnRow.appendChild(dismissBtn);
+    }
+
+    item.appendChild(topRow);
+    item.appendChild(bodyText);
+    item.appendChild(timeEl);
+    if (!archived) item.appendChild(btnRow);
     return item;
   }
 
@@ -4949,7 +4979,7 @@
       + '<span style="font-size:14px;">🔔</span>'
       + '<span style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">ARIA Alerts</span>'
       + '<span style="font-size:10px;color:#3d4f6b;font-family:DM Sans,sans-serif;margin-left:2px;">'
-      + '— click 🗑 to dismiss</span>'
+      + '— proactive insights</span>'
       + '</div>';
     panel.appendChild(hdr);
 
