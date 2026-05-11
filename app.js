@@ -3190,7 +3190,7 @@
     btn.innerHTML = '🔔';
     btn.onmouseover = function(){ btn.style.borderColor='rgba(170,255,62,0.3)'; btn.style.color='#aaff3e'; };
     btn.onmouseout  = function(){ btn.style.borderColor='rgba(255,255,255,0.1)'; btn.style.color='#6b7a96'; };
-    btn.addEventListener('click', function(){ window.openNotifSettings(); });
+    btn.addEventListener('click', function(){ window.toggleAriaNotifPanel(); });
 
     /* Yellow dot — shows when notifications not configured */
     var dot = cel('span',''); dot.id='esq-notif-dot';
@@ -3342,12 +3342,16 @@
 
   window.updateSidebarCalBadge = function updateSidebarCalBadge() {
     var evts = window._lastCalEvents || [];
-    var count = evts.length;
+    /* Only badge events happening within the next 24 hours */
+    var now = Date.now();
+    var in24 = now + 86400000;
+    var count = evts.filter(function(e) {
+      var t = new Date((e.start && (e.start.dateTime || e.start.date)) || 0).getTime();
+      return t >= now && t <= in24;
+    }).length;
     var label = count > 99 ? '99+' : String(count);
-    /* Sidebar icon badge */
     var b = eid('esq-rsb-cal-badge');
     if (b) { if (count > 0) { b.textContent = label; b.style.display = 'inline-block'; } else { b.style.display = 'none'; } }
-    /* Top nav badge */
     var nb = eid('cal-nav-badge');
     if (nb) { if (count > 0) { nb.textContent = label; nb.style.display = 'inline-block'; } else { nb.style.display = 'none'; } }
   };
@@ -4739,5 +4743,263 @@
   }
 
   window.ariaCompute = { show: show, hide: hide };
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROACTIVE ARIA NOTIFICATION ENGINE
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function() {
+
+  var NOTIF_KEY = 'esq_aria_notifs';
+
+  /* ── Storage ─────────────────────────────────────────────────────────── */
+  function getNotifs() {
+    try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveNotifs(n) {
+    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(n.slice(0,60))); } catch(e) {}
+  }
+
+  /* ── Add a notification (dedupes within 24h by title+type) ───────────── */
+  function addNotif(type, title, body, action) {
+    var notifs = getNotifs();
+    var now = Date.now();
+    var exists = notifs.some(function(n) {
+      return n.title === title && n.type === type && (now - n.created) < 86400000;
+    });
+    if (exists) return;
+    notifs.unshift({ id:'n_'+now+'_'+Math.random().toString(36).substr(2,5),
+      type:type, title:title, body:body, created:now, read:false, action:action||null });
+    saveNotifs(notifs);
+    refreshBell();
+  }
+
+  /* ── Update bell badge count ─────────────────────────────────────────── */
+  function refreshBell() {
+    var bell = eid('esq-notif-bell');
+    if (!bell) return;
+    bell.style.position = 'relative';
+    var unread = getNotifs().filter(function(n){ return !n.read; }).length;
+    var badge  = bell.querySelector('.aria-notif-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'aria-notif-badge';
+      badge.style.cssText = 'position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;'
+        + 'background:#f87171;color:#fff;font-size:9px;font-weight:800;border-radius:8px;'
+        + 'padding:0 3px;line-height:16px;text-align:center;font-family:Barlow,sans-serif;'
+        + 'border:1.5px solid #06080f;display:none;pointer-events:none;';
+      bell.appendChild(badge);
+    }
+    /* hide the old yellow config-dot */
+    var dot = eid('esq-notif-dot');
+    if (dot) dot.style.display = 'none';
+
+    if (unread > 0) { badge.textContent = unread > 9 ? '9+' : unread; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+  }
+
+  /* ── Helpers ─────────────────────────────────────────────────────────── */
+  function timeAgo(ts) {
+    var d = Date.now() - ts, m = Math.floor(d/60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    var h = Math.floor(m/60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h/24) + 'd ago';
+  }
+  function escN(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ── Notification panel ──────────────────────────────────────────────── */
+  window.toggleAriaNotifPanel = function() {
+    var existing = document.getElementById('aria-notif-panel');
+    if (existing) { existing.remove(); return; }
+
+    var bell = eid('esq-notif-bell');
+    var notifs = getNotifs();
+
+    var panel = document.createElement('div');
+    panel.id = 'aria-notif-panel';
+    panel.style.cssText = 'position:fixed;right:68px;top:58px;width:320px;max-height:460px;'
+      + 'background:#0a0f1e;border:1px solid rgba(170,255,62,0.25);border-radius:14px;'
+      + 'z-index:99999;box-shadow:0 24px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden;';
+
+    /* Header */
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:13px 16px 11px;border-bottom:1px solid rgba(255,255,255,0.07);'
+      + 'display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+    hdr.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span style="font-size:14px;">🔔</span>'
+      + '<span style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;">ARIA Alerts</span>'
+      + '</div>'
+      + '<button id="aria-notif-read-all" style="background:transparent;border:none;color:#4a5568;font-size:11px;'
+      + 'cursor:pointer;font-family:DM Sans,sans-serif;padding:0;transition:color .15s;">Mark all read</button>';
+    panel.appendChild(hdr);
+
+    /* List */
+    var list = document.createElement('div');
+    list.style.cssText = 'overflow-y:auto;flex:1;';
+
+    if (!notifs.length) {
+      list.innerHTML = '<div style="padding:36px 20px;text-align:center;color:#3d4f6b;font-size:13px;font-family:DM Sans,sans-serif;">'
+        + '<div style="font-size:28px;margin-bottom:10px;">✦</div>'
+        + 'ARIA is watching for things that need your attention.<br>'
+        + '<span style="font-size:11px;color:#2d3748;margin-top:6px;display:block;">Alerts will appear here.</span>'
+        + '</div>';
+    } else {
+      var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'📈' };
+      notifs.forEach(function(n, idx) {
+        var item = document.createElement('div');
+        item.dataset.idx = idx;
+        item.style.cssText = 'padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.04);'
+          + 'cursor:pointer;transition:background .15s;display:flex;gap:10px;align-items:flex-start;'
+          + (n.read ? '' : 'border-left:3px solid rgba(170,255,62,0.6);');
+        var icon = TYPE_ICON[n.type] || '✦';
+        item.innerHTML = '<div style="font-size:18px;flex-shrink:0;margin-top:1px;">' + icon + '</div>'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:12px;font-weight:700;color:' + (n.read?'#6b7a96':'#eef3fc') + ';'
+          + 'font-family:Barlow,sans-serif;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+          + escN(n.title) + '</div>'
+          + '<div style="font-size:11px;color:#4a5568;line-height:1.5;font-family:DM Sans,sans-serif;">'
+          + escN(n.body) + '</div>'
+          + '<div style="font-size:10px;color:#2d3748;margin-top:4px;font-family:DM Sans,sans-serif;">'
+          + timeAgo(n.created) + '</div>'
+          + '</div>';
+        item.addEventListener('mouseover', function(){ this.style.background='rgba(255,255,255,0.03)'; });
+        item.addEventListener('mouseout',  function(){ this.style.background=''; });
+        item.addEventListener('click', function() {
+          n.read = true; saveNotifs(notifs); refreshBell();
+          panel.remove();
+          if (n.action && window.showDashTab) {
+            var tabMap = { calendar:'fullcal-tab', inbox:'inbox-tab', stats:'stats-tab', home:'home-tab' };
+            var t = tabMap[n.action];
+            if (t) window.showDashTab(t, null);
+          }
+        });
+        list.appendChild(item);
+      });
+    }
+    panel.appendChild(list);
+
+    /* Footer — clear all */
+    if (notifs.length) {
+      var foot = document.createElement('div');
+      foot.style.cssText = 'padding:10px 16px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;text-align:center;';
+      foot.innerHTML = '<button id="aria-notif-clear" style="background:transparent;border:none;color:#3d4f6b;'
+        + 'font-size:11px;cursor:pointer;font-family:DM Sans,sans-serif;transition:color .15s;">Clear all notifications</button>';
+      panel.appendChild(foot);
+    }
+
+    document.body.appendChild(panel);
+
+    /* Mark-all-read handler */
+    var readAllBtn = document.getElementById('aria-notif-read-all');
+    if (readAllBtn) readAllBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var ns = getNotifs(); ns.forEach(function(n){ n.read=true; }); saveNotifs(ns); refreshBell();
+      panel.remove();
+    });
+
+    /* Clear-all handler */
+    var clearBtn = document.getElementById('aria-notif-clear');
+    if (clearBtn) clearBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      saveNotifs([]); refreshBell(); panel.remove();
+    });
+
+    /* Close on outside click */
+    setTimeout(function() {
+      document.addEventListener('click', function _close(e) {
+        var p = document.getElementById('aria-notif-panel');
+        if (p && !p.contains(e.target) && (!bell || !bell.contains(e.target))) {
+          p.remove(); document.removeEventListener('click', _close);
+        }
+      });
+    }, 120);
+  };
+
+  /* ── Proactive check: calendar (meetings in next 24h) ────────────────── */
+  function checkCalendarAlerts() {
+    var evts = window._lastCalEvents || [];
+    var now  = Date.now();
+    var in24 = now + 86400000;
+    evts.forEach(function(evt) {
+      var start = new Date((evt.start && (evt.start.dateTime || evt.start.date)) || 0).getTime();
+      if (start > now && start <= in24) {
+        var title = evt.summary || 'Upcoming Meeting';
+        var d = new Date(start);
+        var timeStr = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        addNotif('calendar',
+          '📅 ' + title,
+          'Scheduled ' + (start - now < 3600000 ? 'in less than 1 hour' : 'today at ' + timeStr) + '. Want ARIA to prepare a brief?',
+          'calendar');
+      }
+    });
+  }
+
+  /* ── Proactive check: grant deadlines in recent emails ───────────────── */
+  function checkEmailDeadlines() {
+    var emails = window._lastEmails || [];
+    var rx = /deadline|due date|apply by|applications?\s+due|closes?\s+(on|[A-Z])|submission deadline|last day to (apply|submit)/i;
+    emails.slice(0, 30).forEach(function(email) {
+      var subj = email.subject || email.payload?.headers?.find?.(function(h){ return h.name==='Subject'; })?.value || '';
+      var snip = email.snippet || '';
+      if (rx.test(subj) || rx.test(snip)) {
+        var short = subj.length > 55 ? subj.substring(0,52)+'…' : subj;
+        addNotif('grant',
+          '🚨 Deadline Detected',
+          '"' + (short||'Email') + '" — ARIA flagged a potential grant deadline. Review it now.',
+          'inbox');
+      }
+    });
+  }
+
+  /* ── Proactive check: platform inactivity ────────────────────────────── */
+  function checkInactivity() {
+    var lastTs = parseInt(localStorage.getItem('esq_last_mission_ts')||'0',10);
+    if (!lastTs) return;
+    var daysSince = Math.floor((Date.now() - lastTs) / 86400000);
+    if (daysSince >= 4) {
+      addNotif('inactivity',
+        '⚡ Keep Your Momentum',
+        'You haven\'t deployed a specialist in ' + daysSince + ' days. Your squad is ready when you are.',
+        'home');
+    }
+  }
+
+  /* ── Proactive check: stats milestones ───────────────────────────────── */
+  function checkMilestones() {
+    var stats = window._overviewStats || {};
+    var hours = stats.totalHours || 0;
+    var missions = stats.missions || 0;
+    if (!missions) return;
+    var tiers = [
+      {h:10,  msg:'10 hours saved — that\'s a full work day back in your calendar!'},
+      {h:25,  msg:'25 hours saved. You\'re generating serious ROI from EconSquad AI.'},
+      {h:50,  msg:'50 hours saved — you\'re operating at peak efficiency.'},
+      {h:100, msg:'100 hours saved! ARIA is proud of your productivity.'},
+    ];
+    tiers.forEach(function(t) {
+      if (hours >= t.h) {
+        addNotif('milestone', '🏆 ' + Math.floor(hours) + ' Hours Saved', t.msg, 'stats');
+      }
+    });
+    if (missions >= 10) {
+      addNotif('milestone', '🚀 ' + missions + ' Missions Completed',
+        'You\'ve run ' + missions + ' missions with EconSquad AI. Your squad is earning its keep.', 'stats');
+    }
+  }
+
+  /* ── Master runner ───────────────────────────────────────────────────── */
+  window.runProactiveChecks = function() {
+    try { checkCalendarAlerts(); } catch(e){}
+    try { checkEmailDeadlines(); } catch(e){}
+    try { checkInactivity();     } catch(e){}
+    try { checkMilestones();     } catch(e){}
+    refreshBell();
+  };
+
+  /* ── Boot: refresh bell on init ──────────────────────────────────────── */
+  setTimeout(refreshBell, 2500);
 
 })();
