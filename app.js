@@ -4875,12 +4875,20 @@
         item.addEventListener('mouseout',  function(){ this.style.background=''; });
         item.addEventListener('click', function() {
           n.read = true; saveNotifs(notifs); refreshBell();
-          panel.remove();
-          if (n.action && window.showDashTab) {
-            var tabMap = { calendar:'fullcal-tab', inbox:'inbox-tab', stats:'stats-tab', home:'home-tab' };
-            var t = tabMap[n.action];
-            if (t) window.showDashTab(t, null);
+          /* Update this item visually in-place — don't close the panel */
+          var titleEl = item.querySelector('div > div:first-child');
+          if (titleEl) {
+            titleEl.style.color = '#4a5568';
+            if (!titleEl.querySelector('.read-tag')) {
+              var tag = document.createElement('span');
+              tag.className = 'read-tag';
+              tag.style.cssText = 'font-size:9px;font-weight:700;color:#f87171;letter-spacing:.04em;'
+                + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;';
+              tag.textContent = '— READ';
+              titleEl.appendChild(tag);
+            }
           }
+          item.style.borderLeft = 'none';
         });
         list.appendChild(item);
       });
