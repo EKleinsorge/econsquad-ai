@@ -43,10 +43,20 @@ def get_post_date() -> date:
 
 
 def get_issue_number(post_date: date) -> int:
-    """Issue #1 = May 12 2026; each Monday after = +1."""
+    """Always one higher than the highest issue already in blog-feed.json.
+    Falls back to date-based calculation if the feed can't be read."""
+    feed_path = os.path.join(BASE_DIR, "blog-feed.json")
+    try:
+        with open(feed_path, "r", encoding="utf-8") as f:
+            feed = json.load(f)
+        existing = [item["issue"] for item in feed.get("monday_drops", []) if isinstance(item.get("issue"), int)]
+        if existing:
+            return max(existing) + 1
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        pass
+    # Fallback: calculate from anchor date
     delta = (post_date - ISSUE_1_DATE).days
-    issue = max(1, (delta // 7) + 1)
-    return issue
+    return max(1, (delta // 7) + 1)
 
 
 # ── Claude API call ──────────────────────────────────────────────────────────

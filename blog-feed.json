@@ -1,6 +1,13 @@
 {
   "monday_drops": [
     {
+      "issue": 4,
+      "date": "2026-06-02",
+      "title": "Issue #4: Make Your Data Work Smarter This Site Visit Season",
+      "excerpt": "May is when site selection season kicks into high gear. You're fielding RFIs, prepping data rooms, and racing to respond faster.",
+      "url": "monday-drop-2026-06-02.html"
+    },
+    {
       "issue": 3,
       "date": "2026-05-26",
       "title": "Issue #3: Making BRE Work Smarter",
