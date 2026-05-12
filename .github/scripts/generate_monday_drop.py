@@ -467,7 +467,41 @@ def main():
     full_title = f"The Monday AI for ED Drop — Issue #{issue_number}: {data['title']}"
     update_blog_html(issue_number, post_date, full_title, data["intro"], filename)
 
+    # Update blog-feed.json so the app can notify users
+    update_blog_feed(issue_number, post_date, data["title"], data["intro"], filename)
+
     print("Done.")
+
+
+def update_blog_feed(issue_number: int, post_date: date, subtitle: str, intro: str, filename: str):
+    """Prepend the new issue to blog-feed.json for in-app notifications."""
+    feed_path = os.path.join(BASE_DIR, "blog-feed.json")
+    try:
+        with open(feed_path, "r", encoding="utf-8") as f:
+            feed = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        feed = {"monday_drops": []}
+
+    # Avoid duplicates
+    existing_issues = {item["issue"] for item in feed.get("monday_drops", [])}
+    if issue_number in existing_issues:
+        print(f"Issue #{issue_number} already in blog-feed.json — skipping.")
+        return
+
+    short_excerpt = intro if len(intro) <= 140 else intro[:137].rsplit(" ", 1)[0] + "..."
+    new_entry = {
+        "issue": issue_number,
+        "date": post_date.strftime("%Y-%m-%d"),
+        "title": f"Issue #{issue_number}: {subtitle}",
+        "excerpt": short_excerpt,
+        "url": filename
+    }
+
+    feed.setdefault("monday_drops", []).insert(0, new_entry)
+
+    with open(feed_path, "w", encoding="utf-8") as f:
+        json.dump(feed, f, indent=2)
+    print(f"blog-feed.json updated — Issue #{issue_number} added.")
 
 
 if __name__ == "__main__":

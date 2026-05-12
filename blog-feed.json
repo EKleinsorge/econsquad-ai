@@ -1,0 +1,25 @@
+{
+  "monday_drops": [
+    {
+      "issue": 3,
+      "date": "2026-05-26",
+      "title": "Issue #3: Making BRE Work Smarter",
+      "excerpt": "Four tips for running better BRE surveys, spotting at-risk businesses, and turning data into action faster.",
+      "url": "monday-drop-2026-05-26.html"
+    },
+    {
+      "issue": 2,
+      "date": "2026-05-19",
+      "title": "Issue #2: Grant Season Survival Guide",
+      "excerpt": "Scan RFPs faster, build a reusable data library, and write a complete grant narrative in two hours.",
+      "url": "monday-drop-2026-05-19.html"
+    },
+    {
+      "issue": 1,
+      "date": "2026-05-12",
+      "title": "Issue #1: Your First Week with AI",
+      "excerpt": "The three tasks every ED pro should automate first, and how to get your AI workflow set up from day one.",
+      "url": "monday-drop-2026-05-12.html"
+    }
+  ]
+}

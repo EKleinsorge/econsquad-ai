@@ -4809,7 +4809,7 @@
   var NOTIF_KEY   = 'esq_aria_notifs';
   var ARCHIVE_KEY = 'esq_aria_archive';
   /* Action types get archived; insight types are deleted on dismiss */
-  var ACTION_TYPES = { calendar:1, grant:1, email:1 };
+  var ACTION_TYPES = { calendar:1, grant:1, email:1, blog:1 };
   function eid(id){ return document.getElementById(id); }
 
   /* ── Storage ─────────────────────────────────────────────────────────── */
@@ -4877,7 +4877,7 @@
   function escN(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   /* ── Build one notification row ─────────────────────────────────────── */
-  var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'🚀' };
+  var TYPE_ICON = { calendar:'📅', grant:'🚨', inactivity:'⚡', milestone:'🏆', email:'📧', stats:'🚀', blog:'📰' };
 
   function buildNotifRow(n, notifArray, listEl, archived) {
     var item = document.createElement('div');
@@ -4891,14 +4891,17 @@
         + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
       : '';
 
-    /* Top row: icon + title */
+    /* Top row: icon + title (clickable if notification has a link) */
     var topRow = document.createElement('div');
     topRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
+    var titleHtml = n.link
+      ? '<a href="' + escN(n.link) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(n.title) + '</a>'
+      : escN(n.title);
     topRow.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span>'
       + '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;flex:1;min-width:0;'
       + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-      + 'color:' + (isRead ? '#4a5568' : '#aaff3e') + ';">'
-      + escN(n.title) + readTag + '</div>';
+      + 'color:' + (isRead ? '#4a5568' : '#aaff3e') + ';cursor:' + (n.link ? 'pointer' : 'default') + ';">'
+      + titleHtml + readTag + '</div>';
 
     /* Body text */
     var bodyText = document.createElement('div');
@@ -5208,6 +5211,51 @@
     }
   }
 
+  /* ── Proactive check: Monday AI for ED Drop new posts ───────────────── */
+  var BLOG_SEEN_KEY = 'esq_blog_seen_issue';
+  var BLOG_FEED_URL = 'https://ekleinsorge.github.io/econsquad-ai/blog-feed.json';
+
+  function checkBlogFeed() {
+    /* Only check once per session */
+    try { if (sessionStorage.getItem('esq_blog_checked')) return;
+          sessionStorage.setItem('esq_blog_checked', '1'); } catch(e) {}
+
+    fetch(BLOG_FEED_URL + '?v=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(feed) {
+        var drops = (feed && feed.monday_drops) || [];
+        if (!drops.length) return;
+
+        var lastSeen = parseInt(localStorage.getItem(BLOG_SEEN_KEY) || '0', 10);
+        var unseen = drops.filter(function(p) { return p.issue > lastSeen; });
+        if (!unseen.length) return;
+
+        var notifs = loadNotifs();
+        unseen.forEach(function(post) {
+          var nid = 'blog-drop-' + post.issue;
+          if (notifs.some(function(n) { return n.id === nid; })) return;
+          notifs.unshift({
+            id:       nid,
+            type:     'blog',
+            icon:     '📰',
+            title:    '🗞️ Monday AI for ED Drop — ' + post.title,
+            body:     post.excerpt,
+            link:     post.url,
+            ts:       Date.now(),
+            read:     false
+          });
+        });
+        saveNotifs(notifs);
+
+        /* Mark newest issue as seen */
+        var maxIssue = Math.max.apply(null, unseen.map(function(p) { return p.issue; }));
+        try { localStorage.setItem(BLOG_SEEN_KEY, String(maxIssue)); } catch(e) {}
+
+        refreshBell();
+      })
+      .catch(function() {}); /* silent failure — network may be unavailable */
+  }
+
   /* ── Master runner ───────────────────────────────────────────────────── */
   window.runProactiveChecks = function() {
     try { checkCalendarAlerts(); } catch(e){}
@@ -5215,6 +5263,7 @@
     try { checkInactivity();     } catch(e){}
     try { checkMilestones();     } catch(e){}
     try { checkROIInsights();    } catch(e){}
+    try { checkBlogFeed();       } catch(e){}
     refreshBell();
   };
 
