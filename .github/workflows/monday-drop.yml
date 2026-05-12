@@ -1,0 +1,47 @@
+name: Generate Monday AI for ED Drop
+
+on:
+  schedule:
+    # Every Monday at 1:00 PM UTC (8:00 AM CST)
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+    inputs:
+      override_date:
+        description: 'Override date (YYYY-MM-DD). Leave blank to use today.'
+        required: false
+        default: ''
+
+jobs:
+  generate-monday-drop:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Generate Monday Drop post
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OVERRIDE_DATE: ${{ github.event.inputs.override_date }}
+        run: python .github/scripts/generate_monday_drop.py
+
+      - name: Commit and push new post
+        run: |
+          git config user.name "EconSquad AI Bot"
+          git config user.email "bot@econsquad.ai"
+          git add -A
+          git diff --cached --quiet || git commit -m "Auto-publish Monday AI for ED Drop — $(date +'%Y-%m-%d')"
+          git push

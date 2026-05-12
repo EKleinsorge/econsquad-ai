@@ -112,6 +112,28 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 .cat-bre{background:rgba(100,180,255,0.08);color:#64b4ff;border-color:rgba(100,180,255,0.2);}
 .cat-workforce{background:rgba(180,100,255,0.08);color:#b464ff;border-color:rgba(180,100,255,0.2);}
 
+/* MONDAY DROP SECTION */
+.monday-drop-section{background:rgba(170,255,62,0.03);border:1px solid rgba(170,255,62,0.14);border-radius:var(--r);padding:40px 44px;margin-bottom:40px;}
+.monday-drop-header{margin-bottom:28px;}
+.monday-drop-header .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:10px;}
+.monday-drop-header h2{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;line-height:1.1;color:var(--text);}
+.monday-drop-header p{font-size:14px;color:var(--text2);margin-top:8px;}
+.monday-drop-list{display:flex;flex-direction:column;gap:0;}
+.monday-drop-item{display:flex;align-items:flex-start;gap:20px;padding:18px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.monday-drop-item:last-child{border-bottom:none;padding-bottom:0;}
+.drop-issue-tag{flex-shrink:0;background:rgba(170,255,62,0.1);border:1px solid var(--limeborder);border-radius:8px;padding:6px 12px;text-align:center;}
+.drop-issue-tag .issue-num{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:var(--lime);line-height:1;}
+.drop-issue-tag .issue-label{font-size:10px;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:2px;}
+.drop-content{flex:1;}
+.drop-content h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;line-height:1.2;margin-bottom:6px;}
+.drop-content h3 a{color:var(--text);text-decoration:none;transition:color .2s;}
+.drop-content h3 a:hover{color:var(--lime);}
+.drop-content .drop-desc{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:8px;}
+.drop-content .drop-meta{display:flex;align-items:center;gap:12px;}
+.drop-content .drop-date{font-size:12px;color:var(--text2);}
+.drop-read-link{font-size:13px;font-weight:700;color:var(--lime);display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:gap .2s;}
+.drop-read-link:hover{gap:8px;text-decoration:none;}
+
 @media(max-width:900px){
   .post-grid{grid-template-columns:1fr 1fr;}
   .featured-post{grid-template-columns:1fr;gap:20px;}
@@ -172,7 +194,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     <div>
       <div class="featured-badge">Featured</div>
       <div class="post-category cat-ai">AI &amp; Economic Development</div>
-      <h2><a href="#">How AI Is Transforming the Work of Economic Developers in 2026</a></h2>
+      <h2><a href="blog-ai-transforming-ed.html">How AI Is Transforming the Work of Economic Developers in 2026</a></h2>
       <p class="excerpt">Economic developers have always been asked to do more with less — fewer staff, tighter budgets, and growing community expectations. In 2026, AI is finally delivering on its promise for ED professionals, moving beyond hype to become a genuine productivity multiplier. Here's what's actually working.</p>
       <div class="post-meta">
         <span class="author">EconSquad AI Team</span>
@@ -182,7 +204,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     </div>
     <div class="featured-cta">
       <div class="featured-art">🤖</div>
-      <a href="#" class="read-more-btn">Read More →</a>
+      <a href="blog-ai-transforming-ed.html" class="read-more-btn">Read More →</a>
     </div>
   </div>
 
@@ -192,45 +214,102 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     <!-- Post 2 -->
     <div class="post-card">
       <div class="post-category cat-grants">Grant Writing</div>
-      <h3><a href="#">5 Grant Writing Mistakes Economic Developers Make (And How AI Fixes Them)</a></h3>
+      <h3><a href="blog-grant-writing-mistakes.html">5 Grant Writing Mistakes Economic Developers Make (And How AI Fixes Them)</a></h3>
       <p class="excerpt">Grant writing is one of the most time-intensive parts of the ED role. From misaligned narratives to missing data points, small mistakes can cost your community hundreds of thousands in funding. Here are the five most common pitfalls — and how AI assistance is helping ED pros avoid them.</p>
       <div class="post-footer">
         <div class="meta-left">
           <span class="author-sm">EconSquad AI Team</span>
           <span class="date-sm">April 28, 2026 · 6 min read</span>
         </div>
-        <a href="#" class="read-more-link">Read →</a>
+        <a href="blog-grant-writing-mistakes.html" class="read-more-link">Read →</a>
       </div>
     </div>
 
     <!-- Post 3 -->
     <div class="post-card">
       <div class="post-category cat-bre">BRE &amp; Retention</div>
-      <h3><a href="#">The Modern BRE Survey: Using AI to Turn Data Into Action Faster</a></h3>
+      <h3><a href="blog-bre-survey.html">The Modern BRE Survey: Using AI to Turn Data Into Action Faster</a></h3>
       <p class="excerpt">Business Retention and Expansion surveys generate mountains of data — but too often that data sits in a spreadsheet instead of driving strategy. AI tools are changing how ED teams collect, analyze, and act on BRE insights.</p>
       <div class="post-footer">
         <div class="meta-left">
           <span class="author-sm">EconSquad AI Team</span>
           <span class="date-sm">April 14, 2026 · 5 min read</span>
         </div>
-        <a href="#" class="read-more-link">Read →</a>
+        <a href="blog-bre-survey.html" class="read-more-link">Read →</a>
       </div>
     </div>
 
     <!-- Post 4 -->
     <div class="post-card">
       <div class="post-category cat-workforce">Workforce</div>
-      <h3><a href="#">Workforce Analysis for Economic Developers: What the Numbers Actually Mean</a></h3>
+      <h3><a href="blog-workforce-analysis.html">Workforce Analysis for Economic Developers: What the Numbers Actually Mean</a></h3>
       <p class="excerpt">When a prospect asks about your workforce, the answer can't be "we have a good workforce." You need data — labor supply, wage trends, skill gaps, commute patterns. This guide walks through how to build a compelling workforce narrative using publicly available data and AI analysis.</p>
       <div class="post-footer">
         <div class="meta-left">
           <span class="author-sm">EconSquad AI Team</span>
           <span class="date-sm">March 31, 2026 · 7 min read</span>
         </div>
-        <a href="#" class="read-more-link">Read →</a>
+        <a href="blog-workforce-analysis.html" class="read-more-link">Read →</a>
       </div>
     </div>
 
+  </div>
+
+  <!-- MONDAY DROP SERIES -->
+  <div class="monday-drop-section">
+    <div class="monday-drop-header">
+      <div class="eyebrow">&#128197; Weekly Series</div>
+      <h2>The Monday AI for ED Drop — Every Monday, New AI Insights for ED Pros</h2>
+      <p>Short, practical, and built for busy ED professionals. Each issue covers 3–4 actionable AI tips, an EconSquad feature spotlight, and a takeaway you can use this week.</p>
+    </div>
+    <div class="monday-drop-list">
+
+      <div class="monday-drop-item">
+        <div class="drop-issue-tag">
+          <div class="issue-num">#3</div>
+          <span class="issue-label">Issue</span>
+        </div>
+        <div class="drop-content">
+          <h3><a href="monday-drop-2026-05-26.html">Making BRE Work Smarter</a></h3>
+          <p class="drop-desc">The 10-question BRE survey that actually works, using AI to spot at-risk businesses, writing an action plan in 30 minutes, and turning BRE insights into a retention strategy deck.</p>
+          <div class="drop-meta">
+            <span class="drop-date">May 26, 2026</span>
+            <a href="monday-drop-2026-05-26.html" class="drop-read-link">Read →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="monday-drop-item">
+        <div class="drop-issue-tag">
+          <div class="issue-num">#2</div>
+          <span class="issue-label">Issue</span>
+        </div>
+        <div class="drop-content">
+          <h3><a href="monday-drop-2026-05-19.html">Grant Season Survival Guide</a></h3>
+          <p class="drop-desc">Scanning RFPs faster with AI, building a reusable community data library, the 2-hour grant narrative method, and writing a compelling needs statement without sounding generic.</p>
+          <div class="drop-meta">
+            <span class="drop-date">May 19, 2026</span>
+            <a href="monday-drop-2026-05-19.html" class="drop-read-link">Read →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="monday-drop-item">
+        <div class="drop-issue-tag">
+          <div class="issue-num">#1</div>
+          <span class="issue-label">Issue</span>
+        </div>
+        <div class="drop-content">
+          <h3><a href="monday-drop-2026-05-12.html">Your First Week with AI</a></h3>
+          <p class="drop-desc">Welcome to the series. The 3 tasks ED pros should automate first, how to prompt AI effectively for ED work, and a spotlight on Riley the Grant Writer specialist.</p>
+          <div class="drop-meta">
+            <span class="drop-date">May 12, 2026</span>
+            <a href="monday-drop-2026-05-12.html" class="drop-read-link">Read →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- NEWSLETTER -->

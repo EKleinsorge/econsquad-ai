@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workforce Analysis for Economic Developers: What the Numbers Actually Mean — EconSquad AI</title>
+<meta name="description" content="When a prospect asks about your workforce, you need real data. Here's how to build a compelling workforce narrative using publicly available data and AI analysis.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;--lime3:#ccff7a;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--lime);z-index:9999;width:0%;transition:width .1s linear;pointer-events:none;}
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}
+.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+.article-wrap{max-width:760px;margin:0 auto;padding:0 40px 80px;}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--text2);font-size:13px;font-weight:500;margin:32px 0 0;text-decoration:none;transition:color .2s;}
+.back-link:hover{color:var(--lime);text-decoration:none;}
+.article-hero{padding:28px 0 40px;}
+.post-category{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:20px;padding:3px 10px;margin-bottom:16px;}
+.cat-workforce{background:rgba(180,100,255,0.08);color:#b464ff;border:1px solid rgba(180,100,255,0.2);}
+.article-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;line-height:1.05;margin-bottom:20px;color:var(--text);}
+.article-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.article-meta .author{font-size:14px;color:var(--text);font-weight:600;}
+.article-meta .date{font-size:14px;color:var(--text2);}
+.article-meta .readtime{font-size:12px;color:var(--text2);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:3px 12px;}
+.article-body{padding-top:32px;}
+.article-body p{font-size:16px;color:#c8d4e6;line-height:1.85;margin-bottom:20px;}
+.article-body h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#eef1f7;margin:36px 0 14px;line-height:1.1;}
+.article-body h3{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--lime);margin:28px 0 10px;line-height:1.15;}
+.article-body ul,.article-body ol{color:#c8d4e6;line-height:1.85;padding-left:20px;margin-bottom:20px;}
+.article-body ul li,.article-body ol li{margin-bottom:8px;}
+.callout{background:rgba(170,255,62,0.06);border-left:3px solid var(--lime);padding:16px 20px;border-radius:0 8px 8px 0;margin:24px 0;}
+.callout p{margin-bottom:0;}
+.callout strong{color:var(--lime);}
+.data-layer{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:var(--r);padding:20px 24px;margin:12px 0;}
+.data-layer-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.data-layer-sources{font-size:13px;color:var(--lime);margin-bottom:6px;}
+.data-layer-desc{font-size:14px;color:var(--text2);line-height:1.7;}
+.narrative-section{background:rgba(170,255,62,0.04);border:1px solid rgba(170,255,62,0.15);border-radius:var(--r);padding:24px;margin:28px 0;}
+.narrative-section h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--lime);margin-bottom:16px;}
+.narrative-section ol{color:#c8d4e6;line-height:1.85;padding-left:20px;}
+.narrative-section ol li{margin-bottom:10px;}
+.related-section{margin-top:60px;padding-top:40px;border-top:1px solid rgba(255,255,255,0.08);}
+.related-section h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;margin-bottom:24px;}
+.related-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.related-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,transform .2s;text-decoration:none;}
+.related-card:hover{border-color:rgba(170,255,62,0.2);transform:translateY(-2px);text-decoration:none;}
+.related-card .rel-category{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:20px;padding:2px 8px;display:inline-block;}
+.cat-ai{background:rgba(170,255,62,0.08);color:var(--lime);border:1px solid rgba(170,255,62,0.2);}
+.cat-grants{background:rgba(245,197,66,0.08);color:var(--gold);border:1px solid rgba(245,197,66,0.2);}
+.cat-bre{background:rgba(100,180,255,0.08);color:#64b4ff;border:1px solid rgba(100,180,255,0.2);}
+.related-card h3{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;line-height:1.2;color:var(--text);}
+.related-card .rel-meta{font-size:12px;color:var(--text2);}
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.footer-copy{font-size:13px;color:var(--text2);text-align:center;}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .article-wrap{padding:0 20px 60px;}
+  .article-hero h1{font-size:36px;}
+  .related-grid{grid-template-columns:1fr;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon">
+      <svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+    </div>
+    <div>
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="blog.html" class="active">Blog</a></li>
+    <li><a href="support.html">Support</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<div class="article-wrap">
+
+  <a href="blog.html" class="back-link">← Back to Blog</a>
+
+  <div class="article-hero">
+    <div class="post-category cat-workforce">Workforce</div>
+    <h1>Workforce Analysis for Economic Developers: What the Numbers Actually Mean</h1>
+    <div class="article-meta">
+      <span class="author">EconSquad AI Team</span>
+      <span class="date">March 31, 2026</span>
+      <span class="readtime">7 min read</span>
+    </div>
+  </div>
+
+  <div class="article-body">
+
+    <p>When a prospect's site selector asks about your workforce, there's one answer that ends the conversation immediately: "We have a skilled, hardworking workforce." It's the equivalent of a restaurant saying "we serve food." Every community says it. It signals nothing. The site selectors and corporate real estate teams making location decisions have seen hundreds of presentations that lead with this claim. What they actually want — what moves the needle on a shortlist decision — is specificity. Numbers. Honestly framed data that tells them whether your labor market can support their operation.</p>
+
+    <p>Building that data package used to take days. Today, with the right approach and AI assistance, you can put together a credible, detailed workforce analysis in an afternoon. Here's what needs to be in it and how to use AI to get there faster.</p>
+
+    <h2>What Prospects Actually Want</h2>
+
+    <p>Before diving into data sources, it helps to understand what a site selector is actually trying to answer when they ask about your workforce. Their client — the company making the location decision — has a specific operational need: X number of workers with Y skills, available within Z miles of the site, at a wage they can afford, with a supply pipeline that will hold up over 5–10 years of operation.</p>
+
+    <p>Every question they ask about workforce is a variation of: "Can we actually hire enough people to run this facility?" The data you present should answer that question directly, not generically. A strong workforce package doesn't say "we have many qualified workers." It says "within a 45-minute drive time, there are 8,400 workers currently employed in occupations directly relevant to your operation, with a historical growth rate of 2.1% per year, and an average wage of $18.40/hour — 12% below the national benchmark for this occupation."</p>
+
+    <h2>The 5 Data Layers Every ED Pro Should Know</h2>
+
+    <p>A complete workforce analysis for a prospect covers five distinct data dimensions. Here's what each layer contains and where to find it.</p>
+
+    <div class="data-layer">
+      <div class="data-layer-title">Layer 1: Labor Supply</div>
+      <div class="data-layer-sources">Sources: BLS Occupational Employment Statistics, Census LODES, Lightcast</div>
+      <div class="data-layer-desc">How many workers in relevant occupations currently live and work in your labor shed? What's the unemployment rate for that occupation? What's the historical trend in employment in this sector? This is your headline number — the raw supply available to the prospect.</div>
+    </div>
+
+    <div class="data-layer">
+      <div class="data-layer-title">Layer 2: Wage Benchmarks</div>
+      <div class="data-layer-sources">Sources: BLS OES, EDA data tools, Lightcast, state labor market information</div>
+      <div class="data-layer-desc">What are workers in relevant occupations earning locally, compared to state and national medians? A location where wages are 15% below national average is a genuine competitive advantage for labor-intensive operations — but you need the numbers to make that case. Present wages by percentile (25th, median, 75th) to give the full picture.</div>
+    </div>
+
+    <div class="data-layer">
+      <div class="data-layer-title">Layer 3: Skill Gaps and Training Pipeline</div>
+      <div class="data-layer-sources">Sources: Lightcast skill profiles, community college enrollment data, apprenticeship program data, state workforce agency reports</div>
+      <div class="data-layer-desc">What skills does the local workforce have? Where are the gaps? And critically — what's the pipeline? A community with a gap in advanced manufacturing skills but a community college CNC program that graduates 80 students per year tells a different story than a community with the same gap and no training pipeline at all.</div>
+    </div>
+
+    <div class="data-layer">
+      <div class="data-layer-title">Layer 4: Commute Shed</div>
+      <div class="data-layer-sources">Sources: Census LODES (OnTheMap tool), ACS commute data, Lightcast labor shed analysis</div>
+      <div class="data-layer-desc">The labor market doesn't stop at the county line. Commute shed analysis expands the labor pool by showing how many workers are within realistic commute distance — typically defined as 30, 45, and 60 minutes. For many rural and small-city communities, the commute shed significantly expands the effective labor pool.</div>
+    </div>
+
+    <div class="data-layer">
+      <div class="data-layer-title">Layer 5: Education Pipeline</div>
+      <div class="data-layer-sources">Sources: NCES IPEDS, state higher education data, local community college/university data</div>
+      <div class="data-layer-desc">What degrees and credentials are being produced locally? How many students are enrolled in programs relevant to the prospect's needs? For knowledge economy prospects especially, the education pipeline is often more important than the current workforce supply — they're planning 10 years out, not just for today's hiring class.</div>
+    </div>
+
+    <h2>Where to Actually Find the Data</h2>
+
+    <p>Good news: most of this data is free and publicly available. The challenge is knowing where to look and how to interpret it.</p>
+
+    <ul>
+      <li><strong>Bureau of Labor Statistics (bls.gov):</strong> Occupational Employment and Wage Statistics (OEWS) gives you employment and wage data by occupation at the metro area level. Updated annually. The most reliable source for wage benchmarks.</li>
+      <li><strong>Census Bureau (data.census.gov &amp; OnTheMap):</strong> American Community Survey for demographic and education data. LODES/OnTheMap for commute patterns and origin-destination data. Both are free.</li>
+      <li><strong>EMSI Lightcast (lightcast.io):</strong> The gold standard for labor market data in economic development — occupational demand, skills profiles, industry clusters, labor shed analysis. Paid, but many states offer access through their economic development agencies or workforce boards. If your state has a subscription, use it.</li>
+      <li><strong>State Labor Market Information agencies:</strong> Every state has an LMI division that publishes occupational projections, unemployment data, and industry reports specific to your state. Often overlooked, frequently excellent.</li>
+      <li><strong>NCES IPEDS (nces.ed.gov/ipeds):</strong> Institutional data on enrollment, degrees conferred, and program completions at every college and university. Searchable by program type and institution.</li>
+    </ul>
+
+    <h2>How to Frame Workforce Challenges Honestly</h2>
+
+    <p>One of the hardest parts of workforce analysis is dealing with data that isn't flattering. High unemployment in a particular occupation. Wages trending above what the prospect wants to pay. A thin training pipeline in the target sector. The instinct is to minimize these issues or bury them in favorable comparisons. That's a mistake.</p>
+
+    <p>Site selectors are professionals. They will find the unflattering data with their own research. If your package doesn't address it and theirs does, you look either uninformed or evasive — neither of which builds confidence. The better approach is to acknowledge challenges directly and contextualize them honestly: here's the challenge, here's the trajectory, here's what's being done about it.</p>
+
+    <div class="callout">
+      <p><strong>Honest framing example:</strong> "Skilled machinists are in short supply across the region — there are currently 340 open positions across our five-county labor market. However, our community college launched a precision machining program in 2024 with 65 first-year students, and we have an active apprenticeship partnership with the regional manufacturers association. We anticipate the first graduating cohort of 45 students in spring 2026."</p>
+      <p>This acknowledges the problem, shows awareness, and demonstrates forward momentum. That's a much stronger position than pretending the problem doesn't exist.</p>
+    </div>
+
+    <h2>Using AI to Synthesize Multiple Data Sources</h2>
+
+    <p>Here's where the time savings become meaningful. A complete workforce analysis might pull from six or eight different data sources — BLS tables, Census data downloads, Lightcast reports, state LMI publications, local college data. Each of these comes in a different format, with different geographies, different time periods, and different definitional conventions. Synthesizing them into a coherent narrative is the part that eats your afternoon.</p>
+
+    <p>AI is genuinely excellent at this synthesis task. Once you've gathered the underlying data (that still requires you), you can provide the key numbers to an AI assistant and ask it to: identify the most important findings, frame them in the context of what a site selector needs to know, flag any internal inconsistencies, and draft a narrative that weaves the data into a cohesive story.</p>
+
+    <p>The AI won't pull the data for you — but it will turn three pages of bullet points into a flowing, prospect-ready narrative in minutes. That's the work that used to take a half-day.</p>
+
+    <h2>A Sample Workforce Narrative Structure</h2>
+
+    <div class="narrative-section">
+      <h3>Workforce Package Structure for a Manufacturing Prospect</h3>
+      <ol>
+        <li><strong>Executive Summary (1 paragraph):</strong> The headline numbers — total labor supply, wage position versus national, unemployment rate, and the two or three most compelling facts about your workforce.</li>
+        <li><strong>Labor Supply Analysis:</strong> Workers in relevant occupations within 30/45/60-minute drive. Current employment levels and trend. Unemployment in target occupations.</li>
+        <li><strong>Wage Analysis:</strong> Median wages by key occupation, compared to state and national medians. Historical wage growth. Context on total compensation.</li>
+        <li><strong>Skills and Training Pipeline:</strong> Relevant programs at local community colleges and universities. Annual completions in target fields. Apprenticeship and incumbent worker training programs available.</li>
+        <li><strong>Commute Shed Map and Summary:</strong> Visual map of the labor shed with data callouts. Commute times from population centers. Public transit access if relevant.</li>
+        <li><strong>Education and Talent Pipeline:</strong> Degree and credential production in relevant fields. K–12 career and technical education programs. Any unique training assets (industry-specific training centers, specialized equipment, etc.).</li>
+        <li><strong>Honest Challenges and Mitigations:</strong> Acknowledge known workforce constraints and what's being done about them. This section builds credibility.</li>
+        <li><strong>ED Office Support:</strong> Specific ways your office will support workforce recruitment — connections to training programs, job fair hosting, on-the-job training incentives, etc.</li>
+      </ol>
+    </div>
+
+    <p>This structure works because it follows the site selector's mental process: they're building a case internally for why this location can support the operation. Give them the evidence in the order they need it.</p>
+
+    <h2>The Competitive Edge Is in the Specificity</h2>
+
+    <p>The communities that stand out in competitive site selection processes are the ones that know their workforce data cold — and can speak to it specifically, honestly, and in the prospect's terms. That requires doing the work: pulling the data, understanding what it means, framing it in context, and building a package that speaks directly to what the prospect cares about.</p>
+
+    <p>AI doesn't shortcut the thinking required to do this well. But it does dramatically reduce the time between "I have the data" and "I have a prospect-ready document." For an ED team managing multiple prospects and a full program calendar, that time savings is the difference between responding to a site inquiry this week or next week — and in competitive site selection, a week can be the difference between being on the shortlist and not.</p>
+
+  </div>
+
+  <div class="related-section">
+    <h2>Related Posts</h2>
+    <div class="related-grid">
+      <a href="blog-ai-transforming-ed.html" class="related-card">
+        <span class="rel-category cat-ai">AI &amp; Economic Development</span>
+        <h3>How AI Is Transforming the Work of Economic Developers in 2026</h3>
+        <span class="rel-meta">May 5, 2026 &middot; 8 min read</span>
+      </a>
+      <a href="blog-grant-writing-mistakes.html" class="related-card">
+        <span class="rel-category cat-grants">Grant Writing</span>
+        <h3>5 Grant Writing Mistakes Economic Developers Make (And How AI Fixes Them)</h3>
+        <span class="rel-meta">April 28, 2026 &middot; 6 min read</span>
+      </a>
+      <a href="blog-bre-survey.html" class="related-card">
+        <span class="rel-category cat-bre">BRE &amp; Retention</span>
+        <h3>The Modern BRE Survey: Using AI to Turn Data Into Action Faster</h3>
+        <span class="rel-meta">April 14, 2026 &middot; 5 min read</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" class="footer-logo">
+      <div class="logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+      </div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;"><span style="color:#fff;">Econ</span><span style="color:var(--lime);">Squad</span><sup style="font-size:11px;color:#fff;vertical-align:super;">AI</sup></span>
+    </a>
+    <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll', function() {
+  var scrollTop = window.scrollY || document.documentElement.scrollTop;
+  var docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+});
+</script>
+</body>
+</html>
