@@ -5284,7 +5284,8 @@
     var container = document.getElementById('resources-feed');
     if (!container) return;
 
-    fetch('https://ekleinsorge.github.io/econsquad-ai/blog-feed.json?v=' + Date.now())
+    /* Use relative URL so it works both on GitHub Pages and any local dev server */
+    fetch('blog-feed.json?v=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(feed) {
         var drops = (feed && feed.monday_drops) || [];
