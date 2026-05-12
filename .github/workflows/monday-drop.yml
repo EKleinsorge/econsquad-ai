@@ -10,6 +10,10 @@ on:
         description: 'Override date (YYYY-MM-DD). Leave blank to use today.'
         required: false
         default: ''
+      skip_email:
+        description: 'Skip sending emails (true/false). Useful for testing post generation only.'
+        required: false
+        default: 'false'
 
 jobs:
   generate-monday-drop:
@@ -30,7 +34,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install anthropic
+        run: pip install anthropic requests
 
       - name: Generate Monday Drop post
         env:
@@ -45,3 +49,12 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "Auto-publish Monday AI for ED Drop — $(date +'%Y-%m-%d')"
           git push
+
+      - name: Send weekly email to all users
+        if: ${{ github.event.inputs.skip_email != 'true' }}
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SUPABASE_URL: https://kbwcsmctwtgrjtjcghkt.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python .github/scripts/send_weekly_email.py
