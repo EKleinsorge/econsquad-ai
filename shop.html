@@ -282,16 +282,78 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+var _activeCat = 'all';
 function filterProducts(cat, btn) {
+  _activeCat = cat;
   document.querySelectorAll('.filter-tab').forEach(function(t){ t.classList.remove('active'); });
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
   document.querySelectorAll('.product-card').forEach(function(card) {
     card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
   });
 }
+
+/* ── Load live products from Supabase ── */
+(function(){
+  var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
+  var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
+  var supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  function renderProducts(products){
+    var grid = document.getElementById('product-grid');
+    if(!products || !products.length){ return; } // keep static fallback
+    grid.innerHTML = products.map(function(p){
+      var imgHtml = p.image_url
+        ? '<img src="'+p.image_url+'" alt="'+escHtml(p.name)+'" style="width:100%;height:100%;object-fit:cover;">'
+        : '<span style="font-size:64px;line-height:1;">'+(p.emoji||'🛍️')+'</span>';
+      var badge = p.badge ? '<div class="product-badge">'+escHtml(p.badge)+'</div>' : '';
+      var btn = p.coming_soon
+        ? '<a href="#" class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;pointer-events:none;">Coming Soon</a>'
+        : (p.stripe_link
+            ? '<a href="'+p.stripe_link+'" class="btn-add" target="_blank">Order →</a>'
+            : '<a href="#" class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;">Buy →</a>');
+      return '<div class="product-card'+(p.coming_soon?' coming-soon':'')+'" data-cat="'+escHtml(p.category)+'">'
+        +'<div class="product-img">'+imgHtml+badge+'</div>'
+        +'<div class="product-info">'
+          +'<div class="product-category">'+escHtml(p.category)+'</div>'
+          +'<div class="product-name">'+escHtml(p.name)+'</div>'
+          +'<div class="product-desc">'+escHtml(p.description||'')+'</div>'
+          +'<div class="product-footer">'
+            +'<div class="product-price">$'+parseFloat(p.price||0).toFixed(2)+'</div>'
+            +btn
+          +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+    filterProducts(_activeCat, null);
+  }
+
+  function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // Load products
+  supa.from('shop_products').select('*').eq('active',true).order('sort_order').then(function(res){
+    if(res.error || !res.data || !res.data.length) return; // keep static fallback
+    renderProducts(res.data);
+  });
+
+  // Load bundle link/price
+  supa.from('book_settings').select('key,value').in('key',['bundle_stripe_link','bundle_price']).then(function(res){
+    if(res.error || !res.data) return;
+    var settings = {};
+    res.data.forEach(function(r){ settings[r.key]=r.value; });
+    var bundleBtn = document.querySelector('.bundle-banner a');
+    if(bundleBtn){
+      if(settings.bundle_stripe_link && settings.bundle_stripe_link !== '#'){
+        bundleBtn.href = settings.bundle_stripe_link;
+      }
+      if(settings.bundle_price){
+        bundleBtn.textContent = 'Get the Bundle · '+settings.bundle_price+' →';
+      }
+    }
+  });
+})();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth-nav.js?v=3"></script>
 </body>
 </html>

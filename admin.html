@@ -170,6 +170,9 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Support</div>
     <div class="sidebar-item" onclick="showAdminSection('reports',this)">🚨 Problem Reports</div>
     <div class="sidebar-item" onclick="showAdminSection('refunds',this)">↩️ Refunds</div>
+    <div class="sidebar-section">Store</div>
+    <div class="sidebar-item" onclick="showAdminSection('shop',this);loadShopProducts()">🛍️ Swag Shop</div>
+    <div class="sidebar-item" onclick="showAdminSection('book',this);loadBookSettings()">📘 Book Page</div>
     <div class="sidebar-section">Settings</div>
     <div class="sidebar-item" onclick="showAdminSection('settings',this)">⚙️ Plan Settings</div>
     <div class="sidebar-item" onclick="showAdminSection('admins',this)">👑 Admins</div>
@@ -487,8 +490,227 @@ INSERT INTO admins (email, name, added_by) VALUES ('eric@gslisolutions.com', 'Er
       </div>
     </div>
 
+    <!-- ═══════════════ SWAG SHOP ═══════════════ -->
+    <div id="section-shop" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">🛍️ Swag Shop</div>
+          <div class="page-sub">Add, edit and hide products. Changes go live on shop.html instantly.</div>
+        </div>
+        <button class="btn-lime" onclick="openProductModal(null)">+ Add Product</button>
+      </div>
+
+      <!-- Setup banner -->
+      <div id="shop-setup-banner" style="display:none;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#aaff3e;margin-bottom:8px;">⚙️ One-time setup — run this SQL in Supabase</div>
+        <pre id="shop-setup-sql" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;font-size:11px;color:#aaff3e;overflow-x:auto;white-space:pre-wrap;margin-bottom:10px;">CREATE TABLE IF NOT EXISTS shop_products (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  category text NOT NULL DEFAULT 'apparel',
+  description text,
+  price numeric(10,2) NOT NULL DEFAULT 0,
+  badge text,
+  stripe_link text,
+  emoji text DEFAULT '🛍️',
+  image_url text,
+  active boolean DEFAULT true,
+  coming_soon boolean DEFAULT false,
+  sort_order int DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE shop_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read" ON shop_products FOR SELECT USING (true);
+CREATE POLICY "Auth write" ON shop_products FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');</pre>
+        <button class="btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('shop-setup-sql').textContent).then(()=>showToast('SQL copied!','success'))">📋 Copy SQL</button>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:48px;">Icon</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Badge</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="shop-products-table">
+            <tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Loading products…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:20px;padding:16px 20px;background:rgba(170,255,62,0.04);border:1px solid rgba(170,255,62,0.15);border-radius:10px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#aaff3e;margin-bottom:8px;">🔗 Bundle Banner Stripe Link</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input id="bundle-stripe-link" type="url" placeholder="https://buy.stripe.com/..." style="flex:1;">
+          <input id="bundle-price" type="text" placeholder="$54.99" style="width:100px;">
+          <button class="btn-lime" onclick="saveBundleLink()">Save →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ BOOK PAGE ═══════════════ -->
+    <div id="section-book" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">📘 Book Page</div>
+          <div class="page-sub">Edit all content on book.html. Save each section separately. Changes go live instantly.</div>
+        </div>
+        <button class="btn-lime" onclick="saveAllBookSettings()">💾 Save All Changes →</button>
+      </div>
+
+      <!-- Setup banner -->
+      <div id="book-setup-banner" style="display:none;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#aaff3e;margin-bottom:8px;">⚙️ One-time setup — run this SQL in Supabase</div>
+        <pre id="book-setup-sql" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;font-size:11px;color:#aaff3e;overflow-x:auto;white-space:pre-wrap;margin-bottom:10px;">CREATE TABLE IF NOT EXISTS book_settings (
+  key text PRIMARY KEY,
+  value text
+);
+ALTER TABLE book_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read" ON book_settings FOR SELECT USING (true);
+CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');</pre>
+        <button class="btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('book-setup-sql').textContent).then(()=>showToast('SQL copied!','success'))">📋 Copy SQL</button>
+      </div>
+
+      <!-- Hero -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:16px;">📖 Hero Section</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Book Title</label><input id="bk-title" type="text" placeholder="The ED Pro's AI Playbook"></div>
+          <div class="form-field"><label>Subtitle / Tagline</label><input id="bk-subtitle" type="text" placeholder="The complete guide for economic developers..."></div>
+        </div>
+        <div class="form-field"><label>Hero Description (2–3 sentences)</label><textarea id="bk-hero-desc" rows="3" placeholder="What the book does for the reader..."></textarea></div>
+      </div>
+
+      <!-- Chapters -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:16px;">📚 Chapters (6)</div>
+        <div id="book-chapters-form">
+          <!-- generated by JS -->
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:16px;">⭐ Reviews (3)</div>
+        <div id="book-reviews-form">
+          <!-- generated by JS -->
+        </div>
+      </div>
+
+      <!-- Author bio -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:16px;">👤 Author Bio</div>
+        <div class="form-field"><label>Author Name</label><input id="bk-author-name" type="text" placeholder="Eric Kleinsorge"></div>
+        <div class="form-field"><label>Author Title / Credentials</label><input id="bk-author-title" type="text" placeholder="Economic Development Professional & AI Strategist"></div>
+        <div class="form-field"><label>Bio (2–4 sentences)</label><textarea id="bk-author-bio" rows="4" placeholder="Bio text..."></textarea></div>
+      </div>
+
+      <!-- Pricing & Links -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:16px;">💳 Pricing & Stripe Links</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Digital Price (e.g. 19.99)</label><input id="bk-price-digital" type="text" placeholder="19.99"></div>
+          <div class="form-field"><label>Digital Stripe Link</label><input id="bk-link-digital" type="url" placeholder="https://buy.stripe.com/..."></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field"><label>Hardcover+Digital Price</label><input id="bk-price-hardcover" type="text" placeholder="39.99"></div>
+          <div class="form-field"><label>Hardcover Stripe Link</label><input id="bk-link-hardcover" type="url" placeholder="https://buy.stripe.com/..."></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-field"><label>Team Price (per copy)</label><input id="bk-price-team" type="text" placeholder="24.99"></div>
+          <div class="form-field"><label>Team Order Stripe Link</label><input id="bk-link-team" type="url" placeholder="https://buy.stripe.com/..."></div>
+        </div>
+      </div>
+
+      <!-- PDF Upload -->
+      <div class="admin-card" style="margin-bottom:16px;">
+        <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:8px;">📄 PDF Files</div>
+        <div style="font-size:13px;color:#6b7a96;margin-bottom:20px;">Upload PDFs to Supabase Storage. The URL is saved automatically and used on the book page.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <label>Free Chapter PDF</label>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <input type="file" id="pdf-chapter-file" accept=".pdf" style="flex:1;font-size:12px;">
+              <button class="btn-lime btn-sm" onclick="uploadBookPDF('chapter')">Upload</button>
+            </div>
+            <div id="pdf-chapter-status" style="font-size:11px;color:#6b7a96;">Current: <span id="pdf-chapter-url-display">not set</span></div>
+            <input id="bk-link-free-chapter" type="url" placeholder="Or paste URL directly..." style="margin-top:6px;font-size:12px;">
+          </div>
+          <div>
+            <label>Full Book PDF <span style="color:#f5c542;font-size:10px;">(for digital buyers)</span></label>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <input type="file" id="pdf-full-file" accept=".pdf" style="flex:1;font-size:12px;">
+              <button class="btn-lime btn-sm" onclick="uploadBookPDF('full')">Upload</button>
+            </div>
+            <div id="pdf-full-status" style="font-size:11px;color:#6b7a96;">Current: <span id="pdf-full-url-display">not set</span></div>
+            <input id="bk-link-full-book" type="url" placeholder="Or paste URL directly..." style="margin-top:6px;font-size:12px;">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-lime" style="width:100%;padding:14px;" onclick="saveAllBookSettings()">💾 Save All Book Settings →</button>
+    </div>
+
   </div><!-- /admin-main -->
 </div><!-- /admin-body -->
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal-box" style="width:640px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;" id="product-modal-title">Add Product</div>
+      <button onclick="closeProductModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>Product Name</label><input id="prod-name" type="text" placeholder="Less Work. More Impact. Tee"></div>
+      <div class="form-field"><label>Category</label>
+        <select id="prod-cat">
+          <option value="apparel">Apparel</option>
+          <option value="drinkware">Drinkware</option>
+          <option value="accessories">Accessories</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-field"><label>Description</label><textarea id="prod-desc" rows="2" placeholder="Short product description..."></textarea></div>
+    <div class="form-grid">
+      <div class="form-field"><label>Price ($)</label><input id="prod-price" type="number" step="0.01" min="0" placeholder="28.99"></div>
+      <div class="form-field"><label>Badge Label (optional)</label><input id="prod-badge" type="text" placeholder="Best Seller"></div>
+    </div>
+    <div class="form-field"><label>Stripe Payment Link</label><input id="prod-stripe" type="url" placeholder="https://buy.stripe.com/..."></div>
+    <div class="form-grid">
+      <div class="form-field"><label>Icon Emoji (fallback)</label><input id="prod-emoji" type="text" placeholder="👕" maxlength="4"></div>
+      <div class="form-field"><label>Product Image URL (optional)</label><input id="prod-imgurl" type="url" placeholder="https://... or upload below"></div>
+    </div>
+    <div class="form-field">
+      <label>Upload Product Image</label>
+      <div style="display:flex;gap:8px;">
+        <input type="file" id="prod-img-file" accept="image/*" style="flex:1;font-size:12px;">
+        <button class="btn-ghost btn-sm" onclick="uploadProductImage()">Upload Image</button>
+      </div>
+      <div id="prod-img-upload-status" style="font-size:11px;color:#6b7a96;margin-top:4px;"></div>
+    </div>
+    <div style="display:flex;gap:20px;margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+        <input type="checkbox" id="prod-active" checked style="width:auto;"> Active (visible on shop)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+        <input type="checkbox" id="prod-coming-soon" style="width:auto;"> Coming Soon
+      </label>
+    </div>
+    <div class="form-field"><label>Sort Order (lower = first)</label><input id="prod-sort" type="number" min="0" value="0" style="width:120px;"></div>
+    <div id="prod-modal-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:12px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-lime" onclick="saveProduct()" id="prod-save-btn">Save Product →</button>
+      <button class="btn-ghost" onclick="closeProductModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD ADMIN MODAL -->
 <div class="modal-overlay" id="add-admin-modal">
@@ -1588,6 +1810,316 @@ function copyAdminsSql(){
     showToast('SQL copied to clipboard!','success');
   }).catch(function(){
     showToast('Copy failed — select the SQL manually.','error');
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   SWAG SHOP ADMIN
+═══════════════════════════════════════════════════════ */
+var _editingProductId = null;
+
+function loadShopProducts(){
+  var tbody = document.getElementById('shop-products-table');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Loading…</td></tr>';
+  supa.from('shop_products').select('*').order('sort_order').then(function(res){
+    if(res.error && res.error.code === '42P01'){
+      document.getElementById('shop-setup-banner').style.display='block';
+      tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Run the SQL above first, then refresh.</td></tr>';
+      return;
+    }
+    if(res.error){ tbody.innerHTML='<tr><td colspan="7" style="color:#ff8080;padding:20px;">Error: '+res.error.message+'</td></tr>'; return; }
+    var rows = res.data || [];
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">No products yet. Click "+ Add Product" to create one.</td></tr>'; return; }
+    tbody.innerHTML = rows.map(function(p){
+      var img = p.image_url ? '<img src="'+p.image_url+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">' : '<span style="font-size:28px;line-height:1;">'+( p.emoji||'🛍️')+'</span>';
+      var status = p.coming_soon ? '<span class="badge badge-pending">Coming Soon</span>'
+                  : p.active     ? '<span class="badge badge-active">Active</span>'
+                                 : '<span class="badge badge-suspended">Hidden</span>';
+      return '<tr>'
+        +'<td>'+img+'</td>'
+        +'<td style="font-weight:600;color:#eef3fc;">'+esc(p.name)+'</td>'
+        +'<td style="text-transform:capitalize;">'+esc(p.category)+'</td>'
+        +'<td style="color:#aaff3e;font-weight:700;">$'+parseFloat(p.price||0).toFixed(2)+'</td>'
+        +'<td>'+(p.badge?'<span class="badge badge-pro">'+esc(p.badge)+'</span>':'<span style="color:#4a5568;">—</span>')+'</td>'
+        +'<td>'+status+'</td>'
+        +'<td><div style="display:flex;gap:6px;">'
+          +'<button class="btn-ghost btn-sm" onclick="openProductModal(\''+p.id+'\')">✏️ Edit</button>'
+          +'<button class="btn-danger btn-sm" onclick="deleteProduct(\''+p.id+'\',\''+esc(p.name)+'\')">🗑️</button>'
+        +'</div></td>'
+        +'</tr>';
+    }).join('');
+    // Also load bundle settings
+    loadBundleLink();
+  });
+}
+
+function loadBundleLink(){
+  supa.from('book_settings').select('key,value').in('key',['bundle_stripe_link','bundle_price']).then(function(res){
+    if(res.error||!res.data) return;
+    res.data.forEach(function(row){
+      var el = document.getElementById(row.key==='bundle_stripe_link'?'bundle-stripe-link':'bundle-price');
+      if(el && row.value) el.value = row.value;
+    });
+  });
+}
+
+function saveBundleLink(){
+  var link = document.getElementById('bundle-stripe-link').value.trim();
+  var price = document.getElementById('bundle-price').value.trim();
+  var rows = [{key:'bundle_stripe_link',value:link},{key:'bundle_price',value:price}];
+  supa.from('book_settings').upsert(rows,{onConflict:'key'}).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('Bundle link saved!','success');
+  });
+}
+
+function openProductModal(id){
+  _editingProductId = id;
+  clearProdModal();
+  if(id){
+    document.getElementById('product-modal-title').textContent = 'Edit Product';
+    supa.from('shop_products').select('*').eq('id',id).single().then(function(res){
+      if(res.error||!res.data){ showToast('Could not load product','error'); return; }
+      var p = res.data;
+      document.getElementById('prod-name').value = p.name||'';
+      document.getElementById('prod-cat').value = p.category||'apparel';
+      document.getElementById('prod-desc').value = p.description||'';
+      document.getElementById('prod-price').value = p.price||'';
+      document.getElementById('prod-badge').value = p.badge||'';
+      document.getElementById('prod-stripe').value = p.stripe_link||'';
+      document.getElementById('prod-emoji').value = p.emoji||'🛍️';
+      document.getElementById('prod-imgurl').value = p.image_url||'';
+      document.getElementById('prod-active').checked = !!p.active;
+      document.getElementById('prod-coming-soon').checked = !!p.coming_soon;
+      document.getElementById('prod-sort').value = p.sort_order||0;
+    });
+  } else {
+    document.getElementById('product-modal-title').textContent = 'Add Product';
+    document.getElementById('prod-active').checked = true;
+    document.getElementById('prod-emoji').value = '🛍️';
+    document.getElementById('prod-sort').value = 0;
+  }
+  document.getElementById('product-modal').classList.add('show');
+}
+
+function closeProductModal(){
+  document.getElementById('product-modal').classList.remove('show');
+  _editingProductId = null;
+}
+
+function clearProdModal(){
+  ['prod-name','prod-cat','prod-desc','prod-price','prod-badge','prod-stripe','prod-emoji','prod-imgurl','prod-sort'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  var msg=document.getElementById('prod-modal-msg'); if(msg){msg.style.display='none';}
+  document.getElementById('prod-img-upload-status').textContent='';
+}
+
+function saveProduct(){
+  var name = document.getElementById('prod-name').value.trim();
+  var price = parseFloat(document.getElementById('prod-price').value);
+  if(!name){ showProdMsg('Product name is required.','error'); return; }
+  if(isNaN(price)||price<0){ showProdMsg('Enter a valid price.','error'); return; }
+  var payload = {
+    name: name,
+    category: document.getElementById('prod-cat').value,
+    description: document.getElementById('prod-desc').value.trim(),
+    price: price,
+    badge: document.getElementById('prod-badge').value.trim()||null,
+    stripe_link: document.getElementById('prod-stripe').value.trim()||null,
+    emoji: document.getElementById('prod-emoji').value.trim()||'🛍️',
+    image_url: document.getElementById('prod-imgurl').value.trim()||null,
+    active: document.getElementById('prod-active').checked,
+    coming_soon: document.getElementById('prod-coming-soon').checked,
+    sort_order: parseInt(document.getElementById('prod-sort').value)||0
+  };
+  var btn = document.getElementById('prod-save-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  var op = _editingProductId
+    ? supa.from('shop_products').update(payload).eq('id',_editingProductId)
+    : supa.from('shop_products').insert(payload);
+  op.then(function(res){
+    btn.disabled=false; btn.textContent='Save Product →';
+    if(res.error){ showProdMsg('Error: '+res.error.message,'error'); return; }
+    showToast((_editingProductId?'Product updated':'Product added')+'!','success');
+    closeProductModal();
+    loadShopProducts();
+  });
+}
+
+function showProdMsg(msg,type){
+  var el=document.getElementById('prod-modal-msg');
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.background=type==='error'?'rgba(255,80,80,0.1)':'rgba(170,255,62,0.1)';
+  el.style.color=type==='error'?'#ff8080':'#aaff3e';
+  el.style.border='1px solid '+(type==='error'?'rgba(255,80,80,0.3)':'rgba(170,255,62,0.3)');
+}
+
+function deleteProduct(id, name){
+  if(!confirm('Delete "'+name+'"? This cannot be undone.')) return;
+  supa.from('shop_products').delete().eq('id',id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('"'+name+'" deleted.','success');
+    loadShopProducts();
+  });
+}
+
+function uploadProductImage(){
+  var file = document.getElementById('prod-img-file').files[0];
+  if(!file){ showToast('Pick an image file first.','error'); return; }
+  var ext = file.name.split('.').pop();
+  var path = 'products/'+Date.now()+'.'+ext;
+  var status = document.getElementById('prod-img-upload-status');
+  status.textContent = 'Uploading…';
+  supa.storage.from('shop-images').upload(path, file, {cacheControl:'3600',upsert:true}).then(function(res){
+    if(res.error){ status.textContent='Upload failed: '+res.error.message; showToast('Upload failed','error'); return; }
+    var pub = supa.storage.from('shop-images').getPublicUrl(path);
+    var url = pub.data.publicUrl;
+    document.getElementById('prod-imgurl').value = url;
+    status.textContent = '✓ Uploaded — URL filled in above.';
+    showToast('Image uploaded!','success');
+  });
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+/* ═══════════════════════════════════════════════════════
+   BOOK PAGE ADMIN
+═══════════════════════════════════════════════════════ */
+var _bookSettings = {};
+
+function buildBookForms(){
+  // Chapters
+  var chapHtml='';
+  for(var i=1;i<=6;i++){
+    chapHtml+='<div style="margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">'
+      +'<div style="font-family:\'Barlow\',sans-serif;font-size:13px;font-weight:800;color:#aaff3e;margin-bottom:8px;">Chapter '+i+'</div>'
+      +'<div class="form-grid">'
+      +'<div class="form-field"><label>Chapter Title</label><input id="bk-ch'+i+'-title" type="text" placeholder="Chapter '+i+' title..."></div>'
+      +'<div class="form-field"><label>Short Description</label><input id="bk-ch'+i+'-desc" type="text" placeholder="One-sentence summary..."></div>'
+      +'</div></div>';
+  }
+  document.getElementById('book-chapters-form').innerHTML = chapHtml;
+  // Reviews
+  var revHtml='';
+  for(var j=1;j<=3;j++){
+    revHtml+='<div style="margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">'
+      +'<div style="font-family:\'Barlow\',sans-serif;font-size:13px;font-weight:800;color:#aaff3e;margin-bottom:8px;">Review '+j+'</div>'
+      +'<div class="form-field"><label>Quote</label><textarea id="bk-rv'+j+'-text" rows="2" placeholder="Their review text..."></textarea></div>'
+      +'<div class="form-field"><label>Attribution</label><input id="bk-rv'+j+'-author" type="text" placeholder="Title, Organization"></div>'
+      +'</div>';
+  }
+  document.getElementById('book-reviews-form').innerHTML = revHtml;
+}
+
+function loadBookSettings(){
+  if(!document.getElementById('book-chapters-form').innerHTML) buildBookForms();
+  supa.from('book_settings').select('key,value').then(function(res){
+    if(res.error && res.error.code==='42P01'){
+      document.getElementById('book-setup-banner').style.display='block';
+      return;
+    }
+    if(res.error){ showToast('Could not load book settings: '+res.error.message,'error'); return; }
+    _bookSettings = {};
+    (res.data||[]).forEach(function(row){ _bookSettings[row.key]=row.value; });
+    populateBookForm();
+  });
+}
+
+function populateBookForm(){
+  var map = {
+    'bk-title':'book_title','bk-subtitle':'book_subtitle','bk-hero-desc':'book_hero_desc',
+    'bk-author-name':'author_name','bk-author-title':'author_title','bk-author-bio':'author_bio',
+    'bk-price-digital':'price_digital','bk-link-digital':'link_digital',
+    'bk-price-hardcover':'price_hardcover','bk-link-hardcover':'link_hardcover',
+    'bk-price-team':'price_team','bk-link-team':'link_team',
+    'bk-link-free-chapter':'link_free_chapter','bk-link-full-book':'link_full_book'
+  };
+  Object.keys(map).forEach(function(elId){
+    var el=document.getElementById(elId);
+    if(el && _bookSettings[map[elId]]) el.value=_bookSettings[map[elId]];
+  });
+  for(var i=1;i<=6;i++){
+    var t=document.getElementById('bk-ch'+i+'-title');
+    var d=document.getElementById('bk-ch'+i+'-desc');
+    if(t && _bookSettings['ch'+i+'_title']) t.value=_bookSettings['ch'+i+'_title'];
+    if(d && _bookSettings['ch'+i+'_desc']) d.value=_bookSettings['ch'+i+'_desc'];
+  }
+  for(var j=1;j<=3;j++){
+    var rt=document.getElementById('bk-rv'+j+'-text');
+    var ra=document.getElementById('bk-rv'+j+'-author');
+    if(rt && _bookSettings['rv'+j+'_text']) rt.value=_bookSettings['rv'+j+'_text'];
+    if(ra && _bookSettings['rv'+j+'_author']) ra.value=_bookSettings['rv'+j+'_author'];
+  }
+  // show PDF current URLs
+  if(_bookSettings['link_free_chapter']){
+    document.getElementById('pdf-chapter-url-display').textContent = '✓ Set';
+  }
+  if(_bookSettings['link_full_book']){
+    document.getElementById('pdf-full-url-display').textContent = '✓ Set';
+  }
+}
+
+function saveAllBookSettings(){
+  var rows = [];
+  var map = {
+    'book_title':'bk-title','book_subtitle':'bk-subtitle','book_hero_desc':'bk-hero-desc',
+    'author_name':'bk-author-name','author_title':'bk-author-title','author_bio':'bk-author-bio',
+    'price_digital':'bk-price-digital','link_digital':'bk-link-digital',
+    'price_hardcover':'bk-price-hardcover','link_hardcover':'bk-link-hardcover',
+    'price_team':'bk-price-team','link_team':'bk-link-team',
+    'link_free_chapter':'bk-link-free-chapter','link_full_book':'bk-link-full-book'
+  };
+  Object.keys(map).forEach(function(key){
+    var el=document.getElementById(map[key]);
+    if(el) rows.push({key:key,value:el.value.trim()});
+  });
+  for(var i=1;i<=6;i++){
+    var t=document.getElementById('bk-ch'+i+'-title');
+    var d=document.getElementById('bk-ch'+i+'-desc');
+    if(t) rows.push({key:'ch'+i+'_title',value:t.value.trim()});
+    if(d) rows.push({key:'ch'+i+'_desc',value:d.value.trim()});
+  }
+  for(var j=1;j<=3;j++){
+    var rt=document.getElementById('bk-rv'+j+'-text');
+    var ra=document.getElementById('bk-rv'+j+'-author');
+    if(rt) rows.push({key:'rv'+j+'_text',value:rt.value.trim()});
+    if(ra) rows.push({key:'rv'+j+'_author',value:ra.value.trim()});
+  }
+  supa.from('book_settings').upsert(rows,{onConflict:'key'}).then(function(res){
+    if(res.error){ showToast('Error saving: '+res.error.message,'error'); return; }
+    showToast('✓ All book settings saved! Shop.html and Book.html updated live.','success');
+  });
+}
+
+function uploadBookPDF(type){
+  var fileEl = document.getElementById('pdf-'+type+'-file');
+  var file = fileEl.files[0];
+  if(!file){ showToast('Pick a PDF file first.','error'); return; }
+  var path = type+'-'+Date.now()+'.pdf';
+  var statusEl = document.getElementById('pdf-'+type+'-status');
+  statusEl.innerHTML = '⏳ Uploading… (this may take a moment for large files)';
+  supa.storage.from('books').upload(path, file, {cacheControl:'3600',upsert:true}).then(function(res){
+    if(res.error){
+      // Try creating bucket if it doesn't exist
+      statusEl.innerHTML = '<span style="color:#f5c542;">Storage bucket "books" may not exist yet — create it in Supabase Storage with public access, then retry.</span>';
+      showToast('Upload failed: '+res.error.message,'error');
+      return;
+    }
+    var pub = supa.storage.from('books').getPublicUrl(path);
+    var url = pub.data.publicUrl;
+    var key = type==='chapter'?'link_free_chapter':'link_full_book';
+    var inputId = type==='chapter'?'bk-link-free-chapter':'bk-link-full-book';
+    document.getElementById(inputId).value = url;
+    document.getElementById('pdf-'+type+'-url-display').textContent='✓ Uploaded';
+    // Auto-save this URL
+    supa.from('book_settings').upsert([{key:key,value:url}],{onConflict:'key'}).then(function(){
+      statusEl.innerHTML='<span style="color:#aaff3e;">✓ PDF uploaded and saved!</span> <a href="'+url+'" target="_blank" style="color:#aaff3e;font-size:11px;">Preview →</a>';
+      showToast('PDF uploaded and saved!','success');
+    });
   });
 }
 </script>

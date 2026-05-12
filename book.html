@@ -150,8 +150,8 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 
   <div class="book-info">
     <div class="eyebrow">📖 Now Available</div>
-    <h1>The ED Pro's<br>AI Playbook</h1>
-    <p class="subtitle">A practical, no-hype guide to using AI in economic development — from grant writing to site selection to BRE surveys. Written by an ED professional who built the tools.</p>
+    <h1 id="bk-hero-title">The ED Pro's<br>AI Playbook</h1>
+    <p class="subtitle" id="bk-hero-desc">A practical, no-hype guide to using AI in economic development — from grant writing to site selection to BRE surveys. Written by an ED professional who built the tools.</p>
 
     <div class="author-line">
       <div class="author-avatar">🏙️</div>
@@ -173,37 +173,13 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 <div class="section">
   <div class="section-eyebrow">What's Inside</div>
   <h2>Everything you need to put AI<br>to work in your ED office.</h2>
-  <div class="chapters">
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 1</div>
-      <h3>Why AI Is Different for ED</h3>
-      <p>Why generic AI tools fall short for economic developers — and what to look for instead. The mindset shift that makes everything click.</p>
-    </div>
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 2</div>
-      <h3>Your First Week: The 3 Tasks to Automate</h3>
-      <p>Grant narratives, RFI responses, inbox triage. The three workflows that pay back their setup time in the first week.</p>
-    </div>
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 3</div>
-      <h3>Grant Writing at AI Speed</h3>
-      <p>How to go from blank page to 70% draft in under two hours. Building your reusable community data library. Writing needs statements that don't sound generic.</p>
-    </div>
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 4</div>
-      <h3>Site Selection in the AI Era</h3>
-      <p>Responding to RFIs faster, building a competitive data room, and making your community stand out before the site visit.</p>
-    </div>
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 5</div>
-      <h3>BRE Surveys That Actually Lead to Action</h3>
-      <p>Designing surveys that get responses, using AI to identify at-risk businesses, and turning data into a retention action plan.</p>
-    </div>
-    <div class="chapter-card">
-      <div class="ch-num">Chapter 6</div>
-      <h3>Building Your AI-Powered ED Office</h3>
-      <p>Creating a sustainable AI workflow for your team, managing the learning curve, and staying ahead as the tools evolve.</p>
-    </div>
+  <div class="chapters" id="bk-chapters-grid">
+    <div class="chapter-card"><div class="ch-num">Chapter 1</div><h3 id="bk-ch1-title">Why AI Is Different for ED</h3><p id="bk-ch1-desc">Why generic AI tools fall short for economic developers — and what to look for instead. The mindset shift that makes everything click.</p></div>
+    <div class="chapter-card"><div class="ch-num">Chapter 2</div><h3 id="bk-ch2-title">Your First Week: The 3 Tasks to Automate</h3><p id="bk-ch2-desc">Grant narratives, RFI responses, inbox triage. The three workflows that pay back their setup time in the first week.</p></div>
+    <div class="chapter-card"><div class="ch-num">Chapter 3</div><h3 id="bk-ch3-title">Grant Writing at AI Speed</h3><p id="bk-ch3-desc">How to go from blank page to 70% draft in under two hours. Building your reusable community data library. Writing needs statements that don't sound generic.</p></div>
+    <div class="chapter-card"><div class="ch-num">Chapter 4</div><h3 id="bk-ch4-title">Site Selection in the AI Era</h3><p id="bk-ch4-desc">Responding to RFIs faster, building a competitive data room, and making your community stand out before the site visit.</p></div>
+    <div class="chapter-card"><div class="ch-num">Chapter 5</div><h3 id="bk-ch5-title">BRE Surveys That Actually Lead to Action</h3><p id="bk-ch5-desc">Designing surveys that get responses, using AI to identify at-risk businesses, and turning data into a retention action plan.</p></div>
+    <div class="chapter-card"><div class="ch-num">Chapter 6</div><h3 id="bk-ch6-title">Building Your AI-Powered ED Office</h3><p id="bk-ch6-desc">Creating a sustainable AI workflow for your team, managing the learning curve, and staying ahead as the tools evolve.</p></div>
   </div>
 </div>
 
@@ -212,21 +188,9 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
   <div class="section-eyebrow">What ED Professionals Are Saying</div>
   <h2>Real results from the field.</h2>
   <div class="reviews">
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"This is the book I've been waiting for. Practical, specific, and written by someone who actually does this work. Not another generic AI hype book."</p>
-      <div class="review-author">Economic Development Director, Midwest</div>
-    </div>
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"I read Chapter 3 on a Monday and had a complete first draft of our EDA narrative by Wednesday. Game changer for a small staff organization."</p>
-      <div class="review-author">EDO Executive Director, Rural Southeast</div>
-    </div>
-    <div class="review-card">
-      <div class="review-stars">★★★★★</div>
-      <p class="review-text">"Required reading for every ED professional on my team. Finally something that speaks our language and solves our actual problems."</p>
-      <div class="review-author">State Development Agency Director</div>
-    </div>
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text" id="bk-rv1-text">"This is the book I've been waiting for. Practical, specific, and written by someone who actually does this work. Not another generic AI hype book."</p><div class="review-author" id="bk-rv1-author">Economic Development Director, Midwest</div></div>
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text" id="bk-rv2-text">"I read Chapter 3 on a Monday and had a complete first draft of our EDA narrative by Wednesday. Game changer for a small staff organization."</p><div class="review-author" id="bk-rv2-author">EDO Executive Director, Rural Southeast</div></div>
+    <div class="review-card"><div class="review-stars">★★★★★</div><p class="review-text" id="bk-rv3-text">"Required reading for every ED professional on my team. Finally something that speaks our language and solves our actual problems."</p><div class="review-author" id="bk-rv3-author">State Development Agency Director</div></div>
   </div>
 </div>
 
@@ -236,8 +200,8 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     <div class="author-photo">🏙️</div>
     <div>
       <h3>About the Author</h3>
-      <div class="title">Eric Kleinsorge · Economic Developer & Founder, EconSquad AI</div>
-      <p>Eric has spent years working in economic development — writing grants, responding to RFIs, running BRE programs, and trying to do more with less. After seeing firsthand how AI could transform the day-to-day work of ED professionals, he built EconSquad AI and wrote this book to share what he learned. This isn't a technology book. It's a practitioner's guide written by someone who lives in the same spreadsheets and grant portals you do.</p>
+      <div class="title" id="bk-author-title">Eric Kleinsorge · Economic Developer & Founder, EconSquad AI</div>
+      <p id="bk-author-bio">Eric has spent years working in economic development — writing grants, responding to RFIs, running BRE programs, and trying to do more with less. After seeing firsthand how AI could transform the day-to-day work of ED professionals, he built EconSquad AI and wrote this book to share what he learned. This isn't a technology book. It's a practitioner's guide written by someone who lives in the same spreadsheets and grant portals you do.</p>
     </div>
   </div>
 </div>
@@ -250,24 +214,22 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;text-align:center;">
       <div style="font-size:36px;margin-bottom:14px;">📱</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Digital Edition</div>
-      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$19.99</div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;" id="bk-price-digital">$19.99</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Instant download · PDF + ePub</div>
-      <!-- REPLACE THIS HREF WITH YOUR STRIPE PAYMENT LINK -->
-      <a href="#" class="btn-buy" style="width:100%;justify-content:center;">Buy Digital →</a>
+      <a href="#" id="bk-btn-digital" class="btn-buy" style="width:100%;justify-content:center;">Buy Digital →</a>
     </div>
     <div style="background:rgba(170,255,62,0.06);border:2px solid rgba(170,255,62,0.3);border-radius:14px;padding:28px;text-align:center;position:relative;">
       <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lime);color:#1a3300;font-size:11px;font-weight:800;padding:4px 16px;border-radius:20px;">Most Popular</div>
       <div style="font-size:36px;margin-bottom:14px;">📚</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Hardcover + Digital</div>
-      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$39.99</div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;" id="bk-price-hardcover">$39.99</div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Signed copy + instant digital access</div>
-      <!-- REPLACE THIS HREF WITH YOUR STRIPE PAYMENT LINK -->
-      <a href="#" class="btn-buy" style="width:100%;justify-content:center;">Order Hardcover →</a>
+      <a href="#" id="bk-btn-hardcover" class="btn-buy" style="width:100%;justify-content:center;">Order Hardcover →</a>
     </div>
     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;text-align:center;">
       <div style="font-size:36px;margin-bottom:14px;">🏢</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Team Order (10+)</div>
-      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$24.99<span style="font-size:14px;color:var(--text2);">/copy</span></div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;" id="bk-price-team">$24.99<span style="font-size:14px;color:var(--text2);">/copy</span></div>
       <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Bulk discount · Digital licenses</div>
       <a href="contact.html" class="btn-buy-ghost" style="width:100%;justify-content:center;">Contact Us →</a>
     </div>
@@ -280,8 +242,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
   <div class="book-cta">
     <h2>Read Chapter 1 Free</h2>
     <p>Get a feel for the book before you buy. No email required — just start reading.</p>
-    <!-- REPLACE WITH LINK TO FREE CHAPTER PDF OR PAGE -->
-    <a href="#" class="btn-buy">Read Chapter 1 →</a>
+    <a href="#" id="bk-btn-free-chapter" class="btn-buy">Read Chapter 1 →</a>
   </div>
 </div>
 
@@ -304,6 +265,56 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ── Load live book settings from Supabase ── */
+(function(){
+  var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
+  var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
+  var supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+  function setTxt(id, val){ var el=document.getElementById(id); if(el&&val) el.textContent=val; }
+  function setLink(id, url){ var el=document.getElementById(id); if(el&&url&&url!=='#') el.href=url; }
+
+  supa.from('book_settings').select('key,value').then(function(res){
+    if(res.error || !res.data || !res.data.length) return; // keep static fallback
+    var s = {};
+    res.data.forEach(function(r){ s[r.key]=r.value; });
+
+    // Hero
+    if(s.book_title){
+      var t=document.getElementById('bk-hero-title');
+      if(t) t.innerHTML=s.book_title.replace(/\n/,'<br>');
+    }
+    setTxt('bk-hero-desc', s.book_hero_desc);
+
+    // Chapters
+    for(var i=1;i<=6;i++){
+      setTxt('bk-ch'+i+'-title', s['ch'+i+'_title']);
+      setTxt('bk-ch'+i+'-desc',  s['ch'+i+'_desc']);
+    }
+
+    // Reviews
+    for(var j=1;j<=3;j++){
+      setTxt('bk-rv'+j+'-text',   s['rv'+j+'_text']);
+      setTxt('bk-rv'+j+'-author', s['rv'+j+'_author']);
+    }
+
+    // Author
+    setTxt('bk-author-title', s.author_title);
+    setTxt('bk-author-bio',   s.author_bio);
+
+    // Prices
+    if(s.price_digital){ var pd=document.getElementById('bk-price-digital'); if(pd) pd.innerHTML='$'+s.price_digital; }
+    if(s.price_hardcover){ var ph=document.getElementById('bk-price-hardcover'); if(ph) ph.innerHTML='$'+s.price_hardcover; }
+    if(s.price_team){ var pt=document.getElementById('bk-price-team'); if(pt) pt.innerHTML='$'+s.price_team+'<span style="font-size:14px;color:var(--text2);">/copy</span>'; }
+
+    // Buy buttons
+    setLink('bk-btn-digital',      s.link_digital);
+    setLink('bk-btn-hardcover',    s.link_hardcover);
+    setLink('bk-btn-free-chapter', s.link_free_chapter);
+  });
+})();
+</script>
 <script src="auth-nav.js?v=3"></script>
 </body>
 </html>
