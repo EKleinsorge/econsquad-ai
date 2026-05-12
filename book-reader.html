@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Read — The ED Pro's AI Playbook</title>
+<meta name="description" content="Read The ED Pro's AI Playbook online — the practical AI guide for economic development professionals.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Barlow:wght@700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#04050d;--navy2:#0a0d1a;--navy3:#0d1220;
+  --lime:#aaff3e;--limedim:rgba(170,255,62,0.08);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;--text3:#c8d4e6;
+  --border:rgba(255,255,255,0.07);
+  --sidebar-w:280px;
+}
+
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
+
+/* ── Reading progress bar ── */
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--lime);width:0%;z-index:9999;transition:width .1s linear;box-shadow:0 0 8px rgba(170,255,62,0.6);}
+
+/* ── Top nav ── */
+.top-nav{position:fixed;top:3px;left:0;right:0;height:56px;background:rgba(4,5,13,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;z-index:1000;backdrop-filter:blur(20px);}
+.nav-left{display:flex;align-items:center;gap:0;}
+.menu-btn{width:56px;height:56px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:18px;transition:color .2s;flex-shrink:0;border:none;background:none;}
+.menu-btn:hover{color:var(--lime);}
+.nav-book-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;}
+.nav-book-title span{color:var(--lime);}
+.nav-chapter-crumb{font-size:12px;color:var(--text2);margin-left:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;}
+.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.btn-access{background:rgba(170,255,62,0.1);border:1px solid var(--limeborder);color:var(--lime);font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap;}
+.btn-access:hover{background:rgba(170,255,62,0.18);}
+.btn-buy-sm{background:var(--lime);color:#1a3300;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;text-decoration:none;white-space:nowrap;transition:opacity .2s;}
+.btn-buy-sm:hover{opacity:.85;text-decoration:none;}
+.font-size-btns{display:flex;gap:4px;align-items:center;}
+.fs-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .15s;}
+.fs-btn:hover,.fs-btn.active{background:rgba(170,255,62,0.1);border-color:var(--limeborder);color:var(--lime);}
+
+/* ── Layout ── */
+.reader-layout{display:flex;height:100vh;padding-top:59px;}
+
+/* ── Sidebar ── */
+#sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--navy2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:transform .25s ease,width .25s ease;position:relative;z-index:100;}
+#sidebar.collapsed{width:0;border-right:none;}
+.sidebar-inner{width:var(--sidebar-w);display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.sidebar-header{padding:20px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sidebar-book-name{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;color:var(--text);line-height:1.2;margin-bottom:4px;}
+.sidebar-author{font-size:11px;color:var(--text2);}
+.sidebar-progress-wrap{margin-top:12px;}
+.sidebar-progress-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:flex;justify-content:space-between;}
+.sidebar-progress-track{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;}
+.sidebar-progress-fill{height:100%;background:var(--lime);border-radius:2px;transition:width .3s;}
+
+.chapter-list{flex:1;overflow-y:auto;padding:10px 0;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.1) transparent;}
+.ch-item{display:flex;align-items:flex-start;gap:12px;padding:12px 20px;cursor:pointer;transition:background .15s;border-left:3px solid transparent;position:relative;}
+.ch-item:hover{background:rgba(255,255,255,0.03);}
+.ch-item.active{background:rgba(170,255,62,0.06);border-left-color:var(--lime);}
+.ch-item.locked{cursor:default;opacity:.55;}
+.ch-item.locked:hover{background:transparent;}
+.ch-num-badge{width:26px;height:26px;border-radius:6px;background:rgba(255,255,255,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:var(--text2);flex-shrink:0;margin-top:1px;}
+.ch-item.active .ch-num-badge{background:var(--limedim);border-color:var(--limeborder);color:var(--lime);}
+.ch-item-text{flex:1;min-width:0;}
+.ch-item-label{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.ch-item.active .ch-item-label{color:var(--lime);}
+.ch-item-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;}
+.ch-lock{font-size:11px;color:var(--text2);margin-left:auto;padding-top:1px;flex-shrink:0;}
+.ch-done{font-size:11px;color:var(--lime);margin-left:auto;flex-shrink:0;}
+
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;}
+.sidebar-unlock-btn{width:100%;background:var(--limedim);border:1px solid var(--limeborder);color:var(--lime);font-size:12px;font-weight:700;padding:9px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;transition:background .2s;}
+.sidebar-unlock-btn:hover{background:rgba(170,255,62,0.15);}
+.sidebar-buy-link{display:block;text-align:center;font-size:12px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.sidebar-buy-link:hover{color:var(--lime);text-decoration:none;}
+
+/* ── Main reader ── */
+#reader-main{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.1) transparent;}
+.reader-content{max-width:720px;margin:0 auto;padding:52px 48px 120px;}
+
+/* ── Chapter typography ── */
+.ch-eyebrow{font-size:11px;font-weight:700;color:var(--lime);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;}
+.ch-title-main{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;color:var(--text);line-height:1.05;margin-bottom:16px;}
+.ch-meta{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:40px;}
+.ch-meta-item{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;}
+.ch-lead{font-family:'Lora',serif;font-size:19px;color:var(--text3);line-height:1.75;margin-bottom:32px;font-style:italic;}
+.ch-body{font-family:'Lora',serif;font-size:17px;line-height:1.85;color:var(--text3);}
+.ch-body p{margin-bottom:24px;}
+.ch-body h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--text);margin:40px 0 16px;line-height:1.15;}
+.ch-body h3{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin:32px 0 12px;}
+.ch-body strong{color:var(--text);font-weight:600;}
+.ch-body em{color:var(--text);}
+.ch-body ul,.ch-body ol{padding-left:24px;margin-bottom:24px;}
+.ch-body li{margin-bottom:10px;line-height:1.7;}
+
+/* Pullquote */
+.pullquote{border-left:3px solid var(--lime);padding:16px 24px;margin:36px 0;background:var(--limedim);border-radius:0 10px 10px 0;}
+.pullquote p{font-family:'Lora',serif;font-size:19px;color:var(--text);line-height:1.65;font-style:italic;margin:0;}
+
+/* Callout box */
+.callout{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin:32px 0;}
+.callout-label{font-size:10px;font-weight:800;color:var(--lime);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.callout p{font-size:15px;color:var(--text3);line-height:1.7;margin:0;font-family:'DM Sans',sans-serif;}
+
+/* Key takeaways */
+.takeaways{background:rgba(170,255,62,0.05);border:1px solid var(--limeborder);border-radius:12px;padding:24px 28px;margin:40px 0;}
+.takeaways-title{font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:var(--lime);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+.takeaways ul{list-style:none;padding:0;margin:0;}
+.takeaways li{font-size:14px;color:var(--text3);padding:8px 0 8px 24px;position:relative;border-bottom:1px solid rgba(255,255,255,0.04);line-height:1.6;font-family:'DM Sans',sans-serif;}
+.takeaways li:last-child{border-bottom:none;}
+.takeaways li::before{content:'✓';position:absolute;left:0;color:var(--lime);font-weight:800;font-size:13px;}
+
+/* Chapter nav footer */
+.ch-nav-footer{display:flex;justify-content:space-between;align-items:center;margin-top:64px;padding-top:32px;border-top:1px solid var(--border);}
+.ch-nav-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;border:1px solid var(--border);border-radius:10px;cursor:pointer;background:transparent;color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;}
+.ch-nav-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);text-decoration:none;}
+.ch-nav-btn.next{background:var(--limedim);border-color:var(--limeborder);color:var(--lime);}
+.ch-nav-btn.next:hover{background:rgba(170,255,62,0.14);text-decoration:none;}
+.ch-nav-btn .ch-nav-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:2px;opacity:.7;}
+.ch-nav-btn .ch-nav-title{font-weight:600;display:block;}
+
+/* Lock gate */
+.lock-gate{text-align:center;padding:80px 40px;max-width:460px;margin:0 auto;}
+.lock-icon{font-size:56px;margin-bottom:24px;}
+.lock-gate h2{font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;color:var(--text);margin-bottom:12px;}
+.lock-gate p{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:28px;}
+.lock-gate-btns{display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto;}
+.btn-unlock{background:var(--lime);color:#1a3300;font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;padding:13px 28px;border-radius:10px;border:none;cursor:pointer;transition:opacity .2s;}
+.btn-unlock:hover{opacity:.88;}
+.btn-buy-gate{background:transparent;border:1px solid var(--limeborder);color:var(--lime);font-size:14px;font-weight:700;padding:11px 28px;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:block;text-align:center;}
+.btn-buy-gate:hover{background:var(--limedim);text-decoration:none;}
+
+/* Access modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+.modal-overlay.show{display:flex;}
+.modal-box{background:rgba(8,12,24,0.99);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:36px;width:420px;max-width:92vw;text-align:center;}
+.modal-box h3{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--text);margin-bottom:8px;}
+.modal-box p{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+.modal-box input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:13px 16px;color:var(--text);font-size:17px;font-family:'DM Sans',sans-serif;text-align:center;letter-spacing:.15em;outline:none;margin-bottom:14px;}
+.modal-box input:focus{border-color:var(--limeborder);}
+.modal-msg{font-size:13px;min-height:20px;margin-bottom:10px;}
+.modal-msg.error{color:#ff8080;}
+.modal-msg.success{color:var(--lime);}
+.btn-modal-primary{width:100%;background:var(--lime);color:#1a3300;font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;padding:13px;border-radius:10px;border:none;cursor:pointer;margin-bottom:10px;transition:opacity .2s;}
+.btn-modal-primary:hover{opacity:.88;}
+.btn-modal-ghost{background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-modal-ghost:hover{color:var(--text);}
+
+/* Mobile sidebar overlay */
+@media(max-width:768px){
+  :root{--sidebar-w:280px;}
+  #sidebar{position:fixed;top:59px;left:0;bottom:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:4px 0 24px rgba(0,0,0,0.5);}
+  #sidebar.open{transform:translateX(0);}
+  #sidebar.collapsed{width:var(--sidebar-w);transform:translateX(-100%);}
+  .reader-content{padding:36px 24px 100px;}
+  .ch-title-main{font-size:34px;}
+  .ch-lead{font-size:16px;}
+  .ch-body{font-size:16px;}
+  .nav-chapter-crumb{display:none;}
+  .font-size-btns{display:none;}
+  #sidebar-overlay{display:block;}
+}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:59px;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+
+/* Font size states */
+body.fs-large .ch-body{font-size:19px;}
+body.fs-large .ch-lead{font-size:21px;}
+body.fs-xl .ch-body{font-size:21px;}
+body.fs-xl .ch-lead{font-size:23px;}
+
+/* Scroll-based progress */
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <button class="menu-btn" onclick="toggleSidebar()" title="Toggle chapters">☰</button>
+    <div>
+      <div class="nav-book-title">The ED Pro's <span>AI Playbook</span></div>
+    </div>
+    <div class="nav-chapter-crumb" id="nav-crumb"></div>
+  </div>
+  <div class="nav-right">
+    <div class="font-size-btns">
+      <button class="fs-btn active" id="fs-normal" onclick="setFontSize('normal')" title="Normal text">A</button>
+      <button class="fs-btn" id="fs-large" onclick="setFontSize('large')" title="Large text">A+</button>
+      <button class="fs-btn" id="fs-xl" onclick="setFontSize('xl')" title="Extra large">A++</button>
+    </div>
+    <button class="btn-access" onclick="openAccessModal()" id="access-btn">🔑 Enter Code</button>
+    <a href="book.html#order" class="btn-buy-sm" id="nav-buy-btn">Buy Full Access →</a>
+  </div>
+</nav>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- LAYOUT -->
+<div class="reader-layout">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-header">
+        <div class="sidebar-book-name" id="sb-book-name">The ED Pro's AI Playbook</div>
+        <div class="sidebar-author">By <span id="sb-author-name">Eric Kleinsorge</span></div>
+        <div class="sidebar-progress-wrap">
+          <div class="sidebar-progress-label">
+            <span>Your Progress</span>
+            <span id="sb-progress-pct">0%</span>
+          </div>
+          <div class="sidebar-progress-track">
+            <div class="sidebar-progress-fill" id="sb-progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chapter-list" id="chapter-list">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-unlock-btn" onclick="openAccessModal()" id="sb-unlock-btn">🔑 I have an access code</button>
+        <a href="book.html#order" class="sidebar-buy-link" id="sb-buy-link">Get full access · <strong style="color:var(--text);">Buy now →</strong></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN READING AREA -->
+  <main id="reader-main" onscroll="onReaderScroll()">
+    <div class="reader-content" id="reader-content">
+      <!-- Rendered by JS -->
+    </div>
+  </main>
+
+</div>
+
+<!-- ACCESS CODE MODAL -->
+<div class="modal-overlay" id="access-modal">
+  <div class="modal-box">
+    <div style="font-size:36px;margin-bottom:12px;">🔑</div>
+    <h3>Enter Your Access Code</h3>
+    <p>Your access code was included in your purchase confirmation email. Enter it below to unlock all 6 chapters.</p>
+    <input type="text" id="access-code-input" placeholder="XXXX-XXXX" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')submitAccessCode()">
+    <div class="modal-msg" id="access-modal-msg"></div>
+    <button class="btn-modal-primary" onclick="submitAccessCode()">Unlock Book →</button>
+    <br>
+    <button class="btn-modal-ghost" onclick="closeAccessModal()">Cancel</button>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:0;">Don't have a code? <a href="book.html#order" style="color:var(--lime);">Purchase a copy →</a></p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ─────────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────────── */
+var SUPA_URL = 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
+var ACCESS_KEY = 'esq_book_access';
+var PROGRESS_KEY = 'esq_book_progress';
+var FS_KEY = 'esq_reader_fs';
+var supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+/* ─────────────────────────────────────────────
+   DEFAULT CHAPTER DATA (fallback / demo content)
+   Replace ch_body via admin → Book Page → Chapter Body fields
+───────────────────────────────────────────── */
+var CHAPTERS = [
+  {
+    num: 1,
+    title: 'Why AI Is Different for ED',
+    desc: 'Why generic AI tools fall short — and the mindset shift that makes everything click.',
+    time: '12 min read',
+    free: true,
+    lead: 'Every economic developer I talk to has tried ChatGPT. Most of them gave up after two weeks. Not because AI doesn\'t work — but because nobody told them how to make it work for this job.',
+    body: `<p>The problem isn't the technology. The problem is that most AI tools were built for a general audience, and economic development is anything but general. You're not writing blog posts. You're writing EDA grant narratives with specific CEDS alignment requirements. You're not answering customer service emails — you're responding to site selection RFIs with competitive data about a community you've spent years understanding.</p>
+
+<h2>The Generic AI Trap</h2>
+<p>When most ED professionals try AI for the first time, they open ChatGPT, type "write me a grant narrative," and get back something that reads like it was written by a well-meaning college student who once watched a documentary about rural development. It's not wrong, exactly — it's just <strong>not yours</strong>. It doesn't know your community's unemployment rate, your target industries, your CEDS goals, or the voice your board expects.</p>
+
+<div class="pullquote"><p>"The professionals who get the most out of AI aren't the ones who use the fanciest tools — they're the ones who figured out how to give AI the right context."</p></div>
+
+<p>That's the real unlock: context. AI is not a search engine. It doesn't pull facts — it synthesizes and writes based on what you give it. The more specifically you feed it information about your community, your program, and your audience, the better the output gets. This book is about building that context engine for your ED office.</p>
+
+<h2>What Makes ED Different</h2>
+<p>Economic development has a few characteristics that make off-the-shelf AI tools frustrating to use:</p>
+
+<div class="ch-body">
+<ul>
+  <li><strong>Highly specific audiences.</strong> You're writing for federal program officers, corporate site selectors, local business owners, and elected officials — sometimes in the same week. Generic AI doesn't know how to shift tone that way without help.</li>
+  <li><strong>Data-heavy work.</strong> Labor force stats, commute sheds, wage comparisons, tax incentive calculations — AI can work with all of this, but only if you bring it to the table.</li>
+  <li><strong>Institutional memory matters.</strong> Your grant applications reference past awards. Your RFIs reference site visits that happened three years ago. AI has no memory unless you give it one.</li>
+  <li><strong>Trust is everything.</strong> One bad grant narrative or one factually wrong RFI response can cost you a relationship. AI outputs always need your review — but with the right setup, that review is a 15-minute edit, not a full rewrite.</li>
+</ul>
+</div>
+
+<h2>The Mindset Shift</h2>
+<p>Stop thinking of AI as something that replaces your work. Start thinking of it as a very fast, very capable first-draft writer that needs you to be its subject-matter expert. You bring the knowledge, the relationships, and the judgment. AI brings the speed, the structure, and the tireless willingness to generate ten versions of something until one of them is right.</p>
+
+<div class="callout">
+  <div class="callout-label">💡 The key insight</div>
+  <p>AI is a multiplier, not a replacement. A mediocre prompt gives you a mediocre draft fast. A great prompt — loaded with your community data, your program context, and a clear audience — gives you an 80% draft that you can turn into something excellent in under an hour.</p>
+</div>
+
+<p>The chapters ahead are going to walk you through building those great prompts, for the specific workflows that take up most of your time: grant writing, RFI responses, BRE surveys, and more. By the time you finish this book, you'll have a repeatable system — not just a few cool tricks.</p>`,
+    takeaways: [
+      'Generic AI fails ED pros because it lacks community-specific context — not because the technology is bad',
+      'The biggest unlock is feeding AI your data: CEDS goals, labor stats, target industries, past awards',
+      'Think of AI as a fast first-draft writer; you\'re the subject-matter expert it needs',
+      'ED work is data-heavy, audience-specific, and trust-dependent — AI can handle the volume, you handle the judgment',
+    ]
+  },
+  {
+    num: 2,
+    title: 'Your First Week: The 3 Tasks to Automate',
+    desc: 'Grant narratives, RFI responses, inbox triage — the three workflows that pay back their setup time in week one.',
+    time: '15 min read',
+    free: false,
+    lead: 'You don\'t need to overhaul your entire office to get value from AI. Three workflows — done right — can give you back 5–8 hours every single week.',
+    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+  },
+  {
+    num: 3,
+    title: 'Grant Writing at AI Speed',
+    desc: 'From blank page to 70% draft in under two hours. Building your community data library.',
+    time: '18 min read',
+    free: false,
+    lead: 'The grant narrative is the most time-consuming deliverable in economic development. It\'s also the one where AI can make the biggest immediate difference.',
+    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+  },
+  {
+    num: 4,
+    title: 'Site Selection in the AI Era',
+    desc: 'Responding to RFIs faster, building a competitive data room, making your community stand out.',
+    time: '14 min read',
+    free: false,
+    lead: 'Site selectors decide in the first 48 hours. Here\'s how to make sure your response is the one that gets remembered.',
+    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+  },
+  {
+    num: 5,
+    title: 'BRE Surveys That Actually Lead to Action',
+    desc: 'Designing surveys that get responses, using AI to identify at-risk businesses.',
+    time: '13 min read',
+    free: false,
+    lead: 'Most BRE surveys collect data that sits in a spreadsheet. This chapter is about building a system that turns that data into a retention action plan.',
+    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+  },
+  {
+    num: 6,
+    title: 'Building Your AI-Powered ED Office',
+    desc: 'Creating a sustainable AI workflow for your team, managing the learning curve.',
+    time: '16 min read',
+    free: false,
+    lead: 'Getting good at AI yourself is step one. Getting your whole team there — and keeping up as the tools evolve — is the real long-term advantage.',
+    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+  }
+];
+
+/* ─────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────── */
+var _currentChapter = 1;
+var _unlocked = false;
+var _sidebarOpen = true;
+var _settings = {};
+var _fontSize = 'normal';
+var _readChapters = [];
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', function(){
+  // Restore font size
+  var savedFs = localStorage.getItem(FS_KEY);
+  if(savedFs) setFontSize(savedFs, true);
+
+  // Check access
+  checkAccess();
+
+  // Load settings from Supabase
+  loadSettings();
+
+  // Restore reading position
+  var saved = parseInt(localStorage.getItem(PROGRESS_KEY) || '1', 10);
+  if(saved >= 1 && saved <= 6) _currentChapter = saved;
+
+  // Restore read chapters
+  try{ _readChapters = JSON.parse(localStorage.getItem('esq_book_read') || '[]'); }catch(e){ _readChapters=[]; }
+
+  renderSidebar();
+  showChapter(_currentChapter, true);
+
+  // Check if logged-in EconSquad user (auto-unlock for subscribers)
+  supa.auth.getSession().then(function(res){
+    if(!res.data || !res.data.session) return;
+    supa.from('profiles').select('plan').eq('id', res.data.session.user.id).single().then(function(pr){
+      if(pr.data && (pr.data.plan === 'starter' || pr.data.plan === 'pro')){
+        setUnlocked(true, 'subscriber');
+      }
+    });
+  });
+});
+
+/* ─────────────────────────────────────────────
+   SETTINGS FROM SUPABASE
+───────────────────────────────────────────── */
+function loadSettings(){
+  supa.from('book_settings').select('key,value').then(function(res){
+    if(res.error || !res.data) return;
+    res.data.forEach(function(r){ _settings[r.key] = r.value; });
+
+    // Update book name / author
+    if(_settings.book_title){
+      var el = document.getElementById('sb-book-name');
+      if(el) el.textContent = _settings.book_title.replace(/\n/,' ');
+      var nav = document.querySelector('.nav-book-title');
+      if(nav) nav.innerHTML = _settings.book_title.replace(/The /,'The <span>').replace(/<span>(.*)$/,'<span>$1</span>');
+    }
+    if(_settings.author_name){
+      var ael = document.getElementById('sb-author-name');
+      if(ael) ael.textContent = _settings.author_name;
+    }
+
+    // Override chapter titles/descs/bodies
+    for(var i=1; i<=6; i++){
+      var ch = CHAPTERS[i-1];
+      if(_settings['ch'+i+'_title']) ch.title = _settings['ch'+i+'_title'];
+      if(_settings['ch'+i+'_desc'])  ch.desc  = _settings['ch'+i+'_desc'];
+      if(_settings['ch'+i+'_body'])  ch.body  = _settings['ch'+i+'_body'];
+    }
+
+    // Access code
+    if(_settings.access_code) window._bookAccessCode = _settings.access_code;
+
+    // Re-render if needed
+    renderSidebar();
+    if(_currentChapter) showChapter(_currentChapter, true);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   ACCESS
+───────────────────────────────────────────── */
+function checkAccess(){
+  var stored = localStorage.getItem(ACCESS_KEY);
+  if(stored === 'subscriber' || stored === window._bookAccessCode || stored === 'valid'){
+    setUnlocked(true, null);
+  }
+}
+
+function setUnlocked(val, source){
+  _unlocked = val;
+  if(val){
+    var btn = document.getElementById('access-btn');
+    if(btn){ btn.textContent = '✓ Full Access'; btn.style.background='rgba(170,255,62,0.15)'; btn.style.cursor='default'; btn.onclick=null; }
+    var sbBtn = document.getElementById('sb-unlock-btn');
+    if(sbBtn){ sbBtn.textContent = '✓ All chapters unlocked'; sbBtn.style.opacity='.5'; sbBtn.onclick=null; }
+    if(source === 'subscriber') localStorage.setItem(ACCESS_KEY, 'subscriber');
+  }
+  renderSidebar();
+  // Re-render current chapter if it was locked
+  var ch = CHAPTERS[_currentChapter-1];
+  if(ch && !ch.free) showChapter(_currentChapter, true);
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────── */
+function renderSidebar(){
+  var html = '';
+  CHAPTERS.forEach(function(ch, i){
+    var num = i + 1;
+    var isActive = num === _currentChapter;
+    var isLocked = !ch.free && !_unlocked;
+    var isDone = _readChapters.indexOf(num) !== -1;
+    html += '<div class="ch-item'+(isActive?' active':'')+(isLocked?' locked':'')+'" '
+          + (isLocked ? '' : 'onclick="showChapter('+num+')"')+'>'
+          + '<div class="ch-num-badge">'+num+'</div>'
+          + '<div class="ch-item-text">'
+          +   '<div class="ch-item-label">Chapter '+num+(isLocked?' · 🔒':'')+'</div>'
+          +   '<div class="ch-item-title">'+esc(ch.title)+'</div>'
+          + '</div>'
+          + (isDone && !isLocked ? '<span class="ch-done">✓</span>' : '')
+          + '</div>';
+  });
+  var el = document.getElementById('chapter-list');
+  if(el) el.innerHTML = html;
+  updateProgress();
+}
+
+function updateProgress(){
+  var total = CHAPTERS.length;
+  var done = _readChapters.length;
+  var pct = Math.round((done / total) * 100);
+  var fill = document.getElementById('sb-progress-fill');
+  var pctEl = document.getElementById('sb-progress-pct');
+  if(fill) fill.style.width = pct + '%';
+  if(pctEl) pctEl.textContent = pct + '%';
+}
+
+/* ─────────────────────────────────────────────
+   CHAPTER RENDERING
+───────────────────────────────────────────── */
+function showChapter(num, silent){
+  var ch = CHAPTERS[num - 1];
+  if(!ch) return;
+  _currentChapter = num;
+  localStorage.setItem(PROGRESS_KEY, num);
+
+  var content = document.getElementById('reader-content');
+  var main = document.getElementById('reader-main');
+  if(main) main.scrollTop = 0;
+
+  // Update crumb
+  var crumb = document.getElementById('nav-crumb');
+  if(crumb) crumb.textContent = '· Chapter '+num+': '+ch.title;
+
+  // Mark as read
+  if(_readChapters.indexOf(num) === -1){
+    _readChapters.push(num);
+    try{ localStorage.setItem('esq_book_read', JSON.stringify(_readChapters)); }catch(e){}
+  }
+
+  renderSidebar();
+
+  var isLocked = !ch.free && !_unlocked;
+
+  if(isLocked){
+    content.innerHTML = buildLockGate(ch, num);
+    return;
+  }
+
+  var prevHtml = num > 1
+    ? '<a class="ch-nav-btn prev" onclick="showChapter('+(num-1)+')" href="javascript:void(0)">'
+      + '<span><span class="ch-nav-label">← Previous</span><span class="ch-nav-title">'+esc(CHAPTERS[num-2].title)+'</span></span>'
+      + '</a>'
+    : '<span></span>';
+
+  var nextHtml = num < 6
+    ? '<a class="ch-nav-btn next" onclick="showChapter('+(num+1)+')" href="javascript:void(0)">'
+      + '<span><span class="ch-nav-label">Next Chapter →</span><span class="ch-nav-title">'+esc(CHAPTERS[num].title)+'</span></span>'
+      + '</a>'
+    : '<a class="ch-nav-btn next" href="book.html#order">'
+      + '<span><span class="ch-nav-label">You finished the book! 🎉</span><span class="ch-nav-title">Leave a review →</span></span>'
+      + '</a>';
+
+  content.innerHTML =
+    '<div class="ch-eyebrow">Chapter '+num+' of '+CHAPTERS.length+'</div>'
+    + '<h1 class="ch-title-main">'+esc(ch.title)+'</h1>'
+    + '<div class="ch-meta">'
+    +   '<div class="ch-meta-item">⏱️ '+esc(ch.time||'')+'</div>'
+    +   (ch.free ? '<div class="ch-meta-item" style="color:var(--lime);">📖 Free preview</div>' : '<div class="ch-meta-item" style="color:var(--lime);">🔓 Full access</div>')
+    + '</div>'
+    + (ch.lead ? '<p class="ch-lead">'+esc(ch.lead)+'</p>' : '')
+    + '<div class="ch-body">'+ch.body+'</div>'
+    + (ch.takeaways && ch.takeaways.length
+        ? '<div class="takeaways"><div class="takeaways-title">Key Takeaways</div><ul>'
+          + ch.takeaways.map(function(t){ return '<li>'+esc(t)+'</li>'; }).join('')
+          + '</ul></div>'
+        : '')
+    + '<div class="ch-nav-footer">'+prevHtml+nextHtml+'</div>';
+}
+
+function buildLockGate(ch, num){
+  return '<div class="lock-gate">'
+    + '<div class="lock-icon">🔒</div>'
+    + '<h2>Chapter '+num+' is locked</h2>'
+    + '<p><strong style="color:var(--text);">'+esc(ch.title)+'</strong><br><br>'+esc(ch.desc)+'<br><br>Enter your access code to read all 6 chapters, or grab a copy to get instant access.</p>'
+    + '<div class="lock-gate-btns">'
+    + '<button class="btn-unlock" onclick="openAccessModal()">🔑 Enter Access Code</button>'
+    + '<a href="book.html#order" class="btn-buy-gate">Get Full Access →</a>'
+    + '</div>'
+    + '</div>';
+}
+
+/* ─────────────────────────────────────────────
+   ACCESS CODE MODAL
+───────────────────────────────────────────── */
+function openAccessModal(){
+  document.getElementById('access-modal').classList.add('show');
+  setTimeout(function(){ document.getElementById('access-code-input').focus(); }, 100);
+}
+function closeAccessModal(){
+  document.getElementById('access-modal').classList.remove('show');
+  document.getElementById('access-modal-msg').textContent = '';
+  document.getElementById('access-code-input').value = '';
+}
+function submitAccessCode(){
+  var code = document.getElementById('access-code-input').value.trim().toUpperCase();
+  var msg = document.getElementById('access-modal-msg');
+  if(!code){ msg.className='modal-msg error'; msg.textContent='Please enter your code.'; return; }
+  // Check against Supabase-stored access code
+  var valid = window._bookAccessCode && code === window._bookAccessCode.toUpperCase();
+  // Fallback: any non-empty code that starts with 'ESQ' (demo mode)
+  if(!valid && code.startsWith('ESQ')) valid = true;
+  if(valid){
+    localStorage.setItem(ACCESS_KEY, code);
+    msg.className='modal-msg success';
+    msg.textContent='✓ Access granted! All chapters unlocked.';
+    setTimeout(function(){
+      closeAccessModal();
+      setUnlocked(true, 'code');
+    }, 1000);
+  } else {
+    msg.className='modal-msg error';
+    msg.textContent='That code doesn\'t match. Check your confirmation email.';
+    document.getElementById('access-code-input').select();
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR TOGGLE
+───────────────────────────────────────────── */
+function toggleSidebar(){
+  var sb = document.getElementById('sidebar');
+  var isMobile = window.innerWidth <= 768;
+  if(isMobile){
+    var isOpen = sb.classList.contains('open');
+    if(isOpen){ closeSidebar(); } else { openSidebar(); }
+  } else {
+    _sidebarOpen = !_sidebarOpen;
+    sb.classList.toggle('collapsed', !_sidebarOpen);
+  }
+}
+function openSidebar(){
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebar-overlay');
+  sb.classList.add('open');
+  sb.classList.remove('collapsed');
+  if(ov) ov.style.display='block';
+}
+function closeSidebar(){
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sidebar-overlay');
+  sb.classList.remove('open');
+  if(ov) ov.style.display='none';
+}
+
+/* ─────────────────────────────────────────────
+   READING PROGRESS BAR
+───────────────────────────────────────────── */
+function onReaderScroll(){
+  var main = document.getElementById('reader-main');
+  var bar = document.getElementById('progress-bar');
+  if(!main || !bar) return;
+  var scrolled = main.scrollTop;
+  var total = main.scrollHeight - main.clientHeight;
+  var pct = total > 0 ? (scrolled / total) * 100 : 0;
+  bar.style.width = Math.min(pct, 100) + '%';
+}
+
+/* ─────────────────────────────────────────────
+   FONT SIZE
+───────────────────────────────────────────── */
+function setFontSize(size, silent){
+  _fontSize = size;
+  document.body.classList.remove('fs-large','fs-xl');
+  if(size==='large') document.body.classList.add('fs-large');
+  if(size==='xl') document.body.classList.add('fs-xl');
+  ['normal','large','xl'].forEach(function(s){
+    var btn = document.getElementById('fs-'+s);
+    if(btn) btn.classList.toggle('active', s===size);
+  });
+  if(!silent) try{ localStorage.setItem(FS_KEY, size); }catch(e){}
+}
+
+/* ─────────────────────────────────────────────
+   UTILS
+───────────────────────────────────────────── */
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+<script src="auth-nav.js?v=3"></script>
+</body>
+</html>
