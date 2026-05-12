@@ -2037,17 +2037,52 @@ function rebuildChapterForms(){
       +'<div class="form-field"><label>Opening Line (italic lead paragraph)</label><input id="bk-ch'+i+'-lead" type="text" placeholder="Hook sentence that opens the chapter..."></div>'
       +'</div>'
       +'<div class="form-field"><label>Full Chapter Body — HTML supported (&lt;p&gt; &lt;h2&gt; &lt;strong&gt; &lt;ul&gt;&lt;li&gt; etc.)</label><textarea id="bk-ch'+i+'-body" rows="10" placeholder="Paste your full chapter text here..."></textarea></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;">'
+        +'<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px;">'
+          +'<div style="font-size:12px;font-weight:700;color:#eef3fc;margin-bottom:8px;">📷 Chapter Header Image</div>'
+          +'<div id="bk-ch'+i+'-img-preview" style="margin-bottom:8px;"></div>'
+          +'<div style="display:flex;gap:6px;margin-bottom:6px;">'
+            +'<input type="file" id="bk-ch'+i+'-img-file" accept="image/*" style="flex:1;font-size:11px;">'
+            +'<button class="btn-lime btn-sm" onclick="uploadChapterMedia(\'image\','+i+')">Upload</button>'
+          +'</div>'
+          +'<input id="bk-ch'+i+'-image" type="url" placeholder="Or paste image URL..." style="font-size:12px;width:100%;">'
+          +'<div id="bk-ch'+i+'-img-status" style="font-size:11px;color:#6b7a96;margin-top:4px;"></div>'
+        +'</div>'
+        +'<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px;">'
+          +'<div style="font-size:12px;font-weight:700;color:#eef3fc;margin-bottom:8px;">🎧 Audio Narration (MP3)</div>'
+          +'<div id="bk-ch'+i+'-audio-preview" style="margin-bottom:8px;font-size:11px;color:#6b7a96;"></div>'
+          +'<div style="display:flex;gap:6px;margin-bottom:6px;">'
+            +'<input type="file" id="bk-ch'+i+'-audio-file" accept="audio/*,.mp3,.m4a" style="flex:1;font-size:11px;">'
+            +'<button class="btn-lime btn-sm" onclick="uploadChapterMedia(\'audio\','+i+')">Upload</button>'
+          +'</div>'
+          +'<input id="bk-ch'+i+'-audio" type="url" placeholder="Or paste audio URL..." style="font-size:12px;width:100%;">'
+          +'<div id="bk-ch'+i+'-audio-status" style="font-size:11px;color:#6b7a96;margin-top:4px;"></div>'
+        +'</div>'
+      +'</div>'
       +'</div>'
       +'</details>';
   }
   document.getElementById('book-chapters-form').innerHTML = chapHtml;
   // Re-populate from saved settings if available
   for(var j=1;j<=count;j++){
-    var fields = ['title','desc','time','lead','body'];
+    var fields = ['title','desc','time','lead','body','image','audio'];
     fields.forEach(function(f){
       var el = document.getElementById('bk-ch'+j+'-'+f);
       if(el && _bookSettings['ch'+j+'_'+f]) el.value = _bookSettings['ch'+j+'_'+f];
     });
+    // Show image thumbnail if set
+    var imgVal = _bookSettings['ch'+j+'_image'];
+    if(imgVal){
+      var prev = document.getElementById('bk-ch'+j+'-img-preview');
+      if(prev) prev.innerHTML = '<img src="'+imgVal+'" style="width:100%;height:70px;object-fit:cover;border-radius:6px;">';
+    }
+    // Show audio status if set
+    var audioVal = _bookSettings['ch'+j+'_audio'];
+    if(audioVal){
+      var aprev = document.getElementById('bk-ch'+j+'-audio-preview');
+      if(aprev) aprev.textContent = '✓ Audio set';
+      aprev && (aprev.style.color = '#aaff3e');
+    }
   }
 }
 
@@ -2140,7 +2175,7 @@ function saveAllBookSettings(){
   rows.push({key:'free_chapters',value:freeChaps});
   // Save all chapter fields dynamically
   for(var i=1;i<=count;i++){
-    ['title','desc','time','lead','body'].forEach(function(f){
+    ['title','desc','time','lead','body','image','audio'].forEach(function(f){
       var el=document.getElementById('bk-ch'+i+'-'+f);
       if(el) rows.push({key:'ch'+i+'_'+f, value:el.value.trim()});
     });
@@ -2181,6 +2216,41 @@ function uploadBookPDF(type){
     supa.from('book_settings').upsert([{key:key,value:url}],{onConflict:'key'}).then(function(){
       statusEl.innerHTML='<span style="color:#aaff3e;">✓ PDF uploaded and saved!</span> <a href="'+url+'" target="_blank" style="color:#aaff3e;font-size:11px;">Preview →</a>';
       showToast('PDF uploaded and saved!','success');
+    });
+  });
+}
+
+function uploadChapterMedia(mediaType, chNum){
+  var fileEl = document.getElementById('bk-ch'+chNum+'-'+mediaType+'-file');
+  var file = fileEl ? fileEl.files[0] : null;
+  if(!file){ showToast('Pick a file first.','error'); return; }
+  var ext = file.name.split('.').pop().toLowerCase();
+  var folder = mediaType === 'image' ? 'chapter-images' : 'chapter-audio';
+  var path = folder+'/ch'+chNum+'-'+Date.now()+'.'+ext;
+  var statusEl = document.getElementById('bk-ch'+chNum+'-'+mediaType+'-status');
+  if(statusEl) statusEl.textContent = '⏳ Uploading...';
+  supa.storage.from('books').upload(path, file, {cacheControl:'3600', upsert:true}).then(function(res){
+    if(res.error){
+      if(statusEl) statusEl.textContent = '✗ Failed: '+res.error.message;
+      showToast('Upload failed: '+res.error.message,'error');
+      return;
+    }
+    var pub = supa.storage.from('books').getPublicUrl(path);
+    var url = pub.data.publicUrl;
+    var inputEl = document.getElementById('bk-ch'+chNum+'-'+mediaType);
+    if(inputEl) inputEl.value = url;
+    if(statusEl) statusEl.innerHTML = '✓ Uploaded — <a href="'+url+'" target="_blank" style="color:#aaff3e;">preview</a>';
+    // Show image thumbnail immediately
+    if(mediaType === 'image'){
+      var prev = document.getElementById('bk-ch'+chNum+'-img-preview');
+      if(prev) prev.innerHTML = '<img src="'+url+'" style="width:100%;height:70px;object-fit:cover;border-radius:6px;">';
+    } else {
+      var aprev = document.getElementById('bk-ch'+chNum+'-audio-preview');
+      if(aprev){ aprev.textContent='✓ Audio set'; aprev.style.color='#aaff3e'; }
+    }
+    // Auto-save URL to Supabase
+    supa.from('book_settings').upsert([{key:'ch'+chNum+'_'+mediaType, value:url}],{onConflict:'key'}).then(function(r2){
+      if(!r2.error) showToast('✓ Chapter '+chNum+' '+(mediaType==='image'?'image':'audio')+' saved!','success');
     });
   });
 }

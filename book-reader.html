@@ -171,6 +171,27 @@ body.fs-large .ch-lead{font-size:21px;}
 body.fs-xl .ch-body{font-size:21px;}
 body.fs-xl .ch-lead{font-size:23px;}
 
+/* ── Chapter hero image ── */
+.ch-hero-img{width:100%;max-height:320px;overflow:hidden;border-radius:12px;margin-bottom:32px;}
+.ch-hero-img img{width:100%;height:320px;object-fit:cover;display:block;}
+
+/* ── Audio player bar ── */
+#audio-player{position:fixed;bottom:0;left:0;right:0;height:64px;background:rgba(6,8,15,0.97);border-top:1px solid rgba(170,255,62,0.2);display:flex;align-items:center;gap:14px;padding:0 20px 0 calc(var(--sidebar-w) + 20px);z-index:900;backdrop-filter:blur(20px);transition:transform .3s ease;}
+#audio-player.hidden{transform:translateY(100%);}
+.ap-chapter{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex-shrink:0;}
+.ap-chapter strong{display:block;color:var(--text);font-size:13px;}
+.ap-play{width:38px;height:38px;border-radius:50%;background:var(--lime);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;transition:transform .15s;}
+.ap-play:hover{transform:scale(1.1);}
+.ap-times{font-size:11px;color:var(--text2);white-space:nowrap;flex-shrink:0;}
+.ap-scrubber{flex:1;-webkit-appearance:none;appearance:none;height:3px;border-radius:2px;background:rgba(255,255,255,0.12);outline:none;cursor:pointer;}
+.ap-scrubber::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--lime);cursor:pointer;}
+.ap-speed{font-size:11px;color:var(--text2);background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:5px;padding:3px 7px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.ap-speed:hover{color:var(--lime);border-color:var(--limeborder);}
+@media(max-width:768px){
+  #audio-player{padding:0 12px;left:0;}
+  .ap-chapter{display:none;}
+}
+
 /* Scroll-based progress */
 </style>
 </head>
@@ -241,6 +262,20 @@ body.fs-xl .ch-lead{font-size:23px;}
 
 </div>
 
+<!-- AUDIO PLAYER BAR -->
+<div id="audio-player" class="hidden">
+  <div class="ap-chapter">
+    <strong id="ap-title">Chapter 1</strong>
+    <span id="ap-label">Now playing</span>
+  </div>
+  <button class="ap-play" id="ap-play-btn" onclick="toggleAudio()">▶</button>
+  <span class="ap-times" id="ap-current">0:00</span>
+  <input class="ap-scrubber" type="range" id="ap-scrubber" min="0" max="100" value="0" step="0.1" oninput="seekAudio(this.value)">
+  <span class="ap-times" id="ap-duration">0:00</span>
+  <button class="ap-speed" id="ap-speed-btn" onclick="cycleAudioSpeed()">1×</button>
+</div>
+<audio id="ap-audio" preload="metadata"></audio>
+
 <!-- ACCESS CODE MODAL -->
 <div class="modal-overlay" id="access-modal">
   <div class="modal-box">
@@ -294,6 +329,8 @@ function buildChaptersFromSettings(s){
       time:  s['ch'+i+'_time']  || '',
       lead:  s['ch'+i+'_lead']  || '',
       body:  s['ch'+i+'_body']  || (i===1 ? DEMO_CH1_BODY : '<p>This chapter will appear here once you add the content in the admin panel.</p>'),
+      image: s['ch'+i+'_image'] || '',
+      audio: s['ch'+i+'_audio'] || '',
       free:  freeList.indexOf(i) !== -1
     });
   }
@@ -496,11 +533,16 @@ function showChapter(num, silent){
       + '<span><span class="ch-nav-label">You finished the book! 🎉</span><span class="ch-nav-title">Leave a review →</span></span>'
       + '</a>';
 
+  // Load chapter audio
+  loadChapterAudio(ch);
+
   content.innerHTML =
-    '<div class="ch-eyebrow">Chapter '+num+' of '+total+'</div>'
+    (ch.image ? '<div class="ch-hero-img"><img src="'+esc(ch.image)+'" alt="'+esc(ch.title)+'"></div>' : '')
+    + '<div class="ch-eyebrow">Chapter '+num+' of '+total+'</div>'
     + '<h1 class="ch-title-main">'+esc(ch.title)+'</h1>'
     + '<div class="ch-meta">'
     +   '<div class="ch-meta-item">⏱️ '+esc(ch.time||'')+'</div>'
+    +   (ch.audio ? '<div class="ch-meta-item" style="color:var(--lime);cursor:pointer;" onclick="toggleAudio()">🎧 Listen</div>' : '')
     +   (ch.free ? '<div class="ch-meta-item" style="color:var(--lime);">📖 Free preview</div>' : '<div class="ch-meta-item" style="color:var(--lime);">🔓 Full access</div>')
     + '</div>'
     + (ch.lead ? '<p class="ch-lead">'+esc(ch.lead)+'</p>' : '')
@@ -572,6 +614,9 @@ function toggleSidebar(){
   } else {
     _sidebarOpen = !_sidebarOpen;
     sb.classList.toggle('collapsed', !_sidebarOpen);
+    // Keep audio player aligned with sidebar state
+    var ap = document.getElementById('audio-player');
+    if(ap) ap.style.paddingLeft = (_sidebarOpen ? 'calc(var(--sidebar-w) + 20px)' : '20px');
   }
 }
 function openSidebar(){
@@ -614,6 +659,87 @@ function setFontSize(size, silent){
     if(btn) btn.classList.toggle('active', s===size);
   });
   if(!silent) try{ localStorage.setItem(FS_KEY, size); }catch(e){}
+}
+
+/* ─────────────────────────────────────────────
+   AUDIO PLAYER
+───────────────────────────────────────────── */
+var _audioSpeeds = [1, 1.25, 1.5, 2];
+var _audioSpeedIdx = 0;
+
+function fmtTime(s){
+  if(isNaN(s)||s<0) return '0:00';
+  var m = Math.floor(s/60);
+  var sec = Math.floor(s%60);
+  return m+':'+(sec<10?'0':'')+sec;
+}
+
+function loadChapterAudio(ch){
+  var player = document.getElementById('audio-player');
+  var audio  = document.getElementById('ap-audio');
+  var btn    = document.getElementById('ap-play-btn');
+  var title  = document.getElementById('ap-title');
+  if(!player||!audio) return;
+
+  // Pause any existing playback
+  audio.pause();
+  btn.textContent = '▶';
+
+  if(!ch.audio){
+    player.classList.add('hidden');
+    return;
+  }
+
+  // Load new source
+  audio.src = ch.audio;
+  audio.load();
+  player.classList.remove('hidden');
+  if(title) title.textContent = 'Chapter '+ch.num+': '+ch.title;
+
+  // Wire events (replace each time to avoid duplicates)
+  audio.ontimeupdate = function(){
+    var cur  = document.getElementById('ap-current');
+    var scrub = document.getElementById('ap-scrubber');
+    if(cur)   cur.textContent  = fmtTime(audio.currentTime);
+    if(scrub && audio.duration) scrub.value = (audio.currentTime/audio.duration)*100;
+  };
+  audio.onloadedmetadata = function(){
+    var dur = document.getElementById('ap-duration');
+    if(dur) dur.textContent = fmtTime(audio.duration);
+  };
+  audio.onended = function(){
+    btn.textContent = '▶';
+  };
+  // Adjust bottom padding of reader so content isn't hidden behind player
+  var main = document.getElementById('reader-main');
+  if(main) main.style.paddingBottom = '80px';
+}
+
+function toggleAudio(){
+  var audio = document.getElementById('ap-audio');
+  var btn   = document.getElementById('ap-play-btn');
+  if(!audio||!audio.src) return;
+  if(audio.paused){
+    audio.play();
+    btn.textContent = '⏸';
+  } else {
+    audio.pause();
+    btn.textContent = '▶';
+  }
+}
+
+function seekAudio(val){
+  var audio = document.getElementById('ap-audio');
+  if(audio && audio.duration) audio.currentTime = (val/100)*audio.duration;
+}
+
+function cycleAudioSpeed(){
+  _audioSpeedIdx = (_audioSpeedIdx+1) % _audioSpeeds.length;
+  var speed = _audioSpeeds[_audioSpeedIdx];
+  var audio = document.getElementById('ap-audio');
+  var btn   = document.getElementById('ap-speed-btn');
+  if(audio) audio.playbackRate = speed;
+  if(btn)   btn.textContent = speed+'×';
 }
 
 /* ─────────────────────────────────────────────
