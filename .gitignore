@@ -1,0 +1,5 @@
+# Temporary book extraction file (regenerate with: node supabase/build-book-sql.js)
+book-extract.txt
+
+# Supabase local temp files
+supabase/.temp/
