@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — EconSquad AI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;--lime3:#ccff7a;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* NAV */
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text-wrap{}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}
+.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+/* CONTENT */
+.page-hero{padding:64px 40px 40px;max-width:900px;margin:0 auto;}
+.page-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:12px;}
+.page-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;line-height:1.05;margin-bottom:16px;}
+.page-hero .meta{font-size:14px;color:var(--text2);}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:0 40px 80px;}
+.section{padding:40px 0;border-top:1px solid rgba(255,255,255,0.06);}
+.section:first-child{border-top:none;}
+.section h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;margin-bottom:16px;color:var(--text);}
+.section h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;margin:24px 0 10px;color:var(--text);}
+.section p{font-size:15px;color:var(--text2);margin-bottom:14px;line-height:1.75;}
+.section p:last-child{margin-bottom:0;}
+.section ul{list-style:none;padding:0;margin:0 0 14px;}
+.section ul li{font-size:15px;color:var(--text2);padding:5px 0 5px 22px;position:relative;line-height:1.65;}
+.section ul li::before{content:'→';position:absolute;left:0;color:var(--lime);font-size:13px;}
+.highlight-box{background:rgba(170,255,62,0.06);border:1px solid var(--limeborder);border-radius:var(--r);padding:20px 24px;margin:20px 0;}
+.highlight-box p{color:var(--text);margin:0;font-size:14px;}
+.warn-box{background:rgba(245,197,66,0.06);border:1px solid rgba(245,197,66,0.25);border-radius:var(--r);padding:20px 24px;margin:20px 0;}
+.warn-box p{color:#f5c542;margin:0;font-size:14px;}
+.plan-table{width:100%;border-collapse:collapse;margin:20px 0;}
+.plan-table th{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;text-align:left;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--text);}
+.plan-table td{font-size:14px;padding:10px 16px;border:1px solid rgba(255,255,255,0.06);color:var(--text2);vertical-align:top;}
+.plan-table tr:hover td{background:rgba(255,255,255,0.02);}
+.plan-table .lime{color:var(--lime);font-weight:600;}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.footer-logo .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;}
+.footer-copy{font-size:13px;color:var(--text2);text-align:center;}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .page-hero{padding:40px 20px 24px;}
+  .page-hero h1{font-size:36px;}
+  .content-wrap{padding:0 20px 60px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+  .plan-table{font-size:13px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon">
+      <svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+    </div>
+    <div class="logo-text-wrap">
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="support.html">Support</a></li>
+    <li><a href="blog.html">Blog</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Legal</div>
+  <h1>Terms of Service</h1>
+  <p class="meta">Effective Date: January 1, 2026 &nbsp;·&nbsp; Last Updated: January 1, 2026</p>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <div class="section">
+    <h2>1. Acceptance of Terms</h2>
+    <p>By accessing or using EconSquad AI (the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service. These Terms constitute a legally binding agreement between you and EconSquad AI.</p>
+    <p>We reserve the right to update these Terms from time to time. Continued use of the Service after changes are posted constitutes acceptance of the updated Terms. We will provide at least 30 days' notice of material changes via email.</p>
+  </div>
+
+  <div class="section">
+    <h2>2. Description of Service</h2>
+    <p>EconSquad AI is an AI-powered productivity platform designed exclusively for economic development professionals. The Service includes:</p>
+    <ul>
+      <li><strong>AI Specialist Agents:</strong> Purpose-built AI specialists for grant writing, site selection, BRE surveys, incentive modeling, workforce analysis, marketing copy, data analysis, and report building.</li>
+      <li><strong>Inbox Management:</strong> Gmail integration for viewing, categorizing, and managing your professional inbox within the platform.</li>
+      <li><strong>Calendar Integration:</strong> Google Calendar sync for viewing upcoming meetings and deadlines.</li>
+      <li><strong>Task Management:</strong> A built-in task system with optional Google Tasks sync.</li>
+      <li><strong>Analytics &amp; Insights:</strong> ARIA-powered analysis of your productivity, time savings, and recommendations.</li>
+      <li><strong>Mission History:</strong> A searchable record of all specialist outputs and work products you have generated.</li>
+    </ul>
+    <p>EconSquad AI is powered by Anthropic's Claude AI model. The Service is provided as a Software-as-a-Service (SaaS) subscription accessible via web browser.</p>
+  </div>
+
+  <div class="section">
+    <h2>3. Account Registration</h2>
+    <p>To use EconSquad AI, you must create an account by providing accurate, complete, and current information. You agree to:</p>
+    <ul>
+      <li>Provide accurate name, email address, and any other required information during registration.</li>
+      <li>Maintain the security of your account credentials and not share your password with others.</li>
+      <li>Notify us immediately at <a href="mailto:support@econsquad.ai">support@econsquad.ai</a> if you suspect unauthorized access to your account.</li>
+      <li>Maintain only one active account per individual user (organizational multi-seat plans are handled separately).</li>
+    </ul>
+    <p>You are responsible for all activity that occurs under your account. EconSquad AI is not liable for any loss resulting from unauthorized use of your credentials.</p>
+  </div>
+
+  <div class="section">
+    <h2>4. Subscription &amp; Billing</h2>
+
+    <h3>Plans</h3>
+    <table class="plan-table">
+      <tr>
+        <th>Plan</th>
+        <th>Monthly</th>
+        <th>Annual</th>
+        <th>Specialists Included</th>
+      </tr>
+      <tr>
+        <td class="lime">Starter</td>
+        <td>$49 / month</td>
+        <td>$490 / year <span style="color:var(--lime);font-size:12px;">(save 20%)</span></td>
+        <td>Grant Writer (Riley), BRE Survey Pro, Marketing Copy, Report Builder</td>
+      </tr>
+      <tr>
+        <td class="lime">Pro</td>
+        <td>$99 / month</td>
+        <td>$990 / year <span style="color:var(--lime);font-size:12px;">(save 20%)</span></td>
+        <td>All Starter specialists + Site Selection Analyst, Incentive Modeler, Workforce Analyst, Data Analyst, and all future additions</td>
+      </tr>
+    </table>
+
+    <h3>Free Trial</h3>
+    <p>EconSquad AI offers a 7-day free trial with full access to Starter plan features. No credit card is required to start your trial. At the end of the trial period, you may choose to subscribe or your account will be downgraded to a read-only state.</p>
+
+    <h3>Auto-Renewal</h3>
+    <p>Paid subscriptions automatically renew at the end of each billing period (monthly or annual) unless cancelled before the renewal date. You authorize EconSquad AI to charge your payment method on file through Stripe for recurring subscription fees.</p>
+
+    <h3>Cancellation</h3>
+    <p>You may cancel your subscription at any time from the Billing tab in the platform. Upon cancellation, you will retain full access to the Service through the end of your current paid billing period. No partial refunds are issued for unused time within a billing period unless you are within the 30-day money-back guarantee window.</p>
+
+    <h3>Refund Policy</h3>
+    <p>If you are not satisfied with EconSquad AI within the first 30 days of your initial paid subscription, contact us at <a href="mailto:support@econsquad.ai">support@econsquad.ai</a> for a full refund. This guarantee applies to first-time subscriptions only.</p>
+  </div>
+
+  <div class="section">
+    <h2>5. Acceptable Use</h2>
+    <p>You agree to use EconSquad AI only for lawful, professional purposes. You agree that you will not:</p>
+    <ul>
+      <li>Use the Service for any illegal purpose or in violation of any applicable laws or regulations.</li>
+      <li>Attempt to reverse engineer, decompile, or extract source code from any part of the platform.</li>
+      <li>Share, sell, or transfer your account credentials to any other person or entity.</li>
+      <li>Input confidential client personally identifiable information (PII) — such as Social Security numbers, tax IDs, private financial records, or medical information — into AI specialist prompts.</li>
+      <li>Abuse, harass, or threaten EconSquad AI staff or other users.</li>
+      <li>Attempt to circumvent rate limits, usage caps, or access controls.</li>
+      <li>Use automated scripts or bots to interact with the Service in a manner inconsistent with normal human use.</li>
+      <li>Attempt to gain unauthorized access to other users' data or our systems.</li>
+    </ul>
+    <p>We reserve the right to suspend or terminate accounts that violate these acceptable use terms.</p>
+  </div>
+
+  <div class="section">
+    <h2>6. AI-Generated Content Disclaimer</h2>
+    <div class="warn-box">
+      <p><strong>Important Notice:</strong> EconSquad AI provides AI-generated content as a productivity and drafting tool. All AI-generated outputs — including grant narratives, site selection analyses, workforce reports, incentive models, and marketing copy — must be reviewed, verified, and approved by a qualified professional before submission, publication, or use in any official capacity.</p>
+    </div>
+    <p>AI-generated content may contain errors, inaccuracies, outdated information, or inappropriate suggestions. EconSquad AI and its specialists are tools to assist your work — they are not a substitute for professional judgment, subject matter expertise, or due diligence.</p>
+    <p>EconSquad AI is not responsible for:</p>
+    <ul>
+      <li>Errors, omissions, or inaccuracies in any AI-generated content</li>
+      <li>Grant applications rejected due to reliance on AI-generated narratives without review</li>
+      <li>Business or economic decisions made based on AI analyses</li>
+      <li>Any consequences arising from using AI-generated content without appropriate human review</li>
+    </ul>
+    <p><strong>You are solely responsible for the final content you submit, publish, or act upon.</strong></p>
+  </div>
+
+  <div class="section">
+    <h2>7. Intellectual Property</h2>
+    <p><strong>Your Data:</strong> You retain full ownership of all data, content, and materials you input into the Service ("User Content"). EconSquad AI does not claim ownership over your mission outputs, grant drafts, analyses, or any other content you create using the platform.</p>
+    <p><strong>Our Platform:</strong> The EconSquad AI platform, including the specialist system, ARIA assistant, user interface, underlying code, system prompts, branding, and all related intellectual property, is owned exclusively by EconSquad AI and its licensors. You may not copy, reproduce, distribute, or create derivative works from any part of our platform without express written permission.</p>
+    <p><strong>License to Use:</strong> By subscribing to EconSquad AI, we grant you a limited, non-exclusive, non-transferable license to access and use the Service for your internal professional purposes during your subscription period.</p>
+  </div>
+
+  <div class="section">
+    <h2>8. Privacy</h2>
+    <p>Your use of EconSquad AI is subject to our <a href="privacy.html">Privacy Policy</a>, which is incorporated into these Terms by reference. By using the Service, you consent to the data practices described in our Privacy Policy.</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Limitation of Liability</h2>
+    <p>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, ECONSQUAD AI AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND LICENSORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO LOST PROFITS, LOST DATA, LOSS OF GOODWILL, OR BUSINESS INTERRUPTION, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.</p>
+    <p>IN NO EVENT SHALL ECONSQUAD AI'S TOTAL CUMULATIVE LIABILITY TO YOU FOR ANY CLAIMS ARISING OUT OF OR RELATED TO THESE TERMS OR THE SERVICE EXCEED THE TOTAL SUBSCRIPTION FEES PAID BY YOU TO ECONSQUAD AI IN THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE CLAIM.</p>
+    <p>SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES, SO THESE LIMITATIONS MAY NOT APPLY TO YOU IN FULL.</p>
+  </div>
+
+  <div class="section">
+    <h2>10. Indemnification</h2>
+    <p>You agree to indemnify, defend, and hold harmless EconSquad AI and its officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses (including reasonable attorneys' fees) arising out of or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any third-party rights; or (d) any content you input into or generate using the Service.</p>
+  </div>
+
+  <div class="section">
+    <h2>11. Termination</h2>
+    <p><strong>By You:</strong> You may cancel your subscription and terminate your account at any time through the Billing tab in the platform or by contacting <a href="mailto:support@econsquad.ai">support@econsquad.ai</a>.</p>
+    <p><strong>By Us:</strong> EconSquad AI reserves the right to suspend or terminate your account, with or without notice, if you violate these Terms of Service, engage in fraudulent activity, or if continued service poses a risk to the platform or other users. In cases of clear ToS violations, refunds may not be issued.</p>
+    <p><strong>Effect of Termination:</strong> Upon termination, your access to the Service will cease. Data stored in your account may be deleted after 30 days following termination. You are responsible for exporting any mission history or work products you wish to retain before terminating.</p>
+  </div>
+
+  <div class="section">
+    <h2>12. Governing Law</h2>
+    <p>These Terms of Service are governed by and construed in accordance with the laws of the State of Texas, United States, without regard to its conflict of law principles. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts located in Texas.</p>
+    <p>If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+  </div>
+
+  <div class="section">
+    <h2>13. Contact</h2>
+    <p>For legal inquiries related to these Terms of Service, please contact:</p>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:20px 24px;margin-top:16px;">
+      <p style="color:var(--text);margin:0 0 6px;font-weight:600;">EconSquad AI — Legal</p>
+      <p style="margin:0;font-size:14px;"><a href="mailto:legal@econsquad.ai">legal@econsquad.ai</a></p>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" class="footer-logo">
+      <div class="logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+      </div>
+      <span class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup" style="font-size:11px;">AI</sup></span>
+    </a>
+    <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

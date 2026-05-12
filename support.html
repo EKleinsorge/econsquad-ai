@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — EconSquad AI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;--lime3:#ccff7a;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* NAV */
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}
+.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+/* HERO */
+.page-hero{padding:72px 40px 52px;text-align:center;}
+.page-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;}
+.page-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:58px;font-weight:900;line-height:1.0;margin-bottom:18px;}
+.page-hero p{font-size:16px;color:var(--text2);max-width:520px;margin:0 auto;}
+
+/* CONTACT CARDS */
+.contact-section{max-width:860px;margin:0 auto;padding:0 40px 64px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.contact-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:28px 28px 24px;transition:border-color .2s;}
+.contact-card:hover{border-color:var(--limeborder);}
+.cc-icon{width:44px;height:44px;background:var(--limedim);border:1px solid var(--limeborder);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;}
+.contact-card h3{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;}
+.contact-card .cc-email{font-size:15px;font-weight:600;color:var(--lime);margin-bottom:8px;}
+.contact-card .cc-email a{color:var(--lime);}
+.contact-card p{font-size:14px;color:var(--text2);}
+
+/* FAQ */
+.faq-section{max-width:860px;margin:0 auto;padding:0 40px 80px;}
+.faq-section-title{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;margin-bottom:8px;}
+.faq-section-sub{font-size:14px;color:var(--text2);margin-bottom:40px;}
+.faq-category{margin-bottom:48px;}
+.faq-category-label{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--lime);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.faq-category-label::after{content:'';flex:1;height:1px;background:rgba(170,255,62,0.15);}
+.faq-item{border:1px solid rgba(255,255,255,0.07);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:border-color .2s;}
+.faq-item.open{border-color:rgba(170,255,62,0.2);}
+.faq-q{padding:16px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;user-select:none;transition:color .2s;}
+.faq-q:hover{color:var(--lime);}
+.faq-item.open .faq-q{color:var(--lime);}
+.faq-arrow{font-size:14px;color:var(--text2);transition:transform .25s,color .2s;flex-shrink:0;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--lime);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.faq-item.open .faq-a{max-height:300px;}
+.faq-a-inner{padding:0 20px 18px;font-size:14px;color:var(--text2);line-height:1.75;border-top:1px solid rgba(255,255,255,0.05);}
+.faq-a-inner a{color:var(--lime);}
+.faq-a-inner strong{color:var(--text);}
+
+/* QUICK LINKS */
+.quick-section{max-width:860px;margin:0 auto;padding:0 40px 80px;}
+.quick-inner{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:36px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;}
+.quick-text h3{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;margin-bottom:6px;}
+.quick-text p{font-size:14px;color:var(--text2);}
+.quick-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text);font-size:13px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-outline:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.footer-copy{font-size:13px;color:var(--text2);text-align:center;}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+.section-divider{border-top:1px solid rgba(255,255,255,0.06);max-width:860px;margin:0 auto 60px;padding:0 40px;}
+
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .page-hero{padding:48px 20px 40px;}
+  .page-hero h1{font-size:40px;}
+  .contact-section{grid-template-columns:1fr;padding:0 20px 48px;}
+  .faq-section,.quick-section{padding:0 20px 60px;}
+  .quick-inner{padding:24px 20px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon">
+      <svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+    </div>
+    <div>
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="support.html" class="active">Support</a></li>
+    <li><a href="blog.html">Blog</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Help Center</div>
+  <h1>How can we help?</h1>
+  <p>Browse frequently asked questions, or reach out directly — we're here to make sure you get the most out of EconSquad AI.</p>
+</div>
+
+<!-- CONTACT CARDS -->
+<div class="contact-section">
+  <div class="contact-card">
+    <div class="cc-icon">✉</div>
+    <h3>Email Support</h3>
+    <div class="cc-email"><a href="mailto:support@econsquad.ai">support@econsquad.ai</a></div>
+    <p>Send us a message and we'll respond within 24 business hours, Monday through Friday. For billing questions, include your account email.</p>
+  </div>
+  <div class="contact-card">
+    <div class="cc-icon">💬</div>
+    <h3>Live Chat (In-App)</h3>
+    <div class="cc-email" style="color:var(--text2);">Available inside the platform</div>
+    <p>Once logged in, ask ARIA anything — she can answer questions about your work, the platform, and connect you to support when needed.</p>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section">
+  <div class="faq-section-title">Frequently Asked Questions</div>
+  <p class="faq-section-sub">Quick answers to the most common questions about EconSquad AI.</p>
+
+  <!-- Getting Started -->
+  <div class="faq-category">
+    <div class="faq-category-label">Getting Started</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How do I connect my Gmail?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Go to the <strong>Inbox</strong> tab in the platform and click <strong>"Connect Gmail."</strong> You'll be redirected to Google's OAuth consent screen — sign in with your Google account and approve the requested permissions. This grants EconSquad AI access to your inbox, calendar, and optionally Google Tasks. You can disconnect at any time from your Google Account permissions page.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How do I run a specialist?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Navigate to the <strong>My Squad</strong> tab, find the specialist you need (e.g., Riley the Grant Writer), and click <strong>"Deploy."</strong> You'll see a brief form asking for the relevant details (grant name, funder, deadline, community context, etc.). Fill in the brief and click Submit — ARIA will generate your output, which will appear in your <strong>History</strong> tab within moments.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        What is ARIA?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">ARIA is your AI assistant built into EconSquad AI. She monitors your platform usage, tracks time saved, and sends you proactive alerts and insights — like letting you know when a grant deadline is approaching or when you've crossed a productivity milestone. You can also chat with ARIA directly on the Home tab to ask questions about your work, get platform help, or brainstorm ideas.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        What specialists are included?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          <strong>Starter Plan</strong> includes: Grant Writer (Riley), BRE Survey Pro, Marketing Copy, and Report Builder.<br><br>
+          <strong>Pro Plan</strong> includes all Starter specialists plus: Site Selection Analyst, Incentive Modeler, Workforce Analyst, Data Analyst, and all future specialists added to the platform.<br><br>
+          See the full specialist lineup on the <a href="index.html">My Squad</a> tab after signing in.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account & Billing -->
+  <div class="faq-category">
+    <div class="faq-category-label">Account &amp; Billing</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How do I upgrade my plan?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Click <strong>"Upgrade"</strong> in the top navigation bar or navigate to the <strong>Billing</strong> tab inside the app. Choose between <strong>Starter ($49/mo)</strong> or <strong>Pro ($99/mo)</strong>. Annual plans save you 20% — Starter Annual is $490/yr and Pro Annual is $990/yr. All billing is handled securely through Stripe.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Do you offer a free trial?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Yes! EconSquad AI offers a <strong>7-day free trial</strong> with no credit card required. You get full access to all Starter plan features during the trial. At the end of the 7 days, you can choose to subscribe or your account will transition to a read-only state — your data and history are preserved.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How do I cancel my subscription?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Go to the <strong>Billing</strong> tab inside the app and click <strong>"Manage Billing."</strong> This opens Stripe's secure customer portal where you can cancel, update your payment method, or download invoices. You can cancel anytime — you'll keep full access through the end of your current billing period. No partial refunds are issued unless you're within the 30-day money-back guarantee window.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        What is your refund policy?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">We offer a <strong>30-day money-back guarantee</strong> for first-time subscribers. If you're not satisfied within 30 days of your initial paid subscription, email <a href="mailto:support@econsquad.ai">support@econsquad.ai</a> and we'll process a full refund. No hassle, no questions asked.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Using the Platform -->
+  <div class="faq-category">
+    <div class="faq-category-label">Using the Platform</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How does the Grant Writer (Riley) work?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Deploy Riley from the <strong>My Squad</strong> tab. You'll be prompted to provide: the grant name and funder, deadline, your community need or project description, target population or geography, and any relevant data points (jobs created, investment amounts, etc.). Riley drafts a complete grant narrative following best practices for economic development funding — including compelling need statements, outcome metrics, and funder-aligned language. Review and refine the output in your History tab before submission.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Can I edit the AI output?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Yes. All specialist outputs are saved to your <strong>History</strong> tab, where you can view the full output, copy it to your clipboard, and use the content however you need — in Word docs, grant portals, emails, reports, or other platforms. We always recommend reviewing AI-generated content before use. For iterative drafts, you can deploy a specialist multiple times with different inputs.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        How do I sync Google Tasks?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Navigate to the <strong>Tasks</strong> tab and click <strong>"↻ Google Tasks"</strong> to trigger a manual sync. If you've already connected your Google account, tasks sync automatically each time you log in. Google Task sync requires the same Google OAuth connection used for Gmail — if you haven't connected Google yet, go to the Inbox tab first.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        What does ARIA's analysis show in My Stats?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">The <strong>My Stats</strong> tab features ARIA's personalized ROI analysis based on your actual platform usage. It shows: total time saved (hours), projected annual time savings, estimated dollar value of time recovered, missions run by specialist type, and your streak and engagement data. ARIA also provides written insights — observations about your usage patterns and recommendations for getting even more value from the platform.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Technical -->
+  <div class="faq-category">
+    <div class="faq-category-label">Technical</div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        What browsers are supported?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">EconSquad AI works best in <strong>Google Chrome</strong> (recommended), Microsoft Edge, Safari, and Firefox — all in their latest versions. Chrome is recommended for the most reliable Gmail integration. Mobile browsers are supported for basic usage, but the full platform experience is optimized for desktop.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Is my data secure?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Yes. Here's a summary of our security posture:<br><br>
+          <strong>Auth &amp; profile data:</strong> Managed by Supabase (SOC 2 Type II compliant).<br>
+          <strong>Payments:</strong> Processed by Stripe (PCI DSS Level 1 compliant). We never see your card number.<br>
+          <strong>Task/note data:</strong> Stored in your browser's localStorage — it never leaves your device.<br>
+          <strong>Transit encryption:</strong> All connections use HTTPS/TLS.<br><br>
+          For full details, see our <a href="privacy.html">Privacy Policy</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Can I export my work?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Yes. All mission outputs are saved in your <strong>History</strong> tab. Click any entry to expand the full output and copy it to your clipboard. You can then paste into Word, Google Docs, your grants management system, or any other tool. If you need a full data export of your account history, contact <a href="mailto:support@econsquad.ai">support@econsquad.ai</a>.</div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        The page isn't loading correctly — what should I do?
+        <span class="faq-arrow">▼</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          Try these steps in order:<br><br>
+          1. <strong>Hard refresh:</strong> Press <code>Ctrl+Shift+R</code> (Windows/Linux) or <code>Cmd+Shift+R</code> (Mac).<br>
+          2. <strong>Clear browser cache:</strong> Go to your browser settings and clear cached files for econsquad.ai.<br>
+          3. <strong>Try Chrome:</strong> If you're using another browser, try Google Chrome.<br>
+          4. <strong>Check your internet:</strong> Ensure you have a stable connection.<br><br>
+          If the problem persists, contact <a href="mailto:support@econsquad.ai">support@econsquad.ai</a> with a description of the issue and your browser version.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK LINKS -->
+<div class="quick-section">
+  <div class="quick-inner">
+    <div class="quick-text">
+      <h3>Still need help?</h3>
+      <p>Return to the app or send us a message and we'll get you sorted.</p>
+    </div>
+    <div class="quick-btns">
+      <a href="index.html" class="btn-lime">Back to App</a>
+      <a href="mailto:support@econsquad.ai" class="btn-outline">Report a Problem</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" class="footer-logo">
+      <div class="logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+      </div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;"><span style="color:#fff;">Econ</span><span style="color:var(--lime);">Squad</span><sup style="font-size:11px;color:#fff;vertical-align:super;">AI</sup></span>
+    </a>
+    <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleFAQ(el) {
+  const item = el.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  // Open clicked if it was closed
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — EconSquad AI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;--lime3:#ccff7a;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* NAV */
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text-wrap{}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}
+.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+/* CONTENT */
+.page-hero{padding:64px 40px 40px;max-width:900px;margin:0 auto;}
+.page-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:12px;}
+.page-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;line-height:1.05;margin-bottom:16px;}
+.page-hero .meta{font-size:14px;color:var(--text2);}
+
+.content-wrap{max-width:900px;margin:0 auto;padding:0 40px 80px;}
+.section{padding:40px 0;border-top:1px solid rgba(255,255,255,0.06);}
+.section:first-child{border-top:none;}
+.section h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;margin-bottom:16px;color:var(--text);}
+.section h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;margin:24px 0 10px;color:var(--text);}
+.section p{font-size:15px;color:var(--text2);margin-bottom:14px;line-height:1.75;}
+.section p:last-child{margin-bottom:0;}
+.section ul{list-style:none;padding:0;margin:0 0 14px;}
+.section ul li{font-size:15px;color:var(--text2);padding:5px 0 5px 22px;position:relative;line-height:1.65;}
+.section ul li::before{content:'→';position:absolute;left:0;color:var(--lime);font-size:13px;}
+.highlight-box{background:rgba(170,255,62,0.06);border:1px solid var(--limeborder);border-radius:var(--r);padding:20px 24px;margin:20px 0;}
+.highlight-box p{color:var(--text);margin:0;font-size:14px;}
+.contact-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;}
+.contact-chip{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 18px;font-size:14px;color:var(--text2);}
+.contact-chip a{color:var(--lime);}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.footer-logo .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;}
+.footer-copy{font-size:13px;color:var(--text2);text-align:center;}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .page-hero{padding:40px 20px 24px;}
+  .page-hero h1{font-size:36px;}
+  .content-wrap{padding:0 20px 60px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon">
+      <svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+    </div>
+    <div class="logo-text-wrap">
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="support.html">Support</a></li>
+    <li><a href="blog.html">Blog</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="eyebrow">Legal</div>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Effective Date: January 1, 2026 &nbsp;·&nbsp; Last Updated: January 1, 2026</p>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrap">
+
+  <div class="section">
+    <h2>1. Introduction</h2>
+    <p>EconSquad AI ("we," "us," or "our") is an AI-powered productivity platform built exclusively for economic development professionals. We are committed to protecting your privacy and handling your data with transparency and care.</p>
+    <p>This Privacy Policy explains what information we collect, how we use it, how we protect it, and what rights you have over your data. By using EconSquad AI, you agree to the practices described in this policy.</p>
+    <p>If you have questions or concerns about this policy, please contact us at <a href="mailto:support@econsquad.ai">support@econsquad.ai</a>.</p>
+  </div>
+
+  <div class="section">
+    <h2>2. Information We Collect</h2>
+
+    <h3>Account Information</h3>
+    <p>When you create an account, we collect your name and email address through our authentication provider, Supabase. This information is used to identify your account and communicate with you about the platform.</p>
+
+    <h3>Google OAuth Data</h3>
+    <p>If you choose to connect your Google account, we request access to your Gmail inbox and Google Calendar. This connection uses OAuth 2.0 and provides us with temporary access tokens to display your inbox and calendar within the app. Access tokens are not stored permanently on our servers — they are used in real time during your session only.</p>
+
+    <h3>Usage Data</h3>
+    <p>We collect information about how you use the platform, including:</p>
+    <ul>
+      <li>Specialist missions run and which AI specialists you use</li>
+      <li>Estimated time saved per session and cumulative totals</li>
+      <li>Feature engagement (tabs visited, tools deployed)</li>
+      <li>Session timestamps and general activity patterns</li>
+    </ul>
+    <p>This data helps us improve the platform and personalize your experience, including ARIA's proactive insights.</p>
+
+    <h3>Payment Information</h3>
+    <p>All payment processing is handled by Stripe. We do not collect, store, or have access to your credit card numbers or full payment details. We receive only basic billing metadata from Stripe (subscription status, plan type, renewal dates) necessary to manage your account access.</p>
+
+    <h3>Task and Calendar Data</h3>
+    <p>Task lists, notes, and personal to-do items created within the platform are stored in your browser's <code>localStorage</code> — they live on your device, not on our servers. This means your task data does not leave your browser unless you explicitly use a feature that transmits it (such as running a specialist mission).</p>
+  </div>
+
+  <div class="section">
+    <h2>3. How We Use Your Information</h2>
+    <ul>
+      <li><strong>Provide the service:</strong> Authenticate your account, deliver AI specialist functionality, and maintain platform access.</li>
+      <li><strong>Personalize ARIA insights:</strong> Use your usage patterns to generate personalized ROI summaries, time-saving estimates, and proactive recommendations.</li>
+      <li><strong>Platform notifications:</strong> Send you important account notices, feature updates, and (with your consent) product news.</li>
+      <li><strong>Process billing:</strong> Manage your subscription plan, trial status, and renewal via Stripe.</li>
+      <li><strong>Improve the product:</strong> Analyze aggregated, anonymized usage patterns to improve features, prioritize new specialists, and fix issues.</li>
+    </ul>
+    <p>We do not sell your personal information to third parties. We do not use your data for advertising purposes.</p>
+  </div>
+
+  <div class="section">
+    <h2>4. AI Processing</h2>
+    <div class="highlight-box">
+      <p><strong>Important:</strong> Specialist requests you submit are processed via Anthropic's Claude API. When you deploy a specialist, your input is transmitted to Anthropic's servers for AI processing. We recommend you do not enter personally identifiable client information (names, SSNs, addresses, financial records) into specialist prompts.</p>
+    </div>
+    <p>EconSquad AI uses Anthropic's Claude as the underlying AI model for all specialist agents. Your prompts and the generated outputs may be subject to Anthropic's usage policies and privacy practices. We encourage you to review <a href="https://www.anthropic.com/privacy" target="_blank">Anthropic's Privacy Policy</a> for details on how they handle API data.</p>
+    <p>EconSquad AI does not train AI models using your specialist inputs or outputs. Mission history stored in our database is used solely to display your work history within the platform.</p>
+  </div>
+
+  <div class="section">
+    <h2>5. Google Data</h2>
+    <p>We request the following Google API scopes when you connect your Google account:</p>
+    <ul>
+      <li><strong>gmail.readonly:</strong> Read your inbox to display emails within the platform</li>
+      <li><strong>gmail.modify:</strong> Archive, label, or categorize emails on your behalf</li>
+      <li><strong>gmail.send:</strong> Send emails through the platform when you initiate a send action</li>
+      <li><strong>calendar.readonly:</strong> Read your Google Calendar to display upcoming events</li>
+    </ul>
+    <p>Google user data is used exclusively to provide the inbox and calendar features within EconSquad AI. We do not sell, share, transfer, or use Google user data for any purpose beyond the features you explicitly use in the app.</p>
+    <p>Our use of Google API data is compliant with the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+    <p>You may revoke Google access at any time by visiting your <a href="https://myaccount.google.com/permissions" target="_blank">Google Account permissions page</a> or disconnecting from the Inbox settings within EconSquad AI.</p>
+  </div>
+
+  <div class="section">
+    <h2>6. Data Storage &amp; Security</h2>
+    <ul>
+      <li><strong>User profile data</strong> is stored in Supabase, which is SOC 2 Type II compliant and uses industry-standard encryption at rest and in transit.</li>
+      <li><strong>Task and note data</strong> is stored in your browser's localStorage on your own device and is not transmitted to our servers.</li>
+      <li><strong>Payment data</strong> is handled exclusively by Stripe, which is PCI DSS Level 1 compliant — the highest standard for payment processors.</li>
+      <li><strong>All data in transit</strong> is encrypted using HTTPS/TLS. We do not operate unencrypted connections.</li>
+      <li><strong>Specialist mission history</strong> is stored in Supabase and is associated only with your authenticated account — it is never shared with other users.</li>
+    </ul>
+    <p>While we implement reasonable and industry-standard security measures, no system is completely impenetrable. We encourage you to use a strong, unique password and enable two-factor authentication where available.</p>
+  </div>
+
+  <div class="section">
+    <h2>7. Data Retention</h2>
+    <p>Account data (profile, usage history, mission history) is retained for as long as your account remains active. If you request account deletion, all personally identifiable data will be removed from our systems within 30 days of your request.</p>
+    <p>Aggregated, anonymized usage statistics may be retained indefinitely for product improvement purposes and cannot be linked back to your identity.</p>
+    <p>Data stored in your browser's localStorage is entirely under your control — you can clear it at any time through your browser settings.</p>
+  </div>
+
+  <div class="section">
+    <h2>8. Your Rights</h2>
+    <p>Depending on your jurisdiction, you may have the following rights regarding your personal data:</p>
+    <ul>
+      <li><strong>Access:</strong> Request a copy of the personal data we hold about you.</li>
+      <li><strong>Correction:</strong> Request that we correct inaccurate or incomplete data.</li>
+      <li><strong>Deletion:</strong> Request that we delete your account and associated personal data.</li>
+      <li><strong>Export:</strong> Request a portable copy of your mission history and usage data in a standard format.</li>
+      <li><strong>Objection:</strong> Object to certain types of processing, including marketing communications.</li>
+    </ul>
+    <p>To exercise any of these rights, contact us at <a href="mailto:support@econsquad.ai">support@econsquad.ai</a>. We will respond to all legitimate requests within 30 days.</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Children's Privacy</h2>
+    <p>EconSquad AI is designed for professional use and is not intended for individuals under the age of 18. We do not knowingly collect personal information from minors. If you believe a minor has provided us with personal information, please contact us immediately and we will take steps to remove that data.</p>
+  </div>
+
+  <div class="section">
+    <h2>10. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, or applicable law. If we make material changes, we will notify you via email at least 30 days before the changes take effect. Your continued use of EconSquad AI after the effective date of the updated policy constitutes your acceptance of the revised terms.</p>
+    <p>We encourage you to review this policy periodically. The "Last Updated" date at the top of this page reflects the most recent revision.</p>
+  </div>
+
+  <div class="section">
+    <h2>11. Contact Us</h2>
+    <p>If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please reach out:</p>
+    <div class="contact-links">
+      <div class="contact-chip">General &amp; Support: <a href="mailto:support@econsquad.ai">support@econsquad.ai</a></div>
+      <div class="contact-chip">Hello: <a href="mailto:hello@econsquad.ai">hello@econsquad.ai</a></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" class="footer-logo">
+      <div class="logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+      </div>
+      <span class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup" style="font-size:11px;">AI</sup></span>
+    </a>
+    <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
