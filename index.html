@@ -5136,7 +5136,7 @@ function renderBadgeShowcase(container){
   container.appendChild(hdr);
 
   Object.keys(cats).forEach(function(catName){
-    var items=catEntry[1];
+    var items=cats[catName];
     var catDiv=document.createElement('div');
     catDiv.style.marginBottom='24px';
     var catLabel=document.createElement('div');
