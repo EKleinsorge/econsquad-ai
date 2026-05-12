@@ -1034,6 +1034,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <li><a id="dash-nav-tasks" onclick="showDashTab('tasks-tab',this)" style="cursor:pointer;">Tasks <span id="tasks-nav-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></a></li>
           <li><a id="dash-nav-history" onclick="showDashTab('history-tab',this)" style="cursor:pointer;">History</a></li>
           <li><a id="dash-nav-stats" onclick="showDashTab('stats-tab',this)" style="cursor:pointer;">My Stats</a></li>
+          <li><a id="dash-nav-resources" onclick="showDashTab('resources-tab',this)" style="cursor:pointer;">Resources</a></li>
           <li><a onclick="openBillingModal()" style="cursor:pointer;">Billing</a></li>
         </ul>
       </div>
@@ -1167,6 +1168,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
         <div onclick="showDashTab('stats-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-stats">
           <span>My Stats</span>
+        </div>
+        <div onclick="showDashTab('resources-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-resources">
+          <span>Resources</span>
         </div>
         <div onclick="openBillingModal();closeMobileMenu();" class="mob-nav-item" id="mob-nav-billing">
           <span>Billing</span>
@@ -1893,6 +1897,30 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
       </div>
 
+      <!-- ========== RESOURCES TAB ========== -->
+      <div class="page main dash-tab" id="resources-tab" style="display:none;padding:24px 32px;">
+
+        <div style="max-width:720px;">
+          <div style="margin-bottom:24px;">
+            <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:6px;letter-spacing:.01em;">Monday AI for ED Drop</h2>
+            <p style="font-size:13px;color:#6b7a96;margin:0;">Weekly AI tips and workflows built exclusively for economic development professionals. New issue every Monday.</p>
+          </div>
+
+          <div id="resources-feed" style="display:flex;flex-direction:column;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;">
+            <div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">Loading latest issues…</div>
+          </div>
+
+          <div style="margin-top:20px;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.18);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:3px;">Get it in your inbox every Monday</div>
+              <div style="font-size:12px;color:#6b7a96;">New AI workflows for ED pros delivered weekly — free.</div>
+            </div>
+            <a href="blog.html#subscribe" target="_blank" rel="noopener" style="background:#aaff3e;color:#1a3300;font-size:12px;font-weight:800;padding:9px 20px;border-radius:8px;text-decoration:none;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;letter-spacing:.04em;">Subscribe Free →</a>
+          </div>
+        </div>
+
+      </div>
+
 <!-- SIGN UP MODAL -->
       
 
@@ -2003,7 +2031,7 @@ function showDashTab(tabId,el){
   document.querySelectorAll('#nav-dashboard .nav-links a').forEach(function(a){a.classList.remove('active');});
   if(el)el.classList.add('active');
   /* highlight nav link even when el isn't passed (e.g. on restore) */
-  var navMap={'home-tab':'dash-nav-home','inbox-tab':'dash-nav-inbox','fullcal-tab':'dash-nav-fullcal','tasks-tab':'dash-nav-tasks','history-tab':'dash-nav-history','stats-tab':'dash-nav-stats'};
+  var navMap={'home-tab':'dash-nav-home','inbox-tab':'dash-nav-inbox','fullcal-tab':'dash-nav-fullcal','tasks-tab':'dash-nav-tasks','history-tab':'dash-nav-history','stats-tab':'dash-nav-stats','resources-tab':'dash-nav-resources'};
   if(!el && navMap[tabId]){var nl=document.getElementById(navMap[tabId]);if(nl)nl.classList.add('active');}
   var sa=document.querySelector('.scroll-area');
   if(sa)sa.scrollTop=0;
@@ -4568,6 +4596,7 @@ showDashTab=function(tabId,el){
   }
   if(tabId==='tasks-tab'){if(typeof window.loadTasks==='function')window.loadTasks();}
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
+  if(tabId==='resources-tab'){if(typeof window.loadResourcesFeed==='function')window.loadResourcesFeed();}
   if(tabId==='stats-tab'){
     /* default to overview tab */
     switchStatsTab('overview', document.getElementById('subtab-overview'));
@@ -8794,8 +8823,9 @@ function setMobileActiveTab(tabId){
     'inbox-tab':   'mob-nav-inbox',
     'fullcal-tab': 'mob-nav-cal',
     'tasks-tab':   'mob-nav-tasks',
-    'history-tab': 'mob-nav-history',
-    'stats-tab':   'mob-nav-stats',
+    'history-tab':    'mob-nav-history',
+    'stats-tab':      'mob-nav-stats',
+    'resources-tab':  'mob-nav-resources',
   };
   Object.values(map).forEach(function(id){
     var el = document.getElementById(id);

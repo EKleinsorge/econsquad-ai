@@ -4891,12 +4891,21 @@
         + 'margin-left:6px;font-family:Barlow,sans-serif;vertical-align:middle;">— READ</span>'
       : '';
 
-    /* Top row: icon + title (clickable if notification has a link) */
+    /* Top row: icon + title (clickable if notification has a link or in-app tab) */
     var topRow = document.createElement('div');
     topRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;';
-    var titleHtml = n.link
-      ? '<a href="' + escN(n.link) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(n.title) + '</a>'
-      : escN(n.title);
+    var titleHtml;
+    if (n.tab) {
+      /* Navigate to in-app tab and close panel */
+      titleHtml = '<span style="cursor:pointer;" onclick="(function(){'
+        + 'if(typeof showDashTab===\'function\'){showDashTab(\'' + escN(n.tab) + '\',null);}'
+        + 'var p=document.getElementById(\'notif-panel\');if(p)p.style.display=\'none\';'
+        + '})()">' + escN(n.title) + '</span>';
+    } else if (n.link) {
+      titleHtml = '<a href="' + escN(n.link) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(n.title) + '</a>';
+    } else {
+      titleHtml = escN(n.title);
+    }
     topRow.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span>'
       + '<div style="font-size:12px;font-weight:700;font-family:Barlow,sans-serif;flex:1;min-width:0;'
       + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
@@ -4906,8 +4915,18 @@
     /* Body text */
     var bodyText = document.createElement('div');
     bodyText.style.cssText = 'font-size:11px;color:#5a6a84;line-height:1.55;font-family:DM Sans,sans-serif;'
-      + 'padding-left:24px;margin-bottom:8px;';
+      + 'padding-left:24px;margin-bottom:' + (n.type === 'blog' && n.link ? '6px' : '8px') + ';';
     bodyText.textContent = n.body;
+
+    /* For blog posts: add "Read Full Issue →" link */
+    var readIssueEl = null;
+    if (n.type === 'blog' && n.link) {
+      readIssueEl = document.createElement('div');
+      readIssueEl.style.cssText = 'padding-left:24px;margin-bottom:8px;';
+      readIssueEl.innerHTML = '<a href="' + escN(n.link) + '" target="_blank" rel="noopener" '
+        + 'style="font-size:11px;font-weight:700;color:#aaff3e;text-decoration:none;font-family:DM Sans,sans-serif;">'
+        + 'Read Full Issue →</a>';
+    }
 
     /* Time */
     var timeEl = document.createElement('div');
@@ -4970,6 +4989,7 @@
 
     item.appendChild(topRow);
     item.appendChild(bodyText);
+    if (readIssueEl) item.appendChild(readIssueEl);
     item.appendChild(timeEl);
     if (!archived) item.appendChild(btnRow);
     return item;
@@ -5226,35 +5246,78 @@
         var drops = (feed && feed.monday_drops) || [];
         if (!drops.length) return;
 
+        /* Sort descending so drops[0] is always the latest */
+        drops.sort(function(a, b) { return b.issue - a.issue; });
+        var latest = drops[0];
+
         var lastSeen = parseInt(localStorage.getItem(BLOG_SEEN_KEY) || '0', 10);
-        var unseen = drops.filter(function(p) { return p.issue > lastSeen; });
-        if (!unseen.length) return;
+        if (latest.issue <= lastSeen) return; /* already notified */
 
         var notifs = loadNotifs();
-        unseen.forEach(function(post) {
-          var nid = 'blog-drop-' + post.issue;
-          if (notifs.some(function(n) { return n.id === nid; })) return;
-          notifs.unshift({
-            id:       nid,
-            type:     'blog',
-            icon:     '📰',
-            title:    '🗞️ Monday AI for ED Drop — ' + post.title,
-            body:     post.excerpt,
-            link:     post.url,
-            ts:       Date.now(),
-            read:     false
-          });
+        /* Remove any stale blog-drop notifications and replace with single latest */
+        notifs = notifs.filter(function(n) { return !/^blog-drop-/.test(n.id); });
+        notifs.unshift({
+          id:    'blog-drop-' + latest.issue,
+          type:  'blog',
+          icon:  '📰',
+          title: '🗞️ New Drop: ' + latest.title,
+          body:  latest.excerpt,
+          tab:   'resources-tab',   /* clicking title opens in-app Resources tab */
+          link:  latest.url,        /* "Read Full Issue →" opens the actual post */
+          ts:    Date.now(),
+          read:  false
         });
         saveNotifs(notifs);
 
-        /* Mark newest issue as seen */
-        var maxIssue = Math.max.apply(null, unseen.map(function(p) { return p.issue; }));
-        try { localStorage.setItem(BLOG_SEEN_KEY, String(maxIssue)); } catch(e) {}
+        /* Mark as seen so we don't re-notify */
+        try { localStorage.setItem(BLOG_SEEN_KEY, String(latest.issue)); } catch(e) {}
 
         refreshBell();
       })
       .catch(function() {}); /* silent failure — network may be unavailable */
   }
+
+  /* ── Resources feed renderer ────────────────────────────────────────── */
+  var _resourcesFeedLoaded = false;
+  window.loadResourcesFeed = function() {
+    if (_resourcesFeedLoaded) return;
+    var container = document.getElementById('resources-feed');
+    if (!container) return;
+
+    fetch('https://ekleinsorge.github.io/econsquad-ai/blog-feed.json?v=' + Date.now())
+      .then(function(r) { return r.json(); })
+      .then(function(feed) {
+        var drops = (feed && feed.monday_drops) || [];
+        if (!drops.length) {
+          container.innerHTML = '<div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">No issues yet — check back next Monday.</div>';
+          return;
+        }
+        drops.sort(function(a, b) { return b.issue - a.issue; }); /* newest first */
+        container.innerHTML = drops.map(function(post, i) {
+          var border = i < drops.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.07);' : '';
+          return '<div style="display:flex;align-items:flex-start;gap:16px;padding:20px 24px;' + border + '">'
+            + '<div style="flex-shrink:0;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.22);border-radius:8px;padding:6px 12px;text-align:center;min-width:48px;">'
+            + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:900;color:#aaff3e;line-height:1;">#' + post.issue + '</div>'
+            + '<div style="font-size:10px;color:#6b7a96;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;">Issue</div>'
+            + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:800;color:#eef3fc;margin-bottom:5px;line-height:1.2;">'
+            + '<a href="' + post.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(post.title.replace(/^Issue #\d+:\s*/,'')) + '</a>'
+            + '</div>'
+            + '<div style="font-size:12px;color:#6b7a96;line-height:1.5;margin-bottom:8px;">' + escN(post.excerpt) + '</div>'
+            + '<div style="display:flex;align-items:center;gap:16px;">'
+            + '<span style="font-size:11px;color:#4a5568;">' + post.date + '</span>'
+            + '<a href="' + post.url + '" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:#aaff3e;text-decoration:none;">Read Issue →</a>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+        }).join('');
+        _resourcesFeedLoaded = true;
+      })
+      .catch(function() {
+        container.innerHTML = '<div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">Couldn\'t load issues. Check back soon.</div>';
+      });
+  };
 
   /* ── Master runner ───────────────────────────────────────────────────── */
   window.runProactiveChecks = function() {
