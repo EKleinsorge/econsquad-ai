@@ -271,100 +271,33 @@ var FS_KEY = 'esq_reader_fs';
 var supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 /* ─────────────────────────────────────────────
-   DEFAULT CHAPTER DATA (fallback / demo content)
-   Replace ch_body via admin → Book Page → Chapter Body fields
+   CHAPTERS — built dynamically from Supabase.
+   Demo content shown until admin fills in real text.
 ───────────────────────────────────────────── */
-var CHAPTERS = [
-  {
-    num: 1,
-    title: 'Why AI Is Different for ED',
-    desc: 'Why generic AI tools fall short — and the mindset shift that makes everything click.',
-    time: '12 min read',
-    free: true,
-    lead: 'Every economic developer I talk to has tried ChatGPT. Most of them gave up after two weeks. Not because AI doesn\'t work — but because nobody told them how to make it work for this job.',
-    body: `<p>The problem isn't the technology. The problem is that most AI tools were built for a general audience, and economic development is anything but general. You're not writing blog posts. You're writing EDA grant narratives with specific CEDS alignment requirements. You're not answering customer service emails — you're responding to site selection RFIs with competitive data about a community you've spent years understanding.</p>
+var CHAPTERS = [];  // populated by buildChaptersFromSettings()
 
-<h2>The Generic AI Trap</h2>
-<p>When most ED professionals try AI for the first time, they open ChatGPT, type "write me a grant narrative," and get back something that reads like it was written by a well-meaning college student who once watched a documentary about rural development. It's not wrong, exactly — it's just <strong>not yours</strong>. It doesn't know your community's unemployment rate, your target industries, your CEDS goals, or the voice your board expects.</p>
+var DEMO_CH1_BODY = '<p>This is where your Chapter 1 content will appear. Go to <strong>admin → 📘 Book Page → Chapter 1</strong>, paste your text into the Body field, and hit Save. It appears here instantly.</p>'
+  + '<h2>How the reader works</h2>'
+  + '<p>Each chapter has a title, a short opening line, and the full body text. You can use basic HTML: <code>&lt;p&gt;</code> for paragraphs, <code>&lt;h2&gt;</code> for section headers, <code>&lt;strong&gt;</code> for bold, and <code>&lt;ul&gt;&lt;li&gt;</code> for bullet lists.</p>'
+  + '<div class="pullquote"><p>"Paste your real chapter text in the admin panel and it shows up here instantly — no code required."</p></div>'
+  + '<p>Chapters 2 and beyond are locked behind your access code. Set the code in <strong>admin → 📘 Book Page → 🔑 Reader Access Code</strong>. Buyers enter it after purchase to unlock everything.</p>';
 
-<div class="pullquote"><p>"The professionals who get the most out of AI aren't the ones who use the fanciest tools — they're the ones who figured out how to give AI the right context."</p></div>
-
-<p>That's the real unlock: context. AI is not a search engine. It doesn't pull facts — it synthesizes and writes based on what you give it. The more specifically you feed it information about your community, your program, and your audience, the better the output gets. This book is about building that context engine for your ED office.</p>
-
-<h2>What Makes ED Different</h2>
-<p>Economic development has a few characteristics that make off-the-shelf AI tools frustrating to use:</p>
-
-<div class="ch-body">
-<ul>
-  <li><strong>Highly specific audiences.</strong> You're writing for federal program officers, corporate site selectors, local business owners, and elected officials — sometimes in the same week. Generic AI doesn't know how to shift tone that way without help.</li>
-  <li><strong>Data-heavy work.</strong> Labor force stats, commute sheds, wage comparisons, tax incentive calculations — AI can work with all of this, but only if you bring it to the table.</li>
-  <li><strong>Institutional memory matters.</strong> Your grant applications reference past awards. Your RFIs reference site visits that happened three years ago. AI has no memory unless you give it one.</li>
-  <li><strong>Trust is everything.</strong> One bad grant narrative or one factually wrong RFI response can cost you a relationship. AI outputs always need your review — but with the right setup, that review is a 15-minute edit, not a full rewrite.</li>
-</ul>
-</div>
-
-<h2>The Mindset Shift</h2>
-<p>Stop thinking of AI as something that replaces your work. Start thinking of it as a very fast, very capable first-draft writer that needs you to be its subject-matter expert. You bring the knowledge, the relationships, and the judgment. AI brings the speed, the structure, and the tireless willingness to generate ten versions of something until one of them is right.</p>
-
-<div class="callout">
-  <div class="callout-label">💡 The key insight</div>
-  <p>AI is a multiplier, not a replacement. A mediocre prompt gives you a mediocre draft fast. A great prompt — loaded with your community data, your program context, and a clear audience — gives you an 80% draft that you can turn into something excellent in under an hour.</p>
-</div>
-
-<p>The chapters ahead are going to walk you through building those great prompts, for the specific workflows that take up most of your time: grant writing, RFI responses, BRE surveys, and more. By the time you finish this book, you'll have a repeatable system — not just a few cool tricks.</p>`,
-    takeaways: [
-      'Generic AI fails ED pros because it lacks community-specific context — not because the technology is bad',
-      'The biggest unlock is feeding AI your data: CEDS goals, labor stats, target industries, past awards',
-      'Think of AI as a fast first-draft writer; you\'re the subject-matter expert it needs',
-      'ED work is data-heavy, audience-specific, and trust-dependent — AI can handle the volume, you handle the judgment',
-    ]
-  },
-  {
-    num: 2,
-    title: 'Your First Week: The 3 Tasks to Automate',
-    desc: 'Grant narratives, RFI responses, inbox triage — the three workflows that pay back their setup time in week one.',
-    time: '15 min read',
-    free: false,
-    lead: 'You don\'t need to overhaul your entire office to get value from AI. Three workflows — done right — can give you back 5–8 hours every single week.',
-    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
-  },
-  {
-    num: 3,
-    title: 'Grant Writing at AI Speed',
-    desc: 'From blank page to 70% draft in under two hours. Building your community data library.',
-    time: '18 min read',
-    free: false,
-    lead: 'The grant narrative is the most time-consuming deliverable in economic development. It\'s also the one where AI can make the biggest immediate difference.',
-    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
-  },
-  {
-    num: 4,
-    title: 'Site Selection in the AI Era',
-    desc: 'Responding to RFIs faster, building a competitive data room, making your community stand out.',
-    time: '14 min read',
-    free: false,
-    lead: 'Site selectors decide in the first 48 hours. Here\'s how to make sure your response is the one that gets remembered.',
-    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
-  },
-  {
-    num: 5,
-    title: 'BRE Surveys That Actually Lead to Action',
-    desc: 'Designing surveys that get responses, using AI to identify at-risk businesses.',
-    time: '13 min read',
-    free: false,
-    lead: 'Most BRE surveys collect data that sits in a spreadsheet. This chapter is about building a system that turns that data into a retention action plan.',
-    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
-  },
-  {
-    num: 6,
-    title: 'Building Your AI-Powered ED Office',
-    desc: 'Creating a sustainable AI workflow for your team, managing the learning curve.',
-    time: '16 min read',
-    free: false,
-    lead: 'Getting good at AI yourself is step one. Getting your whole team there — and keeping up as the tools evolve — is the real long-term advantage.',
-    body: `<p>This chapter unlocks with full access. <a href="book.html#order">Get your copy →</a></p>`
+function buildChaptersFromSettings(s){
+  var count = parseInt(s.chapter_count || '6', 10);
+  var freeList = (s.free_chapters || '1').split(',').map(function(x){ return parseInt(x.trim()); });
+  CHAPTERS = [];
+  for(var i = 1; i <= count; i++){
+    CHAPTERS.push({
+      num:   i,
+      title: s['ch'+i+'_title'] || 'Chapter '+i,
+      desc:  s['ch'+i+'_desc']  || '',
+      time:  s['ch'+i+'_time']  || '',
+      lead:  s['ch'+i+'_lead']  || '',
+      body:  s['ch'+i+'_body']  || (i===1 ? DEMO_CH1_BODY : '<p>This chapter will appear here once you add the content in the admin panel.</p>'),
+      free:  freeList.indexOf(i) !== -1
+    });
   }
-];
+}
 
 /* ─────────────────────────────────────────────
    STATE
@@ -387,18 +320,21 @@ window.addEventListener('DOMContentLoaded', function(){
   // Check access
   checkAccess();
 
-  // Load settings from Supabase
-  loadSettings();
-
-  // Restore reading position
-  var saved = parseInt(localStorage.getItem(PROGRESS_KEY) || '1', 10);
-  if(saved >= 1 && saved <= 6) _currentChapter = saved;
-
   // Restore read chapters
   try{ _readChapters = JSON.parse(localStorage.getItem('esq_book_read') || '[]'); }catch(e){ _readChapters=[]; }
 
+  // Build default chapters immediately so page isn't blank while Supabase loads
+  buildChaptersFromSettings({});
+
+  // Restore reading position
+  var saved = parseInt(localStorage.getItem(PROGRESS_KEY) || '1', 10);
+  if(saved >= 1 && saved <= CHAPTERS.length) _currentChapter = saved;
+
   renderSidebar();
   showChapter(_currentChapter, true);
+
+  // Then load live settings from Supabase (updates content in place)
+  loadSettings();
 
   // Check if logged-in EconSquad user (auto-unlock for subscribers)
   supa.auth.getSession().then(function(res){
@@ -416,35 +352,40 @@ window.addEventListener('DOMContentLoaded', function(){
 ───────────────────────────────────────────── */
 function loadSettings(){
   supa.from('book_settings').select('key,value').then(function(res){
-    if(res.error || !res.data) return;
+    if(res.error || !res.data) {
+      // No settings yet — build with defaults
+      buildChaptersFromSettings({});
+      renderSidebar();
+      showChapter(_currentChapter, true);
+      return;
+    }
     res.data.forEach(function(r){ _settings[r.key] = r.value; });
 
-    // Update book name / author
+    // Build dynamic chapters from settings
+    buildChaptersFromSettings(_settings);
+
+    // Clamp saved chapter to valid range
+    if(_currentChapter > CHAPTERS.length) _currentChapter = 1;
+
+    // Update book name / author in UI
     if(_settings.book_title){
       var el = document.getElementById('sb-book-name');
       if(el) el.textContent = _settings.book_title.replace(/\n/,' ');
       var nav = document.querySelector('.nav-book-title');
       if(nav) nav.innerHTML = _settings.book_title.replace(/The /,'The <span>').replace(/<span>(.*)$/,'<span>$1</span>');
+      document.title = 'Read — ' + _settings.book_title.replace(/\n/,' ');
     }
     if(_settings.author_name){
       var ael = document.getElementById('sb-author-name');
       if(ael) ael.textContent = _settings.author_name;
     }
 
-    // Override chapter titles/descs/bodies
-    for(var i=1; i<=6; i++){
-      var ch = CHAPTERS[i-1];
-      if(_settings['ch'+i+'_title']) ch.title = _settings['ch'+i+'_title'];
-      if(_settings['ch'+i+'_desc'])  ch.desc  = _settings['ch'+i+'_desc'];
-      if(_settings['ch'+i+'_body'])  ch.body  = _settings['ch'+i+'_body'];
-    }
-
     // Access code
     if(_settings.access_code) window._bookAccessCode = _settings.access_code;
 
-    // Re-render if needed
+    // Re-render
     renderSidebar();
-    if(_currentChapter) showChapter(_currentChapter, true);
+    showChapter(_currentChapter, true);
   });
 }
 
@@ -546,7 +487,8 @@ function showChapter(num, silent){
       + '</a>'
     : '<span></span>';
 
-  var nextHtml = num < 6
+  var total = CHAPTERS.length;
+  var nextHtml = num < total
     ? '<a class="ch-nav-btn next" onclick="showChapter('+(num+1)+')" href="javascript:void(0)">'
       + '<span><span class="ch-nav-label">Next Chapter →</span><span class="ch-nav-title">'+esc(CHAPTERS[num].title)+'</span></span>'
       + '</a>'
@@ -555,7 +497,7 @@ function showChapter(num, silent){
       + '</a>';
 
   content.innerHTML =
-    '<div class="ch-eyebrow">Chapter '+num+' of '+CHAPTERS.length+'</div>'
+    '<div class="ch-eyebrow">Chapter '+num+' of '+total+'</div>'
     + '<h1 class="ch-title-main">'+esc(ch.title)+'</h1>'
     + '<div class="ch-meta">'
     +   '<div class="ch-meta-item">⏱️ '+esc(ch.time||'')+'</div>'
