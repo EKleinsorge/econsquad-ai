@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Book — EconSquad AI</title>
+<meta name="description" content="The definitive guide to using AI in economic development — written by an ED professional, for ED professionals.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+/* HERO */
+.book-hero{max-width:1100px;margin:0 auto;padding:72px 40px 64px;display:grid;grid-template-columns:340px 1fr;gap:64px;align-items:center;}
+.book-cover{position:relative;}
+.book-cover-img{width:100%;max-width:300px;aspect-ratio:2/3;background:linear-gradient(135deg,#0d1220 0%,#1a2540 100%);border-radius:12px;border:1px solid rgba(170,255,62,0.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;box-shadow:0 32px 64px rgba(0,0,0,0.5),0 0 0 1px rgba(170,255,62,0.1);}
+.book-cover-img .cover-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--lime);margin-bottom:16px;}
+.book-cover-img .cover-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:#fff;text-align:center;line-height:1.1;margin-bottom:12px;}
+.book-cover-img .cover-sub{font-size:12px;color:#8a97b5;text-align:center;line-height:1.5;margin-bottom:24px;}
+.book-cover-img .cover-author{font-size:12px;font-weight:600;color:var(--text2);border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;width:100%;text-align:center;}
+.cover-badge{position:absolute;top:-14px;right:-14px;background:var(--lime);color:#1a3300;font-size:11px;font-weight:800;padding:6px 14px;border-radius:20px;letter-spacing:.04em;}
+.book-info .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;}
+.book-info h1{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;line-height:1.0;margin-bottom:14px;color:var(--text);}
+.book-info .subtitle{font-size:18px;color:var(--text2);margin-bottom:24px;line-height:1.5;}
+.book-info .author-line{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.author-avatar{width:44px;height:44px;border-radius:50%;background:var(--limedim);border:2px solid var(--limeborder);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.author-meta{font-size:13px;}
+.author-meta strong{color:var(--text);display:block;}
+.author-meta span{color:var(--text2);}
+.buy-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+.btn-buy{display:inline-flex;align-items:center;gap:8px;background:var(--lime);color:#1a3300;font-size:14px;font-weight:800;padding:13px 28px;border-radius:10px;text-decoration:none;transition:opacity .2s,transform .15s;font-family:'DM Sans',sans-serif;}
+.btn-buy:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+.btn-buy-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text);font-size:14px;font-weight:600;padding:12px 24px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);text-decoration:none;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.btn-buy-ghost:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.social-proof{font-size:13px;color:var(--text2);}
+.social-proof span{color:var(--gold);}
+
+/* WHAT'S INSIDE */
+.section{max-width:1100px;margin:0 auto;padding:0 40px 72px;}
+.section-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;}
+.section h2{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;margin-bottom:32px;line-height:1.05;}
+.chapters{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.chapter-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:22px 24px;transition:border-color .2s;}
+.chapter-card:hover{border-color:rgba(170,255,62,0.2);}
+.ch-num{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;color:var(--lime);text-transform:uppercase;margin-bottom:8px;}
+.chapter-card h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:8px;}
+.chapter-card p{font-size:13px;color:var(--text2);line-height:1.65;}
+
+/* REVIEWS */
+.reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:48px;}
+.review-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:24px;}
+.review-stars{font-size:14px;color:var(--gold);margin-bottom:10px;}
+.review-text{font-size:14px;color:#c8d4e6;line-height:1.7;margin-bottom:12px;font-style:italic;}
+.review-author{font-size:12px;color:var(--text2);font-weight:600;}
+
+/* AUTHOR */
+.author-section{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:40px 44px;display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;margin-bottom:72px;}
+.author-photo{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.2),rgba(170,255,62,0.05));border:2px solid var(--limeborder);display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0;}
+.author-section h3{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;margin-bottom:6px;}
+.author-section .title{font-size:13px;color:var(--lime);font-weight:700;margin-bottom:14px;}
+.author-section p{font-size:14px;color:#c8d4e6;line-height:1.8;}
+
+/* CTA BOTTOM */
+.book-cta{background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.18);border-radius:16px;padding:48px;text-align:center;margin-bottom:72px;}
+.book-cta h2{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;margin-bottom:12px;}
+.book-cta p{font-size:15px;color:var(--text2);max-width:480px;margin:0 auto 28px;}
+
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-copy{font-size:13px;color:var(--text2);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+@media(max-width:900px){
+  .book-hero{grid-template-columns:1fr;gap:40px;padding:48px 20px;}
+  .book-cover-img{max-width:220px;}
+  .book-info h1{font-size:38px;}
+  .chapters{grid-template-columns:1fr;}
+  .reviews{grid-template-columns:1fr;}
+  .author-section{grid-template-columns:1fr;padding:28px 24px;}
+  .section{padding:0 20px 48px;}
+  .book-cta{padding:32px 20px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+  .nav-links{display:none;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg></div>
+    <div>
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="support.html">Support</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="book-hero">
+  <div class="book-cover">
+    <div class="cover-badge">New Release</div>
+    <div class="book-cover-img">
+      <div class="cover-eyebrow">EconSquad AI</div>
+      <div class="cover-title">The ED Pro's AI Playbook</div>
+      <div class="cover-sub">Less Work. More Impact. A practical guide to AI for economic developers.</div>
+      <div class="cover-author">By Eric Kleinsorge</div>
+    </div>
+  </div>
+
+  <div class="book-info">
+    <div class="eyebrow">📖 Now Available</div>
+    <h1>The ED Pro's<br>AI Playbook</h1>
+    <p class="subtitle">A practical, no-hype guide to using AI in economic development — from grant writing to site selection to BRE surveys. Written by an ED professional who built the tools.</p>
+
+    <div class="author-line">
+      <div class="author-avatar">🏙️</div>
+      <div class="author-meta">
+        <strong>Eric Kleinsorge</strong>
+        <span>Economic Developer · Founder, EconSquad AI</span>
+      </div>
+    </div>
+
+    <div class="buy-row">
+      <a href="#order" class="btn-buy">📦 Order Your Copy →</a>
+      <a href="#preview" class="btn-buy-ghost">📄 Read a Free Chapter</a>
+    </div>
+    <div class="social-proof"><span>★★★★★</span> &nbsp;Loved by ED professionals across the country</div>
+  </div>
+</div>
+
+<!-- WHAT'S INSIDE -->
+<div class="section">
+  <div class="section-eyebrow">What's Inside</div>
+  <h2>Everything you need to put AI<br>to work in your ED office.</h2>
+  <div class="chapters">
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 1</div>
+      <h3>Why AI Is Different for ED</h3>
+      <p>Why generic AI tools fall short for economic developers — and what to look for instead. The mindset shift that makes everything click.</p>
+    </div>
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 2</div>
+      <h3>Your First Week: The 3 Tasks to Automate</h3>
+      <p>Grant narratives, RFI responses, inbox triage. The three workflows that pay back their setup time in the first week.</p>
+    </div>
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 3</div>
+      <h3>Grant Writing at AI Speed</h3>
+      <p>How to go from blank page to 70% draft in under two hours. Building your reusable community data library. Writing needs statements that don't sound generic.</p>
+    </div>
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 4</div>
+      <h3>Site Selection in the AI Era</h3>
+      <p>Responding to RFIs faster, building a competitive data room, and making your community stand out before the site visit.</p>
+    </div>
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 5</div>
+      <h3>BRE Surveys That Actually Lead to Action</h3>
+      <p>Designing surveys that get responses, using AI to identify at-risk businesses, and turning data into a retention action plan.</p>
+    </div>
+    <div class="chapter-card">
+      <div class="ch-num">Chapter 6</div>
+      <h3>Building Your AI-Powered ED Office</h3>
+      <p>Creating a sustainable AI workflow for your team, managing the learning curve, and staying ahead as the tools evolve.</p>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEWS -->
+<div class="section">
+  <div class="section-eyebrow">What ED Professionals Are Saying</div>
+  <h2>Real results from the field.</h2>
+  <div class="reviews">
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"This is the book I've been waiting for. Practical, specific, and written by someone who actually does this work. Not another generic AI hype book."</p>
+      <div class="review-author">Economic Development Director, Midwest</div>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"I read Chapter 3 on a Monday and had a complete first draft of our EDA narrative by Wednesday. Game changer for a small staff organization."</p>
+      <div class="review-author">EDO Executive Director, Rural Southeast</div>
+    </div>
+    <div class="review-card">
+      <div class="review-stars">★★★★★</div>
+      <p class="review-text">"Required reading for every ED professional on my team. Finally something that speaks our language and solves our actual problems."</p>
+      <div class="review-author">State Development Agency Director</div>
+    </div>
+  </div>
+</div>
+
+<!-- AUTHOR -->
+<div class="section">
+  <div class="author-section">
+    <div class="author-photo">🏙️</div>
+    <div>
+      <h3>About the Author</h3>
+      <div class="title">Eric Kleinsorge · Economic Developer & Founder, EconSquad AI</div>
+      <p>Eric has spent years working in economic development — writing grants, responding to RFIs, running BRE programs, and trying to do more with less. After seeing firsthand how AI could transform the day-to-day work of ED professionals, he built EconSquad AI and wrote this book to share what he learned. This isn't a technology book. It's a practitioner's guide written by someone who lives in the same spreadsheets and grant portals you do.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER SECTION -->
+<div class="section" id="order">
+  <div class="section-eyebrow">Order Your Copy</div>
+  <h2>Choose how you want to read it.</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:40px;">
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;text-align:center;">
+      <div style="font-size:36px;margin-bottom:14px;">📱</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Digital Edition</div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$19.99</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Instant download · PDF + ePub</div>
+      <!-- REPLACE THIS HREF WITH YOUR STRIPE PAYMENT LINK -->
+      <a href="#" class="btn-buy" style="width:100%;justify-content:center;">Buy Digital →</a>
+    </div>
+    <div style="background:rgba(170,255,62,0.06);border:2px solid rgba(170,255,62,0.3);border-radius:14px;padding:28px;text-align:center;position:relative;">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lime);color:#1a3300;font-size:11px;font-weight:800;padding:4px 16px;border-radius:20px;">Most Popular</div>
+      <div style="font-size:36px;margin-bottom:14px;">📚</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Hardcover + Digital</div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$39.99</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Signed copy + instant digital access</div>
+      <!-- REPLACE THIS HREF WITH YOUR STRIPE PAYMENT LINK -->
+      <a href="#" class="btn-buy" style="width:100%;justify-content:center;">Order Hardcover →</a>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:28px;text-align:center;">
+      <div style="font-size:36px;margin-bottom:14px;">🏢</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;margin-bottom:6px;">Team Order (10+)</div>
+      <div style="font-size:28px;font-weight:800;color:var(--lime);margin-bottom:6px;">$24.99<span style="font-size:14px;color:var(--text2);">/copy</span></div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Bulk discount · Digital licenses</div>
+      <a href="contact.html" class="btn-buy-ghost" style="width:100%;justify-content:center;">Contact Us →</a>
+    </div>
+  </div>
+  <p style="font-size:13px;color:var(--text2);text-align:center;">Secure checkout via Stripe · Instant digital delivery · Hardcovers ship within 3–5 business days</p>
+</div>
+
+<!-- FREE CHAPTER -->
+<div class="section" id="preview">
+  <div class="book-cta">
+    <h2>Read Chapter 1 Free</h2>
+    <p>Get a feel for the book before you buy. No email required — just start reading.</p>
+    <!-- REPLACE WITH LINK TO FREE CHAPTER PDF OR PAGE -->
+    <a href="#" class="btn-buy">Read Chapter 1 →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <div class="logo-icon" style="width:30px;height:30px;"><svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg></div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;"><span style="color:#fff;">Econ</span><span style="color:var(--lime);">Squad</span><sup style="font-size:11px;color:#fff;vertical-align:super;">AI</sup></span>
+    </a>
+    <p class="footer-copy">© 2026 EconSquad AI · All rights reserved</p>
+    <div class="footer-links">
+      <a href="shop.html">Shop</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth-nav.js?v=3"></script>
+</body>
+</html>

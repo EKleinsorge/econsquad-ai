@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop — EconSquad AI</title>
+<meta name="description" content="Official EconSquad AI merch. Rep the tools that do the work.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:38px;height:38px;background:var(--lime);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}.logo-text .squad{color:var(--lime);}
+.logo-text .ai-sup{color:#fff;font-size:14px;font-weight:700;vertical-align:super;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+.page-hero{padding:60px 40px 48px;max-width:1100px;margin:0 auto;}
+.page-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;}
+.page-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:900;line-height:1.0;margin-bottom:14px;}
+.page-hero p{font-size:16px;color:var(--text2);max-width:500px;}
+
+.shop-wrap{max-width:1100px;margin:0 auto;padding:0 40px 80px;}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:8px;margin-bottom:32px;flex-wrap:wrap;}
+.filter-tab{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--text2);font-size:13px;font-weight:600;padding:7px 18px;border-radius:20px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.filter-tab:hover,.filter-tab.active{background:var(--limedim);border-color:var(--limeborder);color:var(--lime);}
+
+/* PRODUCT GRID */
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:24px;}
+.product-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s;display:flex;flex-direction:column;}
+.product-card:hover{border-color:rgba(170,255,62,0.25);transform:translateY(-3px);}
+.product-img{aspect-ratio:1;background:linear-gradient(135deg,#0d1220,#1a2540);display:flex;align-items:center;justify-content:center;font-size:64px;position:relative;}
+.product-badge{position:absolute;top:12px;left:12px;background:var(--lime);color:#1a3300;font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.04em;}
+.product-info{padding:20px;flex:1;display:flex;flex-direction:column;}
+.product-category{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
+.product-name{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;line-height:1.1;}
+.product-desc{font-size:13px;color:var(--text2);line-height:1.6;flex:1;margin-bottom:16px;}
+.product-footer{display:flex;align-items:center;justify-content:space-between;}
+.product-price{font-size:22px;font-weight:800;color:var(--lime);}
+.btn-add{background:var(--lime);color:#1a3300;font-size:13px;font-weight:800;padding:9px 20px;border-radius:8px;text-decoration:none;transition:opacity .2s;display:inline-flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;}
+.btn-add:hover{opacity:.85;text-decoration:none;}
+
+/* COMING SOON card */
+.product-card.coming-soon .product-img{opacity:.5;}
+.product-card.coming-soon .btn-add{background:rgba(255,255,255,0.08);color:var(--text2);pointer-events:none;}
+
+/* BUNDLE */
+.bundle-banner{background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:14px;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:48px;flex-wrap:wrap;}
+.bundle-banner h3{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;margin-bottom:6px;}
+.bundle-banner p{font-size:14px;color:var(--text2);}
+
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-copy{font-size:13px;color:var(--text2);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .page-hero{padding:40px 20px 32px;}
+  .page-hero h1{font-size:40px;}
+  .shop-wrap{padding:0 20px 60px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+  .bundle-banner{padding:24px 20px;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".4"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg></div>
+    <div>
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span><sup class="ai-sup">AI</sup></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="book.html">Book</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="support.html">Support</a></li>
+  </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign In</a>
+    <a href="index.html" class="btn-lime">Start Free Trial</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="eyebrow">🛍️ Official Merch</div>
+  <h1>Rep the Squad.</h1>
+  <p>Quality gear for economic developers who get things done. Every item ships via print-on-demand — no minimums, no inventory.</p>
+</div>
+
+<div class="shop-wrap">
+
+  <!-- Bundle Banner -->
+  <div class="bundle-banner">
+    <div>
+      <h3>🎁 The Starter Bundle</h3>
+      <p>Tee + Mug + Notebook — everything you need to look the part at your next EDC conference.</p>
+    </div>
+    <!-- REPLACE HREF WITH YOUR STRIPE PAYMENT LINK FOR BUNDLE -->
+    <a href="#" class="btn-lime" style="font-size:14px;padding:12px 28px;white-space:nowrap;">Get the Bundle · $54.99 →</a>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <button class="filter-tab active" onclick="filterProducts('all',this)">All Items</button>
+    <button class="filter-tab" onclick="filterProducts('apparel',this)">Apparel</button>
+    <button class="filter-tab" onclick="filterProducts('drinkware',this)">Drinkware</button>
+    <button class="filter-tab" onclick="filterProducts('accessories',this)">Accessories</button>
+  </div>
+
+  <!-- Product Grid -->
+  <div class="product-grid" id="product-grid">
+
+    <div class="product-card" data-cat="apparel">
+      <div class="product-img">
+        👕
+        <div class="product-badge">Best Seller</div>
+      </div>
+      <div class="product-info">
+        <div class="product-category">Apparel</div>
+        <div class="product-name">Less Work. More Impact. Tee</div>
+        <div class="product-desc">Soft, unisex crew tee. The EconSquad AI logo on front, "Less Work. More Impact." on back. Sizes S–3XL.</div>
+        <div class="product-footer">
+          <div class="product-price">$28.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="apparel">
+      <div class="product-img">🧢</div>
+      <div class="product-info">
+        <div class="product-category">Apparel</div>
+        <div class="product-name">EconSquad AI Hat</div>
+        <div class="product-desc">Structured snapback. Embroidered EconSquad AI logo in lime green on black. One size fits most.</div>
+        <div class="product-footer">
+          <div class="product-price">$26.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="apparel">
+      <div class="product-img">🧥</div>
+      <div class="product-info">
+        <div class="product-category">Apparel</div>
+        <div class="product-name">Squad Hoodie</div>
+        <div class="product-desc">Heavyweight pullover hoodie. Front pocket. EconSquad AI logo embroidered on chest. Sizes S–3XL.</div>
+        <div class="product-footer">
+          <div class="product-price">$48.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="drinkware">
+      <div class="product-img">
+        ☕
+        <div class="product-badge">Fan Favorite</div>
+      </div>
+      <div class="product-info">
+        <div class="product-category">Drinkware</div>
+        <div class="product-name">ED Fuel Mug</div>
+        <div class="product-desc">11oz ceramic mug. "Fueled by Data & Coffee" on one side, EconSquad AI logo on the other. Dishwasher safe.</div>
+        <div class="product-footer">
+          <div class="product-price">$16.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="drinkware">
+      <div class="product-img">🥤</div>
+      <div class="product-info">
+        <div class="product-category">Drinkware</div>
+        <div class="product-name">Insulated Tumbler</div>
+        <div class="product-desc">20oz stainless steel tumbler. Double-wall insulated. EconSquad AI logo laser engraved. Keeps drinks cold 24hrs, hot 12hrs.</div>
+        <div class="product-footer">
+          <div class="product-price">$34.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="accessories">
+      <div class="product-img">📓</div>
+      <div class="product-info">
+        <div class="product-category">Accessories</div>
+        <div class="product-name">ED Pro Notebook</div>
+        <div class="product-desc">Wire-bound, 120 pages. "Less Work. More Impact." on the cover. Perfect for site visits, BRE surveys, and strategy sessions.</div>
+        <div class="product-footer">
+          <div class="product-price">$14.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card" data-cat="accessories">
+      <div class="product-img">🖊️</div>
+      <div class="product-info">
+        <div class="product-category">Accessories</div>
+        <div class="product-name">Squad Pen Set</div>
+        <div class="product-desc">Set of 3 premium ballpoint pens. EconSquad AI branding. Great for signing MOUs, grant applications, and site visit forms.</div>
+        <div class="product-footer">
+          <div class="product-price">$12.99</div>
+          <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
+          <a href="#" class="btn-add">Add to Cart →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="product-card coming-soon" data-cat="accessories">
+      <div class="product-img">🧲</div>
+      <div class="product-info">
+        <div class="product-category">Accessories</div>
+        <div class="product-name">Sticker Pack</div>
+        <div class="product-desc">6-pack of die-cut EconSquad AI stickers. Laptop-ready. Weather resistant. Coming soon.</div>
+        <div class="product-footer">
+          <div class="product-price" style="color:var(--text2);">Coming Soon</div>
+          <a href="#" class="btn-add">Notify Me</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <div class="logo-icon" style="width:30px;height:30px;"><svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg></div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;"><span style="color:#fff;">Econ</span><span style="color:var(--lime);">Squad</span><sup style="font-size:11px;color:#fff;vertical-align:super;">AI</sup></span>
+    </a>
+    <p class="footer-copy">© 2026 EconSquad AI · All rights reserved</p>
+    <div class="footer-links">
+      <a href="book.html">Book</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+function filterProducts(cat, btn) {
+  document.querySelectorAll('.filter-tab').forEach(function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.product-card').forEach(function(card) {
+    card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+  });
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth-nav.js?v=3"></script>
+</body>
+</html>
