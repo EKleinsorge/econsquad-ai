@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Monday AI for ED Drop — Issue #1: Your First Week with AI — EconSquad AI</title>
-<meta name="description" content="Welcome to the Monday AI for ED Drop. This week: getting your AI workflow set up, the 3 tasks to automate first, and a spotlight on Riley the Grant Writer.">
+<title>The Monday AI for ED Drop — Issue #1: Make Your Data Work Smarter This Site Visit Season — EconSquad AI</title>
+<meta name="description" content="May is when site selection season kicks into high gear. You're fielding RFIs, prepping data rooms, and racing to respond before consultants move on to the next ">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,11 +39,8 @@ a:hover{text-decoration:underline;}
 .btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
 .btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
 .btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
-
-/* SERIES BANNER */
 .series-banner{background:rgba(170,255,62,0.07);border-bottom:1px solid rgba(170,255,62,0.15);padding:10px 40px;text-align:center;}
 .series-banner span{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);}
-
 .article-wrap{max-width:700px;margin:0 auto;padding:0 40px 80px;}
 .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--text2);font-size:13px;font-weight:500;margin:32px 0 0;text-decoration:none;transition:color .2s;}
 .back-link:hover{color:var(--lime);text-decoration:none;}
@@ -53,34 +50,28 @@ a:hover{text-decoration:underline;}
 .article-meta{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:28px;border-bottom:1px solid rgba(255,255,255,0.08);}
 .article-meta .date{font-size:14px;color:var(--text2);}
 .article-meta .readtime{font-size:12px;color:var(--text2);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:3px 12px;}
-
 .article-body{padding-top:32px;}
 .article-body p{font-size:16px;color:#c8d4e6;line-height:1.85;margin-bottom:20px;}
 .article-body h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#eef1f7;margin:36px 0 14px;line-height:1.1;}
-.article-body ul{color:#c8d4e6;line-height:1.85;padding-left:20px;margin-bottom:20px;}
-.article-body ul li{margin-bottom:8px;}
-
+.article-body ul,.article-body ol{color:#c8d4e6;line-height:1.85;padding-left:20px;margin-bottom:20px;}
+.article-body ul li,.article-body ol li{margin-bottom:8px;}
 .tip-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:22px 24px;margin:20px 0;}
 .tip-card .tip-num{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);margin-bottom:8px;}
 .tip-card h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--text);margin-bottom:10px;}
 .tip-card p{font-size:15px;color:#c8d4e6;line-height:1.8;margin-bottom:0;}
-
-.spotlight{background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:var(--r);padding:28px 28px;margin:32px 0;}
+.spotlight{background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:var(--r);padding:28px;margin:32px 0;}
 .spotlight .spotlight-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--lime);margin-bottom:12px;}
 .spotlight h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:12px;}
 .spotlight p{font-size:15px;color:#c8d4e6;line-height:1.8;margin-bottom:12px;}
 .spotlight p:last-child{margin-bottom:0;}
-
 .quote-block{background:rgba(255,255,255,0.02);border-left:3px solid var(--lime);padding:20px 24px;margin:32px 0;border-radius:0 8px 8px 0;}
 .quote-block blockquote{font-size:17px;color:var(--text);line-height:1.75;font-style:italic;margin-bottom:8px;}
 .quote-block .quote-source{font-size:13px;color:var(--text2);}
-
 .cta-block{background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:var(--r);padding:32px;text-align:center;margin:40px 0;}
 .cta-block h2{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;margin-bottom:10px;}
 .cta-block p{font-size:15px;color:var(--text2);margin-bottom:20px;}
 .cta-block a{display:inline-flex;align-items:center;gap:6px;background:var(--lime);color:#1a3300;font-size:14px;font-weight:800;padding:12px 28px;border-radius:8px;text-decoration:none;transition:opacity .2s,transform .15s;}
 .cta-block a:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
-
 footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
 .footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
 .footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
@@ -130,11 +121,11 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 
 <div class="article-wrap">
 
-  <a href="blog.html" class="back-link">← Back to Blog</a>
+  <a href="blog.html" class="back-link">&larr; Back to Blog</a>
 
   <div class="article-hero">
     <div class="issue-badge">&#9889; Issue #1 &nbsp;&middot;&nbsp; May 12, 2026</div>
-    <h1>The Monday AI for ED Drop — Issue #1: Your First Week with AI</h1>
+    <h1>The Monday AI for ED Drop — Issue #1: Make Your Data Work Smarter This Site Visit Season</h1>
     <div class="article-meta">
       <span class="date">May 12, 2026</span>
       <span class="readtime">4 min read</span>
@@ -143,56 +134,46 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
 
   <div class="article-body">
 
-    <p>Welcome to the Monday AI for ED Drop — a weekly digest of practical AI insights, tips, and tools for economic development professionals. No hype, no fluff, just what's actually useful in your workday. Each week I'll share a few actionable ideas and a spotlight on a tool or feature worth knowing about.</p>
+    <p>May is when site selection season kicks into high gear. You're fielding RFIs, prepping data rooms, and racing to respond before consultants move on to the next community. This week, we're focusing on three ways AI can turn your raw data into compelling packages—faster and with less stress.</p>
 
-    <p>Let's start at the beginning: if you're new to using AI in your ED work, the biggest mistake is trying to do everything at once. Pick one thing. Get good at it. Then expand. Here's how to set up your first week.</p>
-
-    <h2>This Week's Tips</h2>
+    <h2>This Week&#39;s Tips</h2>
 
     <div class="tip-card">
       <div class="tip-num">Tip 1</div>
-      <h3>The 3 Tasks ED Pros Should Automate First</h3>
-      <p>Not all ED tasks are equal for AI assistance. Start where the ROI is highest: <strong>grant narrative drafts</strong> (AI can produce a solid 70% draft in minutes — you add the community specifics), <strong>BRE follow-up emails</strong> (AI drafts a personalized follow-up based on each business's survey responses), and <strong>site selection summaries</strong> (AI synthesizes your community's data into a prospect-ready summary). These three tasks alone can save 8–12 hours per week for a typical ED professional. Master them first before expanding to other workflows.</p>
+      <h3>Stop Rebuilding Data Packages From Scratch</h3>
+      <p>Every RFI asks for slightly different data cuts: workforce within 30 miles, demographics within 45 minutes, labor costs by occupation. Instead of rebuilding Excel files each time, create a master prompt template that pulls from your existing datasets. Upload your most recent labor market report, demographic summary, and wage data to your AI tool's knowledge base once. Then craft a reusable prompt: 'Using the uploaded files, create a workforce profile for [radius] around [address] including population, labor force participation, top occupations, and average wages. Format as a two-page executive summary.' Adjust the bracketed variables for each inquiry. You'll cut response time from hours to minutes, and your team can focus on the narrative that sells your community, not wrestling with spreadsheets. Test this with your three most common data requests this week.</p>
     </div>
-
     <div class="tip-card">
       <div class="tip-num">Tip 2</div>
-      <h3>How to Prompt AI Effectively for ED Work</h3>
-      <p>The single biggest factor in AI output quality is prompt quality. Vague prompts get vague results. The formula that works best for ED tasks: <strong>Role + Context + Task + Format</strong>. Example: "You are an economic development grant writer. My community is [community name], a rural county of 24,000 in central Ohio with 14.2% unemployment and a growing manufacturing sector. Write the need statement section (300–400 words) for a CDBG Economic Development application focused on workforce training for advanced manufacturing. Use a direct, data-driven tone." That level of specificity consistently produces usable output on the first try.</p>
+      <h3>Turn Building Specs Into Consultant-Ready Narratives</h3>
+      <p>Site selectors don't want raw specs—they want to understand what makes a property work for their client. When you receive a new listing or update existing inventory, feed the basics into your AI tool: square footage, power capacity, rail access, zoning, asking price. Then prompt: 'Create a 150-word property description highlighting strengths for advanced manufacturing prospects. Emphasize infrastructure capacity and proximity to workforce.' The AI will craft compelling copy you can edit for accuracy and local flavor. This works especially well for properties that have been sitting in your CRM as bullet points for months. Bonus: use the same approach for site comparison matrices. Prompt the AI to create a side-by-side analysis of three properties against specific project criteria. What used to take a full afternoon becomes a 15-minute review and refinement task.</p>
     </div>
-
     <div class="tip-card">
       <div class="tip-num">Tip 3</div>
-      <h3>Build Your Community Data Cheat Sheet</h3>
-      <p>Before you can use AI effectively for your community, you need to be able to give it your community's key facts quickly. Spend 30 minutes this week building a simple reference document: population, county/city, unemployment rate, major employers (top 5), key industries, latest BLS wage medians for your primary sectors, any active incentive programs, and your elevator pitch. Paste this into every AI session as context. It will immediately improve every output you get.</p>
-    </div>
-
-    <div class="tip-card">
-      <div class="tip-num">Tip 4</div>
-      <h3>Don't Publish Without Reading</h3>
-      <p>AI tools can produce confident-sounding errors — wrong statistics, plausible-but-false claims, outdated program names. The rule is simple: everything AI drafts goes through your eyes before it goes out the door. For grant applications, verify every data point. For prospect materials, confirm every program detail. Think of AI as a very fast first-draft writer who needs a sharp editor. You're the editor. That's still your most important job.</p>
+      <h3>Pre-Build Your RFI Response Library</h3>
+      <p>Most RFIs ask variations of the same 30 questions: workforce availability, utility rates, tax structure, quality of life, education pipeline. This month, spend two hours building an AI-assisted response library. List your 25 most common RFI questions. For each one, draft a thorough answer with current data, then store it in a shared document or knowledge base. When an RFI arrives, prompt your AI: 'Using the RFI response library, draft answers to questions 3, 7, 12, and 18 from this new request. Adjust for a logistics company seeking 200,000 SF.' The AI pulls your vetted content and tailors it to the specific inquiry. You're not automating accuracy—you're automating the tedious assembly work. Your team reviews for current details and adds the human touches that showcase your community's personality. By June, you'll wonder how you ever responded without this system.</p>
     </div>
 
     <div class="spotlight">
       <div class="spotlight-label">&#9733; EconSquad AI Spotlight</div>
-      <h2>Riley the Grant Writer</h2>
-      <p>If you're starting with EconSquad AI, start with Riley. Riley is the Grant Writer specialist — purpose-built for economic development grant applications, with deep familiarity with CDBG, EDA, USDA RBEG, HUD, and a growing library of state grant programs.</p>
-      <p>What makes Riley different from a general AI tool: Riley knows the structural requirements of ED grant applications, understands funder language and priorities, and is trained to ask clarifying questions when it needs community specifics before drafting. You don't need to figure out how to prompt it — Riley guides the conversation.</p>
-      <p>Try it on your next grant deadline. Give Riley the RFP, your community context, and a brief program description. You'll have a working draft of the needs statement and goals sections in under 10 minutes.</p>
+      <h2>Your RFI Response Co-Pilot</h2>
+      <p>The Site Selection Pack in EconSquad AI is built specifically for the data-intensive work of responding to location inquiries. Upload your community profile, recent studies, and property inventory once. When an RFI lands, the Pack helps you generate customized data summaries, comparison matrices, and narrative responses that speak directly to the prospect's needs—manufacturing, logistics, corporate office, whatever the sector.</p>
+      <p>What makes it practical: it's not writing your responses from thin air. It's reorganizing your good local data into formats that consultants actually want to read. You maintain control over accuracy while eliminating hours of formatting and assembly work. One Ohio EDO director told us she cut her average RFI response time from six hours to ninety minutes, and the quality improved because she could spend that saved time on relationship-building calls instead of spreadsheet gymnastics.</p>
+      <p>The Pack also helps you spot gaps in your data inventory. When it can't answer a question, that's your signal to go gather that information for next time.</p>
     </div>
 
     <div class="quote-block">
-      <blockquote>"The first time I used AI to draft a grant narrative, I expected garbage. What I got was 80% of a real draft that I spent an hour improving. I've since used it on every grant. I don't know how I did this job without it."</blockquote>
-      <div class="quote-source">— ED Director, rural Midwest community</div>
+      <blockquote>&ldquo;We were drowning in RFIs last spring. The Site Selection Pack didn't make us lazy—it made us faster and more thorough. I could respond to three inquiries in the time it used to take for one, and I wasn't cutting corners. I was just not reinventing the wheel every single time.&rdquo;</blockquote>
+      <div class="quote-source">&mdash; Business Development Manager, mid-sized Southern metro</div>
     </div>
 
     <div class="cta-block">
-      <h2>Ready to try it yourself?</h2>
-      <p>Start your free EconSquad AI trial — no credit card required. Meet Riley and your full AI team in minutes.</p>
-      <a href="index.html">Start Your Free Trial →</a>
+      <h2>Ready to Speed Up Your RFI Game?</h2>
+      <p>Try EconSquad AI free for 14 days and see how the Site Selection Pack handles your next inquiry.</p>
+      <a href="index.html">Start Free Trial &rarr;</a>
     </div>
 
-    <p style="font-size:14px;color:var(--text2);text-align:center;">See you next Monday. Forward this to an ED colleague who's been curious about AI.</p>
+    <p style="font-size:14px;color:var(--text2);text-align:center;">Here's to shorter turnarounds and more wins this site season.</p>
 
   </div>
 
