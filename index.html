@@ -732,11 +732,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .ob-back:hover{color:#eef3fc;}
 .ob-step-label{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:8px;}
 /* Tour spotlight */
-#tour-overlay{position:fixed;inset:0;z-index:99997;pointer-events:none;}
-#tour-overlay.active{pointer-events:auto;}
-#tour-dim{position:absolute;inset:0;background:rgba(4,5,13,0.78);}
-#tour-highlight{position:absolute;border:2px solid rgba(170,255,62,0.8);border-radius:10px;box-shadow:0 0 0 4000px rgba(4,5,13,0.75),0 0 24px rgba(170,255,62,0.4);transition:all .35s cubic-bezier(.4,0,.2,1);z-index:1;}
-#tour-tooltip{position:absolute;background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.25);border-radius:14px;padding:18px 20px;width:280px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:2;transition:all .35s cubic-bezier(.4,0,.2,1);}
+#tour-overlay{position:fixed;inset:0;z-index:99997;pointer-events:none;display:none;}
+#tour-overlay.active{display:block;}
+#tour-dim{position:absolute;inset:0;background:rgba(4,5,13,0.78);pointer-events:none;}
+#tour-highlight{position:absolute;border:2px solid rgba(170,255,62,0.8);border-radius:10px;box-shadow:0 0 0 4000px rgba(4,5,13,0.75),0 0 24px rgba(170,255,62,0.4);transition:all .35s cubic-bezier(.4,0,.2,1);z-index:1;pointer-events:none;}
+#tour-tooltip{position:absolute;background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.25);border-radius:14px;padding:18px 20px;width:280px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:2;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:auto;}
 .tt-step{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
 .tt-icon{font-size:24px;margin-bottom:6px;}
 .tt-title{font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:6px;}
@@ -2104,7 +2104,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 </div>
 
 <!-- ═══════════════ TOUR SPOTLIGHT ═══════════════ -->
-<div id="tour-overlay">
+<div id="tour-overlay" style="display:none;">
   <div id="tour-dim"></div>
   <div id="tour-highlight"></div>
   <div id="tour-tooltip">
@@ -5259,8 +5259,8 @@ function showTourStep(idx){
   /* Switch to the right tab if needed */
   if(step.tab) showDashTab(step.tab, null);
 
-  overlay.classList.add('active');
   overlay.style.display = 'block';
+  overlay.classList.add('active');
 
   /* Update tooltip content */
   document.getElementById('tt-step-label').textContent = 'Step '+(idx+1)+' of '+TOUR_STEPS.length;
@@ -5318,7 +5318,7 @@ function prevTourStep(){
 
 function endTour(){
   var overlay = document.getElementById('tour-overlay');
-  if(overlay){ overlay.style.display='none'; overlay.classList.remove('active'); }
+  if(overlay){ overlay.classList.remove('active'); overlay.style.display='none'; }
   var dontShow = document.getElementById('tour-dont-show');
   if(dontShow && dontShow.checked){
     localStorage.setItem(ONBOARDING_KEY,'1');
