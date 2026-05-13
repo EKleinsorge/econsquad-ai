@@ -5276,9 +5276,11 @@ function obStartTour(){
 
 /* ── Card cycle animation ── */
 var _cardCycleInterval = null;
+var _cardCycleRetry = null;
 var _cardCycleIdx = 0;
 function clearCardCycle(){
   if(_cardCycleInterval){ clearInterval(_cardCycleInterval); _cardCycleInterval = null; }
+  if(_cardCycleRetry){ clearTimeout(_cardCycleRetry); _cardCycleRetry = null; }
   document.querySelectorAll('.orb-card-dash').forEach(function(c){
     c.style.outline = ''; c.style.boxShadow = '';
     c.style.position = ''; c.style.zIndex = '';
@@ -5286,11 +5288,11 @@ function clearCardCycle(){
 }
 function startCardCycle(selector){
   clearCardCycle();
-  var cards = Array.from(document.querySelectorAll(selector));
-  if(!cards.length) return;
   _cardCycleIdx = 0;
+  /* Query cards fresh on every highlight tick so re-renders don't break cycling */
   function hl(i){
-    cards.forEach(function(c,j){
+    var live = document.querySelectorAll(selector);
+    live.forEach(function(c,j){
       if(j===i){
         c.style.outline = '2px solid rgba(170,255,62,0.9)';
         c.style.boxShadow = '0 0 22px rgba(170,255,62,0.6), 0 0 44px rgba(170,255,62,0.25)';
@@ -5304,9 +5306,15 @@ function startCardCycle(selector){
       }
     });
   }
+  /* If cards aren't rendered yet (async re-render in progress), retry shortly */
+  if(!document.querySelectorAll(selector).length){
+    _cardCycleRetry = setTimeout(function(){ startCardCycle(selector); }, 400);
+    return;
+  }
   hl(0);
   _cardCycleInterval = setInterval(function(){
-    _cardCycleIdx = (_cardCycleIdx + 1) % cards.length;
+    var n = document.querySelectorAll(selector).length;
+    if(n) _cardCycleIdx = (_cardCycleIdx + 1) % n;
     hl(_cardCycleIdx);
   }, 900);
 }
