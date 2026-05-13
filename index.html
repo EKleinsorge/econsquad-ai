@@ -734,8 +734,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 /* Tour spotlight */
 #tour-overlay{position:fixed;inset:0;z-index:99997;pointer-events:none;display:none;}
 #tour-overlay.active{display:block;}
-#tour-dim{position:absolute;inset:0;background:rgba(4,5,13,0.78);pointer-events:none;}
-#tour-highlight{position:absolute;border:2px solid rgba(170,255,62,0.8);border-radius:10px;box-shadow:0 0 0 4000px rgba(4,5,13,0.75),0 0 24px rgba(170,255,62,0.4);transition:all .35s cubic-bezier(.4,0,.2,1);z-index:1;pointer-events:none;}
+#tour-dim{position:absolute;inset:0;pointer-events:none;transition:background .4s ease;}
+#tour-highlight{position:absolute;border:2px solid rgba(170,255,62,0.7);border-radius:10px;box-shadow:0 0 20px rgba(170,255,62,0.35),0 0 6px rgba(170,255,62,0.6);transition:all .35s cubic-bezier(.4,0,.2,1);z-index:1;pointer-events:none;}
 #tour-tooltip{position:absolute;background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.25);border-radius:14px;padding:18px 20px;width:280px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:2;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:auto;}
 .tt-step{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
 .tt-icon{font-size:24px;margin-bottom:6px;}
@@ -5272,12 +5272,14 @@ function showTourStep(idx){
   var nextBtn = document.getElementById('tt-next-btn');
   nextBtn.textContent = idx === TOUR_STEPS.length-1 ? 'Finish ✓' : 'Next →';
 
-  /* Position highlight over target element */
+  /* Position highlight + spotlight over target element */
   setTimeout(function(){
+    var dim = document.getElementById('tour-dim');
     var targetEl = document.querySelector(step.target);
     if(!targetEl){
-      /* Target not visible — skip highlight, still show tooltip centered */
+      /* Target not visible — centered tooltip, full dark overlay */
       highlight.style.display = 'none';
+      if(dim) dim.style.background = 'rgba(4,5,13,0.88)';
       tooltip.style.top = '50%';
       tooltip.style.left = '50%';
       tooltip.style.transform = 'translate(-50%,-50%)';
@@ -5285,11 +5287,22 @@ function showTourStep(idx){
     }
     highlight.style.display = 'block';
     var r = targetEl.getBoundingClientRect();
-    var pad = 6;
+    var pad = 8;
     highlight.style.top    = (r.top - pad)+'px';
     highlight.style.left   = (r.left - pad)+'px';
     highlight.style.width  = (r.width + pad*2)+'px';
     highlight.style.height = (r.height + pad*2)+'px';
+
+    /* Spotlight: radial gradient centered on target, bright center → dark edges */
+    if(dim){
+      var cx = r.left + r.width/2;
+      var cy = r.top + r.height/2;
+      var spotW = Math.max(r.width * 2.2, 180);
+      var spotH = Math.max(r.height * 2.2, 180);
+      dim.style.background =
+        'radial-gradient(ellipse '+spotW+'px '+spotH+'px at '+cx+'px '+cy+'px, '+
+        'transparent 0%, transparent 35%, rgba(4,5,13,0.5) 55%, rgba(4,5,13,0.82) 70%, rgba(4,5,13,0.94) 100%)';
+    }
 
     /* Position tooltip below or above highlight */
     var tipW = 280, tipH = 200;
