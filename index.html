@@ -705,6 +705,58 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .badge-desc-sm{font-size:10px;color:#6b7a96;line-height:1.4;}
 .badge-earned-date{font-size:9px;color:#aaff3e;margin-top:4px;font-weight:700;}
 
+/* ===== ONBOARDING MODAL ===== */
+#onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
+.ob-box{background:rgba(10,13,26,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:40px 44px;max-width:560px;width:100%;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 60px rgba(170,255,62,0.04);position:relative;}
+.ob-aria-orb{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 38% 35%,rgba(170,255,62,0.9) 0%,rgba(80,200,20,0.7) 60%,rgba(40,120,10,0.5) 100%);box-shadow:0 0 24px rgba(170,255,62,0.5),inset 0 2px 4px rgba(255,255,255,0.3);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.ob-title{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;color:#eef3fc;text-align:center;margin-bottom:10px;line-height:1.1;}
+.ob-subtitle{font-size:14px;color:#8a97b5;text-align:center;line-height:1.6;margin-bottom:28px;}
+.ob-path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.ob-path-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s;}
+.ob-path-card:hover{border-color:rgba(170,255,62,0.4);background:rgba(170,255,62,0.05);transform:translateY(-2px);}
+.ob-path-icon{font-size:28px;margin-bottom:10px;}
+.ob-path-label{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#eef3fc;margin-bottom:4px;}
+.ob-path-desc{font-size:11px;color:#6b7a96;line-height:1.4;}
+.ob-qs-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;}
+.ob-qs-card{display:flex;align-items:flex-start;gap:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;}
+.ob-qs-icon{font-size:26px;flex-shrink:0;margin-top:2px;}
+.ob-qs-title{font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#eef3fc;margin-bottom:3px;}
+.ob-qs-desc{font-size:12px;color:#8a97b5;line-height:1.5;}
+.ob-footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.06);}
+.ob-dont-show{display:flex;align-items:center;gap:7px;font-size:12px;color:#6b7a96;cursor:pointer;}
+.ob-dont-show input{accent-color:#aaff3e;cursor:pointer;}
+.ob-skip{font-size:12px;color:#6b7a96;background:none;border:none;cursor:pointer;transition:color .2s;}
+.ob-skip:hover{color:#eef3fc;}
+.ob-btn{background:var(--lime);color:#1a3300;border:none;font-size:14px;font-weight:800;padding:11px 28px;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s;width:100%;margin-bottom:14px;}
+.ob-btn:hover{opacity:.88;}
+.ob-back{background:none;border:none;color:#6b7a96;font-size:12px;cursor:pointer;margin-bottom:10px;padding:0;}
+.ob-back:hover{color:#eef3fc;}
+.ob-step-label{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:8px;}
+/* Tour spotlight */
+#tour-overlay{position:fixed;inset:0;z-index:99997;pointer-events:none;}
+#tour-overlay.active{pointer-events:auto;}
+#tour-dim{position:absolute;inset:0;background:rgba(4,5,13,0.78);}
+#tour-highlight{position:absolute;border:2px solid rgba(170,255,62,0.8);border-radius:10px;box-shadow:0 0 0 4000px rgba(4,5,13,0.75),0 0 24px rgba(170,255,62,0.4);transition:all .35s cubic-bezier(.4,0,.2,1);z-index:1;}
+#tour-tooltip{position:absolute;background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.25);border-radius:14px;padding:18px 20px;width:280px;box-shadow:0 16px 40px rgba(0,0,0,0.5);z-index:2;transition:all .35s cubic-bezier(.4,0,.2,1);}
+.tt-step{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.tt-icon{font-size:24px;margin-bottom:6px;}
+.tt-title{font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:6px;}
+.tt-desc{font-size:12px;color:#8a97b5;line-height:1.55;margin-bottom:14px;}
+.tt-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.tt-btn{background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tt-btn:hover{background:rgba(170,255,62,0.18);}
+.tt-btn.primary{background:var(--lime);color:#1a3300;border-color:var(--lime);}
+.tt-btn.primary:hover{opacity:.88;}
+.tt-counter{font-size:11px;color:#4a5568;}
+.tt-dont-show{display:flex;align-items:center;gap:6px;font-size:11px;color:#4a5568;cursor:pointer;}
+.tt-dont-show input{accent-color:#aaff3e;cursor:pointer;}
+/* Resources sub-cards */
+.res-quick-card{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 18px;cursor:pointer;transition:all .2s;text-decoration:none;margin-bottom:10px;}
+.res-quick-card:hover{border-color:rgba(170,255,62,0.3);background:rgba(170,255,62,0.04);transform:translateX(3px);}
+.res-quick-icon{font-size:24px;flex-shrink:0;}
+.res-quick-title{font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#eef3fc;margin-bottom:2px;}
+.res-quick-desc{font-size:12px;color:#6b7a96;}
+.res-quick-arrow{margin-left:auto;color:#4a5568;font-size:14px;flex-shrink:0;}
 
 /* ===== MOBILE RESPONSIVE ===== */
 @keyframes ariaSlideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -1951,9 +2003,121 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div style="font-size:12px;color:#6b7a96;">New issues drop every Monday and appear here automatically — plus a notification in your bell.</div>
             </div>
           </div>
+
+          <!-- Quick-access sub-menu -->
+          <div style="margin-top:32px;">
+            <div style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">More Resources</div>
+            <a class="res-quick-card" href="book-reader.html" target="_blank">
+              <div class="res-quick-icon">📘</div>
+              <div><div class="res-quick-title">Less Work. More Impact.</div><div class="res-quick-desc">Read the full book online — all 16 chapters in the web reader</div></div>
+              <div class="res-quick-arrow">→</div>
+            </a>
+            <a class="res-quick-card" href="book.html" target="_blank">
+              <div class="res-quick-icon">🛒</div>
+              <div><div class="res-quick-title">Get the Book</div><div class="res-quick-desc">Digital, hardcover, and team editions available</div></div>
+              <div class="res-quick-arrow">→</div>
+            </a>
+            <a class="res-quick-card" href="shop.html" target="_blank">
+              <div class="res-quick-icon">👕</div>
+              <div><div class="res-quick-title">EconSquad Swag Shop</div><div class="res-quick-desc">Apparel, drinkware, and accessories for ED pros</div></div>
+              <div class="res-quick-arrow">→</div>
+            </a>
+            <div class="res-quick-card" onclick="showOnboarding(true)">
+              <div class="res-quick-icon">🎓</div>
+              <div><div class="res-quick-title">Platform Tour</div><div class="res-quick-desc">Replay the guided walkthrough of EconSquad AI anytime</div></div>
+              <div class="res-quick-arrow">→</div>
+            </div>
+          </div>
         </div>
 
       </div>
+
+<!-- ═══════════════ ONBOARDING MODAL ═══════════════ -->
+<div id="onboarding-modal" style="display:none;">
+  <div class="ob-box">
+    <!-- STEP: WELCOME -->
+    <div id="ob-step-welcome">
+      <div class="ob-aria-orb">✨</div>
+      <div class="ob-title">Welcome to EconSquad AI</div>
+      <div class="ob-subtitle">I'm ARIA — your AI Chief of Staff for economic development. Ready to stop the busywork and start creating real impact?</div>
+      <button class="ob-btn" onclick="obShowPaths()">Let's get started →</button>
+      <div class="ob-footer">
+        <label class="ob-dont-show"><input type="checkbox" id="ob-dont-show-welcome"> Don't show this again</label>
+        <button class="ob-skip" onclick="closeOnboarding()">Skip for now</button>
+      </div>
+    </div>
+    <!-- STEP: PATHS -->
+    <div id="ob-step-paths" style="display:none;">
+      <div class="ob-step-label">Choose your path</div>
+      <div class="ob-title" style="font-size:24px;margin-bottom:8px;">How do you want to start?</div>
+      <div class="ob-subtitle" style="margin-bottom:20px;">Pick what works best for you right now.</div>
+      <div class="ob-path-grid">
+        <div class="ob-path-card" onclick="obStartQuickStart()">
+          <div class="ob-path-icon">⚡</div>
+          <div class="ob-path-label">Quick Start</div>
+          <div class="ob-path-desc">3 key features in 60 seconds</div>
+        </div>
+        <div class="ob-path-card" onclick="obStartTour()">
+          <div class="ob-path-icon">🗺️</div>
+          <div class="ob-path-label">Full Tour</div>
+          <div class="ob-path-desc">Step-by-step guided walkthrough</div>
+        </div>
+        <div class="ob-path-card" onclick="closeOnboarding()">
+          <div class="ob-path-icon">🎯</div>
+          <div class="ob-path-label">I'm Ready</div>
+          <div class="ob-path-desc">Take me to the dashboard</div>
+        </div>
+      </div>
+      <div class="ob-footer">
+        <label class="ob-dont-show"><input type="checkbox" id="ob-dont-show-paths"> Don't show this again</label>
+        <button class="ob-skip" onclick="closeOnboarding()">Skip</button>
+      </div>
+    </div>
+    <!-- STEP: QUICK START -->
+    <div id="ob-step-quickstart" style="display:none;">
+      <button class="ob-back" onclick="obShowPaths()">← Back</button>
+      <div class="ob-step-label">Quick Start — 3 things to know</div>
+      <div class="ob-title" style="font-size:22px;margin-bottom:18px;">Your 60-second overview</div>
+      <div class="ob-qs-grid">
+        <div class="ob-qs-card">
+          <div class="ob-qs-icon">🤖</div>
+          <div><div class="ob-qs-title">Your AI Squad</div><div class="ob-qs-desc">Deploy AI specialists for grants, RFIs, BRE surveys, incentive modeling and more. Each one saves 2–6 hours per task.</div></div>
+        </div>
+        <div class="ob-qs-card">
+          <div class="ob-qs-icon">📬</div>
+          <div><div class="ob-qs-title">Smart Inbox</div><div class="ob-qs-desc">Your Gmail organized by AI. See what needs attention, flag follow-ups, and never let a prospect go cold.</div></div>
+        </div>
+        <div class="ob-qs-card">
+          <div class="ob-qs-icon">📊</div>
+          <div><div class="ob-qs-title">ROI Tracker</div><div class="ob-qs-desc">Every AI task logs your time saved automatically. Watch your impact — and your recovered hours — compound over time.</div></div>
+        </div>
+      </div>
+      <button class="ob-btn" onclick="closeOnboarding()">Take me to the dashboard →</button>
+      <div class="ob-footer">
+        <label class="ob-dont-show"><input type="checkbox" id="ob-dont-show-qs"> Don't show this again</label>
+        <button class="ob-skip" onclick="closeOnboarding()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOUR SPOTLIGHT ═══════════════ -->
+<div id="tour-overlay">
+  <div id="tour-dim"></div>
+  <div id="tour-highlight"></div>
+  <div id="tour-tooltip">
+    <div class="tt-step" id="tt-step-label">Step 1 of 6</div>
+    <div class="tt-icon" id="tt-icon">🤖</div>
+    <div class="tt-title" id="tt-title">Your AI Squad</div>
+    <div class="tt-desc" id="tt-desc">Deploy AI specialists for grants, RFIs, BRE surveys and more.</div>
+    <div class="tt-nav">
+      <button class="tt-btn" id="tt-prev-btn" onclick="prevTourStep()">← Back</button>
+      <span class="tt-counter" id="tt-counter">1 / 6</span>
+      <button class="tt-btn primary" id="tt-next-btn" onclick="nextTourStep()">Next →</button>
+    </div>
+    <label class="tt-dont-show"><input type="checkbox" id="tour-dont-show"> Don't show this again</label>
+  </div>
+</div>
 
 <!-- SIGN UP MODAL -->
       
@@ -2635,6 +2799,8 @@ function onSignedIn(user){
   setTimeout(function(){ if(typeof window.initNotifications==='function') window.initNotifications(); }, 2000);
   /* initialize task system (widget, alerts, badge) */
   setTimeout(function(){ if(typeof window.initTasks==='function') window.initTasks(); }, 2500);
+  /* show onboarding for new/returning users (respects "don't show again") */
+  setTimeout(function(){ initOnboarding(user); }, 3800);
   /* initialize right sidebar (Email / Calendar / Tasks switcher) */
   setTimeout(function(){ if(typeof window.initRightSidebar==='function') window.initRightSidebar(); }, 3000);
   /* update last active */
@@ -4978,6 +5144,174 @@ var BADGES={
 };
 
 var earnedBadges={};
+
+/* ===== ONBOARDING & TOUR ===== */
+var ONBOARDING_KEY = 'esq_onboarding_done';
+var _tourStep = 0;
+
+var TOUR_STEPS = [
+  { target:'#squad-grid',       tab:'home-tab',    icon:'🤖', title:'Your AI Squad',            desc:'Deploy AI specialists for grants, RFIs, BRE surveys, incentive modeling and more. Each one saves 2–6 hours per task.' },
+  { target:'#dash-nav-inbox',   tab:null,          icon:'📬', title:'Smart Inbox',               desc:'Your Gmail organized by AI. See what needs attention, flag follow-ups, and never let a prospect go cold.' },
+  { target:'#dash-nav-tasks',   tab:null,          icon:'✅', title:'Tasks',                     desc:'Every AI task you run is logged here. Review outputs, track status, and see your work history.' },
+  { target:'#dash-nav-stats',   tab:null,          icon:'📊', title:'ROI & My Stats',            desc:'See exactly how much time you\'ve saved, your badge progress, and your calculated dollar value of time recovered.' },
+  { target:'#aria-footer-bar',  tab:null,          icon:'✨', title:'ARIA — Your Chief of Staff', desc:'Ask ARIA anything, anytime. She\'s always available at the bottom of your screen to guide your next move.' },
+  { target:'#dash-nav-resources',tab:null,         icon:'📚', title:'Resources',                 desc:'Access the Monday AI Drop newsletter, the Less Work More Impact book, the swag shop, and replay this tour anytime.' }
+];
+
+function initOnboarding(user){
+  /* Check if user has dismissed permanently */
+  var done = localStorage.getItem(ONBOARDING_KEY);
+  if(done === '1') return;
+  showOnboarding(false);
+}
+
+function showOnboarding(force){
+  /* force=true means coming from Resources → replay */
+  var modal = document.getElementById('onboarding-modal');
+  if(!modal) return;
+  /* Reset to welcome step */
+  obShowStep('welcome');
+  modal.style.display = 'flex';
+}
+
+function closeOnboarding(){
+  var modal = document.getElementById('onboarding-modal');
+  if(modal) modal.style.display = 'none';
+  /* Check any "don't show again" box across all steps */
+  var boxes = ['ob-dont-show-welcome','ob-dont-show-paths','ob-dont-show-qs'];
+  var checked = boxes.some(function(id){
+    var el = document.getElementById(id);
+    return el && el.checked;
+  });
+  if(checked){
+    localStorage.setItem(ONBOARDING_KEY,'1');
+    /* Also save to Supabase profiles if possible */
+    if(currentUser){
+      supa.from('profiles').update({onboarding_done:true}).eq('id',currentUser.id).then(function(){});
+    }
+  }
+}
+
+function obShowStep(step){
+  ['ob-step-welcome','ob-step-paths','ob-step-quickstart'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  var target = document.getElementById('ob-step-'+step);
+  if(target) target.style.display = 'block';
+}
+
+function obShowPaths(){ obShowStep('paths'); }
+
+function obStartQuickStart(){
+  var modal = document.getElementById('onboarding-modal');
+  if(modal) modal.style.display = 'none';
+  obShowStep('quickstart');
+  if(modal) modal.style.display = 'flex';
+  obShowStep('quickstart');
+}
+
+function obStartTour(){
+  var modal = document.getElementById('onboarding-modal');
+  if(modal) modal.style.display = 'none';
+  /* Check "don't show again" before starting */
+  var pathBox = document.getElementById('ob-dont-show-paths');
+  if(pathBox && pathBox.checked) localStorage.setItem(ONBOARDING_KEY,'1');
+  _tourStep = 0;
+  showTourStep(0);
+}
+
+/* ── Spotlight Tour ── */
+function showTourStep(idx){
+  var overlay = document.getElementById('tour-overlay');
+  var highlight = document.getElementById('tour-highlight');
+  var tooltip = document.getElementById('tour-tooltip');
+  if(!overlay||!highlight||!tooltip) return;
+
+  var step = TOUR_STEPS[idx];
+  if(!step){ endTour(); return; }
+
+  /* Switch to the right tab if needed */
+  if(step.tab) showDashTab(step.tab, null);
+
+  overlay.classList.add('active');
+  overlay.style.display = 'block';
+
+  /* Update tooltip content */
+  document.getElementById('tt-step-label').textContent = 'Step '+(idx+1)+' of '+TOUR_STEPS.length;
+  document.getElementById('tt-counter').textContent = (idx+1)+' / '+TOUR_STEPS.length;
+  document.getElementById('tt-icon').textContent = step.icon;
+  document.getElementById('tt-title').textContent = step.title;
+  document.getElementById('tt-desc').textContent = step.desc;
+  document.getElementById('tt-prev-btn').style.display = idx===0 ? 'none' : '';
+  var nextBtn = document.getElementById('tt-next-btn');
+  nextBtn.textContent = idx === TOUR_STEPS.length-1 ? 'Finish ✓' : 'Next →';
+
+  /* Position highlight over target element */
+  setTimeout(function(){
+    var targetEl = document.querySelector(step.target);
+    if(!targetEl){
+      /* Target not visible — skip highlight, still show tooltip centered */
+      highlight.style.display = 'none';
+      tooltip.style.top = '50%';
+      tooltip.style.left = '50%';
+      tooltip.style.transform = 'translate(-50%,-50%)';
+      return;
+    }
+    highlight.style.display = 'block';
+    var r = targetEl.getBoundingClientRect();
+    var pad = 6;
+    highlight.style.top    = (r.top - pad)+'px';
+    highlight.style.left   = (r.left - pad)+'px';
+    highlight.style.width  = (r.width + pad*2)+'px';
+    highlight.style.height = (r.height + pad*2)+'px';
+
+    /* Position tooltip below or above highlight */
+    var tipW = 280, tipH = 200;
+    var tLeft = Math.min(r.left, window.innerWidth - tipW - 16);
+    tLeft = Math.max(tLeft, 16);
+    var tTop = r.bottom + pad + 12;
+    if(tTop + tipH > window.innerHeight - 20) tTop = r.top - tipH - 20;
+    tTop = Math.max(tTop, 16);
+    tooltip.style.top = tTop+'px';
+    tooltip.style.left = tLeft+'px';
+    tooltip.style.transform = 'none';
+  }, step.tab ? 350 : 50);
+}
+
+function nextTourStep(){
+  if(_tourStep >= TOUR_STEPS.length - 1){ endTour(); return; }
+  _tourStep++;
+  showTourStep(_tourStep);
+}
+
+function prevTourStep(){
+  if(_tourStep <= 0) return;
+  _tourStep--;
+  showTourStep(_tourStep);
+}
+
+function endTour(){
+  var overlay = document.getElementById('tour-overlay');
+  if(overlay){ overlay.style.display='none'; overlay.classList.remove('active'); }
+  var dontShow = document.getElementById('tour-dont-show');
+  if(dontShow && dontShow.checked){
+    localStorage.setItem(ONBOARDING_KEY,'1');
+    if(currentUser){
+      supa.from('profiles').update({onboarding_done:true}).eq('id',currentUser.id).then(function(){});
+    }
+  }
+}
+
+/* Allow clicking outside tour tooltip to advance */
+document.addEventListener('click',function(e){
+  var overlay = document.getElementById('tour-overlay');
+  if(!overlay || overlay.style.display==='none') return;
+  var tooltip = document.getElementById('tour-tooltip');
+  if(tooltip && !tooltip.contains(e.target)){
+    /* click outside tooltip — advance step */
+  }
+});
 
 /* Load badges from Supabase */
 function loadBadges(){
