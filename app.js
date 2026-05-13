@@ -3565,7 +3565,7 @@
       + '<div style="display:flex;gap:8px;">'
       + '<button onclick="window.syncGoogleTasks()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">↻ Google Tasks</button>'
       + '<button onclick="window.openManageCategories()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">🏷️ Categories</button>'
-      + '<button onclick="window.openNewTask({})" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">+ New Task</button>'
+      + '<button id="tasks-new-btn" onclick="window.openNewTask({})" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">+ New Task</button>'
       + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;" id="tasks-filter-row">'
