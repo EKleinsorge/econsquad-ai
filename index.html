@@ -750,13 +750,15 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .tt-dont-show{display:flex;align-items:center;gap:6px;font-size:11px;color:#4a5568;cursor:pointer;}
 .tt-dont-show input{accent-color:#aaff3e;cursor:pointer;}
 /* Tour side nav */
-#tour-sidenav{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:128px;background:rgba(10,13,26,0.97);border:1px solid rgba(170,255,62,0.18);border-radius:13px;padding:8px 6px;z-index:3;pointer-events:auto;transition:width .2s ease;}
+#tour-sidenav{position:fixed;width:128px;background:rgba(10,13,26,0.97);border:1px solid rgba(170,255,62,0.18);border-radius:13px;padding:8px 6px;z-index:99999;pointer-events:auto;transition:width .2s ease;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
 #tour-sidenav.tsn-expanded{width:206px;max-height:82vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.25) transparent;}
 #tour-sidenav.tsn-expanded::-webkit-scrollbar{width:3px;}
 #tour-sidenav.tsn-expanded::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.25);border-radius:3px;}
 /* header row */
-#tsn-hdr-row{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 6px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:5px;gap:4px;}
-#tsn-counter{font-size:10px;font-weight:800;color:#aaff3e;white-space:nowrap;}
+#tsn-hdr-row{display:flex;align-items:center;padding:2px 4px 6px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:5px;gap:4px;cursor:grab;user-select:none;}
+#tsn-hdr-row:active{cursor:grabbing;}
+#tsn-grip{color:rgba(170,255,62,0.35);font-size:11px;letter-spacing:-1px;flex-shrink:0;line-height:1;}
+#tsn-counter{font-size:10px;font-weight:800;color:#aaff3e;white-space:nowrap;flex:1;text-align:center;}
 #tsn-toggle{background:none;border:1px solid rgba(170,255,62,0.2);color:#aaff3e;border-radius:5px;padding:1px 5px;font-size:10px;cursor:pointer;line-height:1.4;flex-shrink:0;}
 #tsn-toggle:hover{background:rgba(170,255,62,0.12);}
 /* section items (compact mode) */
@@ -5399,6 +5401,10 @@ function showTourStep(idx){
 
   /* Update sidenav */
   updateTourSidenav(idx);
+  /* Re-apply saved position (nav was rebuilt so _dragInit is gone) and init drag */
+  var _navEl = document.getElementById('tour-sidenav');
+  if(_navEl && _tsnX !== null){ _navEl.style.left = _tsnX+'px'; _navEl.style.top = _tsnY+'px'; }
+  initTourSidenavDrag();
 
   /* Switch to the right tab if needed */
   if(step.tab) showDashTab(step.tab, null);
@@ -5478,15 +5484,79 @@ function _sectionFirstStep(secIdx){
 }
 
 var _tsnExpanded = false;
+var _tsnX = null; /* null = use default position */
+var _tsnY = null;
+
+function initTourSidenavDrag(){
+  var nav = document.getElementById('tour-sidenav');
+  if(!nav || nav._dragInit) return;
+  nav._dragInit = true;
+
+  /* Set initial position if not yet dragged */
+  if(_tsnX === null){
+    _tsnX = 12;
+    _tsnY = Math.round((window.innerHeight - nav.offsetHeight) / 2);
+    if(_tsnY < 12) _tsnY = 12;
+  }
+  nav.style.left = _tsnX + 'px';
+  nav.style.top  = _tsnY + 'px';
+
+  var dragging = false, startX, startY, origX, origY;
+
+  function onMove(ex, ey){
+    if(!dragging) return;
+    var dx = ex - startX, dy = ey - startY;
+    var newX = Math.max(0, Math.min(origX + dx, window.innerWidth  - nav.offsetWidth));
+    var newY = Math.max(0, Math.min(origY + dy, window.innerHeight - nav.offsetHeight));
+    _tsnX = newX; _tsnY = newY;
+    nav.style.left = newX + 'px';
+    nav.style.top  = newY + 'px';
+  }
+  function onUp(){ dragging = false; document.body.style.userSelect = ''; }
+
+  /* Mouse */
+  nav.addEventListener('mousedown', function(e){
+    /* Only drag via header row; ignore clicks on the toggle button */
+    var hdr = document.getElementById('tsn-hdr-row');
+    if(!hdr || !hdr.contains(e.target)) return;
+    if(e.target.id === 'tsn-toggle') return;
+    e.preventDefault();
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    origX = _tsnX; origY = _tsnY;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e){ onMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup',   onUp);
+
+  /* Touch */
+  nav.addEventListener('touchstart', function(e){
+    var hdr = document.getElementById('tsn-hdr-row');
+    if(!hdr || !hdr.contains(e.target)) return;
+    if(e.target.id === 'tsn-toggle') return;
+    dragging = true;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+    origX = _tsnX; origY = _tsnY;
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(dragging) onMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:true});
+  document.addEventListener('touchend', onUp);
+}
 
 function updateTourSidenav(currentIdx){
   var nav = document.getElementById('tour-sidenav');
   if(!nav) return;
+  nav._dragInit = false; /* allow drag re-init after rebuild */
   nav.innerHTML = '';
 
-  /* ── Header row: counter + toggle ── */
+  /* ── Header row: grip + counter + toggle ── */
   var hdrRow = document.createElement('div');
   hdrRow.id = 'tsn-hdr-row';
+  var grip = document.createElement('span');
+  grip.id = 'tsn-grip';
+  grip.innerHTML = '&#8942;&#8942;'; /* ⋮⋮ drag dots */
+  grip.title = 'Drag to move';
   var counter = document.createElement('span');
   counter.id = 'tsn-counter';
   counter.textContent = (currentIdx+1)+' / '+TOUR_STEPS.length;
@@ -5500,6 +5570,7 @@ function updateTourSidenav(currentIdx){
     nav.classList.toggle('tsn-expanded', _tsnExpanded);
     updateTourSidenav(currentIdx);
   });
+  hdrRow.appendChild(grip);
   hdrRow.appendChild(counter);
   hdrRow.appendChild(toggle);
   nav.appendChild(hdrRow);
@@ -5566,6 +5637,7 @@ function prevTourStep(){
 
 function endTour(){
   clearCardCycle();
+  _tsnX = null; _tsnY = null; _tsnExpanded = false; /* reset nav state for next tour */
   var overlay = document.getElementById('tour-overlay');
   if(overlay){ overlay.classList.remove('active'); overlay.style.display='none'; }
   var dontShow = document.getElementById('tour-dont-show');
