@@ -754,6 +754,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #tour-sidenav.tsn-expanded{width:206px;max-height:82vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.25) transparent;}
 #tour-sidenav.tsn-expanded::-webkit-scrollbar{width:3px;}
 #tour-sidenav.tsn-expanded::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.25);border-radius:3px;}
+/* tour guide title */
+#tsn-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:#eef3fc;text-align:center;letter-spacing:.04em;padding:2px 4px 5px;cursor:grab;user-select:none;}
+#tsn-title:active{cursor:grabbing;}
 /* header row */
 #tsn-hdr-row{display:flex;align-items:center;padding:2px 4px 6px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:5px;gap:4px;cursor:grab;user-select:none;}
 #tsn-hdr-row:active{cursor:grabbing;}
@@ -5516,9 +5519,12 @@ function initTourSidenavDrag(){
 
   /* Mouse */
   nav.addEventListener('mousedown', function(e){
-    /* Only drag via header row; ignore clicks on the toggle button */
+    /* Drag via title or header row; not the toggle button */
     var hdr = document.getElementById('tsn-hdr-row');
-    if(!hdr || !hdr.contains(e.target)) return;
+    var ttl = document.getElementById('tsn-title');
+    var onTitle = ttl && ttl.contains(e.target);
+    var onHeader = hdr && hdr.contains(e.target);
+    if(!onTitle && !onHeader) return;
     if(e.target.id === 'tsn-toggle') return;
     e.preventDefault();
     dragging = true;
@@ -5532,7 +5538,10 @@ function initTourSidenavDrag(){
   /* Touch */
   nav.addEventListener('touchstart', function(e){
     var hdr = document.getElementById('tsn-hdr-row');
-    if(!hdr || !hdr.contains(e.target)) return;
+    var ttl = document.getElementById('tsn-title');
+    var onTitle = ttl && ttl.contains(e.target);
+    var onHeader = hdr && hdr.contains(e.target);
+    if(!onTitle && !onHeader) return;
     if(e.target.id === 'tsn-toggle') return;
     dragging = true;
     startX = e.touches[0].clientX; startY = e.touches[0].clientY;
@@ -5549,6 +5558,12 @@ function updateTourSidenav(currentIdx){
   if(!nav) return;
   nav._dragInit = false; /* allow drag re-init after rebuild */
   nav.innerHTML = '';
+
+  /* ── Tour Guide title ── */
+  var title = document.createElement('div');
+  title.id = 'tsn-title';
+  title.textContent = 'Tour Guide';
+  nav.appendChild(title);
 
   /* ── Header row: grip + counter + toggle ── */
   var hdrRow = document.createElement('div');
