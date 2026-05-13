@@ -5157,9 +5157,9 @@ var _tourStep = 0;
 var TOUR_STEPS = [
   /* ── MY SQUAD ── */
   { target:'.hero-dash',              tab:'home-tab',  icon:'👋', title:'Good Morning, Chief!',         desc:'This greeting section gives you a quick daily snapshot. ARIA reads your squad activity and surfaces what\'s ready for you — your personalized mission briefing every time you log in.' },
-  { target:'#dash-sav-bar',           tab:'home-tab',  icon:'⏱️', title:'Your Time & Streak Tracker',   desc:'This bar tracks the real ROI of your squad: total hours saved, estimated dollar value of your time recovered, and your daily login streak. Hit every day and watch these numbers grow.' },
+  { target:'.stats-grid',              tab:'home-tab',  icon:'⏱️', title:'Your Live Scoreboard',          desc:'These four cards are your squad\'s live scoreboard: missions completed this month, total hours recovered, specialists deployed, and days building momentum. Every mission you run updates these in real time.' },
   { target:'#level-badge',            tab:'home-tab',  icon:'🎖️', title:'Your Level & Ranking',         desc:'You start as a Recruit and climb to Legend as you deploy specialists and complete missions. Click this badge anytime to see your full rank progression and what it takes to level up next.' },
-  { target:'.stats-grid',             tab:'home-tab',  icon:'🚀', title:'Missions Dashboard',           desc:'Missions are completed AI deployments — every time you run a specialist, it counts as a mission. This grid tracks your monthly pace, hours recovered, and momentum toward the next badge tier.' },
+  { target:'#stat-missions',           tab:'home-tab',  icon:'🚀', title:'Missions Counter',              desc:'Every time you deploy a specialist, it counts as a mission. This counter tracks your monthly pace and feeds your badge progress — more missions means faster level-ups and new specialist unlocks.' },
   { target:'#squad-grid',             tab:'home-tab',  icon:'🤖', title:'Your AI Specialists',          desc:'Each card is a deployable AI specialist — ready to work the moment you click Deploy. They cover every discipline: grants, site selection, BRE, incentives, workforce, and more.', cycle:'.orb-card-dash' },
   { target:'#squad-tab-favs',         tab:'home-tab',  icon:'⭐', title:'Favorites — Build Your Roster',desc:'Star any specialist by clicking the ⭐ icon on their card. Your favorites get pinned to the Favorites tab so they\'re always one click away. Build a personal roster of the specialists you use most.' },
   { target:'#squad-tab-recent',       tab:'home-tab',  icon:'🔥', title:'Most Used Specialists',        desc:'This tab auto-ranks your specialists by how many times you\'ve deployed each one. No setup needed — the more you use your squad, the smarter this list gets.' },
@@ -5281,6 +5281,7 @@ function clearCardCycle(){
   if(_cardCycleInterval){ clearInterval(_cardCycleInterval); _cardCycleInterval = null; }
   document.querySelectorAll('.orb-card-dash').forEach(function(c){
     c.style.outline = ''; c.style.boxShadow = '';
+    c.style.position = ''; c.style.zIndex = '';
   });
 }
 function startCardCycle(selector){
@@ -5291,11 +5292,15 @@ function startCardCycle(selector){
   function hl(i){
     cards.forEach(function(c,j){
       if(j===i){
-        c.style.outline = '2px solid rgba(170,255,62,0.85)';
-        c.style.boxShadow = '0 0 18px rgba(170,255,62,0.45), 0 0 36px rgba(170,255,62,0.18)';
+        c.style.outline = '2px solid rgba(170,255,62,0.9)';
+        c.style.boxShadow = '0 0 22px rgba(170,255,62,0.6), 0 0 44px rgba(170,255,62,0.25)';
+        c.style.position = 'relative';
+        c.style.zIndex = '99998';
       } else {
         c.style.outline = '';
         c.style.boxShadow = '';
+        c.style.position = '';
+        c.style.zIndex = '';
       }
     });
   }
