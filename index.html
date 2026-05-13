@@ -2036,9 +2036,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   <div class="ob-box">
     <!-- STEP: WELCOME -->
     <div id="ob-step-welcome">
-      <div style="position:relative;width:80px;height:80px;margin:0 auto 20px;">
-        <canvas id="ob-aria-cv" width="80" height="80" data-dorb="ob-aria-orb" style="position:absolute;top:0;left:0;width:80px;height:80px;"></canvas>
-        <div id="ob-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;z-index:2;pointer-events:none;"></div>
+      <div style="position:relative;width:96px;height:96px;margin:0 auto 20px;overflow:hidden;border-radius:50%;">
+        <canvas id="ob-aria-cv" width="96" height="96" data-dorb="ob-aria-orb" style="position:absolute;top:0;left:0;width:96px;height:96px;"></canvas>
+        <div id="ob-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;z-index:2;pointer-events:none;"></div>
       </div>
       <div class="ob-title">Welcome to EconSquad AI</div>
       <div class="ob-subtitle">I'm ARIA — your AI Chief of Staff for economic development. Ready to stop the busywork and start creating real impact?</div>
@@ -5174,7 +5174,7 @@ function showOnboarding(force){
   /* Reset to welcome step */
   obShowStep('welcome');
   modal.style.display = 'flex';
-  /* Boot the real ARIA orb */
+  /* Boot the real ARIA orb — same init as squad orbs (96px, initDashOrb) */
   setTimeout(function(){
     if(!window.initDashOrb) return;
     window.initDashOrb('ob-aria-orb','lime');
@@ -5185,8 +5185,12 @@ function showOnboarding(force){
     var sph = document.getElementById('ob-aria-sph');
     if(sph){
       st.sphereEl = sph;
-      sph.style.background = 'radial-gradient(circle at 38% 35%,'+col.mid+' 0%,'+col.lo+' 70%)';
-      sph.style.boxShadow  = '0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),inset 0 1px 3px rgba(255,255,255,0.25)';
+      st.sphBg = 'radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
+      sph.style.background = 'radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+      sph.style.boxShadow  =
+        '0 0 14px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),'+
+        '0 0 28px rgba('+r[0]+','+r[1]+','+r[2]+',0.4),'+
+        '0 0 48px rgba('+r[0]+','+r[1]+','+r[2]+',0.12)';
     }
     if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
   }, 100);
