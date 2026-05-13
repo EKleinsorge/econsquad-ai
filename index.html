@@ -708,7 +708,6 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 /* ===== ONBOARDING MODAL ===== */
 #onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
 .ob-box{background:rgba(10,13,26,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:40px 44px;max-width:560px;width:100%;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 60px rgba(170,255,62,0.04);position:relative;}
-.ob-aria-orb{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 38% 35%,rgba(170,255,62,0.9) 0%,rgba(80,200,20,0.7) 60%,rgba(40,120,10,0.5) 100%);box-shadow:0 0 24px rgba(170,255,62,0.5),inset 0 2px 4px rgba(255,255,255,0.3);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:28px;}
 .ob-title{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;color:#eef3fc;text-align:center;margin-bottom:10px;line-height:1.1;}
 .ob-subtitle{font-size:14px;color:#8a97b5;text-align:center;line-height:1.6;margin-bottom:28px;}
 .ob-path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
@@ -2037,7 +2036,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   <div class="ob-box">
     <!-- STEP: WELCOME -->
     <div id="ob-step-welcome">
-      <div class="ob-aria-orb">✨</div>
+      <div style="position:relative;width:80px;height:80px;margin:0 auto 20px;">
+        <canvas id="ob-aria-cv" width="80" height="80" data-dorb="ob-aria-orb" style="position:absolute;top:0;left:0;width:80px;height:80px;"></canvas>
+        <div id="ob-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;z-index:2;pointer-events:none;"></div>
+      </div>
       <div class="ob-title">Welcome to EconSquad AI</div>
       <div class="ob-subtitle">I'm ARIA — your AI Chief of Staff for economic development. Ready to stop the busywork and start creating real impact?</div>
       <button class="ob-btn" onclick="obShowPaths()">Let's get started →</button>
@@ -5172,6 +5174,22 @@ function showOnboarding(force){
   /* Reset to welcome step */
   obShowStep('welcome');
   modal.style.display = 'flex';
+  /* Boot the real ARIA orb */
+  setTimeout(function(){
+    if(!window.initDashOrb) return;
+    window.initDashOrb('ob-aria-orb','lime');
+    var st = window.dashOrbStates && window.dashOrbStates['ob-aria-orb'];
+    if(!st) return;
+    st.targetEnergy = 0.9;
+    var col = st.col; var r = col.r;
+    var sph = document.getElementById('ob-aria-sph');
+    if(sph){
+      st.sphereEl = sph;
+      sph.style.background = 'radial-gradient(circle at 38% 35%,'+col.mid+' 0%,'+col.lo+' 70%)';
+      sph.style.boxShadow  = '0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),inset 0 1px 3px rgba(255,255,255,0.25)';
+    }
+    if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
+  }, 100);
 }
 
 function closeOnboarding(){
