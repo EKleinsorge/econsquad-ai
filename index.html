@@ -5166,12 +5166,18 @@ var TOUR_STEPS = [
   { target:'#squad-tab-favs',         tab:'home-tab',  icon:'⭐', title:'Favorites — Build Your Roster', desc:'Star any specialist by clicking the ⭐ icon on their card. Your favorites get pinned to the Favorites tab so they\'re always one click away. Build a personal roster of the specialists you use most.' },
   { target:'#squad-tab-recent',       tab:'home-tab',  icon:'🔥', title:'Most Used Specialists',         desc:'This tab auto-ranks your specialists by how many times you\'ve deployed each one. No setup needed — the more you use your squad, the smarter this list gets.' },
   { target:'#esq-right-sidebar',      tab:'home-tab',  icon:'📎', title:'Side Panel — Email, Calendar & Tasks', desc:'The right sidebar gives you a live peek at your inbox, upcoming calendar events, and recent tasks — all without leaving the dashboard. Toggle between panels to stay on top of your day without switching tabs.' },
-  /* ── NAVIGATION ── */
-  { target:'#dash-nav-inbox',         tab:null,        icon:'📬', title:'Smart Inbox',                  desc:'Your Gmail, organized by AI. ARIA categorizes every message — prospects, partners, follow-ups, and action items — so you always know what actually needs your attention today.' },
-  { target:'#dash-nav-tasks',         tab:null,        icon:'✅', title:'Task History',                  desc:'Every specialist deployment is logged here with its full output. Review past work, reuse outputs, and track every AI task your squad has completed on your behalf.' },
-  { target:'#dash-nav-stats',         tab:null,        icon:'📊', title:'ROI & My Stats',                desc:'Your full performance dashboard: cumulative hours saved, dollar value recovered, badge collection, and your climb through the EconSquad ranking system. Your proof of impact, in one place.' },
-  { target:'#aria-footer-bar',        tab:null,        icon:'✨', title:'ARIA — Your Chief of Staff',    desc:'ARIA is always listening at the bottom of your screen. Ask her to deploy a specialist, find an expert, summarize your inbox, or guide your next move. She\'s your command center.' },
-  { target:'#dash-nav-resources',     tab:null,        icon:'📚', title:'Resources & Tools',             desc:'Access the Monday AI Drop newsletter, the Less Work More Impact book, the EconSquad swag shop, and replay this tour anytime from the Resources menu.' }
+  /* ── TOP NAV ── */
+  { target:'#esq-notif-bell',         tab:'home-tab',  icon:'🔔', title:'Notifications Bell',            desc:'The bell keeps you in the loop without the noise. Get alerts for badge unlocks, new Monday AI Drop issues, and squad activity. A yellow dot means you have notifications to configure — click it to set your preferences.' },
+  { target:'#user-avatar',            tab:null,        icon:'👤', title:'Your Profile',                  desc:'Click your avatar to manage your account: update your name, logo, and Anthropic API key, view your subscription plan, adjust text size for accessibility, and sign out. Everything about your account lives here.' },
+  /* ── INBOX ── */
+  { target:'#aria-analyze-btn',       tab:'inbox-tab', icon:'📬', title:'ARIA Inbox — Your Gmail Hub',   desc:'Connect Gmail and ARIA becomes your inbox chief of staff. She sorts every message, surfaces what needs action today, and can draft replies on your behalf. Hit ✦ ARIA Analyze to get an instant briefing of your current inbox.' },
+  /* ── TASKS ── */
+  { target:'#tasks-page-content',     tab:'tasks-tab', icon:'✅', title:'Task Board',                    desc:'Every specialist you deploy drops a task card here. Track what\'s in progress, review completed outputs, and re-use past work. Think of it as your AI delegation log — nothing gets lost.' },
+  /* ── STATS ── */
+  { target:'#statsview-overview',     tab:'stats-tab', icon:'📊', title:'ROI & My Stats',                desc:'Your full impact dashboard: total missions, hours saved, specialists used, badge progress, and the ROI calculator that puts a dollar figure on your recovered time. This is your proof of impact — screenshot it often.' },
+  /* ── ARIA + RESOURCES ── */
+  { target:'#aria-footer-bar',        tab:null,        icon:'✨', title:'ARIA — Your Chief of Staff',    desc:'ARIA is always available at the bottom of your screen. Ask her to deploy a specialist, check your inbox, explain a feature, or plan your week. She remembers your context and gets smarter the more you use her.' },
+  { target:'#dash-nav-resources',     tab:null,        icon:'📚', title:'Resources & Tools',             desc:'Access the Monday AI Drop newsletter, the Less Work More Impact book, the EconSquad swag shop, and replay this tour anytime — all from the Resources menu.' }
 ];
 
 function initOnboarding(user){
