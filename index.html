@@ -5396,6 +5396,32 @@ function showTourStep(idx){
     tooltip.style.top = tTop+'px';
     tooltip.style.left = tLeft+'px';
     tooltip.style.transform = 'none';
+
+    /* Re-measure after page content settles (email list render, DOM shifts, etc.) */
+    setTimeout(function(){
+      if(!targetEl || !targetEl.isConnected) return;
+      var r2 = targetEl.getBoundingClientRect();
+      if(r2.width === 0 && r2.height === 0) return;
+      highlight.style.top    = (r2.top - pad)+'px';
+      highlight.style.left   = (r2.left - pad)+'px';
+      highlight.style.width  = (r2.width + pad*2)+'px';
+      highlight.style.height = (r2.height + pad*2)+'px';
+      if(dim){
+        var cx2 = r2.left + r2.width/2;
+        var cy2 = r2.top + r2.height/2;
+        var spotR2 = Math.max(Math.max(r2.width, r2.height) * 5, 420);
+        dim.style.background =
+          'radial-gradient(circle '+spotR2+'px at '+cx2+'px '+cy2+'px, '+
+          'transparent 0%, transparent 70%, rgba(4,5,13,0.12) 80%, rgba(4,5,13,0.32) 92%, rgba(4,5,13,0.44) 100%)';
+      }
+      var tLeft2 = Math.min(r2.left, window.innerWidth - tipW - 16);
+      tLeft2 = Math.max(tLeft2, 16);
+      var tTop2 = r2.bottom + pad + 12;
+      if(tTop2 + tipH > window.innerHeight - 20) tTop2 = r2.top - tipH - 20;
+      tTop2 = Math.max(tTop2, 16);
+      tooltip.style.top = tTop2+'px';
+      tooltip.style.left = tLeft2+'px';
+    }, 700);
   }, step.tab ? 350 : 50);
 }
 
