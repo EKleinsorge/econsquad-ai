@@ -5297,11 +5297,11 @@ function showTourStep(idx){
     if(dim){
       var cx = r.left + r.width/2;
       var cy = r.top + r.height/2;
-      var spotW = Math.max(r.width * 2.2, 180);
-      var spotH = Math.max(r.height * 2.2, 180);
+      var spotW = Math.max(r.width * 6, 520);
+      var spotH = Math.max(r.height * 6, 520);
       dim.style.background =
         'radial-gradient(ellipse '+spotW+'px '+spotH+'px at '+cx+'px '+cy+'px, '+
-        'transparent 0%, transparent 35%, rgba(4,5,13,0.5) 55%, rgba(4,5,13,0.82) 70%, rgba(4,5,13,0.94) 100%)';
+        'transparent 0%, transparent 45%, rgba(4,5,13,0.25) 62%, rgba(4,5,13,0.55) 80%, rgba(4,5,13,0.72) 100%)';
     }
 
     /* Position tooltip below or above highlight */
