@@ -3482,7 +3482,7 @@
     var strikeStyle = t.status === 'completed' ? 'text-decoration:line-through;opacity:.5;' : '';
     var checkIcon = t.status === 'completed' ? '✅' : '⬜';
     return '<div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ' + pColor + ';border-radius:10px;padding:12px 14px;margin-bottom:8px;' + overdueCls + '">'
-      + '<button onclick="window.toggleTaskDone(\'' + escH(t.id) + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;margin-top:1px;flex-shrink:0;" title="' + (t.status==='completed'?'Mark pending':'Mark complete') + '">' + checkIcon + '</button>'
+      + '<button class="task-done-btn" onclick="window.toggleTaskDone(\'' + escH(t.id) + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0;margin-top:1px;flex-shrink:0;" title="' + (t.status==='completed'?'Mark pending':'Mark complete') + '">' + checkIcon + '</button>'
       + '<div style="flex:1;min-width:0;">'
       + '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-bottom:4px;">'
       + '<span style="font-size:13px;font-weight:600;color:#eef3fc;' + strikeStyle + '">' + escH(t.title) + '</span>'
