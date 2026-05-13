@@ -1902,9 +1902,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
             <!-- Small header — visible only in CTA state -->
             <div id="aria-hdr-row" style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
-              <div id="aria-hdr-orb-wrap" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;">
-                <canvas id="aria-hdr-cv" width="36" height="36" data-dorb="aria-hdr-orb" style="position:absolute;top:0;left:0;width:36px;height:36px;"></canvas>
-                <div id="aria-hdr-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;z-index:2;"></div>
+              <div id="aria-hdr-orb-wrap" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;position:relative;overflow:hidden;">
+                <canvas id="aria-hdr-cv" width="48" height="48" data-dorb="aria-hdr-orb" style="position:absolute;top:0;left:0;width:48px;height:48px;"></canvas>
+                <div id="aria-hdr-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;z-index:2;"></div>
               </div>
               <div>
                 <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;">ARIA's Analysis</div>
@@ -2624,8 +2624,9 @@ function _renderAriaOutput(res){
     var sph = document.getElementById('aria-result-sph');
     if(sph){
       st.sphereEl = sph;
-      sph.style.background  = 'radial-gradient(circle at 38% 35%,' + col.mid + ' 0%,' + col.lo + ' 70%)';
-      sph.style.boxShadow   = '0 0 18px rgba('+r[0]+','+r[1]+','+r[2]+',0.7),inset 0 2px 4px rgba(255,255,255,0.2)';
+      st.sphBg = 'radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
+      sph.style.background = 'radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+      sph.style.boxShadow  = '0 0 14px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 28px rgba('+r[0]+','+r[1]+','+r[2]+',0.4),0 0 48px rgba('+r[0]+','+r[1]+','+r[2]+',0.12)';
     }
     if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
   }, 50);
@@ -2781,7 +2782,7 @@ function onSignedIn(user){
     if(af) af.style.display='flex';
     setTimeout(function(){
       if(!window.initDrawerOrb) return;
-      window.initDashOrb('aria-footer-orb','lime');
+      window.initDrawerOrb('aria-footer-orb','lime');
       var st = window.dashOrbStates && window.dashOrbStates['aria-footer-orb'];
       if(!st) return;
       st.targetEnergy = 0.9;
@@ -2789,8 +2790,9 @@ function onSignedIn(user){
       var sph = document.getElementById('aria-footer-sph');
       if(sph){
         st.sphereEl = sph;
-        sph.style.background = 'radial-gradient(circle at 38% 35%,'+col.mid+' 0%,'+col.lo+' 70%)';
-        sph.style.boxShadow  = '0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),inset 0 1px 3px rgba(255,255,255,0.25)';
+        st.sphBg = 'radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
+        sph.style.background = 'radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+        sph.style.boxShadow  = '0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 20px rgba('+r[0]+','+r[1]+','+r[2]+',0.4)';
       }
       if(!window.dashAnimRunning&&window.runDashAnim) window.runDashAnim();
     }, 300);
@@ -4064,7 +4066,7 @@ function openAriaRouting(){
   if(!window._ariaRoutingOrbDone && window.initDashOrb){
     window._ariaRoutingOrbDone = true;
     setTimeout(function(){
-      window.initDashOrb('aria-routing-orb','lime');
+      window.initDrawerOrb('aria-routing-orb','lime');
       var st=window.dashOrbStates&&window.dashOrbStates['aria-routing-orb'];
       if(!st) return;
       st.targetEnergy=0.9;
@@ -4072,8 +4074,9 @@ function openAriaRouting(){
       var sph=document.getElementById('aria-routing-sph');
       if(sph){
         st.sphereEl=sph;
-        sph.style.background='radial-gradient(circle at 38% 35%,'+col.mid+' 0%,'+col.lo+' 70%)';
-        sph.style.boxShadow='0 0 12px rgba('+r[0]+','+r[1]+','+r[2]+',0.85),inset 0 2px 4px rgba(255,255,255,0.25)';
+        st.sphBg='radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
+        sph.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+        sph.style.boxShadow='0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 20px rgba('+r[0]+','+r[1]+','+r[2]+',0.4)';
       }
       if(!window.dashAnimRunning&&window.runDashAnim) window.runDashAnim();
     },150);
@@ -5699,7 +5702,7 @@ function switchStatsTab(tab, btn){
           st.sphereEl=sph;
           st.sphBg='radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
           sph.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
-          sph.style.boxShadow='0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',.6)';
+          sph.style.boxShadow='0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 20px rgba('+r[0]+','+r[1]+','+r[2]+',0.4)';
         }
         st.targetEnergy=0.9;
         if(!window.dashAnimRunning&&window.runDashAnim) window.runDashAnim();
