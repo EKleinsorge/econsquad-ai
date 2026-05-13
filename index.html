@@ -750,15 +750,29 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .tt-dont-show{display:flex;align-items:center;gap:6px;font-size:11px;color:#4a5568;cursor:pointer;}
 .tt-dont-show input{accent-color:#aaff3e;cursor:pointer;}
 /* Tour side nav */
-#tour-sidenav{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:210px;max-height:82vh;overflow-y:auto;background:rgba(10,13,26,0.97);border:1px solid rgba(170,255,62,0.18);border-radius:14px;padding:10px 6px 10px 8px;z-index:3;pointer-events:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.25) transparent;}
-#tour-sidenav::-webkit-scrollbar{width:3px;}
-#tour-sidenav::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.25);border-radius:3px;}
-#tour-sidenav-hdr{font-size:9px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.12em;padding:2px 8px 8px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:4px;}
-.tsn-item{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;font-size:11px;color:#4a5568;line-height:1.3;}
+#tour-sidenav{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:128px;background:rgba(10,13,26,0.97);border:1px solid rgba(170,255,62,0.18);border-radius:13px;padding:8px 6px;z-index:3;pointer-events:auto;transition:width .2s ease;}
+#tour-sidenav.tsn-expanded{width:206px;max-height:82vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.25) transparent;}
+#tour-sidenav.tsn-expanded::-webkit-scrollbar{width:3px;}
+#tour-sidenav.tsn-expanded::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.25);border-radius:3px;}
+/* header row */
+#tsn-hdr-row{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 6px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:5px;gap:4px;}
+#tsn-counter{font-size:10px;font-weight:800;color:#aaff3e;white-space:nowrap;}
+#tsn-toggle{background:none;border:1px solid rgba(170,255,62,0.2);color:#aaff3e;border-radius:5px;padding:1px 5px;font-size:10px;cursor:pointer;line-height:1.4;flex-shrink:0;}
+#tsn-toggle:hover{background:rgba(170,255,62,0.12);}
+/* section items (compact mode) */
+.tsn-sec{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;font-size:11px;font-weight:600;color:#4a5568;white-space:nowrap;}
+.tsn-sec:hover{background:rgba(255,255,255,0.05);color:#b8c8e0;}
+.tsn-sec.tsn-sec-active{background:rgba(170,255,62,0.12);color:#aaff3e;}
+.tsn-sec.tsn-sec-done{color:#3a4a62;}
+.tsn-sec-icon{font-size:13px;flex-shrink:0;}
+.tsn-sec-bar{width:3px;height:3px;border-radius:50%;background:currentColor;flex-shrink:0;display:none;}
+.tsn-sec-active .tsn-sec-bar{display:block;}
+/* step items (expanded mode) */
+.tsn-item{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:8px;cursor:pointer;transition:background .12s,color .12s;font-size:11px;color:#4a5568;line-height:1.3;}
 .tsn-item:hover{background:rgba(255,255,255,0.05);color:#b8c8e0;}
 .tsn-item.tsn-active{background:rgba(170,255,62,0.12);color:#aaff3e;font-weight:700;}
 .tsn-item.tsn-done{color:#3a4a62;}
-.tsn-num{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;flex-shrink:0;transition:all .12s;}
+.tsn-num{width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;flex-shrink:0;}
 .tsn-item.tsn-active .tsn-num{background:rgba(170,255,62,0.2);border-color:rgba(170,255,62,0.5);color:#aaff3e;}
 .tsn-item.tsn-done .tsn-num{background:rgba(170,255,62,0.07);border-color:rgba(170,255,62,0.18);color:#aaff3e;}
 .tsn-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
@@ -2120,10 +2134,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 <div id="tour-overlay" style="display:none;">
   <div id="tour-dim"></div>
   <div id="tour-highlight"></div>
-  <!-- Side nav -->
-  <div id="tour-sidenav">
-    <div id="tour-sidenav-hdr">Tour Steps</div>
-  </div>
+  <!-- Side nav (rebuilt by updateTourSidenav each step) -->
+  <div id="tour-sidenav"></div>
   <div id="tour-tooltip">
     <div class="tt-step" id="tt-step-label">Step 1 of 6</div>
     <div class="tt-icon" id="tt-icon">🤖</div>
@@ -5360,7 +5372,9 @@ function _positionTourHighlight(step, targetEl, highlight, tooltip, dim){
   }
   /* Tooltip: stay clear of sidenav (240px) and screen edges */
   var tipW = 280, tipH = 210;
-  var sidenavClear = 244; /* sidenav 210px + 16px margin + 18px breathing room */
+  /* sidenav: 128px compact (206px expanded) + 12px left + 14px breathing room */
+  var snav = document.getElementById('tour-sidenav');
+  var sidenavClear = 12 + (snav && snav.classList.contains('tsn-expanded') ? 206 : 128) + 14;
   var tLeft = Math.min(r.left, window.innerWidth - tipW - 16);
   tLeft = Math.max(tLeft, sidenavClear);
   var tTop = r.bottom + pad + 12;
@@ -5417,7 +5431,7 @@ function showTourStep(idx){
       highlight.style.display = 'none';
       if(dim) dim.style.background = 'rgba(4,5,13,0.88)';
       tooltip.style.top = '50%';
-      tooltip.style.left = '240px'; /* stay right of sidenav */
+      tooltip.style.left = '168px'; /* stay right of compact sidenav (128+12+14+14) */
       tooltip.style.transform = 'translateY(-50%)';
       return;
     }
@@ -5437,39 +5451,103 @@ function showTourStep(idx){
   }, measureDelay);
 }
 
+/* Tour section definitions — drives the compact nav */
+var TOUR_SECTION_DEFS = [
+  { label:'My Squad', icon:'🤖', tab:'home-tab'     },
+  { label:'Inbox',    icon:'📬', tab:'inbox-tab'    },
+  { label:'Tasks',    icon:'✅', tab:'tasks-tab'    },
+  { label:'Calendar', icon:'📅', tab:'fullcal-tab'  },
+  { label:'Stats',    icon:'📊', tab:'stats-tab'    },
+  { label:'More',     icon:'📚', tab:null            }
+];
+/* Map each step index to its section index */
+function _stepSectionIdx(stepIdx){
+  var tab = TOUR_STEPS[stepIdx] && TOUR_STEPS[stepIdx].tab;
+  for(var s=0;s<TOUR_SECTION_DEFS.length;s++){
+    if(TOUR_SECTION_DEFS[s].tab === tab) return s;
+  }
+  return TOUR_SECTION_DEFS.length - 1; /* fallback → More */
+}
+/* First step that belongs to a given section */
+function _sectionFirstStep(secIdx){
+  var def = TOUR_SECTION_DEFS[secIdx];
+  for(var i=0;i<TOUR_STEPS.length;i++){
+    if(TOUR_STEPS[i].tab === def.tab) return i;
+  }
+  return 0;
+}
+
+var _tsnExpanded = false;
+
 function updateTourSidenav(currentIdx){
   var nav = document.getElementById('tour-sidenav');
   if(!nav) return;
-  /* Rebuild items (header stays in HTML) */
-  var hdr = nav.querySelector('#tour-sidenav-hdr');
   nav.innerHTML = '';
-  if(hdr){ nav.appendChild(hdr); } else {
-    var h = document.createElement('div');
-    h.id = 'tour-sidenav-hdr';
-    h.textContent = 'Tour Steps';
-    nav.appendChild(h);
-  }
-  TOUR_STEPS.forEach(function(s, i){
-    var item = document.createElement('div');
-    item.className = 'tsn-item' + (i === currentIdx ? ' tsn-active' : (i < currentIdx ? ' tsn-done' : ''));
-    item.title = s.title;
-    var numEl = document.createElement('div');
-    numEl.className = 'tsn-num';
-    numEl.textContent = i < currentIdx ? '✓' : (i+1);
-    var lbl = document.createElement('span');
-    lbl.className = 'tsn-label';
-    lbl.textContent = s.icon+' '+s.title;
-    item.appendChild(numEl);
-    item.appendChild(lbl);
-    item.addEventListener('click', function(){
-      _tourStep = i;
-      showTourStep(i);
-    });
-    nav.appendChild(item);
+
+  /* ── Header row: counter + toggle ── */
+  var hdrRow = document.createElement('div');
+  hdrRow.id = 'tsn-hdr-row';
+  var counter = document.createElement('span');
+  counter.id = 'tsn-counter';
+  counter.textContent = (currentIdx+1)+' / '+TOUR_STEPS.length;
+  var toggle = document.createElement('button');
+  toggle.id = 'tsn-toggle';
+  toggle.title = _tsnExpanded ? 'Show sections' : 'Show all steps';
+  toggle.textContent = _tsnExpanded ? '▲' : '≡';
+  toggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    _tsnExpanded = !_tsnExpanded;
+    nav.classList.toggle('tsn-expanded', _tsnExpanded);
+    updateTourSidenav(currentIdx);
   });
-  /* Scroll active item into view */
-  var active = nav.querySelector('.tsn-active');
-  if(active) setTimeout(function(){ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 80);
+  hdrRow.appendChild(counter);
+  hdrRow.appendChild(toggle);
+  nav.appendChild(hdrRow);
+
+  if(_tsnExpanded){
+    /* ── Full step list ── */
+    TOUR_STEPS.forEach(function(s, i){
+      var item = document.createElement('div');
+      item.className = 'tsn-item' + (i===currentIdx?' tsn-active':(i<currentIdx?' tsn-done':''));
+      item.title = s.title;
+      var numEl = document.createElement('div');
+      numEl.className = 'tsn-num';
+      numEl.textContent = i < currentIdx ? '✓' : (i+1);
+      var lbl = document.createElement('span');
+      lbl.className = 'tsn-label';
+      lbl.textContent = s.icon+' '+s.title;
+      item.appendChild(numEl); item.appendChild(lbl);
+      item.addEventListener('click', function(){ _tourStep=i; showTourStep(i); });
+      nav.appendChild(item);
+    });
+    var active = nav.querySelector('.tsn-active');
+    if(active) setTimeout(function(){ active.scrollIntoView({block:'nearest',behavior:'smooth'}); }, 80);
+  } else {
+    /* ── Section list (compact) ── */
+    var currentSec = _stepSectionIdx(currentIdx);
+    TOUR_SECTION_DEFS.forEach(function(def, si){
+      /* Find first step for this section */
+      var firstStep = _sectionFirstStep(si);
+      /* Determine state */
+      var secSteps = TOUR_STEPS.filter(function(_,i){ return _stepSectionIdx(i)===si; });
+      var secIndices = [];
+      TOUR_STEPS.forEach(function(_,i){ if(_stepSectionIdx(i)===si) secIndices.push(i); });
+      var isDone = secIndices.length > 0 && secIndices[secIndices.length-1] < currentIdx;
+      var isActive = si === currentSec;
+      var item = document.createElement('div');
+      item.className = 'tsn-sec' + (isActive?' tsn-sec-active':(isDone?' tsn-sec-done':''));
+      item.title = 'Jump to '+def.label;
+      var icon = document.createElement('span');
+      icon.className = 'tsn-sec-icon';
+      icon.textContent = isDone ? '✓' : def.icon;
+      var lbl = document.createElement('span');
+      lbl.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;';
+      lbl.textContent = def.label;
+      item.appendChild(icon); item.appendChild(lbl);
+      item.addEventListener('click', function(){ _tourStep=firstStep; showTourStep(firstStep); });
+      nav.appendChild(item);
+    });
+  }
 }
 
 function nextTourStep(){
