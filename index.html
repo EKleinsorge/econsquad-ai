@@ -5373,8 +5373,7 @@ function _stopTourAudio(){
 function _playTourStep(idx){
   _stopTourAudio();
   if(!_tourAudioEnabled) return;
-  var num = String(idx + 1).padStart(2,'0');
-  var a = new Audio('tour-audio/step-' + num + '.mp3');
+  var a = new Audio('tour-audio/Step ' + (idx + 1) + '.mp3');
   _tourAudio = a;
   a.play().catch(function(){}); /* silently ignore if file missing */
 }
