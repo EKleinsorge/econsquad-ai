@@ -3563,7 +3563,7 @@
       + '<div style="font-size:12px;color:#6b7a96;margin-top:2px;" id="tasks-summary-line">' + summaryParts.join(' &nbsp;·&nbsp; ') + '</div>'
       + '</div>'
       + '<div style="display:flex;gap:8px;">'
-      + '<button onclick="window.syncGoogleTasks()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">↻ Google Tasks</button>'
+      + '<button id="tasks-sync-btn" onclick="window.syncTasks()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">' + (window._emailProvider === 'microsoft' ? '↻ Microsoft To Do' : '↻ Google Tasks') + '</button>'
       + '<button onclick="window.openManageCategories()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">🏷️ Categories</button>'
       + '<button id="tasks-new-btn" onclick="window.openNewTask({})" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">+ New Task</button>'
       + '</div>'
@@ -4113,6 +4113,127 @@
       updateTasksBadge();
     })
     .catch(function() {}); /* silent failure — no UI impact */
+  };
+
+  /* ── Unified sync router — calls Google or Microsoft based on connected provider ── */
+  window.syncTasks = function() {
+    if (window._emailProvider === 'microsoft') {
+      window.syncMicrosoftTasks();
+    } else {
+      window.syncGoogleTasks();
+    }
+  };
+
+  /* ── Microsoft To Do sync ── */
+  window.syncMicrosoftTasks = function() {
+    var btn = eid('tasks-sync-btn');
+    if (btn) { btn.textContent = '↻ Syncing…'; btn.disabled = true; }
+
+    fetchToken().then(function(token) {
+      if (!token) {
+        if (btn) { btn.textContent = '↻ Microsoft To Do'; btn.disabled = false; }
+        showToastMsg('No Microsoft session found. Please reconnect Outlook.');
+        return;
+      }
+      /* 1. Get all task lists */
+      fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(listsData) {
+        var lists = listsData.value || [];
+        if (!lists.length) {
+          if (btn) { btn.textContent = '↻ Microsoft To Do'; btn.disabled = false; }
+          showToastMsg('No Microsoft To Do lists found.');
+          return;
+        }
+        /* 2. Fetch incomplete tasks from every list in parallel */
+        var fetches = lists.map(function(lst) {
+          return fetch('https://graph.microsoft.com/v1.0/me/todo/lists/' + lst.id + '/tasks?$filter=status ne \'completed\'&$top=100', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          }).then(function(r) { return r.json(); }).then(function(d) {
+            return (d.value || []).map(function(t) { t._listTitle = lst.displayName; t._listId = lst.id; return t; });
+          });
+        });
+
+        Promise.all(fetches).then(function(results) {
+          var allTasks = [].concat.apply([], results);
+          var imported = 0, updated = 0;
+          var existing = getAllTasks();
+          var msIdMap = {};
+          existing.forEach(function(t) { if (t.msTaskId) msIdMap[t.msTaskId] = t.id; });
+
+          allTasks.forEach(function(mt) {
+            if (!mt.id || !mt.title) return;
+            var status  = mt.status === 'completed' ? 'completed' : 'pending';
+            var dueDate = mt.dueDateTime && mt.dueDateTime.dateTime ? new Date(mt.dueDateTime.dateTime).toISOString() : null;
+            var notes   = mt.body && mt.body.content ? mt.body.content.replace(/<[^>]*>/g,'') : '';
+            if (msIdMap[mt.id]) {
+              updateTask(msIdMap[mt.id], { title: mt.title, description: notes, status: status, dueDate: dueDate });
+              updated++;
+            } else {
+              createTask({ title: mt.title, description: notes, category: mt._listTitle || 'General',
+                priority: mt.importance === 'high' ? 'high' : 'medium', status: status,
+                dueDate: dueDate, msTaskId: mt.id, msListId: mt._listId });
+              imported++;
+            }
+          });
+
+          if (btn) { btn.textContent = '↻ Microsoft To Do'; btn.disabled = false; }
+          if (eid('tasks-page-content')) window.loadTasks();
+          updateTasksBadge();
+          var msg = imported > 0 || updated > 0
+            ? (imported ? imported + ' imported' : '') + (imported && updated ? ', ' : '') + (updated ? updated + ' updated' : '') + ' from Microsoft To Do.'
+            : 'Microsoft To Do is up to date.';
+          showToastMsg(msg);
+        });
+      })
+      .catch(function(err) {
+        if (btn) { btn.textContent = '↻ Microsoft To Do'; btn.disabled = false; }
+        showToastMsg('Could not connect to Microsoft To Do. ' + (err.message || ''));
+      });
+    });
+  };
+
+  /* Silent background sync for Microsoft To Do — called on sign-in */
+  window.syncMicrosoftTasksSilent = function(token) {
+    if (!token) return;
+    fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(listsData) {
+      var lists = listsData.value || [];
+      var fetches = lists.map(function(lst) {
+        return fetch('https://graph.microsoft.com/v1.0/me/todo/lists/' + lst.id + '/tasks?$filter=status ne \'completed\'&$top=100', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function(r) { return r.json(); }).then(function(d) {
+          return (d.value || []).map(function(t) { t._listTitle = lst.displayName; t._listId = lst.id; return t; });
+        });
+      });
+      Promise.all(fetches).then(function(results) {
+        var allTasks = [].concat.apply([], results);
+        var existing = getAllTasks();
+        var msIdMap = {};
+        existing.forEach(function(t) { if (t.msTaskId) msIdMap[t.msTaskId] = t.id; });
+        allTasks.forEach(function(mt) {
+          if (!mt.id || !mt.title) return;
+          var status  = mt.status === 'completed' ? 'completed' : 'pending';
+          var dueDate = mt.dueDateTime && mt.dueDateTime.dateTime ? new Date(mt.dueDateTime.dateTime).toISOString() : null;
+          var notes   = mt.body && mt.body.content ? mt.body.content.replace(/<[^>]*>/g,'') : '';
+          if (msIdMap[mt.id]) {
+            updateTask(msIdMap[mt.id], { title: mt.title, description: notes, status: status, dueDate: dueDate });
+          } else {
+            createTask({ title: mt.title, description: notes, category: mt._listTitle || 'General',
+              priority: mt.importance === 'high' ? 'high' : 'medium', status: status,
+              dueDate: dueDate, msTaskId: mt.id, msListId: mt._listId });
+          }
+        });
+        if (eid('tasks-page-content')) window.loadTasks();
+        updateTasksBadge();
+      });
+    })
+    .catch(function() {}); /* silent failure */
   };
 
   function showTaskScopeModal(msg) {
