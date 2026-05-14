@@ -1432,7 +1432,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 7 days</button>
           <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
         </div>
-        <p class="hero-note">Credit card required · <span>Cancel anytime</span> · Setup in under 3 minutes</p>
+        <p class="hero-note">Credit card required · No charges until your free trial expires · <span>Cancel anytime</span> · Setup in 3 minutes</p>
         <p style="font-size:13px;color:var(--text2);margin-top:10px;font-style:italic;">Guaranteed to pay for itself — or your money back.</p>
       </section>
 
@@ -1462,7 +1462,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <p style="font-size:15px;color:#6b7a96;max-width:480px;margin:0 auto 28px;">That&rsquo;s EconSquad AI. Your specialist team, always on, always ready, always delivering.</p>
           <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
             <button onclick="openAuth('signup')" style="background:var(--lime);color:#1a3300;border:none;font-family:Barlow,sans-serif;font-size:17px;font-weight:900;padding:16px 36px;border-radius:10px;cursor:pointer;letter-spacing:.02em;transition:opacity .2s,transform .15s;" onmouseover="this.style.opacity='.88';this.style.transform='translateY(-2px)'" onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">See How Your New Team Will Help &rarr;</button>
-            <span style="font-size:12px;color:#6b7a96;">7-day free trial &nbsp;&middot;&nbsp; Credit card required &nbsp;&middot;&nbsp; <span style="color:#aaff3e;">Cancel anytime</span></span>
+            <span style="font-size:12px;color:#6b7a96;">Credit card required &nbsp;&middot;&nbsp; No charges until your free trial expires &nbsp;&middot;&nbsp; <span style="color:#aaff3e;">Cancel anytime</span> &nbsp;&middot;&nbsp; Setup in 3 minutes</span>
           </div>
           <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:1px;height:32px;background:linear-gradient(180deg,rgba(170,255,62,0.25),transparent);"></div>
         </div>
@@ -9535,8 +9535,8 @@ var _DEMO_STEPS=[
    narration:"That's EconSquad. Less work, more impact - starting today. Your first 7 days are completely free. Welcome to your squad.",
    content:function(){return'<div style="text-align:center;padding:10px 0 20px;">'
      +'<button class="dt-cta-big" type="button" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad - free for 7 days</button>'
-     +'<p style="font-size:12px;color:#4a5568;margin-top:14px;">Credit card required &middot; Cancel anytime &middot; Setup in 3 minutes</p>'
-     +'<p style="font-size:12px;color:#4a5568;margin-top:4px;">Already have an account? <span style="color:#aaff3e;cursor:pointer;" onclick="closeDemoTour();openAuth(\'signin\');">Sign in</span></p>'
+     +'<p style="font-size:12px;color:#6b7a96;margin-top:14px;line-height:1.7;">Credit card required &middot; No charges until your free trial expires &middot; Cancel anytime &middot; Setup in 3 minutes</p>'
+     +'<p style="font-size:12px;color:#6b7a96;margin-top:8px;">Already have an account? <span style="color:#aaff3e;cursor:pointer;font-weight:700;" onclick="closeDemoTour();openAuth(\'signin\');">Sign In</span></p>'
      +'</div>';}
   }
 ];
