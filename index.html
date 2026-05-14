@@ -7828,8 +7828,12 @@ function _normalizeOutlookEvent(evt){
 var _GRAPH = 'https://graph.microsoft.com/v1.0/me';
 var _GRAPH_SEL_MSG = '$select=id,subject,from,bodyPreview,receivedDateTime,sentDateTime,isRead,conversationId';
 
+/* Track how many Outlook emails to fetch per folder (increases on "Load older") */
+var _outlookTop = { unread: 50, read: 50, sent: 50 };
+
 /* Load Outlook inbox / read / sent directly from Microsoft Graph */
-function loadOutlookEmails(token, folder){
+function loadOutlookEmails(token, folder, top){
+  top = top || _outlookTop[folder] || 50;
   var listEl  = document.getElementById('email-list');
   var countEl = document.getElementById('unread-count-label');
   var spinner = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(100,160,255,0.2);border-top-color:#64a0ff;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading emails…</div>';
@@ -7837,22 +7841,20 @@ function loadOutlookEmails(token, folder){
 
   var url;
   if(folder === 'sent'){
-    url = _GRAPH + '/mailFolders/sentitems/messages?$top=50&$orderby=sentDateTime desc&' + _GRAPH_SEL_MSG;
+    url = _GRAPH + '/mailFolders/sentitems/messages?$top='+top+'&$orderby=sentDateTime desc&' + _GRAPH_SEL_MSG;
   } else if(folder === 'read'){
-    url = _GRAPH + "/messages?$top=50&$filter=isRead eq true&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
+    url = _GRAPH + "/messages?$top="+top+"&$filter=isRead eq true&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
   } else {
-    url = _GRAPH + "/messages?$top=50&$filter=isRead eq false&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
+    url = _GRAPH + "/messages?$top="+top+"&$filter=isRead eq false&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
   }
 
   fetch(url, { headers:{ 'Authorization':'Bearer '+token } })
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(data.error){ showEmailList([]); return; }
+      if(data.error){ console.warn('Outlook email error:', data.error); showEmailList([]); return; }
       var emails = (data.value || []).map(_normalizeOutlookEmail);
       window._lastEmails = emails;
       showEmailList(emails);
-      var label = folder === 'sent' ? ' sent' : folder === 'read' ? ' read' : ' unread';
-      if(countEl) countEl.textContent = emails.length + label;
     })
     .catch(function(){ showEmailList([]); });
 }
@@ -7948,6 +7950,7 @@ function refreshInbox(){
   _inboxPeriod = '7d';
   _readPeriod  = '30d';
   _sentPeriod  = '30d';
+  _outlookTop  = { unread: 50, read: 50, sent: 50 };
   loadInbox();
 }
 
@@ -7981,25 +7984,28 @@ function switchInboxMode(mode){
 }
 
 function loadOlderEmails(){
-  var token = providerToken || window._providerToken;
-  if(!token) return;
-  /* Outlook doesn't use period-based pagination — just re-fetch with larger top */
-  if(_emailProvider === 'microsoft'){
-    var folder = _inboxMode === 'sent' ? 'sent' : _inboxMode === 'read' ? 'read' : 'unread';
-    loadOutlookEmails(token, folder);
-    return;
-  }
-  var STEPS = { '7d':'30d', '30d':'90d', '90d':'' };
-  if(_inboxMode === 'unread'){
-    _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
-    loadEmailList(token, _inboxPeriod);
-  } else if(_inboxMode === 'read'){
-    _readPeriod = STEPS[_readPeriod] !== undefined ? STEPS[_readPeriod] : '';
-    loadReadEmailList(token, _readPeriod);
-  } else {
-    _sentPeriod = STEPS[_sentPeriod] !== undefined ? STEPS[_sentPeriod] : '';
-    loadSentEmailList(token, _sentPeriod);
-  }
+  getProviderToken().then(function(token){
+    if(!token) return;
+    /* Outlook — increase $top by 50 to fetch more messages */
+    if(_emailProvider === 'microsoft'){
+      var folder = _inboxMode === 'sent' ? 'sent' : _inboxMode === 'read' ? 'read' : 'unread';
+      _outlookTop[folder] = (_outlookTop[folder] || 50) + 50;
+      loadOutlookEmails(token, folder, _outlookTop[folder]);
+      return;
+    }
+    /* Gmail — expand time window */
+    var STEPS = { '7d':'30d', '30d':'90d', '90d':'' };
+    if(_inboxMode === 'unread'){
+      _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
+      loadEmailList(token, _inboxPeriod);
+    } else if(_inboxMode === 'read'){
+      _readPeriod = STEPS[_readPeriod] !== undefined ? STEPS[_readPeriod] : '';
+      loadReadEmailList(token, _readPeriod);
+    } else {
+      _sentPeriod = STEPS[_sentPeriod] !== undefined ? STEPS[_sentPeriod] : '';
+      loadSentEmailList(token, _sentPeriod);
+    }
+  });
 }
 
 function loadReadEmailList(token, period){
