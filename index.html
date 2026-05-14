@@ -5278,7 +5278,20 @@ var TOUR_STEPS = [
 ];
 
 function initOnboarding(user){
-  /* Don't interrupt an active tour (e.g. OAuth redirect mid-tour) */
+  /* Resume tour if the user triggered OAuth mid-tour */
+  var resumeRaw = localStorage.getItem('esq_tour_resume');
+  if(resumeRaw !== null){
+    localStorage.removeItem('esq_tour_resume');
+    var resumeIdx = parseInt(resumeRaw, 10);
+    if(!isNaN(resumeIdx) && resumeIdx >= 0){
+      _tourStep = resumeIdx;
+      _tourAudioEnabled = false; /* can't autoplay after a page redirect */
+      _updateMuteBtn();
+      setTimeout(function(){ showTourStep(resumeIdx); }, 1200);
+      return;
+    }
+  }
+  /* Don't interrupt a tour that's already visible */
   var tourOverlay = document.getElementById('tour-overlay');
   if(tourOverlay && tourOverlay.style.display !== 'none') return;
   /* Check if user has dismissed permanently */
@@ -7105,6 +7118,12 @@ function updateNavAuth(loggedIn){
 
 /* ===== GOOGLE SIGN IN ===== */
 function doGoogleSignin(){
+  /* Preserve tour position across OAuth redirect */
+  var _tOv = document.getElementById('tour-overlay');
+  var _tWl = document.getElementById('tour-welcome');
+  if((_tOv && _tOv.style.display !== 'none') || (_tWl && _tWl.classList.contains('show'))){
+    localStorage.setItem('esq_tour_resume', String(_tourStep));
+  }
   supa.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -7510,6 +7529,12 @@ function getProviderToken(){
 
 /* Connect Gmail - triggers Google OAuth with Gmail scopes */
 function connectGmail(){
+  /* If tour is active, save current step so we can resume after OAuth redirect */
+  var _tOverlay = document.getElementById('tour-overlay');
+  var _tWelcome = document.getElementById('tour-welcome');
+  var _tourActive = (_tOverlay && _tOverlay.style.display !== 'none') ||
+                    (_tWelcome && _tWelcome.classList.contains('show'));
+  if(_tourActive){ localStorage.setItem('esq_tour_resume', String(_tourStep)); }
   supa.auth.signInWithOAuth({
     provider: 'google',
     options: {
