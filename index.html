@@ -3840,7 +3840,7 @@ function updateIntegrationStatus(){
   var el = document.getElementById('pm-integrations');
   if(!el) return;
   var storedProvider = localStorage.getItem('esq_email_provider') || _emailProvider;
-  var isGoogle    = (storedProvider === 'google');
+  var isGoogle    = (storedProvider === 'google') && localStorage.getItem('esq_gmail_disconnected') !== '1';
   var isMicrosoft = (storedProvider === 'microsoft');
   var row = function(icon, label, connected, connectFn, disconnectFn){
     var statusDot = connected
@@ -7644,6 +7644,11 @@ function getProviderToken(){
     _emailProvider = 'microsoft';
     return _getMSToken();
   }
+  /* Honour an intentional Gmail disconnect — don't re-detect from Supabase session */
+  if(localStorage.getItem('esq_gmail_disconnected') === '1'){
+    _emailProvider = null;
+    return Promise.resolve(null);
+  }
   /* Fall back to Google / Supabase session token */
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
@@ -7659,6 +7664,7 @@ function getProviderToken(){
 
 /* Connect Gmail - triggers Google OAuth with Gmail scopes */
 function connectGmail(){
+  localStorage.removeItem('esq_gmail_disconnected'); /* clear intentional-disconnect flag */
   /* If tour is active, save current step so we can resume after OAuth redirect */
   var _tOverlay = document.getElementById('tour-overlay');
   var _tWelcome = document.getElementById('tour-welcome');
@@ -7678,6 +7684,7 @@ function connectGmail(){
 /* Disconnect Gmail — clears the Google provider and reloads inbox to show connect prompt */
 function disconnectGmail(){
   localStorage.removeItem('esq_email_provider');
+  localStorage.setItem('esq_gmail_disconnected', '1'); /* prevent auto-re-detect from Supabase session */
   _emailProvider = null;
   providerToken = null;
   inboxLoaded = false;
