@@ -1772,9 +1772,14 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <p style="color:#6b7a96;font-size:13px;">Your Gmail and Calendar — organized by ARIA</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;">
-            <button id="inbox-connect-btn" onclick="connectGmail()" style="display:none;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;cursor:pointer;">
-              Connect Gmail ✦
-            </button>
+            <div id="inbox-connect-btn" style="display:none;gap:8px;align-items:center;">
+              <button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;cursor:pointer;">
+                Connect Gmail ✦
+              </button>
+              <button onclick="connectOutlook()" style="background:rgba(100,160,255,0.12);border:1px solid rgba(100,160,255,0.3);color:#64a0ff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;cursor:pointer;">
+                Connect Outlook ✦
+              </button>
+            </div>
             <button onclick="analyzeInboxWithARIA()" id="aria-analyze-btn" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
               ✦ ARIA Analyze
             </button>
@@ -2860,6 +2865,20 @@ function onSignedIn(user){
   setTimeout(function(){
     getProviderToken().then(function(token){
       if(!token) return;
+      /* Outlook — use Graph API for badge + calendar preload */
+      if(_emailProvider === 'microsoft'){
+        fetch(_GRAPH + '/messages?$top=1&$filter=isRead eq false&$count=true', {
+          headers:{ 'Authorization':'Bearer '+token, 'ConsistencyLevel':'eventual' }
+        }).then(function(r){ return r.json(); }).then(function(d){
+          var cnt = d['@odata.count'] || 0;
+          if(cnt > 0){
+            var badge = document.getElementById('inbox-badge');
+            if(badge){ badge.textContent = cnt; badge.style.display='inline'; }
+          }
+        }).catch(function(){});
+        if(!window._lastCalEvents && !window._lastCalWeekEvents) loadOutlookCalendar(token);
+        return;
+      }
       /* inbox unread badge */
       supa.functions.invoke('gmail-calendar',{body:{action:'gmail_inbox',provider_token:token}}).then(function(res){
         if(res.data && res.data.total_unread > 0){
@@ -7578,13 +7597,16 @@ function buildARIASummary(categories, emails) {
 var providerToken = null;
 var inboxLoaded = false;
 var briefingLoaded = false;
+var _emailProvider = null; /* 'google' | 'microsoft' | null */
 
-/* Get the Google provider token from Supabase session */
+/* Get provider token and detect which email platform is connected */
 function getProviderToken(){
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
     if(session && session.provider_token){
       providerToken = session.provider_token;
+      var p = session.user && session.user.app_metadata && session.user.app_metadata.provider;
+      _emailProvider = (p === 'azure') ? 'microsoft' : 'google';
       return providerToken;
     }
     return null;
@@ -7609,6 +7631,113 @@ function connectGmail(){
   });
 }
 
+/* Connect Outlook/Microsoft 365 - triggers Azure OAuth */
+function connectOutlook(){
+  var _tOverlay = document.getElementById('tour-overlay');
+  var _tWelcome = document.getElementById('tour-welcome');
+  var _tourActive = (_tOverlay && _tOverlay.style.display !== 'none') || (_tWelcome && _tWelcome.classList.contains('show'));
+  if(_tourActive){ localStorage.setItem('esq_tour_resume', String(_tourStep)); }
+  supa.auth.signInWithOAuth({
+    provider: 'azure',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+      scopes: 'email profile openid Mail.Read Mail.ReadWrite Mail.Send Calendars.Read offline_access'
+    }
+  });
+}
+
+/* ── Microsoft Graph API helpers ── */
+
+/* Normalize a Graph API message to the same shape showEmailList expects */
+function _normalizeOutlookEmail(msg){
+  var fa = msg.from && msg.from.emailAddress;
+  var from = fa ? ((fa.name || '') + (fa.name ? ' <' + fa.address + '>' : fa.address || '')) : '';
+  return {
+    id: msg.id,
+    from: from,
+    subject: msg.subject || '(no subject)',
+    snippet: msg.bodyPreview || '',
+    date: msg.receivedDateTime || msg.sentDateTime || '',
+    isUnread: !msg.isRead,
+    labels: msg.isRead ? [] : ['UNREAD'],
+    threadId: msg.conversationId || msg.id,
+    _provider: 'microsoft'
+  };
+}
+
+/* Normalize a Graph API calendar event */
+function _normalizeOutlookEvent(evt){
+  return {
+    id: evt.id,
+    title: evt.subject || '(no title)',
+    start: evt.start && evt.start.dateTime ? evt.start.dateTime : null,
+    end:   evt.end   && evt.end.dateTime   ? evt.end.dateTime   : null,
+    allDay: evt.isAllDay || false,
+    location: (evt.location && evt.location.displayName) || '',
+    description: evt.bodyPreview || '',
+    attendees: (evt.attendees || []).map(function(a){
+      return { email: (a.emailAddress && a.emailAddress.address) || '', name: (a.emailAddress && a.emailAddress.name) || '' };
+    }),
+    meetLink: (evt.onlineMeeting && evt.onlineMeeting.joinUrl) || ''
+  };
+}
+
+var _GRAPH = 'https://graph.microsoft.com/v1.0/me';
+var _GRAPH_SEL_MSG = '$select=id,subject,from,bodyPreview,receivedDateTime,sentDateTime,isRead,conversationId';
+
+/* Load Outlook inbox / read / sent directly from Microsoft Graph */
+function loadOutlookEmails(token, folder){
+  var listEl  = document.getElementById('email-list');
+  var countEl = document.getElementById('unread-count-label');
+  var spinner = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(100,160,255,0.2);border-top-color:#64a0ff;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Loading emails…</div>';
+  if(listEl) listEl.innerHTML = spinner;
+
+  var url;
+  if(folder === 'sent'){
+    url = _GRAPH + '/mailFolders/sentitems/messages?$top=50&$orderby=sentDateTime desc&' + _GRAPH_SEL_MSG;
+  } else if(folder === 'read'){
+    url = _GRAPH + "/messages?$top=50&$filter=isRead eq true&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
+  } else {
+    url = _GRAPH + "/messages?$top=50&$filter=isRead eq false&$orderby=receivedDateTime desc&" + _GRAPH_SEL_MSG;
+  }
+
+  fetch(url, { headers:{ 'Authorization':'Bearer '+token } })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.error){ showEmailList([]); return; }
+      var emails = (data.value || []).map(_normalizeOutlookEmail);
+      window._lastEmails = emails;
+      showEmailList(emails);
+      var label = folder === 'sent' ? ' sent' : folder === 'read' ? ' read' : ' unread';
+      if(countEl) countEl.textContent = emails.length + label;
+    })
+    .catch(function(){ showEmailList([]); });
+}
+
+/* Load Outlook calendar from Microsoft Graph */
+function loadOutlookCalendar(token){
+  var now   = new Date();
+  var start = now.toISOString();
+  var end7  = new Date(now.getTime() + 7*24*60*60*1000).toISOString();
+  var url   = _GRAPH + '/calendarView?startDateTime='+encodeURIComponent(start)+'&endDateTime='+encodeURIComponent(end7)+'&$top=25&$select=id,subject,start,end,location,bodyPreview,isAllDay,attendees,onlineMeeting&$orderby=start/dateTime';
+
+  fetch(url, { headers:{ 'Authorization':'Bearer '+token, 'Prefer':'outlook.timezone="UTC"' } })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.error){ showCalendarToday([]); showCalendarWeek([]); return; }
+      var events = (data.value || []).map(_normalizeOutlookEvent);
+      var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      var todayEnd   = new Date(); todayEnd.setHours(23,59,59,999);
+      var today = events.filter(function(e){ var d=new Date(e.start); return d>=todayStart && d<=todayEnd; });
+      var week  = events.filter(function(e){ var d=new Date(e.start); return d>todayEnd; });
+      showCalendarToday(today);
+      showCalendarWeek(week);
+      window._lastCalEvents = today;
+      window._lastCalWeekEvents = week;
+    })
+    .catch(function(){ showCalendarToday([]); showCalendarWeek([]); });
+}
+
 /* Load inbox tab */
 function loadInbox(){
   if(!currentUser) return;
@@ -7630,24 +7759,31 @@ function loadInbox(){
   if(lockEl) lockEl.style.display = 'none';
   if(gridEl) gridEl.style.display = 'block';
 
-  /* Get provider token */
+  /* Get provider token + detect which email platform is connected */
   getProviderToken().then(function(token){
     if(!token){
-      /* No Google token - show connect button */
+      /* No email connected — show both connect options */
       if(connectBtn) connectBtn.style.display = 'flex';
       showEmailList([]);
       showCalendarToday([]);
-      document.getElementById('email-list').innerHTML = '<div style="text-align:center;padding:40px;color:#4a5568;"><div style="font-size:24px;margin-bottom:8px;">📧</div><div style="margin-bottom:16px;font-size:13px;">Connect your Gmail to see your inbox here.</div><button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Gmail →</button></div>';
-      document.getElementById('calendar-today').innerHTML = '<div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Connect Gmail to see your calendar.</div>';
+      document.getElementById('email-list').innerHTML = '<div style="text-align:center;padding:40px;color:#4a5568;"><div style="font-size:24px;margin-bottom:8px;">📧</div><div style="margin-bottom:16px;font-size:13px;">Connect your email to see your inbox here.</div><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;"><button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Gmail →</button><button onclick="connectOutlook()" style="background:rgba(100,160,255,0.12);border:1px solid rgba(100,160,255,0.3);color:#64a0ff;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Outlook →</button></div></div>';
+      document.getElementById('calendar-today').innerHTML = '<div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Connect your email to see your calendar.</div>';
       return;
     }
 
     if(connectBtn) connectBtn.style.display = 'none';
 
-    /* Load ARIA briefing + inbox + calendar in parallel */
-    loadAriaBriefing(token);
-    loadEmailList(token);
-    loadCalendar(token);
+    if(_emailProvider === 'microsoft'){
+      /* Microsoft 365 / Outlook — use Graph API directly */
+      loadOutlookEmails(token, 'unread');
+      loadOutlookCalendar(token);
+      /* ARIA briefing works off _lastEmails which loadOutlookEmails populates */
+    } else {
+      /* Gmail / Google — use existing Edge Function */
+      loadAriaBriefing(token);
+      loadEmailList(token);
+      loadCalendar(token);
+    }
   });
 }
 
@@ -7678,15 +7814,26 @@ function switchInboxMode(mode){
   if(sentPill)   sentPill.style.cssText   += mode==='sent'   ? active : inactive;
   getProviderToken().then(function(token){
     if(!token) return;
-    if(mode === 'unread') loadEmailList(token, _inboxPeriod);
-    else if(mode === 'read') loadReadEmailList(token, _readPeriod);
-    else loadSentEmailList(token, _sentPeriod);
+    if(_emailProvider === 'microsoft'){
+      var folder = mode === 'sent' ? 'sent' : mode === 'read' ? 'read' : 'unread';
+      loadOutlookEmails(token, folder);
+    } else {
+      if(mode === 'unread') loadEmailList(token, _inboxPeriod);
+      else if(mode === 'read') loadReadEmailList(token, _readPeriod);
+      else loadSentEmailList(token, _sentPeriod);
+    }
   });
 }
 
 function loadOlderEmails(){
   var token = providerToken || window._providerToken;
   if(!token) return;
+  /* Outlook doesn't use period-based pagination — just re-fetch with larger top */
+  if(_emailProvider === 'microsoft'){
+    var folder = _inboxMode === 'sent' ? 'sent' : _inboxMode === 'read' ? 'read' : 'unread';
+    loadOutlookEmails(token, folder);
+    return;
+  }
   var STEPS = { '7d':'30d', '30d':'90d', '90d':'' };
   if(_inboxMode === 'unread'){
     _inboxPeriod = STEPS[_inboxPeriod] !== undefined ? STEPS[_inboxPeriod] : '';
