@@ -5373,9 +5373,15 @@ function _stopTourAudio(){
 function _playTourStep(idx){
   _stopTourAudio();
   if(!_tourAudioEnabled) return;
-  var a = new Audio('tour-audio/Step ' + (idx + 1) + '.mp3');
+  /* Encode filename — spaces must be %20 in a URL */
+  var src = 'tour-audio/Step%20' + (idx + 1) + '.mp3';
+  var a = new Audio(src);
   _tourAudio = a;
-  a.play().catch(function(){}); /* silently ignore if file missing */
+  /* Small delay so the browser's user-gesture audio-unlock stays active */
+  setTimeout(function(){
+    if(_tourAudio !== a) return; /* step changed before delay fired */
+    a.play().catch(function(e){ console.warn('Tour audio play failed:', e); });
+  }, 80);
 }
 
 function toggleTourMute(){
@@ -5489,8 +5495,6 @@ function showTourStep(idx){
 
   /* Update sidenav */
   updateTourSidenav(idx);
-  /* Play narration audio for this step */
-  _playTourStep(idx);
   /* Re-apply saved position (nav was rebuilt so _dragInit is gone) and init drag */
   var _navEl = document.getElementById('tour-sidenav');
   if(_navEl && _tsnX !== null){ _navEl.style.left = _tsnX+'px'; _navEl.style.top = _tsnY+'px'; }
@@ -5503,6 +5507,8 @@ function showTourStep(idx){
 
   overlay.style.display = 'block';
   overlay.classList.add('active');
+  /* Play narration — after overlay is active so audio context is unlocked */
+  _playTourStep(idx);
 
   /* Update tooltip content */
   document.getElementById('tt-step-label').textContent = 'Step '+(idx+1)+' of '+TOUR_STEPS.length;
