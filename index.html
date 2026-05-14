@@ -757,7 +757,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #tour-welcome{position:fixed;inset:0;z-index:99999;background:rgba(4,5,13,0.95);backdrop-filter:blur(16px);display:none;align-items:center;justify-content:center;}
 #tour-welcome.show{display:flex;}
 #tour-welcome-box{background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.25);border-radius:20px;padding:40px 44px;max-width:500px;width:95%;text-align:center;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 60px rgba(170,255,62,0.04);}
-#tour-welcome-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.25),rgba(100,175,255,0.15));border:2px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;}
+/* ARIA avatar wrapper + animated rings */
+#tour-welcome-avatar-wrap{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;}
+#tour-welcome-avatar{position:relative;z-index:2;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(170,255,62,0.25),rgba(100,175,255,0.15));border:2px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:28px;transition:transform .08s ease,box-shadow .08s ease;}
+.aria-ring{position:absolute;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);}
+#aria-ring-1{width:82px;height:82px;border:1.5px solid rgba(170,255,62,0.3);}
+#aria-ring-2{width:98px;height:98px;border:1.5px solid rgba(170,255,62,0.18);}
+#aria-ring-3{width:116px;height:116px;border:1.5px solid rgba(170,255,62,0.09);}
+@keyframes ariaPulseIdle{0%,100%{opacity:.45;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.07);}}
+.aria-idle #aria-ring-1{animation:ariaPulseIdle 2.2s ease-in-out infinite;animation-delay:0s;}
+.aria-idle #aria-ring-2{animation:ariaPulseIdle 2.2s ease-in-out infinite;animation-delay:.28s;}
+.aria-idle #aria-ring-3{animation:ariaPulseIdle 2.2s ease-in-out infinite;animation-delay:.56s;}
 #tour-welcome-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:8px;}
 #tour-welcome-msg{font-size:13px;color:#8a97b5;line-height:1.65;margin-bottom:24px;}
 #tour-welcome-vol{font-size:12px;color:#aaff3e;font-weight:700;margin-bottom:20px;letter-spacing:.02em;}
@@ -765,6 +775,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #tour-welcome-talk:hover{opacity:.88;}
 #tour-welcome-skip{background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;text-decoration:underline;}
 #tour-welcome-skip:hover{color:#8a97b5;}
+#tour-welcome-skip-intro{background:none;border:none;color:rgba(170,255,62,0.4);font-size:11px;cursor:pointer;margin-top:8px;display:inline-block;transition:color .15s;letter-spacing:.02em;}
+#tour-welcome-skip-intro:hover{color:#aaff3e;}
 /* Tour side nav */
 #tour-sidenav{position:fixed;width:128px;background:rgba(10,13,26,0.97);border:1px solid rgba(170,255,62,0.18);border-radius:13px;padding:8px 6px;z-index:99999;pointer-events:auto;transition:width .2s ease;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
 #tour-sidenav.tsn-expanded{width:206px;max-height:82vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.25) transparent;}
@@ -2154,12 +2166,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 <!-- ═══════════════ TOUR WELCOME ═══════════════ -->
 <div id="tour-welcome">
   <div id="tour-welcome-box">
-    <div id="tour-welcome-avatar">✦</div>
+    <!-- Animated ARIA avatar with pulsing rings -->
+    <div id="tour-welcome-avatar-wrap" class="aria-idle">
+      <div class="aria-ring" id="aria-ring-3"></div>
+      <div class="aria-ring" id="aria-ring-2"></div>
+      <div class="aria-ring" id="aria-ring-1"></div>
+      <div id="tour-welcome-avatar">✦</div>
+    </div>
     <div id="tour-welcome-title">Meet ARIA</div>
     <div id="tour-welcome-msg">Hi! I'm ARIA — your AI chief of staff for economic development. I'm going to walk you through everything in EconSquad so you can hit the ground running. There are 27 stops, you can jump around anytime, and I'll be right here if you have questions.</div>
     <div id="tour-welcome-vol">🔊 Turn up your volume — I'll narrate as we go!</div>
     <button id="tour-welcome-talk" onclick="obStartTourWithAudio()">Let ARIA Talk You Through It</button>
     <button id="tour-welcome-skip" onclick="obStartTourSilent()">Just show me around (no audio)</button>
+    <button id="tour-welcome-skip-intro" onclick="obSkipWelcomeAudio()">Skip intro →</button>
   </div>
 </div>
 
@@ -5341,16 +5360,84 @@ function obStartTour(){
 }
 
 function obStartTourWithAudio(){
+  _tourAudioEnabled = true;
+  _updateMuteBtn();
+  _tourStep = 0;
+  /* Keep welcome modal visible — hide it only when audio ends */
+  var wa = new Audio('tour-audio/welcome.mp3');
+  var wrap = document.getElementById('tour-welcome-avatar-wrap');
+  var av   = document.getElementById('tour-welcome-avatar');
+  var r1   = document.getElementById('aria-ring-1');
+  var r2   = document.getElementById('aria-ring-2');
+  var r3   = document.getElementById('aria-ring-3');
+  var _rafId = null, _actx = null;
+  function _stopWelcomeAnim(){
+    if(_rafId){ cancelAnimationFrame(_rafId); _rafId = null; }
+    if(_actx){ try{ _actx.close(); }catch(e){} _actx = null; }
+    if(wrap){ wrap.classList.add('aria-idle'); }
+    if(av){ av.style.transform = ''; av.style.boxShadow = ''; }
+    [r1,r2,r3].forEach(function(r){ if(r){ r.style.opacity=''; r.style.transform=''; } });
+  }
+  function _startWelcomeAnim(){
+    if(!wrap) return;
+    wrap.classList.remove('aria-idle');
+    try{
+      _actx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = _actx.createMediaElementSource(wa);
+      var analyser = _actx.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      analyser.connect(_actx.destination);
+      var data = new Uint8Array(analyser.frequencyBinCount);
+      function tick(){
+        _rafId = requestAnimationFrame(tick);
+        analyser.getByteFrequencyData(data);
+        var sum = 0;
+        for(var i = 0; i < data.length; i++) sum += data[i];
+        var t = Math.min(sum / data.length / 72, 1); /* 0-1, tuned for speech */
+        /* Avatar scale + glow */
+        if(av){
+          av.style.transform = 'scale(' + (1 + t * 0.2).toFixed(3) + ')';
+          var g = Math.round(4 + t * 22);
+          av.style.boxShadow = '0 0 ' + g + 'px rgba(170,255,62,' + (0.2 + t * 0.6).toFixed(2) + ')';
+        }
+        /* Ring opacity (voice-reactive) */
+        var cx = 'translate(-50%,-50%)';
+        if(r1){ r1.style.opacity = (0.3 + t * 0.7).toFixed(2); r1.style.transform = cx + ' scale(' + (1 + t * 0.05).toFixed(3) + ')'; }
+        if(r2){ r2.style.opacity = (0.15 + t * 0.55).toFixed(2); r2.style.transform = cx + ' scale(' + (1 + t * 0.08).toFixed(3) + ')'; }
+        if(r3){ r3.style.opacity = (0.07 + t * 0.43).toFixed(2); r3.style.transform = cx + ' scale(' + (1 + t * 0.11).toFixed(3) + ')'; }
+      }
+      tick();
+    }catch(e){
+      /* AudioContext unavailable — keep idle pulse */
+      if(wrap) wrap.classList.add('aria-idle');
+    }
+  }
+  function _endWelcome(){
+    _stopWelcomeAnim();
+    var welcome = document.getElementById('tour-welcome');
+    if(welcome) welcome.classList.remove('show');
+    showTourStep(0);
+  }
+  wa.oncanplay  = function(){ _startWelcomeAnim(); };
+  wa.onended    = _endWelcome;
+  wa.onerror    = _endWelcome;
+  /* Expose handles so skip button can stop everything */
+  window._welcomeAudio     = wa;
+  window._stopWelcomeAnim  = _stopWelcomeAnim;
+  wa.play().catch(_endWelcome);
+}
+
+function obSkipWelcomeAudio(){
+  /* User hit "Skip intro →" — stop welcome audio/anim and jump straight into tour */
+  if(window._welcomeAudio){ window._welcomeAudio.pause(); window._welcomeAudio.src = ''; window._welcomeAudio = null; }
+  if(window._stopWelcomeAnim){ window._stopWelcomeAnim(); window._stopWelcomeAnim = null; }
   var welcome = document.getElementById('tour-welcome');
   if(welcome) welcome.classList.remove('show');
   _tourAudioEnabled = true;
   _updateMuteBtn();
   _tourStep = 0;
-  /* Play welcome audio then start step 1 */
-  var wa = new Audio('tour-audio/welcome.mp3');
-  wa.onended = function(){ showTourStep(0); };
-  wa.onerror = function(){ showTourStep(0); }; /* graceful fallback */
-  wa.play().catch(function(){ showTourStep(0); });
+  showTourStep(0);
 }
 
 function obStartTourSilent(){
