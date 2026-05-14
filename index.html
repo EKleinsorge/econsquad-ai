@@ -1426,7 +1426,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <p class="hero-sub">Less work. More impact. EconSquad AI gives you a team of <strong>specialist AI experts</strong> — each trained on a single economic development task. Grant writing, site selection, BRE surveys, incentive modeling and more. Deploy your squad 24/7.</p>
         <div class="hero-ctas">
           <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 7 days</button>
-          <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="font-size:18px;line-height:1;">✦</span> Take a Tour with ARIA</button>
+          <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
         </div>
         <p class="hero-note">No credit card required · <span>Cancel anytime</span> · Setup in under 3 minutes</p>
         <p style="font-size:13px;color:var(--text2);margin-top:10px;font-style:italic;">Guaranteed to pay for itself — or your money back.</p>
@@ -9371,6 +9371,128 @@ function escAttr(str){
   return String(str||'').replace(/'/g,"\'").replace(/"/g,'&quot;').slice(0,60);
 }
 
+/* ===== ARIA DEMO TOUR (pre-signup walkthrough) ===== */
+var _demoStep=0;
+function _dtEC(cls,ini,snd,addr,subj,prev,tL,tC,tBg,tBd,bL,bBg,bBd,bC,av){
+  return'<div class="dt-ec '+cls+'"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+    +'<div style="width:38px;height:38px;border-radius:50%;background:'+av+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+ini+'</div>'
+    +'<div style="flex:1;min-width:0;"><div style="font-weight:800;color:#eef3fc;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+snd+'</div>'
+    +'<div style="font-size:10px;color:#4a5568;">'+addr+'</div></div>'
+    +'<span style="background:'+tBg+';color:'+tC+';border:1px solid '+tBd+';font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;">'+tL+'</span></div>'
+    +'<div style="font-size:13px;font-weight:600;color:#eef3fc;margin-bottom:4px;">'+subj+'</div>'
+    +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">'+prev+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;">'
+    +'<span style="background:'+bBg+';border:1px solid '+bBd+';color:'+bC+';font-size:10px;font-weight:700;padding:4px 12px;border-radius:7px;">'+bL+'</span>'
+    +'<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:10px;padding:4px 10px;border-radius:7px;">Reply</span>'
+    +'<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:10px;padding:4px 10px;border-radius:7px;">Archive</span>'
+    +'</div></div>';
+}
+function _dtSC(icon,name,role,desc,c,bg,bd){
+  return'<div class="dt-sc"><div style="width:46px;height:46px;border-radius:14px;background:'+bg+';border:1px solid '+bd+';display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">'+icon+'</div>'
+    +'<div style="flex:1;min-width:0;"><div style="font-family:\'Barlow\',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:1px;">'+name+'</div>'
+    +'<div style="font-size:11px;color:'+c+';font-weight:600;margin-bottom:5px;">'+role+'</div>'
+    +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+desc+'</div></div>'
+    +'<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:6px 14px;border-radius:8px;align-self:center;white-space:nowrap;">Deploy</span></div>';
+}
+function _dtCE(time,title,loc,c){
+  return'<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+    +'<div style="min-width:80px;font-size:10px;color:#4a5568;padding-top:3px;flex-shrink:0;">'+time+'</div>'
+    +'<div style="width:3px;min-height:36px;background:'+c+';border-radius:2px;flex-shrink:0;margin-top:3px;"></div>'
+    +'<div><div style="font-size:13px;font-weight:600;color:#eef3fc;margin-bottom:2px;">'+title+'</div>'
+    +'<div style="font-size:11px;color:#4a5568;">'+loc+'</div></div></div>';
+}
+var _DEMO_STEPS=[
+  {lbl:'Welcome',title:'Meet ARIA',
+   narration:"Hi! I'm ARIA - your AI economic development assistant. I work 24/7 so you don't have to. Let me show you what we accomplish together.",
+   content:function(){return'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#aaff3e;margin-bottom:4px;">61.5 hrs</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Saved per ED professional annually</div></div>'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#f5c542;margin-bottom:4px;">5x ROI</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Return on your subscription</div></div>'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#64afff;margin-bottom:4px;">8 days</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Full workdays recovered per year</div></div>'
+     +'</div>';}
+  },
+  {lbl:'Step 1 of 5',title:'ARIA Inbox',
+   narration:"I read every email the moment it arrives and tag it instantly - RFIs, grant deadlines, BRE requests. Priority emails rise to the top. Your inbox, finally under control.",
+   content:function(){return _dtEC('rfi','JC','Jennifer Chen - ProspectCo','jennifer@prospectco.com','Site Selection - 200-Job Manufacturing Facility','We are evaluating your region for a major expansion. Please provide available sites, incentive packages, and labor data.','RFI','#64afff','rgba(100,175,255,0.15)','rgba(100,175,255,0.35)','Deploy Riley','rgba(170,255,62,0.1)','rgba(170,255,62,0.3)','#aaff3e','linear-gradient(135deg,#64afff,#1e40af)')
+     +_dtEC('grant','DF','David Frazier - EDA','david@eda.gov','CDBG-DR Grant Application - FY2026 Funding Notice','The EDA is accepting applications for the FY2026 disaster resilience grant program. Deadline: 45 days from publication.','GRANT','#f5c542','rgba(245,197,66,0.15)','rgba(245,197,66,0.35)','Grant Writer','rgba(245,197,66,0.1)','rgba(245,197,66,0.3)','#f5c542','linear-gradient(135deg,#f5c542,#a06800)')
+     +_dtEC('bre','MN','Maria Nguyen - Acme Mfg.','maria@acmemfg.com','BRE Survey Follow-Up','We received your BRE survey invitation and would like to discuss our 3-year expansion plans.','BRE','#32e1c8','rgba(50,225,200,0.15)','rgba(50,225,200,0.35)','BRE Specialist','rgba(50,225,200,0.1)','rgba(50,225,200,0.3)','#32e1c8','linear-gradient(135deg,#32e1c8,#065f5b)');}
+  },
+  {lbl:'Step 2 of 5',title:'Your Squad',
+   narration:"Deploy a specialist for any task. Each one is trained on a single economic development job. Just click Deploy and describe what you need. Results in minutes, not hours.",
+   content:function(){return _dtSC('🗺','Riley','Site Selection and RFI Specialist','Analyzes sites, writes competitive RFI responses, and identifies location incentives.','#64afff','rgba(100,175,255,0.12)','rgba(100,175,255,0.3)')
+     +_dtSC('📝','Grant Writer','Federal and State Grant Specialist','Writes compelling narratives for EDA, CDBG, USDA, and ARPA funding. Formats to funder requirements.','#f5c542','rgba(245,197,66,0.12)','rgba(245,197,66,0.3)')
+     +_dtSC('🤝','BRE Specialist','Business Retention and Expansion Expert','Drafts BRE surveys, analyzes company responses, and flags at-risk businesses needing outreach.','#32e1c8','rgba(50,225,200,0.12)','rgba(50,225,200,0.3)');}
+  },
+  {lbl:'Step 3 of 5',title:'ARIA Calendar',
+   narration:"Your Gmail or Outlook calendar syncs automatically. I keep track of site visits, council meetings, and grant deadlines so nothing slips through.",
+   content:function(){return'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;margin-bottom:10px;">'
+     +'<div style="font-size:11px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Today</div>'
+     +_dtCE('10:00 AM','BRE Site Visit - Acme Manufacturing','123 Industrial Blvd, Suite 200','#aaff3e')
+     +_dtCE('1:30 PM','City Council Economic Dev. Update','City Hall - Council Chambers','#64afff')
+     +_dtCE('3:00 PM','RFI Response Review with Team','Video Call','#f5c542')
+     +'</div><div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">'
+     +'<div style="font-size:11px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">Coming Up</div>'
+     +_dtCE('Tomorrow 5 PM','EDA Grant Application Deadline','Online Submission Portal','#ff8080')
+     +_dtCE('Thursday','IEDC Annual Conference','Chicago Convention Center','#c88cff')
+     +'</div>';}
+  },
+  {lbl:'Step 4 of 5',title:'Morning Briefing',
+   narration:"Every morning I read your inbox and calendar, then write you a personal briefing. Priorities, deadlines, and wins - all in one place before your first coffee.",
+   content:function(){return'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(170,255,62,0.18);border-radius:16px;padding:20px;">'
+     +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+     +'<div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 16px rgba(170,255,62,0.45);flex-shrink:0;"></div>'
+     +'<div><div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#aaff3e;">ARIA Morning Briefing</div>'
+     +'<div style="font-size:11px;color:#4a5568;">Today at 7:00 AM</div></div></div>'
+     +'<div style="font-size:13px;color:#b8c8e0;line-height:1.8;">Good morning, <strong style="color:#eef3fc;">Sarah</strong>. Here is what needs your attention today:<br><br>'
+     +'<span style="color:#ff8080;">&#9679;</span> <strong style="color:#eef3fc;">Urgent:</strong> EDA grant deadline tomorrow at 5 PM. Grant Writer draft is 80% complete.<br>'
+     +'<span style="color:#64afff;">&#9679;</span> <strong style="color:#eef3fc;">New RFI</strong> from ProspectCo - 200-job manufacturing facility. Riley is ready.<br>'
+     +'<span style="color:#aaff3e;">&#9679;</span> <strong style="color:#eef3fc;">3 meetings</strong> on your calendar including BRE site visit at 10 AM.<br>'
+     +'<span style="color:#4a5568;">&#9679;</span> Inbox otherwise clear - 2 non-urgent emails in Read tab.</div>'
+     +'<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">'
+     +'<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;">Review Grant Draft</span>'
+     +'<span style="background:rgba(100,175,255,0.1);border:1px solid rgba(100,175,255,0.25);color:#64afff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;">Respond to RFI</span>'
+     +'</div></div>';}
+  },
+  {lbl:'Ready to start',title:"You're all caught up.",
+   narration:"That's EconSquad. Less work, more impact - starting today. Your first 7 days are completely free, no credit card needed. Welcome to your squad.",
+   content:function(){return'<div style="text-align:center;padding:10px 0 20px;">'
+     +'<button class="dt-cta-big" type="button" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad - free for 7 days</button>'
+     +'<p style="font-size:12px;color:#4a5568;margin-top:14px;">No credit card &middot; Cancel anytime &middot; Setup in 3 minutes</p>'
+     +'<p style="font-size:12px;color:#4a5568;margin-top:4px;">Already have an account? <span style="color:#aaff3e;cursor:pointer;" onclick="closeDemoTour();openAuth(\'signin\');">Sign in</span></p>'
+     +'</div>';}
+  }
+];
+function openDemoTour(){
+  _demoStep=0;
+  var el=document.getElementById('aria-demo-overlay');
+  if(!el){console.warn('demo overlay not found');return;}
+  document.body.appendChild(el); /* ensure it's at body level for position:fixed */
+  el.style.display='block';
+  document.body.style.overflow='hidden';
+  _renderDemoStep();
+}
+function closeDemoTour(){
+  var el=document.getElementById('aria-demo-overlay');
+  if(el){el.style.display='none';}
+  document.body.style.overflow='';
+}
+function _renderDemoStep(){
+  var s=_DEMO_STEPS[_demoStep],total=_DEMO_STEPS.length;
+  var dotsEl=document.getElementById('dt-dots');
+  if(dotsEl){dotsEl.innerHTML='';for(var i=0;i<total;i++){var d=document.createElement('div');d.className='dt-dot'+(i===_demoStep?' on':'');dotsEl.appendChild(d);}}
+  var e=function(id){return document.getElementById(id);};
+  if(e('dt-step-lbl'))e('dt-step-lbl').textContent=s.lbl;
+  if(e('dt-title'))e('dt-title').textContent=s.title;
+  if(e('dt-bubble'))e('dt-bubble').textContent=s.narration;
+  if(e('dt-content'))e('dt-content').innerHTML=s.content();
+  var navEl=e('dt-nav');
+  if(navEl){
+    navEl.innerHTML='';
+    if(_demoStep>0){var bk=document.createElement('button');bk.className='dt-back';bk.type='button';bk.textContent='Back';bk.onclick=function(){_demoStep--;_renderDemoStep();};navEl.appendChild(bk);}
+    if(_demoStep<total-1){var nx=document.createElement('button');nx.className='dt-next';nx.type='button';nx.textContent=_demoStep===0?'Show me':'Next';nx.onclick=function(){_demoStep++;_renderDemoStep();};navEl.appendChild(nx);}
+  }
+  var ov=e('aria-demo-overlay');if(ov)ov.scrollTop=0;
+}
+
 /* ===== INIT ===== */
 /* Restore email provider from localStorage so Microsoft users stay connected across page loads */
 (function(){
@@ -10583,189 +10705,5 @@ function sendSmsAlert(alertType, message){
   </div>
 </div>
 
-<script>
-/* ===== ARIA DEMO TOUR ===== */
-var _demoStep = 0;
-
-function _dtEmailCard(cls,ini,sender,addr,subject,preview,tagL,tagC,tagBg,tagBd,btnL,btnBg,btnBd,btnC,avGrad){
-  return '<div class="dt-ec '+cls+'">'
-    +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-    +'<div style="width:38px;height:38px;border-radius:50%;background:'+avGrad+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+ini+'</div>'
-    +'<div style="flex:1;min-width:0;"><div style="font-weight:800;color:#eef3fc;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+sender+'</div>'
-    +'<div style="font-size:10px;color:#4a5568;">'+addr+'</div></div>'
-    +'<span style="background:'+tagBg+';color:'+tagC+';border:1px solid '+tagBd+';font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;">'+tagL+'</span>'
-    +'</div>'
-    +'<div style="font-size:13px;font-weight:600;color:#eef3fc;margin-bottom:4px;line-height:1.3;">'+subject+'</div>'
-    +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">'+preview+'</div>'
-    +'<div style="display:flex;gap:8px;margin-top:10px;">'
-    +'<span style="background:'+btnBg+';border:1px solid '+btnBd+';color:'+btnC+';font-size:10px;font-weight:700;padding:4px 12px;border-radius:7px;">'+btnL+'</span>'
-    +'<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:10px;padding:4px 10px;border-radius:7px;">Reply</span>'
-    +'<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:10px;padding:4px 10px;border-radius:7px;">Archive</span>'
-    +'</div></div>';
-}
-
-function _dtSpecCard(icon,name,role,desc,c,bg,bd){
-  return '<div class="dt-sc">'
-    +'<div style="width:46px;height:46px;border-radius:14px;background:'+bg+';border:1px solid '+bd+';display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">'+icon+'</div>'
-    +'<div style="flex:1;min-width:0;">'
-    +'<div style="font-family:\'Barlow\',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:1px;">'+name+'</div>'
-    +'<div style="font-size:11px;color:'+c+';font-weight:600;margin-bottom:5px;">'+role+'</div>'
-    +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+desc+'</div>'
-    +'</div>'
-    +'<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:6px 14px;border-radius:8px;align-self:center;white-space:nowrap;">Deploy ↗</span>'
-    +'</div>';
-}
-
-function _dtCalEvent(time,title,loc,c){
-  return '<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
-    +'<div style="min-width:80px;font-size:10px;color:#4a5568;padding-top:3px;flex-shrink:0;">'+time+'</div>'
-    +'<div style="width:3px;min-height:36px;background:'+c+';border-radius:2px;flex-shrink:0;margin-top:3px;"></div>'
-    +'<div><div style="font-size:13px;font-weight:600;color:#eef3fc;margin-bottom:2px;">'+title+'</div>'
-    +'<div style="font-size:11px;color:#4a5568;">📍 '+loc+'</div></div>'
-    +'</div>';
-}
-
-var _DEMO_STEPS = [
-  {
-    lbl:'Welcome',
-    title:'Meet ARIA',
-    narration:"Hi! I'm ARIA — your AI economic development assistant. I work 24/7 so you don't have to. In the next 60 seconds I'll show you exactly what we accomplish together.",
-    content:function(){
-      return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">'
-        +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:30px;font-weight:900;color:#aaff3e;margin-bottom:4px;">61.5 hrs</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Saved per ED professional annually</div></div>'
-        +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:30px;font-weight:900;color:#f5c542;margin-bottom:4px;">5× ROI</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Return on your subscription</div></div>'
-        +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:30px;font-weight:900;color:#64afff;margin-bottom:4px;">8 days</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Full workdays recovered per year</div></div>'
-        +'</div>';
-    }
-  },
-  {
-    lbl:'Step 1 of 5',
-    title:'ARIA Inbox',
-    narration:"I read every email the moment it arrives and tag it instantly — RFIs, grant deadlines, BRE requests. Priority emails rise to the top. Your inbox, finally under control.",
-    content:function(){
-      return _dtEmailCard('rfi','JC','Jennifer Chen — ProspectCo','jennifer@prospectco.com','Confidential Site Selection — 200-Job Manufacturing Facility','We are evaluating your region for a major expansion. Please provide available sites, incentive packages, and labor data...','📍 RFI','#64afff','rgba(100,175,255,0.15)','rgba(100,175,255,0.35)','Deploy Riley ↗','rgba(170,255,62,0.1)','rgba(170,255,62,0.3)','#aaff3e','linear-gradient(135deg,#64afff,#1e40af)')
-        +_dtEmailCard('grant','DF','David Frazier · EDA','david@eda.gov','CDBG-DR Grant Application — FY2026 Funding Notice','The EDA is accepting applications for the FY2026 disaster resilience grant program. Deadline: 45 days from publication...','💰 GRANT','#f5c542','rgba(245,197,66,0.15)','rgba(245,197,66,0.35)','Grant Writer ↗','rgba(245,197,66,0.1)','rgba(245,197,66,0.3)','#f5c542','linear-gradient(135deg,#f5c542,#a06800)')
-        +_dtEmailCard('bre','MN','Maria Nguyen — Acme Mfg.','maria@acmemfg.com','BRE Survey Follow-Up — Expansion Discussion','Hi, we received your BRE survey invitation. We\'d like to schedule a brief meeting to discuss our 3-year expansion plans...','🤝 BRE','#32e1c8','rgba(50,225,200,0.15)','rgba(50,225,200,0.35)','BRE Specialist ↗','rgba(50,225,200,0.1)','rgba(50,225,200,0.3)','#32e1c8','linear-gradient(135deg,#32e1c8,#065f5b)');
-    }
-  },
-  {
-    lbl:'Step 2 of 5',
-    title:'Your Squad',
-    narration:"Deploy a specialist for any task. Each one is trained on a single economic development job — just click Deploy and describe what you need. Results in minutes, not hours.",
-    content:function(){
-      return _dtSpecCard('🗺️','Riley','Site Selection & RFI Specialist','Analyzes sites, writes competitive RFI responses, and identifies location incentives. Powered by Claude AI.','#64afff','rgba(100,175,255,0.12)','rgba(100,175,255,0.3)')
-        +_dtSpecCard('📝','Grant Writer','Federal & State Grant Specialist','Writes compelling narratives for EDA, CDBG, USDA, and ARPA funding. Formats to funder requirements automatically.','#f5c542','rgba(245,197,66,0.12)','rgba(245,197,66,0.3)')
-        +_dtSpecCard('🤝','BRE Specialist','Business Retention & Expansion Expert','Drafts BRE surveys, analyzes company responses, and flags at-risk businesses that need immediate outreach.','#32e1c8','rgba(50,225,200,0.12)','rgba(50,225,200,0.3)');
-    }
-  },
-  {
-    lbl:'Step 3 of 5',
-    title:'ARIA Calendar',
-    narration:"Your Gmail or Outlook calendar syncs automatically. I keep track of site visits, council meetings, and grant deadlines so nothing slips through.",
-    content:function(){
-      return '<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;margin-bottom:10px;">'
-        +'<div style="font-size:11px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">📅 Today</div>'
-        +_dtCalEvent('10:00 AM','BRE Site Visit — Acme Manufacturing','123 Industrial Blvd, Suite 200','#aaff3e')
-        +_dtCalEvent('1:30 PM','City Council Economic Dev. Update','City Hall — Council Chambers','#64afff')
-        +_dtCalEvent('3:00 PM','RFI Response Review with Team','Video Call','#f5c542')
-        +'</div>'
-        +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">'
-        +'<div style="font-size:11px;font-weight:800;color:#4a5568;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;">📆 Coming Up</div>'
-        +_dtCalEvent('Tomorrow 5 PM','EDA Grant Application Deadline','Online Submission Portal','#ff8080')
-        +_dtCalEvent('Thursday','IEDC Annual Conference','Chicago Convention Center','#c88cff')
-        +'</div>';
-    }
-  },
-  {
-    lbl:'Step 4 of 5',
-    title:'Morning Briefing',
-    narration:"Every morning I read your inbox and calendar, then write you a personal briefing. Priorities, deadlines, and wins — all in one place before your first coffee.",
-    content:function(){
-      return '<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(170,255,62,0.18);border-radius:16px;padding:20px;">'
-        +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 16px rgba(170,255,62,0.45);flex-shrink:0;"></div>'
-        +'<div><div style="font-family:\'Barlow\',sans-serif;font-size:14px;font-weight:800;color:#aaff3e;">ARIA Morning Briefing</div>'
-        +'<div style="font-size:11px;color:#4a5568;">Today at 7:00 AM</div></div>'
-        +'</div>'
-        +'<div style="font-size:13px;color:#b8c8e0;line-height:1.8;">'
-        +'Good morning, <strong style="color:#eef3fc;">Sarah</strong>. Here\'s what needs your attention today:<br><br>'
-        +'<span style="color:#ff8080;">●</span> <strong style="color:#eef3fc;">Urgent:</strong> EDA grant deadline is tomorrow at 5 PM. Grant Writer draft is 80% complete — your review is needed.<br>'
-        +'<span style="color:#64afff;">●</span> <strong style="color:#eef3fc;">New RFI</strong> from ProspectCo — 200-job manufacturing facility. Riley is ready to respond.<br>'
-        +'<span style="color:#aaff3e;">●</span> <strong style="color:#eef3fc;">3 meetings</strong> on your calendar today including BRE site visit at 10 AM.<br>'
-        +'<span style="color:#4a5568;">●</span> Inbox otherwise clear — 2 non-urgent emails in Read tab.'
-        +'</div>'
-        +'<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">'
-        +'<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;">Review Grant Draft ↗</span>'
-        +'<span style="background:rgba(100,175,255,0.1);border:1px solid rgba(100,175,255,0.25);color:#64afff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:8px;">Respond to RFI ↗</span>'
-        +'</div></div>';
-    }
-  },
-  {
-    lbl:'Ready to start',
-    title:"You're all caught up.",
-    narration:"That's EconSquad. Less work, more impact — starting today. Your first 7 days are completely free, no credit card needed. Welcome to your squad.",
-    content:function(){
-      return '<div style="text-align:center;padding:10px 0 20px;">'
-        +'<button class="dt-cta-big" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad — free for 7 days →</button>'
-        +'<p style="font-size:12px;color:#4a5568;margin-top:14px;">No credit card · Cancel anytime · Setup in 3 minutes</p>'
-        +'<p style="font-size:12px;color:#4a5568;margin-top:4px;">Already have an account? <span style="color:#aaff3e;cursor:pointer;" onclick="closeDemoTour();openAuth(\'signin\');">Sign in →</span></p>'
-        +'</div>';
-    }
-  }
-];
-
-function openDemoTour(){
-  _demoStep = 0;
-  document.getElementById('aria-demo-overlay').style.display = 'block';
-  document.body.style.overflow = 'hidden';
-  _renderDemoStep();
-}
-
-function closeDemoTour(){
-  document.getElementById('aria-demo-overlay').style.display = 'none';
-  document.body.style.overflow = '';
-}
-
-function _renderDemoStep(){
-  var s = _DEMO_STEPS[_demoStep];
-  var total = _DEMO_STEPS.length;
-
-  /* Dots */
-  var dotsEl = document.getElementById('dt-dots');
-  dotsEl.innerHTML = '';
-  for(var i=0;i<total;i++){
-    var d = document.createElement('div');
-    d.className = 'dt-dot' + (i===_demoStep?' on':'');
-    dotsEl.appendChild(d);
-  }
-
-  /* Labels + narration */
-  document.getElementById('dt-step-lbl').textContent = s.lbl;
-  document.getElementById('dt-title').textContent = s.title;
-  document.getElementById('dt-bubble').textContent = s.narration;
-  document.getElementById('dt-content').innerHTML = s.content();
-
-  /* Nav buttons */
-  var navEl = document.getElementById('dt-nav');
-  navEl.innerHTML = '';
-  if(_demoStep > 0){
-    var bk = document.createElement('button');
-    bk.className = 'dt-back';
-    bk.textContent = '← Back';
-    bk.onclick = function(){ _demoStep--; _renderDemoStep(); };
-    navEl.appendChild(bk);
-  }
-  if(_demoStep < total - 1){
-    var nx = document.createElement('button');
-    nx.className = 'dt-next';
-    nx.textContent = _demoStep === 0 ? 'Show me →' : 'Next →';
-    nx.onclick = function(){ _demoStep++; _renderDemoStep(); };
-    navEl.appendChild(nx);
-  }
-  /* Scroll to top of modal on step change */
-  var overlay = document.getElementById('aria-demo-overlay');
-  if(overlay) overlay.scrollTop = 0;
-}
-</script>
 </body>
 </html>
