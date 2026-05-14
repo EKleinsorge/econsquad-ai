@@ -114,9 +114,11 @@ html.text-xl .card-desc,html.text-xl .notif-body{font-size:130%;}
 #dt-ring3{width:100px;height:100px;border:1px solid rgba(170,255,62,0.09);animation:ariaPulseIdle 2.2s ease-in-out infinite .56s;}
 .dt-step-lbl{font-size:11px;color:#4a5568;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px;}
 .dt-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:14px;letter-spacing:.02em;}
-.dt-bubble{background:rgba(14,20,36,0.92);border:1px solid rgba(170,255,62,0.22);border-radius:16px;padding:16px 20px;font-size:14px;color:#b8c8e0;line-height:1.7;text-align:center;margin-bottom:22px;max-width:540px;width:100%;position:relative;}
+.dt-bubble{background:rgba(14,20,36,0.92);border:1px solid rgba(170,255,62,0.22);border-radius:16px;padding:16px 20px;font-size:14px;color:#b8c8e0;line-height:1.7;text-align:center;margin-bottom:22px;max-width:540px;width:100%;position:relative;min-height:58px;}
 .dt-bubble::before{content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%);border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:9px solid rgba(170,255,62,0.22);}
 .dt-bubble::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:8px solid rgba(14,20,36,0.92);}
+@keyframes dtCursor{0%,100%{opacity:1;}50%{opacity:0;}}
+.dt-cursor{display:inline-block;width:2px;height:1em;background:#aaff3e;vertical-align:text-bottom;margin-left:2px;animation:dtCursor .6s ease-in-out infinite;}
 .dt-content{width:100%;margin-bottom:22px;}
 .dt-dots{display:flex;gap:7px;margin-bottom:24px;}
 .dt-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.13);transition:all .25s;}
@@ -9373,6 +9375,46 @@ function escAttr(str){
 
 /* ===== ARIA DEMO TOUR (pre-signup walkthrough) ===== */
 var _demoStep=0;
+var _dtMuted=false;
+var _dtTypeTimer=null;
+function _dtTypeAndSpeak(text){
+  var el=document.getElementById('dt-bubble');
+  if(!el)return;
+  if(_dtTypeTimer){clearTimeout(_dtTypeTimer);_dtTypeTimer=null;}
+  el.innerHTML='<span class="dt-cursor"></span>';
+  var i=0;
+  function _type(){
+    if(i<text.length){
+      el.innerHTML=text.slice(0,i+1)+'<span class="dt-cursor"></span>';
+      i++;_dtTypeTimer=setTimeout(_type,20);
+    } else {el.textContent=text;}
+  }
+  _type();
+  if(!_dtMuted&&window.speechSynthesis){
+    window.speechSynthesis.cancel();
+    var utt=new SpeechSynthesisUtterance(text);
+    utt.rate=1.0;utt.pitch=1.15;utt.volume=1;
+    var _pickVoice=function(){
+      var voices=window.speechSynthesis.getVoices();
+      var pref=['Samantha','Aria','Zira','Karen','Victoria','Susan','Google US English Female','Microsoft Aria'];
+      for(var p=0;p<pref.length;p++){for(var v=0;v<voices.length;v++){if(voices[v].name.indexOf(pref[p])>-1){return voices[v];}}}
+      for(var v=0;v<voices.length;v++){if(voices[v].lang==='en-US'&&voices[v].name.toLowerCase().indexOf('female')>-1)return voices[v];}
+      return null;
+    };
+    var chosen=_pickVoice();
+    if(chosen){utt.voice=chosen;window.speechSynthesis.speak(utt);}
+    else if(window.speechSynthesis.onvoiceschanged!==undefined){
+      window.speechSynthesis.onvoiceschanged=function(){chosen=_pickVoice();if(chosen)utt.voice=chosen;window.speechSynthesis.speak(utt);};
+    } else {window.speechSynthesis.speak(utt);}
+  }
+}
+function _dtToggleMute(){
+  _dtMuted=!_dtMuted;
+  var btn=document.getElementById('dt-mute-btn');
+  if(btn)btn.innerHTML=_dtMuted?'&#128264;':'&#128266;';
+  if(_dtMuted&&window.speechSynthesis)window.speechSynthesis.cancel();
+  else{var s=_DEMO_STEPS[_demoStep];if(s)_dtTypeAndSpeak(s.narration);}
+}
 function _dtEC(cls,ini,snd,addr,subj,prev,tL,tC,tBg,tBd,bL,bBg,bBd,bC,av){
   return'<div class="dt-ec '+cls+'"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
     +'<div style="width:38px;height:38px;border-radius:50%;background:'+av+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0;">'+ini+'</div>'
@@ -9453,7 +9495,7 @@ var _DEMO_STEPS=[
      +'</div></div>';}
   },
   {lbl:'Ready to start',title:"You're all caught up.",
-   narration:"That's EconSquad. Less work, more impact - starting today. Your first 7 days are completely free, no credit card needed. Welcome to your squad.",
+   narration:"That's EconSquad. Less work, more impact - starting today. Your first 7 days are completely free. Welcome to your squad.",
    content:function(){return'<div style="text-align:center;padding:10px 0 20px;">'
      +'<button class="dt-cta-big" type="button" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad - free for 7 days</button>'
      +'<p style="font-size:12px;color:#4a5568;margin-top:14px;">Credit card required &middot; Cancel anytime &middot; Setup in 3 minutes</p>'
@@ -9474,6 +9516,8 @@ function closeDemoTour(){
   var el=document.getElementById('aria-demo-overlay');
   if(el){el.style.display='none';}
   document.body.style.overflow='';
+  if(_dtTypeTimer){clearTimeout(_dtTypeTimer);_dtTypeTimer=null;}
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
 }
 function _renderDemoStep(){
   var s=_DEMO_STEPS[_demoStep],total=_DEMO_STEPS.length;
@@ -9482,8 +9526,8 @@ function _renderDemoStep(){
   var e=function(id){return document.getElementById(id);};
   if(e('dt-step-lbl'))e('dt-step-lbl').textContent=s.lbl;
   if(e('dt-title'))e('dt-title').textContent=s.title;
-  if(e('dt-bubble'))e('dt-bubble').textContent=s.narration;
   if(e('dt-content'))e('dt-content').innerHTML=s.content();
+  _dtTypeAndSpeak(s.narration);
   var navEl=e('dt-nav');
   if(navEl){
     navEl.innerHTML='';
@@ -10689,6 +10733,7 @@ function sendSmsAlert(alertType, message){
 <!-- ===== ARIA DEMO TOUR MODAL ===== -->
 <div id="aria-demo-overlay">
   <button class="dt-close" onclick="closeDemoTour()">✕</button>
+  <button id="dt-mute-btn" type="button" onclick="_dtToggleMute()" title="Toggle ARIA voice" style="position:fixed;top:18px;right:62px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.07);border:none;color:#6b7a96;font-size:15px;cursor:pointer;z-index:200000;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,0.14)';this.style.color='#eef3fc'" onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.color='#6b7a96'">&#128266;</button>
   <div class="dt-shell">
     <div class="dt-dots" id="dt-dots"></div>
     <div class="dt-orb-wrap">
