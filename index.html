@@ -2244,6 +2244,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 <script>
 
 /* ===== BACKGROUND CANVAS ===== */
@@ -3838,12 +3839,15 @@ function expandDrawer(){
 function updateIntegrationStatus(){
   var el = document.getElementById('pm-integrations');
   if(!el) return;
-  var row = function(icon, label, connected, connectFn, switchFn){
+  var storedProvider = localStorage.getItem('esq_email_provider') || _emailProvider;
+  var isGoogle    = (storedProvider === 'google');
+  var isMicrosoft = (storedProvider === 'microsoft');
+  var row = function(icon, label, connected, connectFn, disconnectFn){
     var statusDot = connected
       ? '<span style="width:7px;height:7px;border-radius:50%;background:#aaff3e;display:inline-block;flex-shrink:0;"></span>'
       : '<span style="width:7px;height:7px;border-radius:50%;background:#4a5568;display:inline-block;flex-shrink:0;"></span>';
     var action = connected
-      ? '<button onclick="'+switchFn+'();toggleProfileMenu();" style="background:none;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap;">Switch</button>'
+      ? '<button onclick="'+disconnectFn+'();" style="background:none;border:1px solid rgba(255,80,80,0.3);color:#ff8080;font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap;">Disconnect</button>'
       : '<button onclick="'+connectFn+'();toggleProfileMenu();" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:600;padding:2px 8px;border-radius:5px;cursor:pointer;font-family:inherit;white-space:nowrap;">Connect</button>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;">'
       + '<span style="font-size:14px;">'+icon+'</span>'
@@ -3852,11 +3856,9 @@ function updateIntegrationStatus(){
       + action
       + '</div>';
   };
-  var isGoogle    = (_emailProvider === 'google');
-  var isMicrosoft = (_emailProvider === 'microsoft');
   el.innerHTML =
-    row('📧', 'Gmail', isGoogle,    'connectGmail',   'connectGmail') +
-    row('📨', 'Outlook / Microsoft 365', isMicrosoft, 'connectOutlook', 'connectOutlook');
+    row('📧', 'Gmail', isGoogle,    'connectGmail',    'disconnectGmail') +
+    row('📨', 'Outlook / Microsoft 365', isMicrosoft, 'connectOutlook', 'disconnectOutlook');
 }
 
 function toggleProfileMenu(){
@@ -7636,12 +7638,19 @@ var _emailProvider = null; /* 'google' | 'microsoft' | null */
 
 /* Get provider token and detect which email platform is connected */
 function getProviderToken(){
+  /* Check if Microsoft is the active provider first (MSAL popup — never touches Supabase) */
+  var storedProvider = localStorage.getItem('esq_email_provider');
+  if(storedProvider === 'microsoft' || _emailProvider === 'microsoft'){
+    _emailProvider = 'microsoft';
+    return _getMSToken();
+  }
+  /* Fall back to Google / Supabase session token */
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
     if(session && session.provider_token){
       providerToken = session.provider_token;
-      var p = session.user && session.user.app_metadata && session.user.app_metadata.provider;
-      _emailProvider = (p === 'azure') ? 'microsoft' : 'google';
+      _emailProvider = 'google';
+      localStorage.setItem('esq_email_provider','google');
       return providerToken;
     }
     return null;
@@ -7666,19 +7675,96 @@ function connectGmail(){
   });
 }
 
-/* Connect Outlook/Microsoft 365 - triggers Azure OAuth */
-function connectOutlook(){
-  var _tOverlay = document.getElementById('tour-overlay');
-  var _tWelcome = document.getElementById('tour-welcome');
-  var _tourActive = (_tOverlay && _tOverlay.style.display !== 'none') || (_tWelcome && _tWelcome.classList.contains('show'));
-  if(_tourActive){ localStorage.setItem('esq_tour_resume', String(_tourStep)); }
-  supa.auth.signInWithOAuth({
-    provider: 'azure',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile openid Mail.Read Mail.ReadWrite Mail.Send Calendars.Read offline_access'
-    }
+/* Disconnect Gmail — clears the Google provider and reloads inbox to show connect prompt */
+function disconnectGmail(){
+  localStorage.removeItem('esq_email_provider');
+  _emailProvider = null;
+  providerToken = null;
+  inboxLoaded = false;
+  updateIntegrationStatus();
+  loadInbox();
+  showToastMsg('Gmail disconnected.');
+}
+
+/* ── MSAL (Microsoft Auth) — connects Outlook WITHOUT replacing Supabase session ── */
+var _MSAL_CLIENT_ID = '935754f7-2ea7-4a33-8416-eb18d314d339';
+var _MSAL_SCOPES    = ['Mail.Read','Mail.ReadWrite','Mail.Send','Calendars.Read','Tasks.ReadWrite','User.Read','offline_access'];
+var _msalApp = null;
+
+function _initMSAL(){
+  if(_msalApp || !window.msal) return;
+  _msalApp = new msal.PublicClientApplication({
+    auth:{
+      clientId: _MSAL_CLIENT_ID,
+      authority: 'https://login.microsoftonline.com/common',
+      redirectUri: 'https://econsquad.ai'
+    },
+    cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:false }
   });
+}
+
+function _getMSToken(){
+  var cached  = localStorage.getItem('esq_ms_token');
+  var expiry  = localStorage.getItem('esq_ms_token_expiry');
+  if(cached && expiry && Date.now() < parseInt(expiry,10)){
+    return Promise.resolve(cached);
+  }
+  _initMSAL();
+  if(!_msalApp) return Promise.resolve(null);
+  var accounts = _msalApp.getAllAccounts();
+  if(!accounts.length) return Promise.resolve(null);
+  return _msalApp.acquireTokenSilent({ scopes:_MSAL_SCOPES, account:accounts[0] })
+    .then(function(r){ _storeMSToken(r.accessToken, r.expiresOn); return r.accessToken; })
+    .catch(function(){ return null; });
+}
+
+function _storeMSToken(token, expiresOn){
+  var expiry = expiresOn ? new Date(expiresOn).getTime() : Date.now()+3500000;
+  localStorage.setItem('esq_ms_token',          token);
+  localStorage.setItem('esq_ms_token_expiry',   String(expiry));
+  localStorage.setItem('esq_email_provider',    'microsoft');
+  _emailProvider = 'microsoft';
+}
+
+function _clearMSToken(){
+  localStorage.removeItem('esq_ms_token');
+  localStorage.removeItem('esq_ms_token_expiry');
+  localStorage.removeItem('esq_email_provider');
+  _emailProvider = null;
+  if(_msalApp){
+    _msalApp.getAllAccounts().forEach(function(a){ _msalApp.removeAccount(a); });
+  }
+}
+
+/* Connect Outlook via MSAL popup — Supabase session is never touched */
+function connectOutlook(){
+  _initMSAL();
+  if(!_msalApp){ showToastMsg('Microsoft auth library not ready — please refresh and try again.'); return; }
+  _msalApp.loginPopup({ scopes:_MSAL_SCOPES, prompt:'select_account' })
+    .then(function(response){
+      _storeMSToken(response.accessToken, response.expiresOn);
+      updateIntegrationStatus();
+      var syncBtn = document.getElementById('tasks-sync-btn');
+      if(syncBtn) syncBtn.textContent = '↻ Microsoft To Do';
+      inboxLoaded = false;
+      loadInbox();
+      showToastMsg('Outlook connected ✓');
+    })
+    .catch(function(err){
+      console.warn('MSAL login error:', err);
+      if(err && (err.errorCode==='popup_window_error'||err.errorCode==='empty_window_error')){
+        showToastMsg('Popup blocked — please allow popups for econsquad.ai and try again.');
+      }
+    });
+}
+
+/* Disconnect Outlook without affecting Supabase session */
+function disconnectOutlook(){
+  _clearMSToken();
+  updateIntegrationStatus();
+  inboxLoaded = false;
+  loadInbox();
+  showToastMsg('Outlook disconnected.');
 }
 
 /* ── Microsoft Graph API helpers ── */
@@ -9210,6 +9296,23 @@ function escAttr(str){
 }
 
 /* ===== INIT ===== */
+/* Restore email provider from localStorage so Microsoft users stay connected across page loads */
+(function(){
+  try{
+    var storedProvider = localStorage.getItem('esq_email_provider');
+    if(storedProvider === 'microsoft'){
+      _emailProvider = 'microsoft';
+      /* Pre-warm MSAL so silent token refresh is ready when needed */
+      if(window.msal){ _initMSAL(); }
+      else {
+        /* msal-browser.min.js may load async — retry once it's ready */
+        window.addEventListener('load', function(){
+          if(window.msal){ try{ _initMSAL(); }catch(e){} }
+        });
+      }
+    }
+  }catch(e){ console.warn('provider restore error:',e); }
+})();
 try{_loadFavs();}catch(e){console.warn('_loadFavs error:',e);}
 try{renderSquad();}catch(e){console.warn('renderSquad error:',e);}
 try{calcMktROI();}catch(e){console.warn('calcMktROI error:',e);}
