@@ -2244,7 +2244,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://js.stripe.com/v3/"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <script>
 
 /* ===== BACKGROUND CANVAS ===== */
@@ -7745,24 +7745,39 @@ function _clearMSToken(){
 
 /* Connect Outlook via MSAL popup — Supabase session is never touched */
 function connectOutlook(){
-  _initMSAL();
-  if(!_msalApp){ showToastMsg('Microsoft auth library not ready — please refresh and try again.'); return; }
-  _msalApp.loginPopup({ scopes:_MSAL_SCOPES, prompt:'select_account' })
-    .then(function(response){
-      _storeMSToken(response.accessToken, response.expiresOn);
-      updateIntegrationStatus();
-      var syncBtn = document.getElementById('tasks-sync-btn');
-      if(syncBtn) syncBtn.textContent = '↻ Microsoft To Do';
-      inboxLoaded = false;
-      loadInbox();
-      showToastMsg('Outlook connected ✓');
-    })
-    .catch(function(err){
-      console.warn('MSAL login error:', err);
-      if(err && (err.errorCode==='popup_window_error'||err.errorCode==='empty_window_error')){
-        showToastMsg('Popup blocked — please allow popups for econsquad.ai and try again.');
-      }
-    });
+  function _doOutlookLogin(){
+    _initMSAL();
+    if(!_msalApp){ showToastMsg('Microsoft auth library not ready — please refresh and try again.'); return; }
+    _msalApp.loginPopup({ scopes:_MSAL_SCOPES, prompt:'select_account' })
+      .then(function(response){
+        _storeMSToken(response.accessToken, response.expiresOn);
+        updateIntegrationStatus();
+        var syncBtn = document.getElementById('tasks-sync-btn');
+        if(syncBtn) syncBtn.textContent = '↻ Microsoft To Do';
+        inboxLoaded = false;
+        loadInbox();
+        showToastMsg('Outlook connected ✓');
+      })
+      .catch(function(err){
+        console.warn('MSAL login error:', err);
+        if(err && (err.errorCode==='popup_window_error'||err.errorCode==='empty_window_error')){
+          showToastMsg('Popup blocked — please allow popups for econsquad.ai and try again.');
+        } else if(err){
+          showToastMsg('Outlook sign-in failed — please try again.');
+        }
+      });
+  }
+  /* Load MSAL on-demand if the CDN script hasn't loaded yet */
+  if(window.msal){
+    _doOutlookLogin();
+  } else {
+    showToastMsg('Loading Microsoft library…');
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js';
+    s.onload  = function(){ _doOutlookLogin(); };
+    s.onerror = function(){ showToastMsg('Could not load Microsoft auth library. Please check your connection.'); };
+    document.head.appendChild(s);
+  }
 }
 
 /* Disconnect Outlook without affecting Supabase session */
@@ -7890,12 +7905,24 @@ function loadInbox(){
   /* Get provider token + detect which email platform is connected */
   getProviderToken().then(function(token){
     if(!token){
-      /* No email connected — show both connect options */
-      if(connectBtn) connectBtn.style.display = 'flex';
-      showEmailList([]);
-      showCalendarToday([]);
-      document.getElementById('email-list').innerHTML = '<div style="text-align:center;padding:40px;color:#4a5568;"><div style="font-size:24px;margin-bottom:8px;">📧</div><div style="margin-bottom:6px;font-size:13px;color:#8a97b5;">Connect your email to see your inbox here.</div><div style="margin-bottom:20px;font-size:11px;color:#4a5568;line-height:1.6;">Works with any email address — even <span style="color:#6b7a96;">john@centervilleedc.com</span>.<br>Not sure which to pick? If you log in at <span style="color:#6b7a96;">mail.google.com</span> choose Gmail.<br>If you log in at <span style="color:#6b7a96;">outlook.com or your organization\'s Microsoft portal</span>, choose Outlook.</div><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;"><button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Gmail →</button><button onclick="connectOutlook()" style="background:rgba(100,160,255,0.12);border:1px solid rgba(100,160,255,0.3);color:#64a0ff;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;">Connect Outlook →</button></div></div>';
-      document.getElementById('calendar-today').innerHTML = '<div style="text-align:center;padding:20px;color:#4a5568;font-size:12px;">Connect your email to see your calendar.</div>';
+      if(connectBtn) connectBtn.style.display = 'none'; /* hide small header buttons — use the big CTA below */
+      var noConnectHTML = '<div style="text-align:center;padding:48px 24px;max-width:420px;margin:0 auto;">'
+        + '<div style="font-size:44px;margin-bottom:16px;">📬</div>'
+        + '<div style="font-size:17px;font-weight:800;color:#eef3fc;margin-bottom:8px;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.02em;">Connect your email to get started</div>'
+        + '<div style="font-size:12px;color:#6b7a96;line-height:1.7;margin-bottom:24px;">ARIA can read and organize your Gmail or Outlook inbox, sync your calendar, and brief you each morning — but first you need to link an account.<br><br>Works with Gmail, Google Workspace, Outlook, and Microsoft 365 — including custom domains like <span style="color:#8a97b5;">you@yourcity.gov</span>.</div>'
+        + '<div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.18);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;" onclick="toggleProfileMenu()">'
+        + '<span style="font-size:20px;">👤</span>'
+        + '<div><div style="font-size:12px;font-weight:800;color:#aaff3e;">Open your Profile menu</div><div style="font-size:11px;color:#6b7a96;margin-top:2px;">Click your avatar (top right) → Integrations → Connect Gmail or Outlook</div></div>'
+        + '<span style="color:#aaff3e;font-size:16px;margin-left:auto;">↗</span>'
+        + '</div>'
+        + '<div style="display:flex;gap:10px;justify-content:center;">'
+        + '<button onclick="connectGmail();toggleProfileMenu();" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">Connect Gmail →</button>'
+        + '<button onclick="connectOutlook();" style="background:rgba(100,160,255,0.12);border:1px solid rgba(100,160,255,0.3);color:#64a0ff;font-size:12px;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">Connect Outlook →</button>'
+        + '</div></div>';
+      var emailListEl = document.getElementById('email-list');
+      if(emailListEl) emailListEl.innerHTML = noConnectHTML;
+      var calTodayEl = document.getElementById('calendar-today');
+      if(calTodayEl) calTodayEl.innerHTML = '<div style="text-align:center;padding:24px 16px;color:#6b7a96;font-size:12px;line-height:1.7;">Connect Gmail or Outlook from your<br><span style="color:#aaff3e;cursor:pointer;" onclick="toggleProfileMenu()">profile menu ↗</span> to see your calendar.</div>';
       return;
     }
 
