@@ -217,7 +217,13 @@ function install(){
   window.showEmailList=function(emails){
     window._lastEmails=emails;
     var list=document.getElementById('email-list');if(!list)return;
-    if(!emails||!emails.length){list.innerHTML='<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;">\u{1F4EB}</div><div style="margin-top:8px;">No unread emails</div></div>';return;}
+    if(!emails||!emails.length){
+      var mode=window._inboxMode||'unread';
+      var emptyIcon=mode==='sent'?'\u{1F4E4}':mode==='read'?'✅':'\u{1F4EB}';
+      var emptyMsg=mode==='sent'?'No sent emails':mode==='read'?'Inbox zero — no read emails':'No unread emails';
+      list.innerHTML='<div style="text-align:center;padding:60px;color:#4a5568;"><div style="font-size:32px;">'+emptyIcon+'</div><div style="margin-top:8px;">'+emptyMsg+'</div></div>';
+      return;
+    }
     var tagged=emails.filter(function(e){var t=getTag(e.from||'',e.subject||'',e.snippet||'');return t&&t.p;});
     var others=emails.filter(function(e){var t=getTag(e.from||'',e.subject||'',e.snippet||'');return!(t&&t.p);});
     list.innerHTML=tagged.concat(others).map(renderCard).join('');
