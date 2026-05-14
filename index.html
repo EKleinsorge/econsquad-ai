@@ -5602,15 +5602,19 @@ function _positionTourHighlight(step, targetEl, highlight, tooltip, dim){
       'radial-gradient(circle '+spotR+'px at '+cx+'px '+cy+'px, '+
       'transparent 0%, transparent 70%, rgba(4,5,13,0.12) 80%, rgba(4,5,13,0.32) 92%, rgba(4,5,13,0.44) 100%)';
   }
-  /* Tooltip: stay clear of sidenav (240px) and screen edges */
-  var tipW = 280, tipH = 210;
+  /* Tooltip: stay clear of sidenav, screen edges, and ARIA footer */
+  var tipW = 280;
+  /* Use actual rendered height so we never slide under the footer */
+  var tipH = (tooltip.offsetHeight > 40 ? tooltip.offsetHeight : 0) || 240;
+  var footerH = 72; /* ARIA footer bar */
+  var bottomClear = footerH + 12;
   /* sidenav: 128px compact (206px expanded) + 12px left + 14px breathing room */
   var snav = document.getElementById('tour-sidenav');
   var sidenavClear = 12 + (snav && snav.classList.contains('tsn-expanded') ? 206 : 128) + 14;
   var tLeft = Math.min(r.left, window.innerWidth - tipW - 16);
   tLeft = Math.max(tLeft, sidenavClear);
   var tTop = r.bottom + pad + 12;
-  if(tTop + tipH > window.innerHeight - 20) tTop = r.top - tipH - 20;
+  if(tTop + tipH > window.innerHeight - bottomClear) tTop = r.top - tipH - 16;
   tTop = Math.max(tTop, 16);
   tooltip.style.top = tTop+'px';
   tooltip.style.left = tLeft+'px';
