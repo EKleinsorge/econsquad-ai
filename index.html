@@ -119,6 +119,8 @@ html.text-xl .card-desc,html.text-xl .notif-body{font-size:130%;}
 .dt-bubble::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%);border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:8px solid rgba(14,20,36,0.92);}
 @keyframes dtCursor{0%,100%{opacity:1;}50%{opacity:0;}}
 .dt-cursor{display:inline-block;width:2px;height:1em;background:#aaff3e;vertical-align:text-bottom;margin-left:2px;animation:dtCursor .6s ease-in-out infinite;}
+@keyframes dtVolFade{0%{opacity:0;transform:translateY(4px);}15%{opacity:1;transform:translateY(0);}75%{opacity:1;}100%{opacity:0;}}
+#dt-vol-hint{position:fixed;top:22px;right:106px;background:rgba(14,20,36,0.92);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;z-index:200001;pointer-events:none;white-space:nowrap;animation:dtVolFade 4s ease forwards;}
 .dt-content{width:100%;margin-bottom:22px;}
 .dt-dots{display:flex;gap:7px;margin-bottom:24px;}
 .dt-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.13);transition:all .25s;}
@@ -9497,10 +9499,14 @@ function openDemoTour(){
   _demoStep=0;
   var el=document.getElementById('aria-demo-overlay');
   if(!el){console.warn('demo overlay not found');return;}
-  document.body.appendChild(el); /* ensure it's at body level for position:fixed */
+  document.body.appendChild(el);
   el.style.display='block';
   document.body.style.overflow='hidden';
   _renderDemoStep();
+  var old=document.getElementById('dt-vol-hint');if(old)old.remove();
+  var hint=document.createElement('div');hint.id='dt-vol-hint';hint.textContent='🔊 Turn up your volume!';
+  document.body.appendChild(hint);
+  setTimeout(function(){if(hint.parentNode)hint.remove();},4200);
 }
 function closeDemoTour(){
   var el=document.getElementById('aria-demo-overlay');
