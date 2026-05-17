@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unsubscribe — EconSquad AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#04050d;color:#eef3fc;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{max-width:480px;width:100%;background:rgba(14,20,36,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:48px 40px;text-align:center;}
+.orb{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);margin:0 auto 20px;}
+h1{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;margin-bottom:12px;}
+p{font-size:14px;color:#6b7a96;line-height:1.7;margin-bottom:24px;}
+.btn{display:inline-block;background:#aaff3e;color:#1a3300;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none;transition:opacity .2s;}
+.btn:hover{opacity:.88;}
+.note{font-size:12px;color:#4a5568;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="orb" id="orb"></div>
+  <h1 id="heading">Just a moment…</h1>
+  <p id="message">Processing your request.</p>
+  <a href="/" class="btn" id="cta" style="display:none;">Back to EconSquad AI</a>
+  <p class="note" id="note"></p>
+</div>
+<script>
+var params = new URLSearchParams(window.location.search);
+var status = params.get('status');
+var h = document.getElementById('heading');
+var m = document.getElementById('message');
+var n = document.getElementById('note');
+var cta = document.getElementById('cta');
+var orb = document.getElementById('orb');
+
+if(status === 'ok'){
+  h.textContent = "You're unsubscribed.";
+  m.innerHTML = "You've been removed from the Monday AI for ED Drop.<br>You won't receive any more issues.";
+  n.textContent = "Changed your mind? Email us at hello@econsquad.ai to re-subscribe.";
+  cta.style.display = 'inline-block';
+} else if(status === 'already'){
+  h.textContent = "Already unsubscribed.";
+  m.textContent = "You're not currently subscribed to the Monday Drop — no action needed.";
+  cta.style.display = 'inline-block';
+} else if(status === 'error'){
+  orb.style.background = 'radial-gradient(circle at 35% 35%,#ff9999,#ff5050 50%,#990000)';
+  h.textContent = "Something went wrong.";
+  m.textContent = "We couldn't process your unsubscribe request. Please email us at hello@econsquad.ai and we'll remove you immediately.";
+  cta.style.display = 'inline-block';
+} else {
+  h.textContent = "Unsubscribe";
+  m.textContent = "Use the link in your email to unsubscribe from the Monday AI for ED Drop.";
+  cta.style.display = 'inline-block';
+}
+</script>
+</body>
+</html>

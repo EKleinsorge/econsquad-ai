@@ -1,60 +1,36 @@
-name: Generate Monday AI for ED Drop
+name: Monday AI for ED Drop — Weekly Send
 
 on:
   schedule:
-    # Every Monday at 1:00 PM UTC (8:00 AM CST)
     - cron: '0 13 * * 1'
   workflow_dispatch:
     inputs:
-      override_date:
-        description: 'Override date (YYYY-MM-DD). Leave blank to use today.'
-        required: false
-        default: ''
-      skip_email:
-        description: 'Skip sending emails (true/false). Useful for testing post generation only.'
+      dry_run:
+        description: 'Dry run - check only, do not send'
         required: false
         default: 'false'
 
 jobs:
-  generate-monday-drop:
+  send-monday-drop:
+    name: Send Monday Drop
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install anthropic requests
-
-      - name: Generate Monday Drop post
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OVERRIDE_DATE: ${{ github.event.inputs.override_date }}
-        run: python .github/scripts/generate_monday_drop.py
-
-      - name: Commit and push new post
+      - name: Trigger send-monday-drop Edge Function
         run: |
-          git config user.name "EconSquad AI Bot"
-          git config user.email "bot@econsquad.ai"
-          git add -A
-          git diff --cached --quiet || git commit -m "Auto-publish Monday AI for ED Drop — $(date +'%Y-%m-%d')"
-          git push
-
-      - name: Send weekly email to all users
-        if: ${{ github.event.inputs.skip_email != 'true' }}
+          echo "Triggering Monday Drop send at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-monday-drop" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"dry_run\": \"$DRY_RUN\"}")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP=$(echo "$RESPONSE" | tail -n1)
+          echo "HTTP $HTTP"
+          echo "$BODY"
+          if [ "$HTTP" != "200" ]; then exit 1; fi
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          SUPABASE_URL: https://kbwcsmctwtgrjtjcghkt.supabase.co
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python .github/scripts/send_weekly_email.py
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}

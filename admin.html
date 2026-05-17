@@ -165,6 +165,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Users</div>
     <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users</div>
     <div class="sidebar-section">Communication</div>
+    <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
     <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
     <div class="sidebar-section">Support</div>
@@ -278,6 +279,90 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <table>
           <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Plan</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody id="users-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MONDAY DROP -->
+    <div id="section-mondaydrop" class="admin-section">
+      <div class="page-title">Monday AI for ED Drop</div>
+      <div class="page-sub">Subscriber stats, send history, open rates, and unsubscribes</div>
+
+      <!-- Warning banner -->
+      <div id="md-warn-banner" style="display:none;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.35);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:22px;">⚠️</span>
+        <div>
+          <div style="font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:#f5c542;margin-bottom:3px;">Approaching monthly send limit</div>
+          <div style="font-size:12px;color:#8a97b5;" id="md-warn-text">Monthly sends are approaching the free tier limit. Consider upgrading to avoid delivery issues.</div>
+        </div>
+      </div>
+
+      <!-- Stat boxes -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:28px;">
+        <div class="stat-box">
+          <div class="stat-box-val" id="md-stat-total">—</div>
+          <div class="stat-box-lbl">Total Subscribers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-val" id="md-stat-active" style="color:#4ade80;">—</div>
+          <div class="stat-box-lbl">Active</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-val" id="md-stat-unsub" style="color:#ff8080;">—</div>
+          <div class="stat-box-lbl">Unsubscribed</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-val" id="md-stat-monthly" style="color:#f5c542;">—</div>
+          <div class="stat-box-lbl">Sent This Month</div>
+        </div>
+      </div>
+
+      <!-- Issue performance table -->
+      <div class="admin-card">
+        <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:16px;">Issue Performance</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Issue</th>
+              <th>Date</th>
+              <th>Sent</th>
+              <th>Opens</th>
+              <th>Open Rate</th>
+              <th>Unsubscribed</th>
+            </tr>
+          </thead>
+          <tbody id="md-issues-table">
+            <tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Subscriber list -->
+      <div class="admin-card" style="margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;">Subscribers</div>
+          <div style="display:flex;gap:8px;">
+            <button class="filter-tab active" onclick="filterMDSubs('all',this)" id="md-filter-all">All</button>
+            <button class="filter-tab" onclick="filterMDSubs('active',this)" id="md-filter-active">Active</button>
+            <button class="filter-tab" onclick="filterMDSubs('unsub',this)" id="md-filter-unsub">Unsubscribed</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Subscribed</th>
+              <th>Issues Read</th>
+              <th>Last Open</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="md-subs-table">
+            <tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -1830,6 +1915,139 @@ function copyAdminsSql(){
     showToast('Copy failed — select the SQL manually.','error');
   });
 }
+
+/* ═══════════════════════════════════════════════════════
+   MONDAY DROP ADMIN
+═══════════════════════════════════════════════════════ */
+var _mdSubsCache = [];
+var _mdSubsFilter = 'all';
+var _mdStatsLoaded = false;
+
+function loadMondayDropStats(){
+  if(_mdStatsLoaded) return;
+  _loadMDStats();
+  _loadMDSubs();
+}
+
+async function _loadMDStats(){
+  // Monthly sends
+  var start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+  var { count: monthly } = await supa.from('monday_drop_sends').select('id',{count:'exact',head:true}).gte('sent_at',start.toISOString());
+  var { count: total   } = await supa.from('monday_drop_subscribers').select('id',{count:'exact',head:true});
+  var { count: active  } = await supa.from('monday_drop_subscribers').select('id',{count:'exact',head:true}).is('unsubscribed_at',null);
+  var { count: unsub   } = await supa.from('monday_drop_subscribers').select('id',{count:'exact',head:true}).not('unsubscribed_at','is',null);
+
+  document.getElementById('md-stat-total').textContent   = total   ?? 0;
+  document.getElementById('md-stat-active').textContent  = active  ?? 0;
+  document.getElementById('md-stat-unsub').textContent   = unsub   ?? 0;
+  document.getElementById('md-stat-monthly').textContent = monthly ?? 0;
+
+  // Warning banner
+  var warn = document.getElementById('md-warn-banner');
+  if((monthly ?? 0) >= 2500){
+    warn.style.display = 'flex';
+    document.getElementById('md-warn-text').textContent =
+      (monthly ?? 0) + ' emails sent this month. Free tier limit is 3,000. Upgrade Resend to avoid delivery failures.';
+  } else { warn.style.display = 'none'; }
+
+  // Issue performance
+  var { data: sends } = await supa.from('monday_drop_sends').select('issue_number,issue_date,issue_title,open_count,first_opened_at,subscriber_id').order('issue_number',{ascending:false});
+  if(!sends) return;
+
+  // Group by issue
+  var issues = {};
+  sends.forEach(function(s){
+    var k = s.issue_number;
+    if(!issues[k]) issues[k] = { num:k, date:s.issue_date, title:s.issue_title, sent:0, opens:0, opened_subs:new Set() };
+    issues[k].sent++;
+    if(s.open_count > 0){ issues[k].opens++; issues[k].opened_subs.add(s.subscriber_id); }
+  });
+
+  // Unsubscribes per issue (rough: count unsubs after issue date)
+  var tbody = document.getElementById('md-issues-table');
+  var rows = Object.values(issues).sort(function(a,b){ return b.num - a.num; });
+  tbody.innerHTML = rows.length ? rows.map(function(iss){
+    var rate = iss.sent ? Math.round(iss.opened_subs.size/iss.sent*100) : 0;
+    var color = rate >= 40 ? '#4ade80' : rate >= 20 ? '#f5c542' : '#ff8080';
+    return '<tr>'
+      + '<td><span class="badge badge-pro">#'+iss.num+'</span></td>'
+      + '<td style="color:#eef3fc;font-weight:600;">'+escH(iss.title||'—').replace(/^Issue #\d+:\s*/,'')+'</td>'
+      + '<td>'+fmtDate(iss.date)+'</td>'
+      + '<td>'+iss.sent+'</td>'
+      + '<td>'+iss.opened_subs.size+'</td>'
+      + '<td><span style="color:'+color+';font-weight:700;">'+rate+'%</span></td>'
+      + '<td>—</td>'
+      + '</tr>';
+  }).join('') : '<tr><td colspan="7" style="color:#4a5568;text-align:center;padding:20px;">No sends yet</td></tr>';
+
+  _mdStatsLoaded = true;
+}
+
+async function _loadMDSubs(){
+  var { data } = await supa.from('monday_drop_subscribers').select('id,email,name,subscribed_at,unsubscribed_at').order('subscribed_at',{ascending:false});
+  _mdSubsCache = data || [];
+
+  // Get open counts per subscriber
+  var { data: sends } = await supa.from('monday_drop_sends').select('subscriber_id,open_count,first_opened_at');
+  var openMap = {};
+  (sends||[]).forEach(function(s){
+    if(!openMap[s.subscriber_id]) openMap[s.subscriber_id] = {count:0,last:null};
+    openMap[s.subscriber_id].count += (s.open_count > 0 ? 1 : 0);
+    if(s.first_opened_at && (!openMap[s.subscriber_id].last || s.first_opened_at > openMap[s.subscriber_id].last))
+      openMap[s.subscriber_id].last = s.first_opened_at;
+  });
+  _mdSubsCache._openMap = openMap;
+  _renderMDSubs();
+}
+
+function filterMDSubs(filter, btn){
+  _mdSubsFilter = filter;
+  document.querySelectorAll('[id^="md-filter-"]').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  _renderMDSubs();
+}
+
+function _renderMDSubs(){
+  var openMap = _mdSubsCache._openMap || {};
+  var list = _mdSubsCache.filter(function(s){
+    if(_mdSubsFilter === 'active') return !s.unsubscribed_at;
+    if(_mdSubsFilter === 'unsub')  return !!s.unsubscribed_at;
+    return true;
+  });
+  var tbody = document.getElementById('md-subs-table');
+  tbody.innerHTML = list.length ? list.map(function(s){
+    var om = openMap[s.id] || {};
+    var status = s.unsubscribed_at
+      ? '<span class="badge badge-suspended">Unsubscribed</span>'
+      : '<span class="badge badge-active">Active</span>';
+    var action = s.unsubscribed_at
+      ? '<button class="btn-ghost btn-sm" onclick="mdResubscribe(\''+s.id+'\')">Re-subscribe</button>'
+      : '<button class="btn-danger btn-sm" onclick="mdUnsubscribe(\''+s.id+'\')">Remove</button>';
+    return '<tr>'
+      + '<td style="color:#eef3fc;">'+escH(s.email)+'</td>'
+      + '<td>'+escH(s.name||'—')+'</td>'
+      + '<td>'+fmtDate(s.subscribed_at)+'</td>'
+      + '<td style="text-align:center;">'+(om.count||0)+'</td>'
+      + '<td>'+(om.last ? fmtDate(om.last) : '—')+'</td>'
+      + '<td>'+status+'</td>'
+      + '<td>'+action+'</td>'
+      + '</tr>';
+  }).join('') : '<tr><td colspan="7" style="color:#4a5568;text-align:center;padding:20px;">No subscribers found</td></tr>';
+}
+
+async function mdUnsubscribe(id){
+  if(!confirm('Remove this subscriber from the Monday Drop?')) return;
+  await supa.from('monday_drop_subscribers').update({unsubscribed_at: new Date().toISOString()}).eq('id',id);
+  _mdStatsLoaded = false; _loadMDStats(); _loadMDSubs();
+}
+
+async function mdResubscribe(id){
+  await supa.from('monday_drop_subscribers').update({unsubscribed_at: null}).eq('id',id);
+  _mdStatsLoaded = false; _loadMDStats(); _loadMDSubs();
+}
+
+function fmtDate(d){ if(!d) return '—'; var dt=new Date(d); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ═══════════════════════════════════════════════════════
    SWAG SHOP ADMIN
