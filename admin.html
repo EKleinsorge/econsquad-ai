@@ -1538,7 +1538,6 @@ function changePlan(email,selectEl,forcePlan){
     var exp=new Date();
     exp.setDate(exp.getDate()+7);
     update.trial_end=exp.toISOString();
-    update.trial_expires_at=exp.toISOString();
   }
   supa.from('profiles').update(update).eq('email',email).then(function(res){
     if(res.error){showToast('Error: '+res.error.message,'error');return;}
@@ -1566,7 +1565,7 @@ function confirmExtendTrial(){
   var days=parseInt(document.getElementById('trial-days').value)||7;
   var expires=new Date();
   expires.setDate(expires.getDate()+days);
-  supa.from('profiles').update({plan:'trial',trial_expires_at:expires.toISOString()}).eq('email',email).then(function(res){
+  supa.from('profiles').update({plan:'trial',trial_end:expires.toISOString()}).eq('email',email).then(function(res){
     closeTrialModal();
     if(res.error){showToast('Error: '+res.error.message,'error');return;}
     showToast('Trial extended by '+days+' days for '+email,'success');
