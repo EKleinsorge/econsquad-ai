@@ -1530,10 +1530,20 @@ function changePlan(email,selectEl,forcePlan){
   var plan=forcePlan||(selectEl?selectEl.value:'');
   if(!plan)return;
   var confirm_msg='Set plan for '+email+' to "'+plan+'"?';
+  if(plan==='trial') confirm_msg='Set plan for '+email+' to Trial? This will give them a fresh 7-day trial starting now.';
   if(!window.confirm(confirm_msg)){if(selectEl)selectEl.value='';return;}
-  supa.from('profiles').update({plan:plan}).eq('email',email).then(function(res){
+  /* When setting to trial, auto-set a fresh 7-day expiry */
+  var update={plan:plan};
+  if(plan==='trial'){
+    var exp=new Date();
+    exp.setDate(exp.getDate()+7);
+    update.trial_end=exp.toISOString();
+    update.trial_expires_at=exp.toISOString();
+  }
+  supa.from('profiles').update(update).eq('email',email).then(function(res){
     if(res.error){showToast('Error: '+res.error.message,'error');return;}
-    showToast('Plan updated to '+plan+' for '+email,'success');
+    var msg=plan==='trial'?'Trial reset — 7 days starting now for '+email:'Plan updated to '+plan+' for '+email;
+    showToast(msg,'success');
     loadUsers();loadAnalytics();loadRevenue();
     /* refresh drawer if open */
     var drawer=document.getElementById('user-drawer');
