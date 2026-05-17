@@ -5409,7 +5409,10 @@
     fetch('blog-feed.json?v=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(feed) {
-        var drops = (feed && feed.monday_drops) || [];
+        var today = new Date(); today.setHours(0,0,0,0);
+        var drops = ((feed && feed.monday_drops) || []).filter(function(p){
+          var d = new Date(p.date + 'T00:00:00'); return d <= today;
+        });
         if (!drops.length) {
           container.innerHTML = '<div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">No issues yet — check back next Monday.</div>';
           return;
