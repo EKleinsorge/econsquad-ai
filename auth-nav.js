@@ -19,12 +19,12 @@
     if (!document.getElementById('aria-gate-styles')) {
       var style = document.createElement('style');
       style.id = 'aria-gate-styles';
-      style.textContent = '@keyframes ariaOrb{'
-        + '0%,100%{box-shadow:0 0 18px 4px rgba(170,255,62,0.45),0 0 6px 1px rgba(170,255,62,0.3);transform:scale(1);}'
-        + '50%{box-shadow:0 0 32px 10px rgba(170,255,62,0.7),0 0 12px 3px rgba(170,255,62,0.5);transform:scale(1.07);}}'
-        + '@keyframes ariaRing{'
-        + '0%{transform:scale(1);opacity:0.5;}'
-        + '100%{transform:scale(2.2);opacity:0;}}';
+      style.textContent = '@keyframes ariaGatePulse{'
+        + '0%,100%{box-shadow:0 0 0 0 rgba(170,255,62,0.6),0 0 16px 4px rgba(170,255,62,0.3);transform:scale(1);}'
+        + '50%{box-shadow:0 0 0 14px rgba(170,255,62,0),0 0 28px 10px rgba(170,255,62,0.55);transform:scale(1.1);}}'
+        + '@keyframes ariaGateRing{'
+        + '0%{transform:scale(0.9);opacity:0.8;}'
+        + '100%{transform:scale(2.4);opacity:0;}}';
       document.head.appendChild(style);
     }
 
@@ -33,10 +33,10 @@
     gate.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;'
       + 'background:linear-gradient(to top,rgba(4,5,13,1) 0%,rgba(4,5,13,0.7) 100%);backdrop-filter:blur(8px);';
     gate.innerHTML = '<div style="max-width:460px;width:100%;background:rgba(14,20,36,0.97);border:1px solid rgba(170,255,62,0.25);border-radius:20px;padding:44px 36px;text-align:center;">'
-      + '<div style="position:relative;width:52px;height:52px;margin:0 auto 20px;">'
-      + '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(170,255,62,0.25);animation:ariaRing 2s ease-out infinite;"></div>'
-      + '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(170,255,62,0.15);animation:ariaRing 2s ease-out infinite 0.6s;"></div>'
-      + '<div style="position:relative;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);animation:ariaOrb 2.4s ease-in-out infinite;"></div>'
+      + '<div style="position:relative;width:64px;height:64px;margin:0 auto 24px;">'
+      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;border:2px solid rgba(170,255,62,0.6);animation:ariaGateRing 2s ease-out infinite;"></div>'
+      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;border:2px solid rgba(170,255,62,0.4);animation:ariaGateRing 2s ease-out 0.7s infinite;"></div>'
+      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);animation:ariaGatePulse 2s ease-in-out infinite;"></div>'
       + '</div>'
       + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:10px;line-height:1.2;">This is a members-only issue</div>'
       + '<p style="font-size:14px;color:#6b7a96;line-height:1.7;margin-bottom:28px;">Create a free EconSquad AI account to access all archived issues of the Monday AI for ED Drop — plus your own AI economic development squad.</p>'
