@@ -43,11 +43,19 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-starter{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-pro{background:rgba(170,255,62,0.15);color:#aaff3e;}
 .badge-trial{background:rgba(245,197,66,0.15);color:#f5c542;}
+.badge-in_trial{background:rgba(245,197,66,0.15);color:#f5c542;}
+.badge-expired{background:rgba(255,80,80,0.12);color:#ff8080;}
 .badge-pending{background:rgba(245,197,66,0.15);color:#f5c542;}
 .badge-active{background:rgba(74,222,128,0.15);color:#4ade80;}
 .badge-suspended{background:rgba(255,80,80,0.15);color:#ff8080;}
+.badge-cancelled{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
+/* User filter tabs */
+.user-filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.user-filter-tab{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,0.1);color:#6b7a96;background:transparent;transition:all .15s;white-space:nowrap;}
+.user-filter-tab:hover{border-color:rgba(255,255,255,0.2);color:#eef3fc;}
+.user-filter-tab.active{background:rgba(170,255,62,0.12);border-color:rgba(170,255,62,0.4);color:#aaff3e;}
 input,select,textarea{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;color-scheme:dark;}
 input:focus,select:focus,textarea:focus{border-color:rgba(170,255,62,0.4);}
 select option{background:#0d1526;color:#eef3fc;}
@@ -275,9 +283,30 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div id="section-users" class="admin-section">
       <div class="page-title">All Users</div>
       <div class="page-sub">Everyone who has signed up for EconSquad AI</div>
+
+      <!-- Status stat boxes -->
+      <div class="stats-row" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px;">
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-all">—</div><div class="stat-box-lbl">Total</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-in_trial" style="color:#f5c542;">—</div><div class="stat-box-lbl">In Trial</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-starter" style="color:#64afff;">—</div><div class="stat-box-lbl">Starter</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-pro" style="color:#aaff3e;">—</div><div class="stat-box-lbl">Pro</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-expired" style="color:#ff8080;">—</div><div class="stat-box-lbl">Trial Expired</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-suspended" style="color:#ff8080;">—</div><div class="stat-box-lbl">Suspended</div></div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="user-filter-tabs">
+        <div class="user-filter-tab active" onclick="filterUsers('all',this)">All</div>
+        <div class="user-filter-tab" onclick="filterUsers('in_trial',this)">In Trial</div>
+        <div class="user-filter-tab" onclick="filterUsers('starter',this)">Starter</div>
+        <div class="user-filter-tab" onclick="filterUsers('pro',this)">Pro</div>
+        <div class="user-filter-tab" onclick="filterUsers('expired',this)">Trial Expired</div>
+        <div class="user-filter-tab" onclick="filterUsers('suspended',this)">Suspended</div>
+      </div>
+
       <div class="admin-card" style="padding:0;overflow:hidden;">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Plan</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Status</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody id="users-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
@@ -1237,6 +1266,37 @@ function markRequestDone(id){
    USERS
 ═══════════════════════════════════════ */
 var allUsersData=[];
+var allUsersTaskMap={};
+var activeUserFilter='all';
+
+function userStatus(u){
+  var plan=u.plan||'trial';
+  if(plan==='suspended'||plan==='cancelled') return plan;
+  if(plan==='pro') return 'pro';
+  if(plan==='starter') return 'starter';
+  /* trial — check expiry */
+  var exp=u.trial_end||u.trial_expires_at||null;
+  if(exp){
+    var now=new Date();
+    var expDate=new Date(exp);
+    if(expDate>now) return 'in_trial';
+    return 'expired';
+  }
+  return 'in_trial'; /* no expiry set — still in trial */
+}
+
+function userStatusBadge(u){
+  var s=userStatus(u);
+  var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',suspended:'Suspended',cancelled:'Cancelled'};
+  var exp=u.trial_end||u.trial_expires_at||null;
+  var label=labels[s]||s;
+  if(s==='in_trial'&&exp){
+    var daysLeft=Math.ceil((new Date(exp)-new Date())/(1000*60*60*24));
+    if(daysLeft>0) label='Trial — '+daysLeft+'d left';
+  }
+  return '<span class="badge badge-'+s+'">'+label+'</span>';
+}
+
 function loadUsers(){
   Promise.all([
     supa.from('profiles').select('*').order('created_at',{ascending:false}),
@@ -1245,26 +1305,51 @@ function loadUsers(){
     var profiles=results[0].data||[];
     var tasks=results[1].data||[];
     allUsersData=profiles;
-    var taskMap={};
+    allUsersTaskMap={};
     tasks.forEach(function(t){
-      if(t.user_email)taskMap[t.user_email]=(taskMap[t.user_email]||0)+1;
+      if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
-    var tbody=document.getElementById('users-table');
-    if(!profiles.length){tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No users yet</td></tr>';return;}
-    tbody.innerHTML=profiles.map(function(u){
-      var plan=u.plan||'trial';
-      var taskCount=taskMap[u.email]||0;
-      return '<tr>'+
-        '<td>'+(u.full_name||'—')+'</td>'+
-        '<td>'+u.email+'</td>'+
-        '<td>'+(u.organization||'—')+'</td>'+
-        '<td><span class="badge badge-'+plan+'">'+plan+'</span></td>'+
-        '<td style="color:#aaff3e;">'+taskCount+'</td>'+
-        '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
-        '<td><div class="action-group">'+buildUserActions(u)+'</div></td>'+
-      '</tr>';
-    }).join('');
+    /* update stat counts */
+    var counts={all:profiles.length,in_trial:0,starter:0,pro:0,expired:0,suspended:0};
+    profiles.forEach(function(u){
+      var s=userStatus(u);
+      if(counts[s]!==undefined) counts[s]++;
+      else counts[s]=1;
+    });
+    ['all','in_trial','starter','pro','expired','suspended'].forEach(function(k){
+      var el=document.getElementById('usr-cnt-'+k);
+      if(el) el.textContent=counts[k]||0;
+    });
+    renderUsersTable(activeUserFilter);
   });
+}
+
+function filterUsers(status, tabEl){
+  activeUserFilter=status;
+  document.querySelectorAll('.user-filter-tab').forEach(function(t){t.classList.remove('active');});
+  if(tabEl) tabEl.classList.add('active');
+  renderUsersTable(status);
+}
+
+function renderUsersTable(filter){
+  var tbody=document.getElementById('users-table');
+  var filtered=filter==='all'?allUsersData:allUsersData.filter(function(u){return userStatus(u)===filter;});
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No users in this category</td></tr>';
+    return;
+  }
+  tbody.innerHTML=filtered.map(function(u){
+    var taskCount=allUsersTaskMap[u.email]||0;
+    return '<tr>'+
+      '<td>'+(u.full_name||'—')+'</td>'+
+      '<td>'+u.email+'</td>'+
+      '<td>'+(u.organization||'—')+'</td>'+
+      '<td>'+userStatusBadge(u)+'</td>'+
+      '<td style="color:#aaff3e;">'+taskCount+'</td>'+
+      '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
+      '<td><div class="action-group">'+buildUserActions(u)+'</div></td>'+
+    '</tr>';
+  }).join('');
 }
 
 function buildUserActions(u){
