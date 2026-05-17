@@ -1321,6 +1321,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <div style="font-size:10px;font-weight:800;color:#4a5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Integrations</div>
                 <div id="pm-integrations"><!-- populated by updateIntegrationStatus() --></div>
               </div>
+              <!-- Admin panel link — only shown for is_admin users -->
+              <div id="pm-admin-row" style="display:none;">
+                <div style="height:1px;background:rgba(170,255,62,0.12);margin:4px 0;"></div>
+                <div onclick="window.open('admin.html','_blank');toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(170,255,62,0.08)'" onmouseout="this.style.background='transparent'">
+                  <span style="font-size:14px;">🛡️</span>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:#aaff3e;">Admin Panel</div>
+                    <div style="font-size:10px;color:#6b7a96;">Opens in new window</div>
+                  </div>
+                </div>
+              </div>
               <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
               <div onclick="doSignout()" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,60,60,0.08)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">👋</span>
@@ -3919,6 +3930,11 @@ function toggleProfileMenu(){
     if(pmn)pmn.textContent=nm;
     if(pme)pme.textContent=currentUser.email;
     if(pmp)pmp.textContent='⚡ Trial — 7 days free';
+    /* show admin button only for admins */
+    supa.from('profiles').select('is_admin').eq('id',currentUser.id).single().then(function(res){
+      var row=document.getElementById('pm-admin-row');
+      if(row) row.style.display=(res.data&&res.data.is_admin)?'block':'none';
+    });
   }
 }
 
