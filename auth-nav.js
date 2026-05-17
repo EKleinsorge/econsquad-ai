@@ -22,9 +22,11 @@
       style.textContent = '@keyframes ariaGatePulse{'
         + '0%,100%{box-shadow:0 0 0 0 rgba(170,255,62,0.6),0 0 16px 4px rgba(170,255,62,0.3);transform:scale(1);}'
         + '50%{box-shadow:0 0 0 14px rgba(170,255,62,0),0 0 28px 10px rgba(170,255,62,0.55);transform:scale(1.1);}}'
-        + '@keyframes ariaGateRing{'
-        + '0%{transform:scale(0.9);opacity:0.8;}'
-        + '100%{transform:scale(2.4);opacity:0;}}';
+        + '@keyframes ariaGateRing{0%{transform:scale(0.9);opacity:0.8;}100%{transform:scale(2.4);opacity:0;}}'
+        + '@keyframes ariaGateSwirl1{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}'
+        + '@keyframes ariaGateSwirl2{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}'
+        + '@keyframes ariaGateSwirl3{from{transform:rotate(45deg);}to{transform:rotate(405deg);}}'
+        + '@keyframes ariaGateSmoke{0%,100%{opacity:0.06;transform:scale(1) rotate(0deg);}33%{opacity:0.14;transform:scale(1.08) rotate(120deg);}66%{opacity:0.08;transform:scale(0.95) rotate(240deg);}}';
       document.head.appendChild(style);
     }
 
@@ -33,10 +35,26 @@
     gate.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;'
       + 'background:linear-gradient(to top,rgba(4,5,13,1) 0%,rgba(4,5,13,0.7) 100%);backdrop-filter:blur(8px);';
     gate.innerHTML = '<div style="max-width:460px;width:100%;background:rgba(14,20,36,0.97);border:1px solid rgba(170,255,62,0.25);border-radius:20px;padding:44px 36px;text-align:center;">'
-      + '<div style="position:relative;width:64px;height:64px;margin:0 auto 24px;">'
-      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;border:2px solid rgba(170,255,62,0.6);animation:ariaGateRing 2s ease-out infinite;"></div>'
-      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;border:2px solid rgba(170,255,62,0.4);animation:ariaGateRing 2s ease-out 0.7s infinite;"></div>'
-      + '<div style="position:absolute;top:0;left:0;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);animation:ariaGatePulse 2s ease-in-out infinite;"></div>'
+      + '<div style="position:relative;width:130px;height:130px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;">'
+      /* smoke halo */
+      + '<div style="position:absolute;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(170,255,62,0.07) 0%,transparent 65%);filter:blur(12px);animation:ariaGateSmoke 8s ease-in-out infinite;"></div>'
+      /* swirl 1 — orbits clockwise, 14s */
+      + '<div style="position:absolute;width:110px;height:110px;border-radius:50%;animation:ariaGateSwirl1 14s linear infinite;">'
+      +   '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:40px;height:20px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.22) 0%,transparent 70%);filter:blur(7px);"></div>'
+      + '</div>'
+      /* swirl 2 — orbits counter-clockwise, 10s */
+      + '<div style="position:absolute;width:90px;height:90px;border-radius:50%;animation:ariaGateSwirl2 10s linear infinite;">'
+      +   '<div style="position:absolute;bottom:-7px;right:-5px;width:32px;height:16px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.18) 0%,transparent 70%);filter:blur(6px);"></div>'
+      + '</div>'
+      /* swirl 3 — slow wide orbit, 18s */
+      + '<div style="position:absolute;width:120px;height:52px;border-radius:50%;animation:ariaGateSwirl3 18s linear infinite;">'
+      +   '<div style="position:absolute;top:0;left:-10px;width:52px;height:20px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.12) 0%,transparent 70%);filter:blur(9px);"></div>'
+      + '</div>'
+      /* pulse rings */
+      + '<div style="position:absolute;top:50%;left:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:2px solid rgba(170,255,62,0.6);animation:ariaGateRing 2s ease-out infinite;"></div>'
+      + '<div style="position:absolute;top:50%;left:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:2px solid rgba(170,255,62,0.35);animation:ariaGateRing 2s ease-out 0.7s infinite;"></div>'
+      /* orb */
+      + '<div style="position:relative;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);animation:ariaGatePulse 2s ease-in-out infinite;z-index:2;"></div>'
       + '</div>'
       + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:10px;line-height:1.2;">This is a members-only issue</div>'
       + '<p style="font-size:14px;color:#6b7a96;line-height:1.7;margin-bottom:28px;">Create a free EconSquad AI account to access all archived issues of the Monday AI for ED Drop — plus your own AI economic development squad.</p>'
