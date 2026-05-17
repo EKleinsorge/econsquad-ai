@@ -5,7 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SERVICE_KEY      = Deno.env.get('SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY   = Deno.env.get('RESEND_API_KEY')!;
 const SITE_URL         = 'https://econsquad.ai';
 const FROM_EMAIL       = 'ARIA from EconSquad <aria@econsquad.ai>';
@@ -87,35 +87,28 @@ function buildEmailHtml(subscriber: any, issue: any, trackingToken: string): str
     </div>
   </div>
 
-  <!-- Hero -->
-  <div style="background:rgba(14,20,36,0.9);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:32px;margin-bottom:24px;">
-    <p style="font-size:14px;color:#6b7a96;margin:0 0 6px;">Hi ${name},</p>
-    <h1 style="font-family:Arial,sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin:0 0 16px;line-height:1.2;">
+  <!-- Article card -->
+  <div style="background:rgba(14,20,36,0.9);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:32px;margin-bottom:20px;">
+    <p style="font-size:14px;color:#6b7a96;margin:0 0 8px;">Good morning, ${name} —</p>
+    <h1 style="font-family:Arial,sans-serif;font-size:24px;font-weight:900;color:#eef3fc;margin:0 0 14px;line-height:1.25;">
       ${issue.title.replace(/^Issue #\d+:\s*/, '')}
     </h1>
-    <p style="font-size:14px;color:#8a97b5;line-height:1.7;margin:0 0 24px;">${issue.excerpt}</p>
-    <a href="${issueUrl}" style="display:inline-block;background:#aaff3e;color:#1a3300;font-family:Arial,sans-serif;font-size:14px;font-weight:900;padding:14px 28px;border-radius:10px;text-decoration:none;">
-      Read this week's drop →
-    </a>
+    <p style="font-size:14px;color:#8a97b5;line-height:1.75;margin:0 0 24px;">${issue.excerpt}</p>
+    <a href="${issueUrl}" style="display:inline-block;background:#aaff3e;color:#1a3300;font-family:Arial,sans-serif;font-size:14px;font-weight:900;padding:14px 28px;border-radius:10px;text-decoration:none;">Read this week's drop →</a>
   </div>
 
   <!-- ARIA note -->
-  <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(14,20,36,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px;margin-bottom:24px;">
-    <div style="width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;"></div>
+  <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(14,20,36,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px;margin-bottom:20px;">
+    <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;"></div>
     <div>
-      <div style="font-family:Arial,sans-serif;font-size:13px;font-weight:800;color:#aaff3e;margin-bottom:4px;">ARIA</div>
-      <p style="font-size:13px;color:#8a97b5;line-height:1.6;margin:0;">
-        This week's drop is packed with practical workflows your team can start using today.
-        Log in to your squad to put them into action — I'll be ready.
-      </p>
+      <div style="font-family:Arial,sans-serif;font-size:12px;font-weight:800;color:#aaff3e;margin-bottom:4px;">ARIA</div>
+      <p style="font-size:13px;color:#8a97b5;line-height:1.6;margin:0;">This week's workflows are ready to use in your squad. Log in and I'll help you put them into action.</p>
     </div>
   </div>
 
-  <!-- CTA -->
-  <div style="text-align:center;margin-bottom:32px;">
-    <a href="${SITE_URL}" style="display:inline-block;border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:12px 24px;border-radius:10px;text-decoration:none;">
-      Open My Squad Dashboard →
-    </a>
+  <!-- Back to dashboard -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <a href="${SITE_URL}/index.html?ret=1" style="display:inline-block;border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;text-decoration:none;">← Back to your squad dashboard</a>
   </div>
 
   <!-- Footer -->

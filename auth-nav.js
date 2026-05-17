@@ -1,7 +1,7 @@
 /**
- * auth-nav.js v3 — Loaded by all static marketing/blog pages.
- * When a Supabase session exists, replaces Sign In / Start Trial with
- * "← Back to Dashboard" (uses ?ret=1 to skip the ARIA welcome splash).
+ * auth-nav.js v4 — Loaded by all static marketing/blog pages.
+ * - When logged in: swaps nav to "← Back to Dashboard"
+ * - On Monday Drop pages when NOT logged in: shows archive gate overlay
  */
 (function () {
   var SUPA_URL = 'https://kbwcsmctwtgrjtjcghkt.supabase.co';
@@ -9,6 +9,29 @@
 
   /* index.html?ret=1 tells the app to skip the ARIA splash and restore last tab */
   var DASH = 'index.html?ret=1';
+
+  function showArchiveGate() {
+    /* Only gate Monday Drop pages */
+    var page = window.location.pathname.split('/').pop() || '';
+    if (!/^monday-drop-/.test(page)) return;
+
+    var gate = document.createElement('div');
+    gate.id = 'archive-gate';
+    gate.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;'
+      + 'background:linear-gradient(to top,rgba(4,5,13,1) 0%,rgba(4,5,13,0.7) 100%);backdrop-filter:blur(8px);';
+    gate.innerHTML = '<div style="max-width:460px;width:100%;background:rgba(14,20,36,0.97);border:1px solid rgba(170,255,62,0.25);border-radius:20px;padding:44px 36px;text-align:center;">'
+      + '<div style="width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);margin:0 auto 20px;"></div>'
+      + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:10px;line-height:1.2;">This is a members-only issue</div>'
+      + '<p style="font-size:14px;color:#6b7a96;line-height:1.7;margin-bottom:28px;">Create a free EconSquad AI account to access all archived issues of the Monday AI for ED Drop — plus your own AI economic development squad.</p>'
+      + '<a href="/index.html" onclick="sessionStorage.setItem(\'esq_open_auth\',\'signup\');return true;" style="display:block;background:#aaff3e;color:#1a3300;font-family:\'DM Sans\',sans-serif;font-size:15px;font-weight:800;padding:14px 28px;border-radius:10px;text-decoration:none;margin-bottom:12px;">Start free trial — get full access</a>'
+      + '<a href="/index.html" onclick="sessionStorage.setItem(\'esq_open_auth\',\'signin\');return true;" style="display:block;border:1px solid rgba(255,255,255,0.12);color:#8a97b5;font-size:13px;font-weight:600;padding:11px 28px;border-radius:10px;text-decoration:none;">Already have an account? Sign in</a>'
+      + '</div>';
+    document.body.appendChild(gate);
+
+    /* Blur the article content behind the gate */
+    var wrap = document.querySelector('.article-wrap');
+    if (wrap) wrap.style.filter = 'blur(4px)';
+  }
 
   function applyLoggedIn() {
     /* 1. Swap every "Home" nav link → Back to Dashboard */
@@ -57,9 +80,13 @@
     }
     try {
       supabase.createClient(SUPA_URL, SUPA_KEY).auth.getSession().then(function (res) {
-        if (res && res.data && res.data.session) applyLoggedIn();
+        if (res && res.data && res.data.session) {
+          applyLoggedIn();
+        } else {
+          showArchiveGate();
+        }
       });
-    } catch (e) {}
+    } catch (e) { showArchiveGate(); }
   }
 
   if (document.readyState === 'loading') {
