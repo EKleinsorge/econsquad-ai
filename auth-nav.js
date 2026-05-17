@@ -37,18 +37,18 @@
     gate.innerHTML = '<div style="max-width:460px;width:100%;background:rgba(14,20,36,0.97);border:1px solid rgba(170,255,62,0.25);border-radius:20px;padding:44px 36px;text-align:center;">'
       + '<div style="position:relative;width:130px;height:130px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;">'
       /* smoke halo */
-      + '<div style="position:absolute;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(170,255,62,0.07) 0%,transparent 65%);filter:blur(12px);animation:ariaGateSmoke 8s ease-in-out infinite;"></div>'
+      + '<div style="position:absolute;top:50%;left:50%;width:130px;height:130px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(170,255,62,0.15) 0%,transparent 65%);filter:blur(12px);animation:ariaGateSmoke 8s ease-in-out infinite;"></div>'
       /* swirl 1 — orbits clockwise, 14s */
-      + '<div style="position:absolute;width:110px;height:110px;border-radius:50%;animation:ariaGateSwirl1 14s linear infinite;">'
-      +   '<div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:40px;height:20px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.22) 0%,transparent 70%);filter:blur(7px);"></div>'
+      + '<div style="position:absolute;top:50%;left:50%;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;animation:ariaGateSwirl1 14s linear infinite;">'
+      +   '<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:44px;height:22px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.55) 0%,transparent 70%);filter:blur(6px);"></div>'
       + '</div>'
       /* swirl 2 — orbits counter-clockwise, 10s */
-      + '<div style="position:absolute;width:90px;height:90px;border-radius:50%;animation:ariaGateSwirl2 10s linear infinite;">'
-      +   '<div style="position:absolute;bottom:-7px;right:-5px;width:32px;height:16px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.18) 0%,transparent 70%);filter:blur(6px);"></div>'
+      + '<div style="position:absolute;top:50%;left:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;animation:ariaGateSwirl2 10s linear infinite;">'
+      +   '<div style="position:absolute;bottom:-8px;right:-6px;width:36px;height:18px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.45) 0%,transparent 70%);filter:blur(5px);"></div>'
       + '</div>'
       /* swirl 3 — slow wide orbit, 18s */
-      + '<div style="position:absolute;width:120px;height:52px;border-radius:50%;animation:ariaGateSwirl3 18s linear infinite;">'
-      +   '<div style="position:absolute;top:0;left:-10px;width:52px;height:20px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.12) 0%,transparent 70%);filter:blur(9px);"></div>'
+      + '<div style="position:absolute;top:50%;left:50%;width:120px;height:52px;margin:-26px 0 0 -60px;border-radius:50%;animation:ariaGateSwirl3 18s linear infinite;">'
+      +   '<div style="position:absolute;top:0;left:-10px;width:54px;height:22px;border-radius:50%;background:radial-gradient(ellipse,rgba(170,255,62,0.35) 0%,transparent 70%);filter:blur(8px);"></div>'
       + '</div>'
       /* pulse rings */
       + '<div style="position:absolute;top:50%;left:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:2px solid rgba(170,255,62,0.6);animation:ariaGateRing 2s ease-out infinite;"></div>'
