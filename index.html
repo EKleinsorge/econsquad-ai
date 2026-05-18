@@ -2131,7 +2131,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div id="statsview-roi" style="display:none;">
           <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin-bottom:8px;">ROI Calculator</h2>
           <p style="color:#6b7a96;font-size:13px;margin-bottom:24px;">See exactly what EconSquad AI is worth to your organization.</p>
-          <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:24px;max-width:480px;">
+          <div id="roi-calc-box" style="background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:24px;max-width:480px;">
             <label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Your Annual Salary</label>
             <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
               <span style="color:#6b7a96;font-size:18px;">$</span>
@@ -5710,7 +5710,7 @@ function _swAction(stepId){
         if(typeof switchStatsTab === 'function'){
           switchStatsTab('roi', document.getElementById('subtab-roi'));
         }
-        setTimeout(function(){ _swGlow('.roi-hero', false); }, 200);
+        setTimeout(function(){ _swGlow('#roi-calc-box', false); }, 200);
       }, 400);
       return;
     }
