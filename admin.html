@@ -2714,18 +2714,24 @@ function _renderAffAppsTable(tbody, rows, profMap){
 }
 
 function approveAffiliate(id, code, email, name){
-  if(!confirm('Approve partner application for '+name+' ('+email+')?')) return;
+  if(!confirm('Approve partner application for '+name+' ('+email+')?\n\nAn approval email with their referral link and sharing guide will be sent automatically.')) return;
   supa.from('affiliates').update({
     status: 'approved',
     approved_at: new Date().toISOString(),
     approved_by: adminUser && adminUser.id
   }).eq('id', id).then(function(res){
     if(res.error){ showToast('Error: '+res.error.message, 'error'); return; }
-    showToast('✓ '+name+' approved as partner!', 'success');
-    /* Show the approval link in a modal so admin can copy it to send */
-    var link = 'https://econsquad.ai/?ref='+code;
-    var msg = 'Approved! Their referral link is:\n\n'+link+'\n\nShare this with '+name+' ('+email+').\n\nRemember to send them an approval email with their link + commission structure details.';
-    alert(msg);
+    showToast('✓ '+name+' approved! Sending approval email…', 'success');
+    /* Send approval email via Edge Function */
+    supa.functions.invoke('send-affiliate-approval', {
+      body: { to: email, name: name, code: code }
+    }).then(function(r){
+      if(r.error || (r.data && !r.data.ok)){
+        showToast('Approved but email failed — check Resend logs.', 'error');
+      } else {
+        showToast('✓ Approval email sent to '+email, 'success');
+      }
+    });
     loadAffApps();
   });
 }

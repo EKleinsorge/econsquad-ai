@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconSquad AI — Partner Sharing Guide</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;800;900&family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--navy:#06080f;--lime:#aaff3e;--lime2:#8fe620;--text:#eef3fc;--text2:#8a97b5;--border:rgba(255,255,255,0.07);}
+body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+
+/* NAV */
+.nav{background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-icon{width:34px;height:34px;background:var(--lime);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.logo-icon svg{width:20px;height:20px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:800;letter-spacing:.02em;}
+.logo-text .e{color:#fff;}.logo-text .s{color:var(--lime);}.logo-text .ai{color:#fff;font-size:13px;font-weight:700;margin-left:1px;}
+.nav-back{background:var(--lime);color:#1a3300;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:800;padding:7px 16px;border-radius:8px;text-decoration:none;transition:opacity .2s;}
+.nav-back:hover{opacity:.85;}
+
+/* HERO */
+.hero{text-align:center;padding:56px 40px 40px;max-width:700px;margin:0 auto;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:5px 16px;margin-bottom:18px;}
+.hero-badge span{font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:var(--lime);letter-spacing:.08em;text-transform:uppercase;}
+.hero h1{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;line-height:1.1;margin-bottom:12px;}
+.hero h1 em{color:var(--lime);font-style:normal;}
+.hero p{font-size:15px;color:var(--text2);line-height:1.75;}
+
+/* LINK BOX */
+.link-box{max-width:700px;margin:0 auto 48px;padding:0 40px;}
+.link-card{background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.25);border-radius:16px;padding:24px 28px;}
+.link-card-label{font-size:11px;font-weight:700;color:var(--lime);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.link-display{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.link-url{font-family:monospace;font-size:15px;color:var(--text);flex:1;word-break:break-all;}
+.btn-copy{background:var(--lime);color:#0a1a00;border:none;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 22px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+.btn-copy:hover{opacity:.85;}
+
+/* SECTION */
+.section{max-width:700px;margin:0 auto 48px;padding:0 40px;}
+.section-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.section-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+
+/* TEMPLATE CARDS */
+.template-card{background:rgba(14,20,36,0.8);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden;transition:border-color .2s;}
+.template-card:hover{border-color:rgba(170,255,62,0.2);}
+.template-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;}
+.template-channel{display:flex;align-items:center;gap:10px;}
+.template-icon{font-size:20px;}
+.template-name{font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;color:var(--text);}
+.template-hint{font-size:11px;color:var(--text2);margin-top:1px;}
+.btn-copy-tpl{background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:var(--lime);font-size:11px;font-weight:700;padding:5px 14px;border-radius:7px;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;transition:all .15s;}
+.btn-copy-tpl:hover{background:rgba(170,255,62,0.2);}
+.btn-copy-tpl.copied{background:rgba(170,255,62,0.2);color:var(--lime);}
+.template-body{padding:18px 20px;}
+.template-text{font-size:13px;color:#b8c8e0;line-height:1.8;white-space:pre-wrap;word-break:break-word;}
+
+/* TIPS */
+.tips-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.tip-card{background:rgba(14,20,36,0.6);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.tip-icon{font-size:24px;margin-bottom:10px;}
+.tip-title{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:var(--text);margin-bottom:5px;}
+.tip-body{font-size:12px;color:var(--text2);line-height:1.7;}
+
+/* FOOTER */
+footer{text-align:center;padding:40px;border-top:1px solid var(--border);margin-top:32px;}
+footer p{font-size:12px;color:#4a5568;}
+footer a{color:var(--text2);text-decoration:none;}
+footer a:hover{color:var(--lime);}
+
+@media(max-width:640px){
+  .nav{padding:0 20px;}
+  .hero{padding:40px 20px 28px;}
+  .link-box,.section{padding:0 20px;}
+  .hero h1{font-size:34px;}
+  .tips-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="index.html">
+    <div class="logo-icon"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="7" fill="#aaff3e" opacity=".3"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/></svg></div>
+    <div class="logo-text"><span class="e">Econ</span><span class="s">Squad</span><span class="ai">AI</span></div>
+  </a>
+  <a class="nav-back" href="index.html?ret=1">← Dashboard</a>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge"><span>Partner Sharing Guide</span></div>
+  <h1>Share your link.<br><em>Get paid every month.</em></h1>
+  <p>Below are ready-to-use templates for every channel. Copy, personalize with your name, and start sharing — the more economic developers you reach, the more you earn.</p>
+</div>
+
+<!-- REFERRAL LINK -->
+<div class="link-box">
+  <div class="link-card">
+    <div class="link-card-label">Your referral link</div>
+    <div class="link-display">
+      <div class="link-url" id="ref-link-display">https://econsquad.ai/?ref=yourcode</div>
+      <button class="btn-copy" onclick="copyLink()" id="copy-link-btn">Copy link</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATES -->
+<div class="section">
+  <div class="section-title">Ready-to-use templates</div>
+  <div class="section-sub">Each template includes your referral link automatically. Click "Copy" then paste wherever you need it.</div>
+
+  <!-- EMAIL -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">📧</span>
+        <div>
+          <div class="template-name">Email</div>
+          <div class="template-hint">Best for direct outreach to colleagues</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-email',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-email">Subject: A tool that's saving me hours every week on grants &amp; RFIs
+
+Hey [Name],
+
+I've been using a platform called EconSquad AI for the past few months and it's genuinely changed how I work. It's built specifically for economic developers — AI specialists for grant writing, RFI responses, BRE surveys, workforce analysis, and more.
+
+I'm saving hours every week on work that used to take forever.
+
+You can try it free for 7 days (no credit card needed):
+[YOUR_LINK]
+
+Happy to chat more about it if you have questions.
+
+[Your name]</div>
+    </div>
+  </div>
+
+  <!-- TEXT / SMS -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">💬</span>
+        <div>
+          <div class="template-name">Text Message</div>
+          <div class="template-hint">Quick, personal, works great with existing contacts</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-sms',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-sms">Hey! Been using this AI tool built for economic developers — it writes grants, RFIs, BRE surveys, the whole thing. Saves me hours. 7-day free trial: [YOUR_LINK]</div>
+    </div>
+  </div>
+
+  <!-- LINKEDIN -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">💼</span>
+        <div>
+          <div class="template-name">LinkedIn</div>
+          <div class="template-hint">Professional audience — great for ED networks</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-linkedin',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-linkedin">If you're in economic development, this is the tool I wish I'd had years ago.
+
+EconSquad AI gives you a full squad of AI specialists — for grant writing, RFI responses, BRE surveys, incentive modeling, workforce analysis, and more. It's built specifically for ED professionals, not generic AI.
+
+I've been using it to cut hours off my weekly workload and actually do more with less.
+
+7-day free trial, no credit card required 👇
+[YOUR_LINK]
+
+#EconomicDevelopment #AI #ProductivityTools #IEDC</div>
+    </div>
+  </div>
+
+  <!-- TWITTER / X -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">𝕏</span>
+        <div>
+          <div class="template-name">Twitter / X</div>
+          <div class="template-hint">Short and punchy — tag ED communities</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-twitter',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-twitter">Economic developers: I've been using @EconSquadAI to write grants, BRE surveys, and RFIs in a fraction of the time.
+
+AI built specifically for ED — not generic ChatGPT.
+
+7-day free trial 👇
+[YOUR_LINK]</div>
+    </div>
+  </div>
+
+  <!-- FACEBOOK -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">📘</span>
+        <div>
+          <div class="template-name">Facebook</div>
+          <div class="template-hint">Great for ED community groups and local networks</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-facebook',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-facebook">Hey ED friends — wanted to share something that's made a real difference in my day-to-day work.
+
+EconSquad AI is an AI platform built just for economic developers. It can write grant applications, draft RFI responses, create BRE survey summaries, model incentive packages, and a lot more — all in minutes instead of hours.
+
+If you're constantly buried in paperwork and reports, this is worth a look. There's a 7-day free trial with no credit card:
+
+[YOUR_LINK]
+
+Let me know if you have questions — happy to share more about how I use it!</div>
+    </div>
+  </div>
+
+  <!-- DIRECT MESSAGE -->
+  <div class="template-card">
+    <div class="template-header">
+      <div class="template-channel">
+        <span class="template-icon">📩</span>
+        <div>
+          <div class="template-name">Direct Message</div>
+          <div class="template-hint">Personal outreach — LinkedIn DM, Slack, or any messenger</div>
+        </div>
+      </div>
+      <button class="btn-copy-tpl" onclick="copyTemplate('tpl-dm',this)">Copy</button>
+    </div>
+    <div class="template-body">
+      <div class="template-text" id="tpl-dm">Hey [Name]! Quick thought — I've been using an AI tool called EconSquad AI that's built specifically for economic developers. It handles grants, RFIs, BRE surveys, and more. Genuinely saving me hours every week.
+
+Thought of you — figured it might be useful for what you're working on.
+
+Free trial here if you want to check it out: [YOUR_LINK]</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TIPS -->
+<div class="section">
+  <div class="section-title">Tips for getting referrals</div>
+  <div class="section-sub">What works best for our top partners.</div>
+  <div class="tips-grid">
+    <div class="tip-card">
+      <div class="tip-icon">🎯</div>
+      <div class="tip-title">Be specific about what you use it for</div>
+      <div class="tip-body">Instead of "it's an AI tool," say "I used it to write a $200K CDBG grant in 45 minutes." Specific results convert better than general claims.</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🤝</div>
+      <div class="tip-title">Target the right audience</div>
+      <div class="tip-body">EconSquad is built for ED professionals — EDOs, city/county economic development staff, chambers, CDCs. Focus your outreach on those communities for the best results.</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">📅</div>
+      <div class="tip-title">Share at the right moment</div>
+      <div class="tip-body">Bring it up when a colleague mentions being swamped with grant season, a big RFI response, or annual BRE surveys. Pain + solution = conversions.</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">🔁</div>
+      <div class="tip-title">Follow up once</div>
+      <div class="tip-body">A single friendly follow-up ("Did you get a chance to try it?") can 2x your conversion rate. People get busy — a gentle reminder goes a long way.</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">📣</div>
+      <div class="tip-title">Use ED-specific communities</div>
+      <div class="tip-body">IEDC forums, state ED association Facebook groups, LinkedIn ED communities, and local economic development councils are all ideal places to share your link.</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-icon">💡</div>
+      <div class="tip-title">Lead with the free trial</div>
+      <div class="tip-body">Always mention the 7-day free trial upfront. No credit card, no commitment — it removes the biggest objection before people even ask.</div>
+    </div>
+  </div>
+</div>
+
+<!-- COMMISSION REMINDER -->
+<div class="section">
+  <div style="background:rgba(14,20,36,0.8);border:1px solid rgba(170,255,62,0.15);border-radius:16px;padding:28px 32px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:12px;">💰</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:var(--text);margin-bottom:8px;">Your commission structure</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.7;">10% of each subscriber's monthly fee, paid every month for as long as they stay.</div>
+    <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="text-align:center;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:12px 20px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--lime);">$49/mo</div>
+        <div style="font-size:11px;color:var(--text2);">Starter plan → <strong style="color:var(--lime);">$4.90/mo</strong></div>
+      </div>
+      <div style="text-align:center;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:12px 20px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--lime);">$99/mo</div>
+        <div style="font-size:11px;color:var(--text2);">Pro plan → <strong style="color:var(--lime);">$9.90/mo</strong></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+      <strong style="color:var(--text);">Milestone bonuses:</strong> $50 at 5 referrals · $100 at 10 · $250 at 25 · $500 at 50 · $1,000 + Elite at 100<br>
+      Paid monthly via PayPal or Direct Deposit · Questions? <a href="mailto:partners@econsquad.ai" style="color:var(--lime);">partners@econsquad.ai</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p style="margin-bottom:8px;">
+    <a href="index.html?ret=1">← Back to dashboard</a>
+    &nbsp;·&nbsp;
+    <a href="support.html#partner-program">Partner Program FAQ</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:partners@econsquad.ai">partners@econsquad.ai</a>
+  </p>
+  <p>© 2026 EconSquad AI · All rights reserved</p>
+</footer>
+
+<script>
+/* ── Populate referral link from URL param ── */
+(function(){
+  var p    = new URLSearchParams(window.location.search);
+  var ref  = p.get('ref');
+  var name = p.get('name');
+  var link = ref ? 'https://econsquad.ai/?ref=' + ref : 'https://econsquad.ai/?ref=yourcode';
+
+  /* Update link display */
+  var ld = document.getElementById('ref-link-display');
+  if(ld) ld.textContent = link;
+
+  /* Replace [YOUR_LINK] in all templates */
+  document.querySelectorAll('.template-text').forEach(function(el){
+    el.textContent = el.textContent.replace(/\[YOUR_LINK\]/g, link);
+  });
+
+  /* Personalise email subject/opener if name provided */
+  if(name){
+    /* Nothing needed — name only used for greeting in email from admin */
+  }
+})();
+
+/* ── Copy main link ── */
+function copyLink(){
+  var link = document.getElementById('ref-link-display').textContent;
+  var btn  = document.getElementById('copy-link-btn');
+  copyText(link);
+  if(btn){ btn.textContent = 'Copied! ✓'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 2200); }
+}
+
+/* ── Copy template ── */
+function copyTemplate(id, btn){
+  var el = document.getElementById(id);
+  if(!el) return;
+  copyText(el.textContent);
+  btn.textContent = 'Copied! ✓';
+  btn.classList.add('copied');
+  setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2200);
+}
+
+/* ── Clipboard helper ── */
+function copyText(text){
+  try{
+    navigator.clipboard.writeText(text);
+  } catch(e){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+</script>
+</body>
+</html>
