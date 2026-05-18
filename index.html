@@ -790,6 +790,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .sw-cl-title{font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:2px;}
 .sw-cl-desc{font-size:11px;color:#6b7a96;line-height:1.5;}
 .sw-complete-icon{width:64px;height:64px;border-radius:50%;background:rgba(170,255,62,0.1);border:2px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
 
 /* ===== ONBOARDING MODAL ===== */
 #onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -5429,7 +5430,7 @@ var SW_STEPS = [
   {
     id:'aria', icon:'✨', time:'~1 min',
     title:'ARIA is always with you',
-    body:'See the bar at the very bottom of your screen? That\'s ARIA — your command center. Ask her to deploy a specialist, analyze your inbox, explain any feature, or help you plan your week. She\'s always one line of text away, on every tab.',
+    body:'See the glowing bar at the <strong>very bottom of your screen</strong> right now? That\'s ARIA — your command center. Ask her to deploy a specialist, analyze your inbox, explain any feature, or plan your week. She\'s always one line of text away, on every tab. <div style="margin-top:12px;text-align:center;font-size:22px;animation:bounce 1s infinite;">👇</div>',
     why:'<strong>Why this matters:</strong> The fastest users treat ARIA like a colleague they can interrupt anytime. The more you talk to her, the more she can do for you.',
     cta:'Got it — what\'s next →', skip:null, action:null
   },
@@ -5438,12 +5439,12 @@ var SW_STEPS = [
     title:'Track your ROI automatically',
     body:'Every specialist task you run logs your time saved automatically. Go to the <strong>Stats tab</strong> in the top nav → click <strong>ROI Calculator</strong> → enter your salary. EconSquad AI instantly shows your hourly rate, total value recovered, and projected annual ROI.',
     why:'<strong>Why this matters:</strong> This is your proof of impact. Screenshot it for your board, your leadership, and your own motivation. Users average $28,000+ recovered annually.',
-    cta:'Got it — almost done →', skip:null, action:null
+    cta:'Show me the Stats tab →', skip:null, action:'goToStats'
   },
   {
     id:'done', icon:null, time:null,
-    title:'You\'re ready. Let\'s build. 🎉',
-    body:'Your squad is standing by. ARIA is live. Here\'s your quick reference — bookmark this mentally.',
+    title:'You\'re Ready &amp; Fully Set Up — High Five! 🙌',
+    body:'Your squad is standing by. ARIA is live. Here\'s your quick reference so you always know where everything lives.',
     why:null, cta:'Open my dashboard →', skip:null, action:'closeSW'
   }
 ];
@@ -5538,7 +5539,7 @@ function _swRender(){
     ];
     c.innerHTML =
       '<div style="text-align:center;">' +
-        '<div class="sw-complete-icon">🎉</div>' +
+        '<div class="sw-complete-icon">🙌</div>' +
         '<div class="sw-title" style="text-align:center;margin-bottom:6px;">' + step.title + '</div>' +
         '<div class="sw-body" style="text-align:center;margin-bottom:16px;">' + step.body + '</div>' +
       '</div>' +
@@ -5611,6 +5612,13 @@ function _swAction(stepId){
     if(step.action === 'goToSquad'){
       /* Advance to the next wizard step (ARIA tip) instead of closing — closing
          would skip the remaining ARIA, ROI, and Done steps entirely. */
+      _swNext();
+      return;
+    }
+    if(step.action === 'goToStats'){
+      /* Navigate to Stats tab so they can SEE the ROI calculator, then advance */
+      if(typeof showTab === 'function') showTab('stats');
+      else if(typeof showDashTab === 'function') showDashTab('stats-tab', null);
       _swNext();
       return;
     }
@@ -11045,6 +11053,11 @@ function saveSmsSettings(){
       setTimeout(function(){ if(statusEl) statusEl.textContent=''; }, 3000);
       var ps = document.getElementById('sms-phone-status');
       if(ps){ ps.textContent = ''; }
+      /* If the setup wizard is active, close the SMS modal after a brief
+         success pause so the user lands back on the wizard automatically */
+      if(window._swActive){
+        setTimeout(function(){ closeSmsModal(); }, 900);
+      }
     }
   });
 }
