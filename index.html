@@ -2209,6 +2209,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       </div>
 
+<!-- Setup wizard minimized continue button -->
+<div id="sw-continue-btn" onclick="_swResume()" style="display:none;position:fixed;bottom:76px;right:20px;z-index:100002;background:#aaff3e;color:#0a1a00;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;padding:13px 22px;border-radius:12px;cursor:pointer;box-shadow:0 4px 24px rgba(170,255,62,0.45);letter-spacing:.03em;">
+  ✦ Continue setup →
+</div>
+
 <!-- ═══════════════ SETUP WIZARD ═══════════════ -->
 <div id="setup-wizard" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(4,5,13,0.96);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.2);border-radius:24px;max-width:580px;width:100%;box-shadow:0 40px 100px rgba(0,0,0,0.7),0 0 80px rgba(170,255,62,0.04);overflow:hidden;">
@@ -5431,23 +5436,23 @@ var SW_STEPS = [
   {
     id:'squad', icon:'⚡', time:'~2 min',
     title:'Your AI specialist squad',
-    body:'When you close this setup, you\'ll land on the <strong>Home tab — My Squad</strong>. Each card is a different AI expert: grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Hit <strong>Deploy</strong> on any card to put them to work immediately.',
+    body:'Click below to see your live squad. Each card is a different AI expert — grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Browse around, then hit <strong>✦ Continue setup</strong> (bottom-right) to come back.',
     why:'<strong>Why this matters:</strong> Each specialist saves 2–6 hours per task. Running just 3 tasks per week recovers 6–18 hours of capacity — time you can redirect to higher-value work.',
-    cta:'Got it — almost done →', skip:null, action:null
+    cta:'Show me my squad →', skip:null, action:'showSquad'
   },
   {
     id:'aria', icon:'✨', time:'~1 min',
     title:'ARIA is always with you',
-    body:'See the glowing bar at the <strong>very bottom of your screen</strong> right now? That\'s ARIA — your command center. Ask her to deploy a specialist, analyze your inbox, explain any feature, or plan your week. She\'s always one line of text away, on every tab. <div style="margin-top:12px;text-align:center;font-size:22px;animation:bounce 1s infinite;">👇</div>',
+    body:'Click below to see ARIA live. Look at the <strong>glowing bar at the very bottom</strong> of your screen — that\'s ARIA, your command center. She\'s there on every tab, always ready. Hit <strong>✦ Continue setup</strong> (bottom-right) when you\'re done exploring.',
     why:'<strong>Why this matters:</strong> The fastest users treat ARIA like a colleague they can interrupt anytime. The more you talk to her, the more she can do for you.',
-    cta:'Got it — what\'s next →', skip:null, action:null
+    cta:'Show me ARIA →', skip:null, action:'showAria'
   },
   {
     id:'roi', icon:'📊', time:'~1 min',
     title:'Track your ROI automatically',
-    body:'Every specialist task you run logs your time saved automatically. Find it in the <strong>My Stats &amp; ROI tab</strong> in the top nav. Enter your salary and EconSquad AI instantly shows your hourly rate, total hours recovered, and projected annual ROI. One screenshot = powerful proof of impact for leadership.',
-    why:'<strong>Why this matters:</strong> Users average $28,000+ in recovered staff capacity annually. This is your number — own it.',
-    cta:'Got it — I\'m ready →', skip:null, action:null
+    body:'Click below to open your Stats &amp; ROI tab. Enter your salary to see your hourly rate, total hours recovered, and projected annual ROI — calculated automatically from every task you run. Hit <strong>✦ Continue setup</strong> (bottom-right) when you\'re done.',
+    why:'<strong>Why this matters:</strong> Users average $28,000+ in recovered staff capacity annually. This is your proof of impact — screenshot it for your board.',
+    cta:'Show me my ROI →', skip:null, action:'showROI'
   },
   {
     id:'done', icon:null, time:null,
@@ -5507,11 +5512,36 @@ function openSW(){
 function closeSW(){
   var el = document.getElementById('setup-wizard');
   if(el){ el.classList.remove('sw-open'); el.style.display = 'none'; }
+  var cb = document.getElementById('sw-continue-btn');
+  if(cb) cb.style.display = 'none';
   localStorage.setItem(SW_KEY, '1');
   /* Mark onboarding as done so the old welcome modal never auto-fires after
      the setup wizard — the platform tour is still accessible from Resources. */
   localStorage.setItem(ONBOARDING_KEY, '1');
   window._swActive = false;
+}
+
+/* Minimize the wizard so the user can see the live UI behind it */
+function _swMinimize(tabId){
+  var el = document.getElementById('setup-wizard');
+  if(el) el.style.display = 'none';
+  var cb = document.getElementById('sw-continue-btn');
+  if(cb) cb.style.display = 'block';
+  /* Navigate to the requested tab */
+  if(tabId === 'home'){
+    if(typeof showDashTab === 'function') showDashTab('home-tab', null);
+  } else if(tabId === 'stats'){
+    if(typeof showDashTab === 'function') showDashTab('stats-tab', null);
+  }
+}
+
+/* Restore the wizard and advance to the next step */
+function _swResume(){
+  var cb = document.getElementById('sw-continue-btn');
+  if(cb) cb.style.display = 'none';
+  var el = document.getElementById('setup-wizard');
+  if(el){ el.style.display = 'flex'; }
+  _swNext();
 }
 
 function _swRender(){
@@ -5622,10 +5652,19 @@ function _swAction(stepId){
       setTimeout(function(){ if(typeof openSmsModal==='function') openSmsModal(); }, 400);
       return;
     }
-    if(step.action === 'goToSquad'){
-      /* Advance to the next wizard step (ARIA tip) instead of closing — closing
-         would skip the remaining ARIA, ROI, and Done steps entirely. */
-      _swNext();
+    if(step.action === 'showSquad'){
+      _swCompleted['squad'] = true;
+      _swMinimize('home');
+      return;
+    }
+    if(step.action === 'showAria'){
+      _swCompleted['aria'] = true;
+      _swMinimize('home');
+      return;
+    }
+    if(step.action === 'showROI'){
+      _swCompleted['roi'] = true;
+      _swMinimize('stats');
       return;
     }
     if(step.action === 'closeSW'){
