@@ -3985,14 +3985,6 @@ function toggleProfileMenu(){
   if(!menu)return;
   var isOpen=menu.style.display==='block';
   menu.style.display=isOpen?'none':'block';
-  /* If closing and the setup wizard opened it, restore wizard and advance */
-  if(isOpen && window._swProfileOpen){
-    window._swProfileOpen = false;
-    menu.style.zIndex = '';
-    var wiz = document.getElementById('setup-wizard');
-    if(wiz){ wiz.style.opacity = '1'; }
-    setTimeout(function(){ _swNext(); }, 200);
-  }
   if(!isOpen) updateIntegrationStatus();
   if(!isOpen)applyGmailSync(gmailSyncEnabled);
   /* populate header with user info */
@@ -5422,7 +5414,7 @@ var SW_STEPS = [
   {
     id:'profile', icon:'🏙️', time:'~1 min',
     title:'Your profile &amp; account settings',
-    body:'Click below to open your profile menu. From here you can upload your community logo, manage integrations, adjust your subscription, and access SMS alerts. Your name and email are pulled from your account automatically. Close the menu when done and we\'ll move on.',
+    body:'Click below to open your profile menu. Upload your community logo, manage integrations, adjust your subscription, and access SMS alerts. When you\'re done, click the green <strong>✦ Continue setup →</strong> button at the bottom-right to come back.',
     why:'<strong>Tip:</strong> Upload your community logo — it replaces the EconSquad AI branding in the nav bar and gives the platform a local feel for your team.',
     cta:'Open my profile →', skip:'Skip for now', action:'openProfileForSetup'
   },
@@ -5637,14 +5629,10 @@ function _swAction(stepId){
       connectGmail(); return;
     }
     if(step.action === 'openProfileForSetup'){
-      /* Boost profile menu z-index above the wizard so it's visible,
-         dim the wizard behind it, then advance when the menu closes. */
-      var menu = document.getElementById('profile-menu');
-      var wiz  = document.getElementById('setup-wizard');
-      if(menu) menu.style.zIndex = '100001';
-      if(wiz)  wiz.style.opacity = '0.35';
-      window._swProfileOpen = true;
-      toggleProfileMenu();
+      /* Minimize wizard first so profile menu is fully visible, then open it */
+      _swCompleted['profile'] = true;
+      _swMinimize('home');
+      setTimeout(function(){ toggleProfileMenu(); }, 150);
       return;
     }
     if(step.action === 'openSmsFromSetup'){
