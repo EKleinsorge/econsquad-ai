@@ -5591,12 +5591,16 @@ function _swAction(stepId){
   var step = SW_STEPS.find(function(s){ return s.id === stepId; });
   if(step && step.action){
     if(step.action === 'connectGmail'){
+      /* If already connected just advance — don't re-trigger OAuth */
+      var gmailAlready = !!(localStorage.getItem('esq_email_provider') && localStorage.getItem('esq_gmail_disconnected') !== '1');
+      if(gmailAlready){ _swNext(); return; }
       localStorage.setItem('esq_sw_resume', String(_swStep + 1));
       connectGmail(); return;
     }
     if(step.action === 'openProfileForSetup'){
+      /* Just advance — profile menu can't be seen behind the wizard overlay.
+         The step body already explains where to find it. */
       _swNext();
-      setTimeout(function(){ toggleProfileMenu(); }, 400);
       return;
     }
     if(step.action === 'openSmsFromSetup'){
@@ -5605,8 +5609,9 @@ function _swAction(stepId){
       return;
     }
     if(step.action === 'goToSquad'){
-      closeSW();
-      setTimeout(function(){ if(typeof showDashTab==='function') showDashTab('home-tab',null); }, 300);
+      /* Advance to the next wizard step (ARIA tip) instead of closing — closing
+         would skip the remaining ARIA, ROI, and Done steps entirely. */
+      _swNext();
       return;
     }
     if(step.action === 'closeSW'){
