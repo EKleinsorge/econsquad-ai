@@ -5514,11 +5514,14 @@ function closeSW(){
   if(el){ el.classList.remove('sw-open'); el.style.display = 'none'; }
   var cb = document.getElementById('sw-continue-btn');
   if(cb) cb.style.display = 'none';
+  _swClearGlow();
   localStorage.setItem(SW_KEY, '1');
   /* Mark onboarding as done so the old welcome modal never auto-fires after
      the setup wizard — the platform tour is still accessible from Resources. */
   localStorage.setItem(ONBOARDING_KEY, '1');
   window._swActive = false;
+  /* Always land on the Home (squad) tab after finishing setup */
+  if(typeof showDashTab === 'function') showDashTab('home-tab', null);
 }
 
 /* Apply pulsing green glow to a selector (cycle=true) or single element */
