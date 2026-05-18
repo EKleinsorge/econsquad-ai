@@ -791,6 +791,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .sw-cl-desc{font-size:11px;color:#6b7a96;line-height:1.5;}
 .sw-complete-icon{width:64px;height:64px;border-radius:50%;background:rgba(170,255,62,0.1);border:2px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
 @keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+@keyframes swGlowPulse{0%,100%{box-shadow:0 0 18px rgba(170,255,62,0.7),0 0 40px rgba(170,255,62,0.3);}50%{box-shadow:0 0 32px rgba(170,255,62,1),0 0 70px rgba(170,255,62,0.55),0 0 100px rgba(170,255,62,0.2);}}
+.sw-glow-active{outline:2px solid rgba(170,255,62,0.95)!important;animation:swGlowPulse 1.4s ease-in-out infinite!important;}
 
 /* ===== ONBOARDING MODAL ===== */
 #onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -5513,20 +5515,21 @@ function closeSW(){
   window._swActive = false;
 }
 
-/* Apply green tour-style glow to a selector or single element id */
+/* Apply pulsing green glow to a selector (cycle=true) or single element */
 function _swGlow(selectorOrId, cycle){
   _swClearGlow();
   if(cycle){
-    /* Reuse the tour's card-cycling highlight */
+    /* Reuse the tour's card-cycling highlight for squad cards */
     if(typeof startCardCycle === 'function') startCardCycle(selectorOrId);
     window._swGlowCycling = true;
   } else {
     var el = document.querySelector(selectorOrId);
     if(el){
-      el.style.outline   = '2px solid rgba(170,255,62,0.9)';
-      el.style.boxShadow = '0 0 22px rgba(170,255,62,0.7), 0 0 48px rgba(170,255,62,0.3)';
-      el.style.position  = el.style.position || 'relative';
-      el.style.zIndex    = '999';
+      el.classList.add('sw-glow-active');
+      /* Only set z-index / relative position if the element isn't already positioned */
+      var pos = window.getComputedStyle(el).position;
+      if(pos === 'static'){ el.style.position = 'relative'; }
+      el.style.zIndex = '9999';
       window._swGlowEl = el;
     }
   }
@@ -5538,9 +5541,9 @@ function _swClearGlow(){
     window._swGlowCycling = false;
   }
   if(window._swGlowEl){
-    window._swGlowEl.style.outline   = '';
-    window._swGlowEl.style.boxShadow = '';
-    window._swGlowEl.style.zIndex    = '';
+    window._swGlowEl.classList.remove('sw-glow-active');
+    window._swGlowEl.style.zIndex   = '';
+    window._swGlowEl.style.position = '';
     window._swGlowEl = null;
   }
 }
