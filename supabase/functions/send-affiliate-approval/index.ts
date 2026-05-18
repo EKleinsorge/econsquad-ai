@@ -44,7 +44,7 @@ Deno.serve(async (req: Request) => {
     </div>
     <div style="margin-top:8px;">
       <span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;">
-        Partner Program
+        ⚡ Squad Affiliate Program
       </span>
     </div>
   </div>
@@ -53,10 +53,10 @@ Deno.serve(async (req: Request) => {
   <div style="background:rgba(14,20,36,0.9);border:1px solid rgba(170,255,62,0.2);border-radius:16px;padding:32px;margin-bottom:20px;">
     <div style="font-size:36px;text-align:center;margin-bottom:16px;">🎉</div>
     <h1 style="font-family:Arial,sans-serif;font-size:26px;font-weight:900;color:#eef3fc;margin:0 0 10px;text-align:center;line-height:1.2;">
-      You're approved, ${firstName}!
+      You're in the Squad, ${firstName}!
     </h1>
     <p style="font-size:14px;color:#6b7a96;text-align:center;margin:0 0 28px;line-height:1.7;">
-      Welcome to the EconSquad AI Partner Program. You're now set up to earn commissions every month just by sharing the platform with other economic developers.
+      Welcome to the EconSquad AI Squad Affiliate Program. You're now set up to earn commissions every month by bringing other economic developers into the Squad.
     </p>
 
     <!-- Referral link box -->
@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
     <!-- CTA buttons -->
     <div style="display:flex;flex-direction:column;gap:10px;">
       <a href="${guideUrl}" style="display:block;background:#aaff3e;color:#1a3300;font-family:Arial,sans-serif;font-size:14px;font-weight:900;padding:14px 28px;border-radius:10px;text-decoration:none;text-align:center;">
-        📋 See how to share your link — email, text &amp; social templates
+        ⚡ See your Squad sharing guide — email, text &amp; social templates
       </a>
       <a href="${dashUrl}" style="display:block;border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-family:Arial,sans-serif;font-size:13px;font-weight:700;padding:11px 28px;border-radius:10px;text-decoration:none;text-align:center;">
         ← Back to your dashboard
@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from:    FROM_EMAIL,
         to:      [to],
-        subject: `🎉 You're approved as an EconSquad AI Partner, ${firstName}!`,
+        subject: `⚡ Welcome to the Squad, ${firstName}! Your affiliate link is ready.`,
         html,
       }),
     });
