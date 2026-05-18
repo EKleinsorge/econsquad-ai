@@ -3051,6 +3051,10 @@ var currentUser=null;
         var newUrl=window.location.pathname+(p.toString()?'?'+p.toString():'');
         window.history.replaceState({},'',newUrl);
       }catch(e){}
+      /* Auto-open signup modal so referred visitors go straight to trial */
+      window.addEventListener('load', function(){
+        if(typeof openAuth === 'function') openAuth('signup');
+      }, {once: true});
     }
   }catch(e){}
 })();
