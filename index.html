@@ -2210,7 +2210,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </div>
 
 <!-- Setup wizard minimized continue button -->
-<div id="sw-continue-btn" onclick="_swResume()" style="display:none;position:fixed;bottom:76px;right:20px;z-index:100002;background:#aaff3e;color:#0a1a00;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;padding:13px 22px;border-radius:12px;cursor:pointer;box-shadow:0 4px 24px rgba(170,255,62,0.45);letter-spacing:.03em;">
+<div id="sw-continue-btn" onclick="_swResume()" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:100002;background:#aaff3e;color:#0a1a00;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;padding:15px 36px;border-radius:14px;cursor:pointer;box-shadow:0 4px 32px rgba(170,255,62,0.55),0 0 60px rgba(170,255,62,0.2);letter-spacing:.04em;white-space:nowrap;">
   ✦ Continue setup →
 </div>
 
@@ -5513,8 +5513,40 @@ function closeSW(){
   window._swActive = false;
 }
 
+/* Apply green tour-style glow to a selector or single element id */
+function _swGlow(selectorOrId, cycle){
+  _swClearGlow();
+  if(cycle){
+    /* Reuse the tour's card-cycling highlight */
+    if(typeof startCardCycle === 'function') startCardCycle(selectorOrId);
+    window._swGlowCycling = true;
+  } else {
+    var el = document.querySelector(selectorOrId);
+    if(el){
+      el.style.outline   = '2px solid rgba(170,255,62,0.9)';
+      el.style.boxShadow = '0 0 22px rgba(170,255,62,0.7), 0 0 48px rgba(170,255,62,0.3)';
+      el.style.position  = el.style.position || 'relative';
+      el.style.zIndex    = '999';
+      window._swGlowEl = el;
+    }
+  }
+}
+
+function _swClearGlow(){
+  if(window._swGlowCycling){
+    if(typeof clearCardCycle === 'function') clearCardCycle();
+    window._swGlowCycling = false;
+  }
+  if(window._swGlowEl){
+    window._swGlowEl.style.outline   = '';
+    window._swGlowEl.style.boxShadow = '';
+    window._swGlowEl.style.zIndex    = '';
+    window._swGlowEl = null;
+  }
+}
+
 /* Minimize the wizard so the user can see the live UI behind it */
-function _swMinimize(tabId){
+function _swMinimize(tabId, glowSelector, glowCycle){
   var el = document.getElementById('setup-wizard');
   if(el) el.style.display = 'none';
   var cb = document.getElementById('sw-continue-btn');
@@ -5525,10 +5557,15 @@ function _swMinimize(tabId){
   } else if(tabId === 'stats'){
     if(typeof showDashTab === 'function') showDashTab('stats-tab', null);
   }
+  /* Apply highlight after a short delay so the tab renders first */
+  if(glowSelector){
+    setTimeout(function(){ _swGlow(glowSelector, !!glowCycle); }, 350);
+  }
 }
 
 /* Restore the wizard and advance to the next step */
 function _swResume(){
+  _swClearGlow();
   var cb = document.getElementById('sw-continue-btn');
   if(cb) cb.style.display = 'none';
   var el = document.getElementById('setup-wizard');
@@ -5629,10 +5666,10 @@ function _swAction(stepId){
       connectGmail(); return;
     }
     if(step.action === 'openProfileForSetup'){
-      /* Minimize wizard first so profile menu is fully visible, then open it */
+      /* Minimize wizard, highlight the avatar, then open profile menu */
       _swCompleted['profile'] = true;
-      _swMinimize('home');
-      setTimeout(function(){ toggleProfileMenu(); }, 150);
+      _swMinimize('home', '#user-avatar', false);
+      setTimeout(function(){ toggleProfileMenu(); }, 500);
       return;
     }
     if(step.action === 'openSmsFromSetup'){
@@ -5642,17 +5679,17 @@ function _swAction(stepId){
     }
     if(step.action === 'showSquad'){
       _swCompleted['squad'] = true;
-      _swMinimize('home');
+      _swMinimize('home', '.orb-card-dash', true);  /* cycle glow through all squad cards */
       return;
     }
     if(step.action === 'showAria'){
       _swCompleted['aria'] = true;
-      _swMinimize('home');
+      _swMinimize('home', '#aria-footer-bar', false);  /* glow the ARIA bar */
       return;
     }
     if(step.action === 'showROI'){
       _swCompleted['roi'] = true;
-      _swMinimize('stats');
+      _swMinimize('stats', '#tab-stats', false);  /* glow the stats tab */
       return;
     }
     if(step.action === 'closeSW'){
