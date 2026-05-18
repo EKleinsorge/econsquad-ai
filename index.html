@@ -11451,6 +11451,7 @@ function _renderAff_apply(){
     + '<option value="">— Select —</option>'
     + '<option value="paypal">PayPal</option>'
     + '<option value="direct_deposit">Direct Deposit (ACH)</option>'
+    + '<option value="later">I\'ll provide this after approval</option>'
     + '</select></div>'
 
     + '<div class="aff-field" id="aff-payout-info-wrap" style="display:none;">'
@@ -11467,7 +11468,7 @@ function _affPayoutChange(){
   var wrap   = document.getElementById('aff-payout-info-wrap');
   var lbl    = document.getElementById('aff-payout-info-label');
   var inp    = document.getElementById('aff-payout-info');
-  if(!method){ wrap.style.display='none'; return; }
+  if(!method || method==='later'){ wrap.style.display='none'; return; }
   wrap.style.display = 'block';
   if(method==='paypal'){
     lbl.textContent='PayPal email address';
@@ -11487,7 +11488,10 @@ function submitAffiliateApp(){
 
   if(!/^[a-z0-9_-]{2,20}$/.test(code)){showToast('Referral code must be 2–20 lowercase letters, numbers, or hyphens.','warning');return;}
   if(!method){showToast('Please select a payout method.','warning');return;}
-  if(!info){showToast('Please enter your payout details.','warning');return;}
+  if(method!=='later' && !info){showToast('Please enter your payout details.','warning');return;}
+
+  var payoutMethod = method==='later' ? null : method;
+  var payoutInfo   = method==='later' ? null : info;
 
   if(btn){btn.disabled=true;btn.textContent='Submitting...';}
 
@@ -11495,8 +11499,8 @@ function submitAffiliateApp(){
     user_id:       currentUser.id,
     code:          code,
     status:        'pending',
-    payout_method: method,
-    payout_info:   info
+    payout_method: payoutMethod,
+    payout_info:   payoutInfo
   }).select('id,code,status').single().then(function(res){
     if(res.error){
       if(btn){btn.disabled=false;btn.textContent='Apply to become a partner →';}
@@ -11557,9 +11561,19 @@ function _renderAff_dashboard(){
       + '</div>';
   }).join('');
 
+  var payoutWarning = (!aff.payout_method)
+    ? '<div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">'
+      + '<span style="font-size:18px;flex-shrink:0;">⚠️</span>'
+      + '<div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#f5c542;margin-bottom:2px;">Payout details needed before your first payment</div>'
+      + '<div style="font-size:11px;color:#8a97b5;">Add your PayPal email or bank info so we know where to send your commissions.</div></div>'
+      + '<button onclick="_openAffPayoutEdit()" style="flex-shrink:0;background:#f5c542;color:#0a1a00;border:none;font-size:11px;font-weight:800;padding:7px 14px;border-radius:7px;cursor:pointer;font-family:\'Barlow\',sans-serif;">Add now</button>'
+      + '</div>'
+    : '';
+
   document.getElementById('aff-body-content').innerHTML =
+    payoutWarning
     /* Stats row */
-    '<div class="aff-stat-row">'
+    + '<div class="aff-stat-row">'
     + '<div class="aff-stat"><div class="aff-stat-val">'+(aff.total_referrals||0)+'</div><div class="aff-stat-lbl">Total signups</div></div>'
     + '<div class="aff-stat"><div class="aff-stat-val">'+(aff.paid_referrals||0)+'</div><div class="aff-stat-lbl">Paying subscribers</div></div>'
     + '<div class="aff-stat"><div class="aff-stat-val">$'+((aff.total_earned||0).toFixed(2))+'</div><div class="aff-stat-lbl">Total earned</div></div>'
@@ -11590,7 +11604,9 @@ function _renderAff_dashboard(){
     /* Payout method */
     + '<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">'
     + '<div><div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">Payout method</div>'
-    + '<div style="font-size:12px;color:#eef3fc;margin-top:2px;">'+(aff.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();})+' · '+aff.payout_info+'</div></div>'
+    + '<div style="font-size:12px;color:'+(aff.payout_method?'#eef3fc':'#f5c542')+';margin-top:2px;">'
+    + (aff.payout_method ? (aff.payout_method.replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();}) + (aff.payout_info?' · '+aff.payout_info:'')) : 'Not set — add before first payout')
+    + '</div></div>'
     + '<button onclick="_openAffPayoutEdit()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:5px 12px;border-radius:7px;cursor:pointer;">Edit</button>'
     + '</div>';
 
