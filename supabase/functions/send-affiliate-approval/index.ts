@@ -62,11 +62,27 @@ Deno.serve(async (req: Request) => {
 
   <!-- Header -->
   <div style="text-align:center;margin-bottom:32px;">
-    <div style="display:inline-flex;align-items:center;gap:10px;">
-      <div style="width:36px;height:36px;background:#aaff3e;border-radius:8px;display:inline-block;"></div>
-      <span style="font-family:Arial,sans-serif;font-size:20px;font-weight:900;color:#aaff3e;letter-spacing:.02em;">EconSquad<sup style="font-size:12px;">AI</sup></span>
-    </div>
-    <div style="margin-top:8px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:10px;">
+          <!-- Logo icon: lime box with triangle-of-dots SVG -->
+          <div style="width:40px;height:40px;background:#aaff3e;border-radius:9px;display:inline-block;text-align:center;line-height:40px;">
+            <svg width="24" height="24" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-top:-2px;">
+              <circle cx="11" cy="6" r="3.2" fill="rgba(15,30,0,0.85)"/>
+              <circle cx="5" cy="16" r="2.6" fill="rgba(15,30,0,0.8)"/>
+              <circle cx="17" cy="16" r="2.6" fill="rgba(15,30,0,0.8)"/>
+              <line x1="11" y1="6" x2="5" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
+              <line x1="11" y1="6" x2="17" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
+              <line x1="5" y1="16" x2="17" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
+            </svg>
+          </div>
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;letter-spacing:.02em;"><span style="color:#ffffff;">Econ</span><span style="color:#aaff3e;">Squad</span> <span style="color:#ffffff;font-size:14px;">AI</span></span>
+        </td>
+      </tr>
+    </table>
+    <div>
       <span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;">
         ⚡ Squad Affiliate Program
       </span>
@@ -90,25 +106,33 @@ Deno.serve(async (req: Request) => {
       <a href="${refLink}" style="display:inline-block;background:#aaff3e;color:#1a3300;font-family:Arial,sans-serif;font-size:13px;font-weight:900;padding:10px 24px;border-radius:8px;text-decoration:none;">View your link →</a>
     </div>
 
-    <!-- Commission reminder -->
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px;">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <span style="font-size:18px;flex-shrink:0;">💰</span>
-        <div style="font-size:13px;color:#8a97b5;line-height:1.6;"><strong style="color:#eef3fc;">10% monthly</strong> for every paying subscriber you refer — for as long as they stay subscribed.</div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <span style="font-size:18px;flex-shrink:0;">🏆</span>
-        <div style="font-size:13px;color:#8a97b5;line-height:1.6;"><strong style="color:#eef3fc;">Milestone bonuses:</strong> $50 · $100 · $250 · $500 · $1,000 as your referral count grows.</div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <span style="font-size:18px;flex-shrink:0;">📅</span>
-        <div style="font-size:13px;color:#8a97b5;line-height:1.6;"><strong style="color:#eef3fc;">Paid monthly</strong> via PayPal or Direct Deposit. Update your payout details anytime from your Partner dashboard.</div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <span style="font-size:18px;flex-shrink:0;">⏱️</span>
-        <div style="font-size:13px;color:#8a97b5;line-height:1.6;">Anyone who signs up through your link within <strong style="color:#eef3fc;">30 days</strong> is counted as your referral.</div>
-      </div>
-    </div>
+    <!-- Commission reminder (table layout for email client compatibility) -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+      <tr><td style="padding-bottom:12px;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:18px;padding-right:12px;vertical-align:top;line-height:1.4;">💰</td>
+          <td style="font-size:13px;color:#8a97b5;line-height:1.6;vertical-align:top;"><strong style="color:#eef3fc;">10% monthly</strong> for every paying subscriber you refer — for as long as they stay subscribed.</td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding-bottom:12px;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:18px;padding-right:12px;vertical-align:top;line-height:1.4;">🏆</td>
+          <td style="font-size:13px;color:#8a97b5;line-height:1.6;vertical-align:top;"><strong style="color:#eef3fc;">Milestone bonuses:</strong> $50 · $100 · $250 · $500 · $1,000 as your referral count grows.</td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding-bottom:12px;">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:18px;padding-right:12px;vertical-align:top;line-height:1.4;">📅</td>
+          <td style="font-size:13px;color:#8a97b5;line-height:1.6;vertical-align:top;"><strong style="color:#eef3fc;">Paid monthly</strong> via PayPal or Direct Deposit. Update your payout details anytime from your Partner dashboard.</td>
+        </tr></table>
+      </td></tr>
+      <tr><td>
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="font-size:18px;padding-right:12px;vertical-align:top;line-height:1.4;">⏱️</td>
+          <td style="font-size:13px;color:#8a97b5;line-height:1.6;vertical-align:top;">Anyone who signs up through your link within <strong style="color:#eef3fc;">30 days</strong> is counted as your referral.</td>
+        </tr></table>
+      </td></tr>
+    </table>
 
     <!-- CTA buttons -->
     <div style="display:flex;flex-direction:column;gap:10px;">
