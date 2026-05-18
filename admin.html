@@ -2680,7 +2680,7 @@ function _renderAffAppsTable(tbody, rows, profMap){
     var name    = profile.full_name || r.user_id.slice(0,8);
     var email   = profile.email || '—';
     var org     = profile.organization || '';
-    var method  = (r.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    var method  = r.payout_method ? r.payout_method.replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();}) : '— Pending —';
     var applied = r.applied_at ? new Date(r.applied_at).toLocaleDateString() : '—';
     var statusBadge = {
       pending:  '<span class="badge badge-pending">Pending</span>',
@@ -2858,7 +2858,7 @@ function loadPendingCommissions(){
                 var aff     = affMap[r.affiliate_id]||{};
                 var profile = profMap[aff.user_id]||{};
                 var name    = profile.full_name||(aff.code||'?');
-                var method  = (aff.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+                var method  = aff.payout_method ? aff.payout_method.replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();}) : '— Pending —';
                 var typeLabel = r.type==='milestone_bonus'?'🏆 Bonus':'🔄 Monthly';
                 return '<tr>'
                   +'<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+(profile.email||'—')+'</div></td>'
