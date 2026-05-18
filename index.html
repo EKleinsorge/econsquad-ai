@@ -5562,9 +5562,10 @@ function _swGlow(selectorOrId, cycle){
     var el = document.querySelector(selectorOrId);
     if(el){
       el.classList.add('sw-glow-active');
-      /* Only set z-index / relative position if the element isn't already positioned */
+      /* Only override position if element is static — never touch fixed/absolute/sticky */
       var pos = window.getComputedStyle(el).position;
-      if(pos === 'static'){ el.style.position = 'relative'; }
+      window._swGlowSetPosition = (pos === 'static');
+      if(window._swGlowSetPosition) el.style.position = 'relative';
       el.style.zIndex = '9999';
       window._swGlowEl = el;
     }
@@ -5578,8 +5579,12 @@ function _swClearGlow(){
   }
   if(window._swGlowEl){
     window._swGlowEl.classList.remove('sw-glow-active');
-    window._swGlowEl.style.zIndex   = '';
-    window._swGlowEl.style.position = '';
+    window._swGlowEl.style.zIndex = '';
+    /* Only clear position if we were the ones who set it */
+    if(window._swGlowSetPosition){
+      window._swGlowEl.style.position = '';
+      window._swGlowSetPosition = false;
+    }
     window._swGlowEl = null;
   }
 }
