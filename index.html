@@ -5704,7 +5704,14 @@ function _swAction(stepId){
     }
     if(step.action === 'showROI'){
       _swCompleted['roi'] = true;
-      _swMinimize('stats', '#tab-stats', false);  /* glow the stats tab */
+      _swMinimize('stats', null, false);
+      /* Switch to ROI sub-tab, then glow the calculator card */
+      setTimeout(function(){
+        if(typeof switchStatsTab === 'function'){
+          switchStatsTab('roi', document.getElementById('subtab-roi'));
+        }
+        setTimeout(function(){ _swGlow('.roi-hero', false); }, 200);
+      }, 400);
       return;
     }
     if(step.action === 'closeSW'){
