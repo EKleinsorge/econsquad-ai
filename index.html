@@ -775,8 +775,12 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .sw-btn{display:block;width:100%;background:#aaff3e;color:#0a1a00;border:none;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;padding:14px 28px;border-radius:12px;cursor:pointer;letter-spacing:.04em;transition:opacity .2s;margin-bottom:12px;}
 .sw-btn:hover{opacity:.88;}
 .sw-btn.sw-btn-outline{background:transparent;border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:14px;font-weight:700;padding:11px 28px;}
-.sw-skip{display:block;text-align:center;font-size:12px;color:#4a5568;cursor:pointer;padding:4px;transition:color .15s;}
+.sw-skip{display:block;text-align:center;font-size:12px;color:#4a5568;cursor:pointer;padding:6px;transition:color .15s;}
 .sw-skip:hover{color:#8a97b5;}
+#sw-skip-warn{display:none;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:8px;padding:9px 14px;margin-top:10px;font-size:11px;color:#c9a227;line-height:1.55;text-align:center;}
+#sw-skip-warn strong{color:#f5c542;}
+#sw-skip-confirm{display:inline-block;margin-top:7px;font-size:11px;color:#8a97b5;text-decoration:underline;cursor:pointer;}
+#sw-skip-confirm:hover{color:#eef3fc;}
 .sw-checklist{list-style:none;padding:0;margin:0 0 24px;}
 .sw-checklist li{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
 .sw-checklist li:last-child{border-bottom:none;}
@@ -5557,16 +5561,23 @@ function _swRender(){
   var autoCheck = (step.id === 'gmail' && gmailConnected);
   if(autoCheck) _swCompleted[step.id] = true;
 
+  var isWelcome = (step.id === 'welcome');
+  var skipFn = isWelcome ? '_swSkipAll()' : '_swSkip()';
+  var skipLabel = step.skip || '';
+  var warnMsg = isWelcome
+    ? '<strong>Heads up:</strong> Skipping setup means ARIA won\'t know your community, your inbox won\'t be connected, and your specialists won\'t be personalised. You may not get the full benefit of the platform. <span id="sw-skip-confirm" onclick="' + (isWelcome ? 'closeSW()' : '_swNext()') + '">I understand — skip anyway</span>'
+    : '<strong>Heads up:</strong> Skipping this step means you\'ll miss out on some of the most valuable features EconSquad AI offers. You can always complete it later from your profile menu. <span id="sw-skip-confirm" onclick="_swNext()">I understand — skip anyway</span>';
+
   c.innerHTML =
     '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
-      (step.icon !== '✦' ? '<div class="sw-icon" style="margin:0;font-size:32px;">' + step.icon + '</div>' : '') +
+      (step.icon && step.icon !== '✦' ? '<div class="sw-icon" style="margin:0;font-size:32px;">' + step.icon + '</div>' : '') +
       (step.time ? '<div class="sw-time-badge">⏱ ' + step.time + '</div>' : '') +
     '</div>' +
     '<div class="sw-title">' + step.title + '</div>' +
     '<div class="sw-body">' + step.body + '</div>' +
     (step.why ? '<div class="sw-why">' + step.why + '</div>' : '') +
     '<button class="sw-btn" onclick="_swAction(\'' + step.id + '\')">' + (autoCheck ? '✓ Already connected — Continue →' : step.cta) + '</button>' +
-    (step.skip ? '<div class="sw-skip" onclick="_swSkip()">' + step.skip + '</div>' : '');
+    (skipLabel ? '<div class="sw-skip" onclick="' + skipFn + '">' + skipLabel + '</div><div id="sw-skip-warn" style="display:none;">' + warnMsg + '</div>' : '');
 }
 
 function _swAction(stepId){
@@ -5599,7 +5610,26 @@ function _swAction(stepId){
   _swNext();
 }
 
-function _swSkip(){ _swNext(); }
+function _swSkip(){
+  /* First click — show warning */
+  var warn = document.getElementById('sw-skip-warn');
+  if(warn && warn.style.display === 'none'){
+    warn.style.display = 'block';
+    return;
+  }
+  /* Second click (confirmed) — actually skip */
+  _swNext();
+}
+
+function _swSkipAll(){
+  /* Skip entire wizard from welcome screen */
+  var warn = document.getElementById('sw-skip-warn');
+  if(warn && warn.style.display === 'none'){
+    warn.style.display = 'block';
+    return;
+  }
+  closeSW();
+}
 
 function _swNext(){
   if(_swStep < SW_STEPS.length - 1){ _swStep++; _swRender(); }
