@@ -5385,40 +5385,61 @@ document.addEventListener('DOMContentLoaded',function(){
 /* ═══════════════════════════════════════════════════════════
    SETUP WIZARD  — runs once for new users before the tour
    ═══════════════════════════════════════════════════════════ */
-var SW_KEY = 'esq_setup_v1';
+var SW_KEY = 'esq_setup_v2';
 
 var SW_STEPS = [
   {
-    id:'welcome', icon:'✦', time:null,
+    id:'welcome', icon:'✦', time:'~10 min total',
     title:'Welcome to EconSquad AI',
-    body:'I\'m ARIA — your AI Chief of Staff for economic development. Before you dive in, let\'s spend 8 minutes getting you set up. You\'ll connect your tools, personalise your squad, and be ready to run your first mission.',
-    why:null, cta:'Let\'s get started →', skip:null, action:null
+    body:'I\'m ARIA — your AI Chief of Staff for economic development. In the next 10 minutes we\'ll get you fully set up: connect your tools, personalise your squad, and make sure you know exactly where everything lives so you can hit the ground running.',
+    why:null, cta:'Let\'s get started →', skip:'Skip setup — take me to the dashboard', action:null
   },
   {
     id:'gmail', icon:'📧', time:'~2 min',
-    title:'Connect your Gmail',
-    body:'ARIA monitors your inbox for grant opportunities, RFI deadlines, prospect activity, and follow-ups — then surfaces exactly what needs your attention today.',
-    why:'<strong>Why this matters:</strong> Most ED opportunities land in your inbox first. Without Gmail connected, ARIA is working with one hand tied behind her back.',
-    cta:'Connect Gmail →', skip:'Skip for now — I\'ll do this later', action:'connectGmail'
+    title:'Connect your Gmail inbox',
+    body:'ARIA reads your inbox and surfaces grant opportunities, RFI deadlines, prospect follow-ups, and urgent items — so you always know what needs attention today without digging through email.',
+    why:'<strong>Why this matters:</strong> Most economic development opportunities land in your inbox first. ARIA catches them before they get buried. This single step typically saves 45+ minutes per week.',
+    cta:'Connect Gmail →', skip:'Skip — I\'ll connect later', action:'connectGmail'
   },
   {
     id:'profile', icon:'🏙️', time:'~1 min',
-    title:'Tell me about your community',
-    body:'Your name, organisation, and community context let ARIA personalise every response, report, and recommendation to your specific market and priorities.',
-    why:'<strong>Why this matters:</strong> Generic AI gives generic answers. When ARIA knows your community, every output is tailored, credible, and ready to use.',
-    cta:'Set up my profile →', skip:'Skip for now', action:'openProfileForSetup'
+    title:'Tell ARIA about your community',
+    body:'Click the avatar icon (top right) → your name will show there. Add your organisation name and community so every AI response, report, and recommendation is tailored specifically to your market — not a generic answer.',
+    why:'<strong>Why this matters:</strong> ARIA uses your community context in every specialist output. A grant narrative written for "your region" is far more credible than a generic one.',
+    cta:'Open my profile →', skip:'Skip for now', action:'openProfileForSetup'
   },
   {
-    id:'specialists', icon:'⚡', time:'~2 min',
-    title:'Meet your AI squad',
-    body:'You have AI specialists ready to deploy — grant writers, BRE analysts, incentive modelers, workforce experts, and more. Each one saves 2–6 hours per task.',
-    why:'<strong>Why this matters:</strong> Knowing who\'s on your squad means you\'ll reach for them when the moment hits — instead of trying to do it all yourself.',
-    cta:'Take the full tour →', skip:'Skip the tour', action:'openSquadFromSetup'
+    id:'sms', icon:'📱', time:'~1 min',
+    title:'Set up SMS alerts',
+    body:'Get a text message when grant deadlines, RFI inquiries, or hot prospects land in your inbox. Click your avatar (top right) → 📱 SMS Alerts → enter your phone number and toggle the alert types you want.',
+    why:'<strong>Why this matters:</strong> Grant windows close fast. An RFI that sits unread for 24 hours is often a lost opportunity. SMS alerts mean you never miss the moment.',
+    cta:'Set up SMS alerts →', skip:'Skip for now', action:'openSmsFromSetup'
+  },
+  {
+    id:'squad', icon:'⚡', time:'~2 min',
+    title:'Your AI specialist squad',
+    body:'Your home dashboard (My Squad tab) is where you deploy AI specialists. Each card is a different expert — grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Click <strong>Deploy</strong> on any card to put them to work.',
+    why:'<strong>Why this matters:</strong> Each specialist saves 2–6 hours per task. Running just 3 tasks per week recovers 6–18 hours of capacity — time you can redirect to higher-value work.',
+    cta:'See my squad →', skip:'I\'ll explore on my own', action:'goToSquad'
+  },
+  {
+    id:'aria', icon:'✨', time:'~1 min',
+    title:'ARIA is always with you',
+    body:'See the bar at the very bottom of your screen? That\'s ARIA — your command center. Ask her to deploy a specialist, analyze your inbox, explain any feature, or help you plan your week. She\'s always one line of text away, on every tab.',
+    why:'<strong>Why this matters:</strong> The fastest users treat ARIA like a colleague they can interrupt anytime. The more you talk to her, the more she can do for you.',
+    cta:'Got it — what\'s next →', skip:null, action:null
+  },
+  {
+    id:'roi', icon:'📊', time:'~1 min',
+    title:'Track your ROI automatically',
+    body:'Every specialist task you run logs your time saved automatically. Go to the <strong>Stats tab</strong> in the top nav → click <strong>ROI Calculator</strong> → enter your salary. EconSquad AI instantly shows your hourly rate, total value recovered, and projected annual ROI.',
+    why:'<strong>Why this matters:</strong> This is your proof of impact. Screenshot it for your board, your leadership, and your own motivation. Users average $28,000+ recovered annually.',
+    cta:'Got it — almost done →', skip:null, action:null
   },
   {
     id:'done', icon:null, time:null,
-    title:'You\'re ready to roll 🎉',
-    body:'Your squad is standing by. ARIA is live. Everything is set up and ready to go. Let\'s build something great for your community.',
+    title:'You\'re ready. Let\'s build. 🎉',
+    body:'Your squad is standing by. ARIA is live. Here\'s your quick reference — bookmark this mentally.',
     why:null, cta:'Open my dashboard →', skip:null, action:'closeSW'
   }
 ];
@@ -5495,23 +5516,40 @@ function _swRender(){
   if(!c) return;
 
   if(step.id === 'done'){
+    var quickRef = [
+      {icon:'⚡', label:'My Squad',   where:'Home tab — top nav',        tip:'Deploy specialists here'},
+      {icon:'📧', label:'Inbox',      where:'Inbox tab — top nav',       tip:'Gmail + AI triage'},
+      {icon:'📅', label:'Calendar',   where:'Calendar tab — top nav',    tip:'Meetings + AI prep'},
+      {icon:'✅', label:'Tasks',      where:'Tasks tab — top nav',       tip:'Track your work'},
+      {icon:'📊', label:'Stats & ROI',where:'Stats tab — top nav',       tip:'Salary → ROI in 30s'},
+      {icon:'📬', label:'Monday Drop',where:'Resources menu → top nav',  tip:'Weekly AI for ED newsletter'},
+      {icon:'✨', label:'ARIA Chat',  where:'Bottom bar — always visible',tip:'Your command center'},
+      {icon:'👤', label:'Profile',    where:'Avatar icon — top right',   tip:'Settings, logo, SMS alerts'},
+    ];
     c.innerHTML =
       '<div style="text-align:center;">' +
         '<div class="sw-complete-icon">🎉</div>' +
-        '<div class="sw-title" style="text-align:center;margin-bottom:12px;">' + step.title + '</div>' +
-        '<div class="sw-body" style="text-align:center;margin-bottom:20px;">' + step.body + '</div>' +
-        '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:left;">' +
-          SW_STEPS.filter(function(s){ return s.id !== 'welcome' && s.id !== 'done'; }).map(function(s){
-            var done = _swCompleted[s.id];
-            return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:'+(done?'#aaff3e':'#4a5568')+';font-weight:'+(done?'700':'400')+';">' +
-              '<span style="font-size:15px;">'+(done?'✅':'⬜')+'</span>' +
-              '<span>' + s.icon + ' ' + s.title + (done ? '' : ' <span style="font-size:10px;">(skipped)</span>') + '</span>' +
+        '<div class="sw-title" style="text-align:center;margin-bottom:6px;">' + step.title + '</div>' +
+        '<div class="sw-body" style="text-align:center;margin-bottom:16px;">' + step.body + '</div>' +
+      '</div>' +
+      /* Quick reference grid */
+      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(170,255,62,0.12);border-radius:14px;padding:14px 16px;margin-bottom:20px;">' +
+        '<div style="font-size:10px;font-weight:800;color:#4a5568;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">📍 Where to find everything</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+          quickRef.map(function(r){
+            return '<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;">' +
+              '<span style="font-size:16px;flex-shrink:0;">' + r.icon + '</span>' +
+              '<div>' +
+                '<div style="font-size:11px;font-weight:700;color:#eef3fc;">' + r.label + '</div>' +
+                '<div style="font-size:10px;color:#aaff3e;font-weight:600;">' + r.where + '</div>' +
+                '<div style="font-size:10px;color:#4a5568;">' + r.tip + '</div>' +
+              '</div>' +
             '</div>';
           }).join('') +
         '</div>' +
-        '<button class="sw-btn" onclick="closeSW()">' + step.cta + '</button>' +
-        '<div style="font-size:11px;color:#4a5568;text-align:center;margin-top:10px;">Skipped steps are available anytime from your profile menu</div>' +
-      '</div>';
+      '</div>' +
+      '<button class="sw-btn" onclick="closeSW()">' + step.cta + '</button>' +
+      '<div style="font-size:11px;color:#4a5568;text-align:center;margin-top:8px;">The full product tour is next — ARIA will walk you through everything live</div>';
     return;
   }
 
@@ -5541,11 +5579,18 @@ function _swAction(stepId){
     }
     if(step.action === 'openProfileForSetup'){
       _swNext();
-      setTimeout(function(){ toggleProfileMenu(); }, 300);
+      setTimeout(function(){ toggleProfileMenu(); }, 400);
       return;
     }
-    if(step.action === 'openSquadFromSetup'){
-      closeSW(); return;
+    if(step.action === 'openSmsFromSetup'){
+      _swNext();
+      setTimeout(function(){ if(typeof openSmsModal==='function') openSmsModal(); }, 400);
+      return;
+    }
+    if(step.action === 'goToSquad'){
+      closeSW();
+      setTimeout(function(){ if(typeof showDashTab==='function') showDashTab('home-tab',null); }, 300);
+      return;
     }
     if(step.action === 'closeSW'){
       closeSW(); return;
