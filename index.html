@@ -1293,6 +1293,18 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div id="pm-plan" style="font-size:10px;color:#aaff3e;font-weight:700;text-transform:uppercase;margin-top:4px;letter-spacing:.06em;"></div>
               <div id="pm-badges" style="font-size:11px;color:#f5c542;margin-top:2px;"></div>
             </div>
+            <!-- Setup wizard shortcut — hidden once wizard is complete -->
+            <div id="pm-setup-row" style="display:none;padding:6px 4px 2px;">
+              <div onclick="toggleProfileMenu();setTimeout(function(){_swStep=0;_swCompleted={};window._swActive=true;openSW();},150);" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);cursor:pointer;margin-bottom:6px;transition:background .15s;" onmouseover="this.style.background='rgba(170,255,62,0.14)'" onmouseout="this.style.background='rgba(170,255,62,0.08)'">
+                <span style="font-size:16px;">✦</span>
+                <div>
+                  <div style="font-size:12px;font-weight:800;color:#aaff3e;">Complete Your Setup</div>
+                  <div style="font-size:10px;color:#6b8a40;">Finish the setup walk through</div>
+                </div>
+                <span style="margin-left:auto;font-size:11px;color:#aaff3e;">→</span>
+              </div>
+            </div>
+
             <div style="padding:6px 4px;">
               <label for="logo-upload" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <div style="width:32px;height:32px;border-radius:50%;border:1.5px dashed rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;" id="logo-preview-sm">
@@ -4005,6 +4017,9 @@ function toggleProfileMenu(){
     if(pmn)pmn.textContent=nm;
     if(pme)pme.textContent=currentUser.email;
     if(pmp)pmp.textContent='⚡ Trial — 7 days free';
+    /* Show "Complete Your Setup" button if wizard not yet finished */
+    var setupRow=document.getElementById('pm-setup-row');
+    if(setupRow) setupRow.style.display=(localStorage.getItem(SW_KEY)!=='1')?'block':'none';
     /* show admin button only for admins */
     supa.from('profiles').select('is_admin').eq('id',currentUser.id).single().then(function(res){
       var row=document.getElementById('pm-admin-row');
