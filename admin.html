@@ -182,6 +182,9 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Store</div>
     <div class="sidebar-item" onclick="showAdminSection('shop',this);loadShopProducts()">🛍️ Swag Shop</div>
     <div class="sidebar-item" onclick="showAdminSection('book',this);loadBookSettings()">📘 Book Page</div>
+    <div class="sidebar-section">Partnerships</div>
+    <div class="sidebar-item" onclick="showAdminSection('aff-apps',this);loadAffApps()">📥 Applications</div>
+    <div class="sidebar-item" onclick="showAdminSection('affiliates',this);loadAffiliates()">🤝 Affiliates</div>
     <div class="sidebar-section">Settings</div>
     <div class="sidebar-item" onclick="showAdminSection('settings',this)">⚙️ Plan Settings</div>
     <div class="sidebar-item" onclick="showAdminSection('admins',this)">👑 Admins</div>
@@ -568,6 +571,68 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
     </div>
 
+
+    <!-- AFFILIATE APPLICATIONS -->
+    <div id="section-aff-apps" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">Partner Applications</div>
+          <div class="page-sub">Review and approve affiliate program applications</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-ghost" onclick="loadAffApps()">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-box"><div class="stat-box-val" id="affapps-pending-cnt">—</div><div class="stat-box-lbl">Pending</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="affapps-approved-cnt">—</div><div class="stat-box-lbl">Approved</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="affapps-total-cnt">—</div><div class="stat-box-lbl">Total applications</div></div>
+      </div>
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead><tr><th>Applicant</th><th>Code</th><th>Payout</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="aff-apps-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AFFILIATES MANAGEMENT -->
+    <div id="section-affiliates" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <div class="page-title">Affiliates</div>
+          <div class="page-sub">Manage active partners and commission payouts</div>
+        </div>
+        <button class="btn-ghost" onclick="loadAffiliates()">↺ Refresh</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-box-val" id="affs-active-cnt">—</div><div class="stat-box-lbl">Active partners</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="affs-total-refs">—</div><div class="stat-box-lbl">Total referrals</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="affs-pending-payout">—</div><div class="stat-box-lbl">Pending payouts</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="affs-total-earned">—</div><div class="stat-box-lbl">Total paid out</div></div>
+      </div>
+
+      <!-- Pending commissions -->
+      <div class="admin-card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;">Pending Commission Payouts</div>
+          <button class="btn-ghost btn-sm" onclick="loadPendingCommissions()">Refresh</button>
+        </div>
+        <table>
+          <thead><tr><th>Partner</th><th>Month</th><th>Type</th><th>Amount</th><th>Payout Method</th><th>Actions</th></tr></thead>
+          <tbody id="aff-commissions-table"><tr><td colspan="6" style="color:#4a5568;padding:16px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- All active affiliates -->
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 10px;font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;">All Active Partners</div>
+        <table>
+          <thead><tr><th>Partner</th><th>Code</th><th>Referrals</th><th>Paying</th><th>Total Earned</th><th>Milestone</th><th>Actions</th></tr></thead>
+          <tbody id="aff-active-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- ADMINS -->
     <div id="section-admins" class="admin-section">
@@ -2566,6 +2631,319 @@ function uploadChapterMedia(mediaType, chNum){
     });
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   AFFILIATE PROGRAM — ADMIN
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Applications queue ──────────────────────────────────────── */
+function loadAffApps(){
+  var tbody = document.getElementById('aff-apps-table');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="color:#4a5568;padding:16px;">Loading…</td></tr>';
+
+  supa.from('affiliates')
+    .select('*')
+    .order('applied_at', {ascending: false})
+    .then(function(affRes){
+      var rows = affRes.data || [];
+      if(!rows.length){
+        var pending=0,approved=0;
+        document.getElementById('affapps-pending-cnt').textContent=pending;
+        document.getElementById('affapps-approved-cnt').textContent=approved;
+        document.getElementById('affapps-total-cnt').textContent=0;
+        tbody.innerHTML = '<tr><td colspan="6" style="color:#4a5568;padding:16px;text-align:center;">No applications yet.</td></tr>';
+        return;
+      }
+      /* Fetch profiles for all user_ids */
+      var userIds = rows.map(function(r){return r.user_id;});
+      supa.from('profiles').select('id,full_name,email,organization').in('id', userIds)
+        .then(function(profRes){
+          var profMap = {};
+          (profRes.data||[]).forEach(function(p){ profMap[p.id]=p; });
+          _renderAffAppsTable(tbody, rows, profMap);
+        }).catch(function(){
+          _renderAffAppsTable(tbody, rows, {});
+        });
+    });
+}
+
+function _renderAffAppsTable(tbody, rows, profMap){
+  var pending  = rows.filter(function(r){return r.status==='pending';}).length;
+  var approved = rows.filter(function(r){return r.status==='approved';}).length;
+  var e1=document.getElementById('affapps-pending-cnt');  if(e1) e1.textContent=pending;
+  var e2=document.getElementById('affapps-approved-cnt'); if(e2) e2.textContent=approved;
+  var e3=document.getElementById('affapps-total-cnt');    if(e3) e3.textContent=rows.length;
+
+  tbody.innerHTML = rows.map(function(r){
+    var profile = profMap[r.user_id] || {};
+    var name    = profile.full_name || r.user_id.slice(0,8);
+    var email   = profile.email || '—';
+    var org     = profile.organization || '';
+    var method  = (r.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    var applied = r.applied_at ? new Date(r.applied_at).toLocaleDateString() : '—';
+    var statusBadge = {
+      pending:  '<span class="badge badge-pending">Pending</span>',
+      approved: '<span class="badge badge-active">Approved</span>',
+      rejected: '<span class="badge badge-cancelled">Rejected</span>',
+      suspended:'<span class="badge badge-suspended">Suspended</span>'
+    }[r.status] || r.status;
+    /* Escape for inline onclick */
+    var safeEmail = email.replace(/'/g,"\\'");
+    var safeName  = name.replace(/'/g,"\\'");
+
+    var actions = '';
+    if(r.status==='pending'){
+      actions = '<button class="btn-lime btn-sm" onclick="approveAffiliate(\''+r.id+'\',\''+r.code+'\',\''+safeEmail+'\',\''+safeName+'\')">Approve</button>'
+              + ' <button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="rejectAffiliate(\''+r.id+'\')">Reject</button>';
+    } else if(r.status==='approved'){
+      actions = '<button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="suspendAffiliate(\''+r.id+'\')">Suspend</button>';
+    } else if(r.status==='suspended'||r.status==='rejected'){
+      actions = '<button class="btn-ghost btn-sm" onclick="reactivateAffiliate(\''+r.id+'\')">Reactivate</button>';
+    }
+
+    return '<tr>'
+      + '<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+email+(org?'  ·  '+org:'')+'</div></td>'
+      + '<td><span style="font-family:monospace;color:#aaff3e;font-size:12px;">?ref='+r.code+'</span></td>'
+      + '<td style="font-size:12px;"><div>'+method+'</div><div style="font-size:11px;color:#6b7a96;">'+r.payout_info+'</div></td>'
+      + '<td style="font-size:12px;color:#8a97b5;">'+applied+'</td>'
+      + '<td>'+statusBadge+'</td>'
+      + '<td>'+actions+'</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function approveAffiliate(id, code, email, name){
+  if(!confirm('Approve partner application for '+name+' ('+email+')?')) return;
+  supa.from('affiliates').update({
+    status: 'approved',
+    approved_at: new Date().toISOString(),
+    approved_by: adminUser && adminUser.id
+  }).eq('id', id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message, 'error'); return; }
+    showToast('✓ '+name+' approved as partner!', 'success');
+    /* Show the approval link in a modal so admin can copy it to send */
+    var link = 'https://econsquad.ai/?ref='+code;
+    var msg = 'Approved! Their referral link is:\n\n'+link+'\n\nShare this with '+name+' ('+email+').\n\nRemember to send them an approval email with their link + commission structure details.';
+    alert(msg);
+    loadAffApps();
+  });
+}
+
+function rejectAffiliate(id){
+  var note = prompt('Rejection reason (will be shown to applicant):');
+  if(note === null) return; /* cancelled */
+  supa.from('affiliates').update({
+    status: 'rejected',
+    rejection_note: note || 'Your application was not approved at this time.'
+  }).eq('id', id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message, 'error'); return; }
+    showToast('Application rejected.', 'success');
+    loadAffApps();
+  });
+}
+
+function suspendAffiliate(id){
+  if(!confirm('Suspend this affiliate?')) return;
+  supa.from('affiliates').update({status:'suspended'}).eq('id',id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('Affiliate suspended.','success');
+    loadAffApps(); if(document.getElementById('section-affiliates').classList.contains('active')) loadAffiliates();
+  });
+}
+
+function reactivateAffiliate(id){
+  if(!confirm('Re-activate this affiliate?')) return;
+  supa.from('affiliates').update({status:'approved',approved_at:new Date().toISOString()}).eq('id',id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('Affiliate re-activated.','success');
+    loadAffApps();
+  });
+}
+
+/* ── Active affiliates + commission management ───────────────── */
+function loadAffiliates(){
+  loadActiveAffiliates();
+  loadPendingCommissions();
+}
+
+function loadActiveAffiliates(){
+  var tbody = document.getElementById('aff-active-table');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="color:#4a5568;padding:16px;">Loading…</td></tr>';
+
+  supa.from('affiliates')
+    .select('*')
+    .eq('status','approved')
+    .order('total_earned', {ascending:false})
+    .then(function(affRes){
+      var rows = affRes.data || [];
+      var totalRefs   = rows.reduce(function(s,r){return s+(r.total_referrals||0);},0);
+      var totalEarned = rows.reduce(function(s,r){return s+parseFloat(r.total_earned||0);},0);
+      var el1=document.getElementById('affs-active-cnt');   if(el1) el1.textContent=rows.length;
+      var el2=document.getElementById('affs-total-refs');   if(el2) el2.textContent=totalRefs;
+      var el4=document.getElementById('affs-total-earned'); if(el4) el4.textContent='$'+totalEarned.toFixed(2);
+
+      if(!rows.length){
+        tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:16px;text-align:center;">No active affiliates yet.</td></tr>';
+        return;
+      }
+      var userIds = rows.map(function(r){return r.user_id;});
+      supa.from('profiles').select('id,full_name,email').in('id',userIds)
+        .then(function(profRes){
+          var profMap={};
+          (profRes.data||[]).forEach(function(p){profMap[p.id]=p;});
+          var milestoneLabels=['—','5 refs','10 refs','25 refs','50 refs','100 refs + Elite'];
+          tbody.innerHTML = rows.map(function(r){
+            var profile = profMap[r.user_id]||{};
+            var name    = profile.full_name||r.user_id.slice(0,8);
+            var email   = profile.email||'—';
+            var mlbl    = milestoneLabels[r.milestone_level||0];
+            var safeName= name.replace(/'/g,"\\'");
+            return '<tr>'
+              +'<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+email+'</div></td>'
+              +'<td><span style="font-family:monospace;color:#aaff3e;font-size:12px;">?ref='+r.code+'</span></td>'
+              +'<td style="text-align:center;font-weight:700;color:#eef3fc;">'+(r.total_referrals||0)+'</td>'
+              +'<td style="text-align:center;font-weight:700;color:#aaff3e;">'+(r.paid_referrals||0)+'</td>'
+              +'<td style="font-weight:700;color:#aaff3e;">$'+parseFloat(r.total_earned||0).toFixed(2)+'</td>'
+              +'<td style="font-size:11px;color:#8a97b5;">'+mlbl+'</td>'
+              +'<td>'
+              +'<button class="btn-ghost btn-sm" onclick="openAffDetail(\''+r.id+'\')">Detail</button> '
+              +'<button class="btn-lime btn-sm" onclick="addCommission(\''+r.id+'\',\''+safeName+'\')">+ Commission</button>'
+              +'</td></tr>';
+          }).join('');
+        }).catch(function(){
+          tbody.innerHTML='<tr><td colspan="7" style="color:#ff8080;padding:16px;">Error loading profiles.</td></tr>';
+        });
+    });
+}
+
+function loadPendingCommissions(){
+  var tbody = document.getElementById('aff-commissions-table');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="color:#4a5568;padding:12px;">Loading…</td></tr>';
+
+  /* Load pending commissions, then look up affiliates + profiles */
+  supa.from('affiliate_commissions')
+    .select('*')
+    .eq('status','pending')
+    .order('created_at', {ascending:true})
+    .then(function(commRes){
+      var rows = commRes.data || [];
+      var total = rows.reduce(function(s,r){return s+parseFloat(r.amount||0);},0);
+      var el = document.getElementById('affs-pending-payout'); if(el) el.textContent='$'+total.toFixed(2);
+
+      if(!rows.length){
+        tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:12px;text-align:center;">No pending payouts.</td></tr>';
+        return;
+      }
+      /* Fetch affiliates for those IDs */
+      var affIds = [...new Set(rows.map(function(r){return r.affiliate_id;}))];
+      supa.from('affiliates').select('id,code,payout_method,payout_info,user_id').in('id',affIds)
+        .then(function(affRes){
+          var affMap={};
+          (affRes.data||[]).forEach(function(a){affMap[a.id]=a;});
+          var userIds=[...new Set(Object.values(affMap).map(function(a){return a.user_id;}))];
+          supa.from('profiles').select('id,full_name,email').in('id',userIds)
+            .then(function(profRes){
+              var profMap={};
+              (profRes.data||[]).forEach(function(p){profMap[p.id]=p;});
+              tbody.innerHTML = rows.map(function(r){
+                var aff     = affMap[r.affiliate_id]||{};
+                var profile = profMap[aff.user_id]||{};
+                var name    = profile.full_name||(aff.code||'?');
+                var method  = (aff.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+                var typeLabel = r.type==='milestone_bonus'?'🏆 Bonus':'🔄 Monthly';
+                return '<tr>'
+                  +'<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+(profile.email||'—')+'</div></td>'
+                  +'<td style="font-size:12px;color:#8a97b5;">'+r.period_month+'</td>'
+                  +'<td style="font-size:12px;">'+typeLabel+(r.description?'<div style="font-size:10px;color:#6b7a96;">'+r.description+'</div>':'')+'</td>'
+                  +'<td style="font-weight:800;color:#aaff3e;font-size:14px;">$'+parseFloat(r.amount||0).toFixed(2)+'</td>'
+                  +'<td style="font-size:12px;"><div>'+method+'</div><div style="font-size:10px;color:#6b7a96;">'+(aff.payout_info||'—')+'</div></td>'
+                  +'<td><button class="btn-lime btn-sm" onclick="markCommissionPaid(\''+r.id+'\')">Mark Paid</button></td>'
+                  +'</tr>';
+              }).join('');
+            });
+        });
+    });
+}
+
+function markCommissionPaid(id){
+  if(!confirm('Mark this commission as paid?')) return;
+  supa.from('affiliate_commissions').update({
+    status: 'paid',
+    paid_at: new Date().toISOString(),
+    paid_by: adminUser && adminUser.id
+  }).eq('id', id).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('Commission marked as paid.','success');
+    loadPendingCommissions();
+    /* Also update total_earned on the affiliate record */
+    /* (We re-load the page data; a trigger or scheduled function would handle aggregates in prod) */
+  });
+}
+
+function addCommission(affId, affName){
+  var monthInput = prompt('Commission month (YYYY-MM):', new Date().toISOString().slice(0,7));
+  if(!monthInput) return;
+  var typeInput = prompt('Type: enter 1 for Monthly Recurring, 2 for Milestone Bonus', '1');
+  if(!typeInput) return;
+  var type = typeInput.trim()==='2' ? 'milestone_bonus' : 'recurring';
+  var amtInput = prompt('Amount ($):');
+  if(!amtInput) return;
+  var amount = parseFloat(amtInput);
+  if(isNaN(amount)||amount<=0){ alert('Invalid amount.'); return; }
+  var desc = prompt('Description (optional):') || null;
+
+  supa.from('affiliate_commissions').insert({
+    affiliate_id:  affId,
+    period_month:  monthInput.trim(),
+    type:          type,
+    amount:        amount,
+    description:   desc,
+    status:        'pending'
+  }).then(function(res){
+    if(res.error){ showToast('Error: '+res.error.message,'error'); return; }
+    showToast('Commission added for '+affName,'success');
+    /* Update total_earned on affiliates table */
+    supa.from('affiliates').select('total_earned').eq('id',affId).single().then(function(r){
+      var cur = parseFloat((r.data&&r.data.total_earned)||0);
+      supa.from('affiliates').update({total_earned: cur+amount}).eq('id',affId).then(function(){
+        loadAffiliates();
+      });
+    });
+  });
+}
+
+function openAffDetail(affId){
+  supa.from('affiliate_referrals').select('*').eq('affiliate_id',affId)
+    .order('signed_up_at',{ascending:false})
+    .then(function(refRes){
+      var rows = refRes.data||[];
+      if(!rows.length){alert('No referrals yet for this partner.');return;}
+      var userIds = rows.map(function(r){return r.referred_user_id;}).filter(Boolean);
+      var finish = function(profMap){
+        var msg = 'Referrals ('+rows.length+'):\n\n';
+        rows.forEach(function(r){
+          var p = profMap[r.referred_user_id]||{};
+          var name  = p.full_name||r.referred_email||r.referred_user_id||'?';
+          var email = p.email||r.referred_email||'?';
+          msg += '• '+name+' <'+email+'>'
+            +' — '+(r.converted_to_paid?'💰 Paying ('+r.subscription_plan+')':'⏳ Free/Trial')
+            +' — signed up '+new Date(r.signed_up_at).toLocaleDateString()+'\n';
+        });
+        alert(msg);
+      };
+      if(!userIds.length){finish({});return;}
+      supa.from('profiles').select('id,full_name,email').in('id',userIds)
+        .then(function(profRes){
+          var profMap={};
+          (profRes.data||[]).forEach(function(p){profMap[p.id]=p;});
+          finish(profMap);
+        }).catch(function(){finish({});});
+    });
+}
+
 </script>
 </body>
 </html>

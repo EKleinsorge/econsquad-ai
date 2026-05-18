@@ -794,6 +794,25 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 @keyframes swGlowPulse{0%,100%{box-shadow:0 0 18px rgba(170,255,62,0.7),0 0 40px rgba(170,255,62,0.3);}50%{box-shadow:0 0 32px rgba(170,255,62,1),0 0 70px rgba(170,255,62,0.55),0 0 100px rgba(170,255,62,0.2);}}
 .sw-glow-active{outline:2px solid rgba(170,255,62,0.95)!important;animation:swGlowPulse 1.4s ease-in-out infinite!important;}
 
+/* ===== AFFILIATE MODAL ===== */
+#affiliate-modal{display:none;position:fixed;inset:0;z-index:99990;background:rgba(4,5,13,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:20px;}
+#affiliate-modal.aff-open{display:flex;}
+.aff-box{background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.18);border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,0.7);}
+.aff-header{padding:22px 26px 0;display:flex;align-items:center;justify-content:space-between;}
+.aff-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;letter-spacing:.02em;}
+.aff-body{padding:20px 26px 28px;}
+.aff-stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px;}
+.aff-stat{background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.14);border-radius:10px;padding:14px 16px;}
+.aff-stat-val{font-family:'Barlow',sans-serif;font-size:24px;font-weight:900;color:#aaff3e;}
+.aff-stat-lbl{font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+.aff-input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:100%;color-scheme:dark;}
+.aff-input:focus{border-color:rgba(170,255,62,0.4);}
+.aff-label{font-size:10px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;}
+.aff-field{margin-bottom:14px;}
+.aff-milestone{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:6px;}
+.aff-milestone.reached{background:rgba(170,255,62,0.06);border-color:rgba(170,255,62,0.2);}
+.aff-milestone.current{background:rgba(170,255,62,0.1);border-color:rgba(170,255,62,0.35);}
+
 /* ===== ONBOARDING MODAL ===== */
 #onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
 .ob-box{background:rgba(10,13,26,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:40px 44px;max-width:560px;width:100%;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 60px rgba(170,255,62,0.04);position:relative;}
@@ -1348,6 +1367,13 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <span style="font-size:14px;">📱</span>
                 <span style="font-size:12px;color:#eef3fc;">SMS Alerts</span>
               </div>
+              <div onclick="openAffiliateModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">🤝</span>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#eef3fc;">Partner Program</div>
+                  <div style="font-size:10px;color:#6b7a96;">Earn commissions · Refer users</div>
+                </div>
+              </div>
 
               <!-- Text size accessibility -->
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;">
@@ -1792,6 +1818,35 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </section>
 <section id="home-aria-chat" style="background:rgba(8,12,24,0.8);padding:60px 0 20px;"><div class="home-chat-section"><div class="home-chat-hdr"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:6px 16px;margin-bottom:16px;"><span style="width:8px;height:8px;border-radius:50%;background:#aaff3e;display:inline-block;"></span><span style="font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;color:#aaff3e;letter-spacing:.06em;">ARIA IS ONLINE</span></div><h2>Ask ARIA Anything</h2><p>Have questions about EconSquad? Ask our AI assistant.</p></div><div class="home-chat-box"><div class="home-chat-msgs" id="home-chat-messages"><div class="hcm"><div class="hcav aria">A</div><div class="hcbub">Hi! I am ARIA. I help economic developers save time on grants, RFIs, BRE surveys, and more. What would you like to know about EconSquad?</div></div></div><div class="home-chat-starters"><button class="hcs" id="hcs1">What can EconSquad do?</button><button class="hcs" id="hcs2">How does grant writing work?</button><button class="hcs" id="hcs3">What is Riley?</button><button class="hcs" id="hcs4">Pricing?</button></div><div class="home-chat-input-row"><input class="home-chat-in" id="home-chat-input" type="text" placeholder="Ask about EconSquad..."/><button class="home-chat-go" id="home-chat-send">Ask ARIA</button></div></div></div></section>
 
+      <!-- PARTNER PROGRAM CALLOUT -->
+      <section style="background:rgba(4,6,12,0.6);border-top:1px solid rgba(255,255,255,0.05);padding:56px 40px;text-align:center;">
+        <div style="max-width:640px;margin:0 auto;">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:5px 16px;margin-bottom:18px;">
+            <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#aaff3e;letter-spacing:.08em;text-transform:uppercase;">Partner Program</span>
+          </div>
+          <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:#eef3fc;margin-bottom:10px;line-height:1.1;">Love EconSquad? <span style="color:#aaff3e;">Get paid to share it.</span></h2>
+          <p style="font-size:15px;color:#6b7a96;line-height:1.75;margin-bottom:10px;">Earn 10% monthly on every subscriber you refer — plus milestone bonuses from $50 up to $1,000. Any active member can apply. Paid via PayPal or Direct Deposit every month.</p>
+          <div style="display:flex;justify-content:center;gap:24px;margin:22px 0 28px;flex-wrap:wrap;">
+            <div style="text-align:center;">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;">10%</div>
+              <div style="font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">Monthly recurring</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,0.07);"></div>
+            <div style="text-align:center;">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;">$1,000+</div>
+              <div style="font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">Milestone bonuses</div>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,0.07);"></div>
+            <div style="text-align:center;">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;">30 days</div>
+              <div style="font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">Referral window</div>
+            </div>
+          </div>
+          <a href="support.html#partner-program" target="_blank" style="display:inline-block;background:#aaff3e;color:#0a1a00;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;padding:13px 32px;border-radius:10px;text-decoration:none;letter-spacing:.02em;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Learn more &amp; apply →</a>
+          <div style="font-size:11px;color:#4a5568;margin-top:12px;">Must be an active subscriber · Applications reviewed within 2 business days</div>
+        </div>
+      </section>
+
       <footer class="site-footer">
         <div class="logo-text" style="font-size:16px;font-family:'Barlow Condensed',sans-serif;font-weight:800;"><span style="color:var(--text);">Econ</span><span style="color:var(--lime);">Squad</span><span style="color:#fff;font-size:10px;vertical-align:super;">AI</span></div>
         <div class="footer-copy">© 2026 EconSquad AI · All rights reserved</div>
@@ -1803,6 +1858,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <a href="book.html" target="_blank">Book</a>
           <a href="shop.html" target="_blank">Shop</a>
           <a href="contact.html" target="_blank">Contact</a>
+          <a href="support.html#partner-program" target="_blank" style="color:var(--lime);font-weight:700;">Affiliates</a>
         </div>
       </footer>
     </div>
@@ -2222,6 +2278,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </div>
 
       </div>
+
+<!-- ═══════════════ AFFILIATE / PARTNER MODAL ═══════════════ -->
+<div id="affiliate-modal">
+  <div class="aff-box">
+    <div class="aff-header">
+      <div class="aff-title">🤝 Partner Program</div>
+      <div onclick="closeAffiliateModal()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:#6b7a96;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">✕</div>
+    </div>
+    <div class="aff-body" id="aff-body-content">
+      <div style="text-align:center;padding:40px 0;color:#6b7a96;font-size:13px;">Loading…</div>
+    </div>
+  </div>
+</div>
 
 <!-- Setup wizard minimized continue button -->
 <div id="sw-continue-btn" onclick="_swResume()" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100002;background:#aaff3e;color:#0a1a00;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;padding:18px 44px;border-radius:14px;cursor:pointer;box-shadow:0 4px 48px rgba(170,255,62,0.65),0 0 80px rgba(170,255,62,0.25);letter-spacing:.04em;white-space:nowrap;text-align:center;">
@@ -2963,6 +3032,27 @@ var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var currentUser=null;
 
+/* ── Capture affiliate referral code from ?ref=CODE ── */
+(function(){
+  try{
+    var p=new URLSearchParams(window.location.search);
+    var ref=p.get('ref');
+    if(ref && /^[a-z0-9_-]{2,20}$/i.test(ref)){
+      var stored=JSON.parse(localStorage.getItem('esq_ref')||'null');
+      /* Only store if not already converted (30-day window) */
+      if(!stored || Date.now()-stored.ts > 30*24*60*60*1000){
+        localStorage.setItem('esq_ref',JSON.stringify({code:ref.toLowerCase(),ts:Date.now()}));
+      }
+      /* Clean the URL so the code doesn't persist visually */
+      try{
+        p.delete('ref');
+        var newUrl=window.location.pathname+(p.toString()?'?'+p.toString():'');
+        window.history.replaceState({},'',newUrl);
+      }catch(e){}
+    }
+  }catch(e){}
+})();
+
 /* ── init on load ── */
 window.addEventListener('load',function(){
   supa.auth.getSession().then(function(res){
@@ -3510,6 +3600,23 @@ function doSignup(){
     }
 
     var userId=authRes.data&&authRes.data.user?authRes.data.user.id:'';
+
+    /* Step 1b: record affiliate referral if ref code is stored and still within 30 days */
+    var refData=null;
+    try{refData=JSON.parse(localStorage.getItem('esq_ref')||'null');}catch(e){}
+    if(refData && refData.code && (Date.now()-refData.ts < 30*24*60*60*1000)){
+      /* Look up affiliate by code, then insert referral record */
+      supa.from('affiliates').select('id').eq('code',refData.code).eq('status','approved').single()
+        .then(function(affRes){
+          if(affRes.data && affRes.data.id){
+            supa.from('affiliate_referrals').insert({
+              affiliate_id: affRes.data.id,
+              referred_user_id: userId,
+              referred_email: email
+            }).then(function(){ localStorage.removeItem('esq_ref'); });
+          }
+        }).catch(function(){});
+    }
 
     /* Step 2: redirect to Stripe Payment Link with user ID + email pre-filled */
     var priceKey=(suSelectedPlan==='starter'?'starter':'pro')+'_'+(suBillingAnnual?'annual':'monthly');
@@ -11251,6 +11358,374 @@ function sendSmsAlert(alertType, message){
     if(res.data && res.data.skipped) console.log('[SMS] skipped:', res.data.skipped);
     if(res.error) console.warn('[SMS] error:', res.error);
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AFFILIATE / PARTNER PROGRAM
+   ═══════════════════════════════════════════════════════════════ */
+
+var _affData = null; /* cached affiliate record */
+
+function openAffiliateModal(){
+  var m = document.getElementById('affiliate-modal');
+  if(!m) return;
+  m.classList.add('aff-open');
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:40px 0;color:#6b7a96;font-size:13px;">Loading…</div>';
+  _loadAffiliateData();
+}
+
+function closeAffiliateModal(){
+  var m = document.getElementById('affiliate-modal');
+  if(m) m.classList.remove('aff-open');
+}
+
+/* Close on backdrop click */
+document.addEventListener('click', function(e){
+  var m = document.getElementById('affiliate-modal');
+  if(m && e.target === m) closeAffiliateModal();
+});
+
+function _loadAffiliateData(){
+  if(!currentUser){ _renderAff_login(); return; }
+  supa.from('affiliates')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .single()
+    .then(function(res){
+      if(res.error && res.error.code === 'PGRST116'){
+        /* No record found — show apply form */
+        _affData = null;
+        _renderAff_apply();
+      } else if(res.error){
+        _renderAff_error(res.error.message);
+      } else {
+        _affData = res.data;
+        if(_affData.status === 'pending')   _renderAff_pending();
+        else if(_affData.status === 'approved') _renderAff_dashboard();
+        else if(_affData.status === 'rejected') _renderAff_rejected();
+        else if(_affData.status === 'suspended') _renderAff_suspended();
+        else _renderAff_apply();
+      }
+    });
+}
+
+function _affGenCode(name){
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,10) || 'partner';
+}
+
+/* ── Apply View ───────────────────────────────────────────────── */
+function _renderAff_apply(){
+  var name = currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name
+    ? currentUser.user_metadata.full_name : '';
+  var suggestedCode = _affGenCode(name);
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="margin-bottom:20px;">'
+    + '<div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px 18px;margin-bottom:18px;">'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:900;color:#aaff3e;margin-bottom:8px;">How it works</div>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;">'
+    + '<div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#8a97b5;">'
+    + '<span style="font-size:16px;flex-shrink:0;">🔗</span>'
+    + '<div><strong style="color:#eef3fc;">Share your unique referral link.</strong> Anyone who signs up through your link within 30 days is tracked as your referral.</div></div>'
+    + '<div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#8a97b5;">'
+    + '<span style="font-size:16px;flex-shrink:0;">💰</span>'
+    + '<div><strong style="color:#eef3fc;">Earn 10% every month</strong> for each paying subscriber you refer — for as long as they stay subscribed.</div></div>'
+    + '<div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#8a97b5;">'
+    + '<span style="font-size:16px;flex-shrink:0;">🏆</span>'
+    + '<div><strong style="color:#eef3fc;">Unlock milestone bonuses:</strong> $50 at 5 referrals · $100 at 10 · $250 at 25 · $500 at 50 · $1,000 + Elite status at 100</div></div>'
+    + '<div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#8a97b5;">'
+    + '<span style="font-size:16px;flex-shrink:0;">📅</span>'
+    + '<div><strong style="color:#eef3fc;">Monthly payouts</strong> via Zelle, Venmo, or Direct Deposit. We review applications and notify you once approved.</div></div>'
+    + '</div></div>'
+
+    + '<div class="aff-field"><label class="aff-label">Your referral code</label>'
+    + '<div style="display:flex;gap:8px;align-items:center;">'
+    + '<span style="font-size:12px;color:#6b7a96;flex-shrink:0;">econsquad.ai/?ref=</span>'
+    + '<input class="aff-input" id="aff-code-input" value="'+suggestedCode+'" maxlength="20" style="flex:1;" placeholder="yourcity" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,\'\')"></div>'
+    + '<div style="font-size:10px;color:#6b7a96;margin-top:5px;">Lowercase letters, numbers, hyphens only. This is permanent once set.</div></div>'
+
+    + '<div class="aff-field"><label class="aff-label">Payout method</label>'
+    + '<select class="aff-input" id="aff-payout-method" onchange="_affPayoutChange()">'
+    + '<option value="">— Select —</option>'
+    + '<option value="paypal">PayPal</option>'
+    + '<option value="direct_deposit">Direct Deposit (ACH)</option>'
+    + '</select></div>'
+
+    + '<div class="aff-field" id="aff-payout-info-wrap" style="display:none;">'
+    + '<label class="aff-label" id="aff-payout-info-label">PayPal email</label>'
+    + '<input class="aff-input" id="aff-payout-info" placeholder=""></div>'
+
+    + '<button onclick="submitAffiliateApp()" style="width:100%;margin-top:6px;background:#aaff3e;color:#0a1a00;border:none;font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:900;padding:14px;border-radius:10px;cursor:pointer;letter-spacing:.02em;transition:opacity .2s;" onmouseover="this.style.opacity=\'.88\'" onmouseout="this.style.opacity=\'1\'" id="aff-apply-btn">Apply to become a partner →</button>'
+    + '<div style="font-size:10px;color:#4a5568;text-align:center;margin-top:10px;">Applications are reviewed within 2 business days. You\'ll receive an email once approved with your full link and instructions.</div>'
+    + '</div>';
+}
+
+function _affPayoutChange(){
+  var method = document.getElementById('aff-payout-method').value;
+  var wrap   = document.getElementById('aff-payout-info-wrap');
+  var lbl    = document.getElementById('aff-payout-info-label');
+  var inp    = document.getElementById('aff-payout-info');
+  if(!method){ wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  if(method==='paypal'){
+    lbl.textContent='PayPal email address';
+    inp.placeholder='your@email.com';
+  } else {
+    lbl.textContent='Bank name + last 4 digits of account (we\'ll contact you for full ACH details)';
+    inp.placeholder='First National Bank ••••1234';
+  }
+}
+
+function submitAffiliateApp(){
+  if(!currentUser){showToast('Please sign in first.','warning');return;}
+  var code    = (document.getElementById('aff-code-input')||{}).value||'';
+  var method  = (document.getElementById('aff-payout-method')||{}).value||'';
+  var info    = (document.getElementById('aff-payout-info')||{}).value.trim()||'';
+  var btn     = document.getElementById('aff-apply-btn');
+
+  if(!/^[a-z0-9_-]{2,20}$/.test(code)){showToast('Referral code must be 2–20 lowercase letters, numbers, or hyphens.','warning');return;}
+  if(!method){showToast('Please select a payout method.','warning');return;}
+  if(!info){showToast('Please enter your payout details.','warning');return;}
+
+  if(btn){btn.disabled=true;btn.textContent='Submitting...';}
+
+  supa.from('affiliates').insert({
+    user_id:       currentUser.id,
+    code:          code,
+    status:        'pending',
+    payout_method: method,
+    payout_info:   info
+  }).select('id,code,status').single().then(function(res){
+    if(res.error){
+      if(btn){btn.disabled=false;btn.textContent='Apply to become a partner →';}
+      if(res.error.message && res.error.message.includes('unique')){
+        showToast('That referral code is already taken — please choose another.','warning');
+      } else {
+        showToast('Error: '+res.error.message,'error');
+      }
+    } else {
+      _affData = res.data;
+      _renderAff_pending();
+    }
+  });
+}
+
+/* ── Pending View ─────────────────────────────────────────────── */
+function _renderAff_pending(){
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:24px 0 12px;">'
+    + '<div style="font-size:48px;margin-bottom:16px;">⏳</div>'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:8px;">Application Under Review</div>'
+    + '<div style="font-size:13px;color:#6b7a96;line-height:1.7;margin-bottom:20px;">Your partner application has been received! We review all applications within 2 business days.<br><br>You\'ll receive an email once approved with your unique referral link and full instructions.</div>'
+    + '<div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.25);border-radius:10px;padding:14px 18px;display:inline-block;text-align:left;">'
+    + '<div style="font-size:11px;font-weight:700;color:#f5c542;margin-bottom:4px;">YOUR REFERRAL CODE (PENDING)</div>'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:20px;font-weight:900;color:#f5c542;">?ref='+(_affData&&_affData.code||'—')+'</div>'
+    + '</div>'
+    + '</div>';
+}
+
+/* ── Approved Dashboard View ──────────────────────────────────── */
+function _renderAff_dashboard(){
+  var aff  = _affData;
+  var link = 'https://econsquad.ai/?ref='+aff.code;
+
+  /* Milestone levels */
+  var milestones = [
+    {refs:5,  bonus:50,   label:'5 referrals'},
+    {refs:10, bonus:100,  label:'10 referrals'},
+    {refs:25, bonus:250,  label:'25 referrals'},
+    {refs:50, bonus:500,  label:'50 referrals'},
+    {refs:100,bonus:1000, label:'100 referrals + Elite'}
+  ];
+  var totalRefs = aff.paid_referrals || 0;
+  var nextMilestone = milestones.find(function(m){return totalRefs < m.refs;});
+  var progressPct = nextMilestone ? Math.round((totalRefs / nextMilestone.refs) * 100) : 100;
+
+  var milestoneHtml = milestones.map(function(m,i){
+    var reached  = totalRefs >= m.refs;
+    var isCurrent= !reached && (i===0 || totalRefs >= milestones[i-1].refs);
+    var cls = reached ? 'reached' : (isCurrent ? 'current' : '');
+    return '<div class="aff-milestone '+cls+'">'
+      + '<span style="font-size:18px;">'+(reached?'✅':(isCurrent?'🎯':'🔒'))+'</span>'
+      + '<div style="flex:1;">'
+      + '<div style="font-size:12px;font-weight:700;color:'+(reached?'#aaff3e':(isCurrent?'#eef3fc':'#4a5568'))+';">'+m.label+'</div>'
+      + '<div style="font-size:10px;color:#6b7a96;">$'+m.bonus+' bonus'+(m.refs===100?' + Elite Partner status':'')+'</div>'
+      + '</div>'
+      + (reached ? '<span style="font-size:11px;font-weight:700;color:#aaff3e;">Earned ✓</span>' : '')
+      + '</div>';
+  }).join('');
+
+  document.getElementById('aff-body-content').innerHTML =
+    /* Stats row */
+    '<div class="aff-stat-row">'
+    + '<div class="aff-stat"><div class="aff-stat-val">'+(aff.total_referrals||0)+'</div><div class="aff-stat-lbl">Total signups</div></div>'
+    + '<div class="aff-stat"><div class="aff-stat-val">'+(aff.paid_referrals||0)+'</div><div class="aff-stat-lbl">Paying subscribers</div></div>'
+    + '<div class="aff-stat"><div class="aff-stat-val">$'+((aff.total_earned||0).toFixed(2))+'</div><div class="aff-stat-lbl">Total earned</div></div>'
+    + '<div class="aff-stat"><div class="aff-stat-val" id="aff-pending-val">—</div><div class="aff-stat-lbl">Pending payout</div></div>'
+    + '</div>'
+
+    /* Referral link */
+    + '<div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.25);border-radius:12px;padding:14px 18px;margin-bottom:18px;">'
+    + '<div style="font-size:10px;font-weight:700;color:#aaff3e;letter-spacing:.06em;margin-bottom:6px;">YOUR REFERRAL LINK</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;">'
+    + '<div id="aff-link-display" style="flex:1;font-size:12px;color:#eef3fc;word-break:break-all;font-family:monospace;">'+link+'</div>'
+    + '<button onclick="copyAffiliateLink(\''+link+'\')" style="flex-shrink:0;background:#aaff3e;color:#0a1a00;border:none;font-size:11px;font-weight:800;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:\'Barlow\',sans-serif;white-space:nowrap;" id="aff-copy-btn">Copy link</button>'
+    + '</div></div>'
+
+    /* Milestone progress */
+    + '<div style="margin-bottom:18px;">'
+    + '<div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Milestone progress · '+totalRefs+' paying referrals</div>'
+    + (nextMilestone ? '<div style="background:rgba(255,255,255,0.05);border-radius:20px;height:6px;margin-bottom:12px;overflow:hidden;"><div style="height:100%;width:'+progressPct+'%;background:#aaff3e;border-radius:20px;transition:width .5s;"></div></div>' : '')
+    + milestoneHtml
+    + '</div>'
+
+    /* Commission history (loaded async) */
+    + '<div style="margin-bottom:4px;">'
+    + '<div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Recent commissions</div>'
+    + '<div id="aff-commissions-list"><div style="color:#4a5568;font-size:12px;">Loading…</div></div>'
+    + '</div>'
+
+    /* Payout method */
+    + '<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">'
+    + '<div><div style="font-size:11px;font-weight:700;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">Payout method</div>'
+    + '<div style="font-size:12px;color:#eef3fc;margin-top:2px;">'+(aff.payout_method||'').replace('_',' ').replace(/\b\w/g,function(c){return c.toUpperCase();})+' · '+aff.payout_info+'</div></div>'
+    + '<button onclick="_openAffPayoutEdit()" style="background:none;border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;padding:5px 12px;border-radius:7px;cursor:pointer;">Edit</button>'
+    + '</div>';
+
+  /* Load pending payout + commission history async */
+  supa.from('affiliate_commissions')
+    .select('*')
+    .eq('affiliate_id', aff.id)
+    .order('created_at', {ascending: false})
+    .limit(20)
+    .then(function(res){
+      var rows = res.data || [];
+      /* Pending total */
+      var pending = rows.filter(function(r){return r.status==='pending';})
+        .reduce(function(s,r){return s+parseFloat(r.amount||0);},0);
+      var pendingEl = document.getElementById('aff-pending-val');
+      if(pendingEl) pendingEl.textContent = '$'+pending.toFixed(2);
+
+      /* Commission table */
+      var listEl = document.getElementById('aff-commissions-list');
+      if(!listEl) return;
+      if(!rows.length){
+        listEl.innerHTML='<div style="color:#4a5568;font-size:12px;text-align:center;padding:12px 0;">No commissions yet — start sharing your link!</div>';
+        return;
+      }
+      listEl.innerHTML = '<table style="width:100%;border-collapse:collapse;">'
+        + '<thead><tr>'
+        + '<th style="text-align:left;font-size:10px;color:#4a5568;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);">Month</th>'
+        + '<th style="text-align:left;font-size:10px;color:#4a5568;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);">Type</th>'
+        + '<th style="text-align:right;font-size:10px;color:#4a5568;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);">Amount</th>'
+        + '<th style="text-align:right;font-size:10px;color:#4a5568;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.06);">Status</th>'
+        + '</tr></thead><tbody>'
+        + rows.map(function(r){
+          var statusColor = r.status==='paid' ? '#aaff3e' : r.status==='cancelled' ? '#ff8080' : '#f5c542';
+          var typeLabel   = r.type==='milestone_bonus' ? '🏆 Bonus' : '🔄 Monthly';
+          return '<tr>'
+            + '<td style="font-size:12px;color:#8a97b5;padding:7px 8px;">'+r.period_month+'</td>'
+            + '<td style="font-size:12px;color:#eef3fc;padding:7px 8px;">'+typeLabel+'</td>'
+            + '<td style="font-size:12px;color:#aaff3e;text-align:right;font-weight:700;padding:7px 8px;">$'+parseFloat(r.amount||0).toFixed(2)+'</td>'
+            + '<td style="font-size:11px;text-align:right;font-weight:700;color:'+statusColor+';text-transform:capitalize;padding:7px 8px;">'+r.status+'</td>'
+            + '</tr>';
+        }).join('')
+        + '</tbody></table>';
+    });
+}
+
+/* ── Copy referral link ───────────────────────────────────────── */
+function copyAffiliateLink(link){
+  try{
+    navigator.clipboard.writeText(link).then(function(){
+      var btn = document.getElementById('aff-copy-btn');
+      if(btn){ btn.textContent='Copied! ✓'; btn.style.background='rgba(170,255,62,0.8)'; }
+      setTimeout(function(){
+        var b = document.getElementById('aff-copy-btn');
+        if(b){ b.textContent='Copy link'; b.style.background='#aaff3e'; }
+      }, 2000);
+    });
+  }catch(e){
+    /* fallback for older browsers */
+    var ta = document.createElement('textarea');
+    ta.value = link; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Link copied!','success');
+  }
+}
+
+/* ── Edit payout method ───────────────────────────────────────── */
+function _openAffPayoutEdit(){
+  var aff = _affData;
+  if(!aff) return;
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="margin-bottom:6px;">'
+    + '<button onclick="_renderAff_dashboard()" style="background:none;border:none;color:#6b7a96;font-size:12px;cursor:pointer;padding:0;margin-bottom:16px;">← Back to dashboard</button>'
+    + '<div class="aff-field"><label class="aff-label">Payout method</label>'
+    + '<select class="aff-input" id="aff-edit-method" onchange="_affEditMethodChange()">'
+    + '<option value="paypal"'+(aff.payout_method==='paypal'?' selected':'')+'>PayPal</option>'
+    + '<option value="direct_deposit"'+(aff.payout_method==='direct_deposit'?' selected':'')+'>Direct Deposit (ACH)</option>'
+    + '</select></div>'
+    + '<div class="aff-field"><label class="aff-label" id="aff-edit-info-lbl">Details</label>'
+    + '<input class="aff-input" id="aff-edit-info" value="'+aff.payout_info+'"></div>'
+    + '<button onclick="_saveAffPayoutEdit()" style="width:100%;background:#aaff3e;color:#0a1a00;border:none;font-family:\'Barlow Condensed\',sans-serif;font-size:15px;font-weight:900;padding:12px;border-radius:10px;cursor:pointer;" id="aff-edit-save-btn">Save changes</button>'
+    + '</div>';
+  _affEditMethodChange();
+}
+
+function _affEditMethodChange(){
+  var method = (document.getElementById('aff-edit-method')||{}).value||'';
+  var lbl    = document.getElementById('aff-edit-info-lbl');
+  if(!lbl) return;
+  if(method==='paypal') lbl.textContent='PayPal email address';
+  else                  lbl.textContent='Bank name + last 4 digits of account';
+}
+
+function _saveAffPayoutEdit(){
+  var method = (document.getElementById('aff-edit-method')||{}).value;
+  var info   = ((document.getElementById('aff-edit-info')||{}).value||'').trim();
+  var btn    = document.getElementById('aff-edit-save-btn');
+  if(!info){showToast('Please enter your payout details.','warning');return;}
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  supa.from('affiliates').update({payout_method:method,payout_info:info})
+    .eq('id',_affData.id).then(function(res){
+      if(res.error){showToast('Error: '+res.error.message,'error');if(btn){btn.disabled=false;btn.textContent='Save changes';}}
+      else{ _affData.payout_method=method; _affData.payout_info=info; _renderAff_dashboard(); showToast('Payout updated!','success'); }
+    });
+}
+
+/* ── Rejected / Suspended Views ───────────────────────────────── */
+function _renderAff_rejected(){
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:24px 0 12px;">'
+    + '<div style="font-size:48px;margin-bottom:16px;">❌</div>'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:8px;">Application Not Approved</div>'
+    + '<div style="font-size:13px;color:#6b7a96;line-height:1.7;margin-bottom:16px;">'
+    + (_affData && _affData.rejection_note ? _affData.rejection_note : 'Your application was not approved at this time.')
+    + '</div>'
+    + '<div style="font-size:12px;color:#6b7a96;">Questions? Email us at <a href="mailto:hello@econsquad.ai" style="color:#aaff3e;">hello@econsquad.ai</a></div>'
+    + '</div>';
+}
+
+function _renderAff_suspended(){
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:24px 0 12px;">'
+    + '<div style="font-size:48px;margin-bottom:16px;">⏸️</div>'
+    + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin-bottom:8px;">Account Suspended</div>'
+    + '<div style="font-size:13px;color:#6b7a96;line-height:1.7;">Your partner account has been suspended. Please contact <a href="mailto:hello@econsquad.ai" style="color:#aaff3e;">hello@econsquad.ai</a> for details.</div>'
+    + '</div>';
+}
+
+function _renderAff_error(msg){
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:32px 0;color:#ff8080;font-size:13px;">Error: '+(msg||'Unknown error')+'</div>';
+}
+
+function _renderAff_login(){
+  document.getElementById('aff-body-content').innerHTML =
+    '<div style="text-align:center;padding:32px 0;color:#6b7a96;font-size:13px;">Please sign in to access the Partner Program.</div>';
 }
 
 </script>
