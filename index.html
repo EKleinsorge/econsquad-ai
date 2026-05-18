@@ -5669,10 +5669,13 @@ function _swAction(stepId){
       connectGmail(); return;
     }
     if(step.action === 'openProfileForSetup'){
-      /* Minimize wizard, highlight the avatar, then open profile menu */
+      /* Minimize wizard, open profile menu, then glow the menu itself */
       _swCompleted['profile'] = true;
-      _swMinimize('home', '#user-avatar', false);
-      setTimeout(function(){ toggleProfileMenu(); }, 500);
+      _swMinimize('home', null, false);
+      setTimeout(function(){
+        toggleProfileMenu();
+        setTimeout(function(){ _swGlow('#profile-menu', false); }, 250);
+      }, 300);
       return;
     }
     if(step.action === 'openSmsFromSetup'){
