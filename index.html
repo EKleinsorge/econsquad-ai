@@ -759,6 +759,34 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .badge-desc-sm{font-size:10px;color:#6b7a96;line-height:1.4;}
 .badge-earned-date{font-size:9px;color:#aaff3e;margin-top:4px;font-weight:700;}
 
+/* ===== SETUP WIZARD ===== */
+#setup-wizard{display:none;}
+#setup-wizard.sw-open{display:flex;}
+.sw-step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all .3s;cursor:default;}
+.sw-step-dot.done{background:#aaff3e;}
+.sw-step-dot.active{width:24px;border-radius:4px;background:#aaff3e;}
+.sw-step-dot.skipped{background:rgba(170,255,62,0.3);}
+.sw-icon{font-size:36px;margin-bottom:12px;}
+.sw-time-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);color:#aaff3e;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px;}
+.sw-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:8px;line-height:1.1;}
+.sw-body{font-size:14px;color:#8a97b5;line-height:1.7;margin-bottom:16px;}
+.sw-why{background:rgba(170,255,62,0.04);border-left:3px solid rgba(170,255,62,0.4);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#6b8a40;line-height:1.6;margin-bottom:24px;}
+.sw-why strong{color:#aaff3e;font-weight:700;}
+.sw-btn{display:block;width:100%;background:#aaff3e;color:#0a1a00;border:none;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:900;padding:14px 28px;border-radius:12px;cursor:pointer;letter-spacing:.04em;transition:opacity .2s;margin-bottom:12px;}
+.sw-btn:hover{opacity:.88;}
+.sw-btn.sw-btn-outline{background:transparent;border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:14px;font-weight:700;padding:11px 28px;}
+.sw-skip{display:block;text-align:center;font-size:12px;color:#4a5568;cursor:pointer;padding:4px;transition:color .15s;}
+.sw-skip:hover{color:#8a97b5;}
+.sw-checklist{list-style:none;padding:0;margin:0 0 24px;}
+.sw-checklist li{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.sw-checklist li:last-child{border-bottom:none;}
+.sw-check{width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .3s;}
+.sw-check.done{background:#aaff3e;border-color:#aaff3e;color:#0a1a00;font-size:13px;font-weight:900;}
+.sw-check.active{border-color:rgba(170,255,62,0.6);background:rgba(170,255,62,0.08);}
+.sw-cl-title{font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:2px;}
+.sw-cl-desc{font-size:11px;color:#6b7a96;line-height:1.5;}
+.sw-complete-icon{width:64px;height:64px;border-radius:50%;background:rgba(170,255,62,0.1);border:2px solid rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
+
 /* ===== ONBOARDING MODAL ===== */
 #onboarding-modal{position:fixed;inset:0;z-index:99998;background:rgba(4,5,13,0.93);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:20px;}
 .ob-box{background:rgba(10,13,26,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:40px 44px;max-width:560px;width:100%;box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 60px rgba(170,255,62,0.04);position:relative;}
@@ -2176,6 +2204,33 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       </div>
 
+<!-- ═══════════════ SETUP WIZARD ═══════════════ -->
+<div id="setup-wizard" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(4,5,13,0.96);backdrop-filter:blur(20px);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:rgba(10,13,26,0.99);border:1px solid rgba(170,255,62,0.2);border-radius:24px;max-width:580px;width:100%;box-shadow:0 40px 100px rgba(0,0,0,0.7),0 0 80px rgba(170,255,62,0.04);overflow:hidden;">
+
+    <!-- Progress bar -->
+    <div style="height:3px;background:rgba(255,255,255,0.05);">
+      <div id="sw-progress-bar" style="height:100%;background:linear-gradient(90deg,#aaff3e,#5a9900);width:0%;transition:width .5s ease;border-radius:3px;"></div>
+    </div>
+
+    <div style="padding:40px 44px 36px;">
+
+      <!-- Header: ARIA orb + step dots -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;">
+        <div style="position:relative;width:52px;height:52px;">
+          <canvas id="sw-aria-cv" width="52" height="52" data-dorb="sw-aria-orb" style="position:absolute;top:0;left:0;width:52px;height:52px;"></canvas>
+          <div id="sw-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;z-index:2;pointer-events:none;"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;" id="sw-dots"></div>
+      </div>
+
+      <!-- Step content (swapped by JS) -->
+      <div id="sw-content"></div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════ ONBOARDING MODAL ═══════════════ -->
 <div id="onboarding-modal" style="display:none;">
   <div class="ob-box">
@@ -2990,8 +3045,10 @@ function onSignedIn(user){
   setTimeout(function(){ if(typeof window.initNotifications==='function') window.initNotifications(); }, 2000);
   /* initialize task system (widget, alerts, badge) */
   setTimeout(function(){ if(typeof window.initTasks==='function') window.initTasks(); }, 2500);
-  /* show onboarding for new/returning users (respects "don't show again") */
-  setTimeout(function(){ initOnboarding(user); }, 3800);
+  /* setup wizard for new users (runs once, then hands off to tour) */
+  setTimeout(function(){ initSetupWizard(user); }, 2800);
+  /* show onboarding tour for returning users (respects "don't show again") */
+  setTimeout(function(){ if(localStorage.getItem(SW_KEY)==='1') initOnboarding(user); }, 3800);
   /* initialize right sidebar (Email / Calendar / Tasks switcher) */
   setTimeout(function(){ if(typeof window.initRightSidebar==='function') window.initRightSidebar(); }, 3000);
   /* update last active */
@@ -5324,6 +5381,185 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 });
 
+
+/* ═══════════════════════════════════════════════════════════
+   SETUP WIZARD  — runs once for new users before the tour
+   ═══════════════════════════════════════════════════════════ */
+var SW_KEY = 'esq_setup_v1';
+
+var SW_STEPS = [
+  {
+    id:'welcome', icon:'✦', time:null,
+    title:'Welcome to EconSquad AI',
+    body:'I\'m ARIA — your AI Chief of Staff for economic development. Before you dive in, let\'s spend 8 minutes getting you set up. You\'ll connect your tools, personalise your squad, and be ready to run your first mission.',
+    why:null, cta:'Let\'s get started →', skip:null, action:null
+  },
+  {
+    id:'gmail', icon:'📧', time:'~2 min',
+    title:'Connect your Gmail',
+    body:'ARIA monitors your inbox for grant opportunities, RFI deadlines, prospect activity, and follow-ups — then surfaces exactly what needs your attention today.',
+    why:'<strong>Why this matters:</strong> Most ED opportunities land in your inbox first. Without Gmail connected, ARIA is working with one hand tied behind her back.',
+    cta:'Connect Gmail →', skip:'Skip for now — I\'ll do this later', action:'connectGmail'
+  },
+  {
+    id:'profile', icon:'🏙️', time:'~1 min',
+    title:'Tell me about your community',
+    body:'Your name, organisation, and community context let ARIA personalise every response, report, and recommendation to your specific market and priorities.',
+    why:'<strong>Why this matters:</strong> Generic AI gives generic answers. When ARIA knows your community, every output is tailored, credible, and ready to use.',
+    cta:'Set up my profile →', skip:'Skip for now', action:'openProfileForSetup'
+  },
+  {
+    id:'specialists', icon:'⚡', time:'~2 min',
+    title:'Meet your AI squad',
+    body:'You have AI specialists ready to deploy — grant writers, BRE analysts, incentive modelers, workforce experts, and more. Each one saves 2–6 hours per task.',
+    why:'<strong>Why this matters:</strong> Knowing who\'s on your squad means you\'ll reach for them when the moment hits — instead of trying to do it all yourself.',
+    cta:'Take the full tour →', skip:'Skip the tour', action:'openSquadFromSetup'
+  },
+  {
+    id:'done', icon:null, time:null,
+    title:'You\'re ready to roll 🎉',
+    body:'Your squad is standing by. ARIA is live. Everything is set up and ready to go. Let\'s build something great for your community.',
+    why:null, cta:'Open my dashboard →', skip:null, action:'closeSW'
+  }
+];
+
+var _swStep = 0;
+var _swCompleted = {};
+
+function initSetupWizard(user){
+  /* Check for post-OAuth resume */
+  var resumeRaw = localStorage.getItem('esq_sw_resume');
+  if(resumeRaw !== null){
+    localStorage.removeItem('esq_sw_resume');
+    var idx = parseInt(resumeRaw, 10);
+    if(!isNaN(idx) && idx >= 0){
+      _swStep = idx;
+      _swCompleted['gmail'] = true;
+      setTimeout(function(){ openSW(); }, 1000);
+      return;
+    }
+  }
+  /* Only show once — skip if already completed */
+  if(localStorage.getItem(SW_KEY) === '1') return;
+  setTimeout(function(){ openSW(); }, 2200);
+}
+
+function openSW(){
+  var el = document.getElementById('setup-wizard');
+  if(!el) return;
+  el.classList.add('sw-open');
+  el.style.display = 'flex';
+  _swRender();
+  setTimeout(function(){
+    if(!window.initDashOrb) return;
+    window.initDashOrb('sw-aria-orb','lime');
+    var st = window.dashOrbStates && window.dashOrbStates['sw-aria-orb'];
+    if(!st) return;
+    st.targetEnergy = 0.85;
+    var col = st.col; var r = col.r;
+    var sph = document.getElementById('sw-aria-sph');
+    if(sph){
+      st.sphereEl = sph;
+      sph.style.background = 'radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
+      sph.style.boxShadow = '0 0 12px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 24px rgba('+r[0]+','+r[1]+','+r[2]+',0.35)';
+    }
+    if(!window.dashAnimRunning && window.runDashAnim) window.runDashAnim();
+  }, 150);
+}
+
+function closeSW(){
+  var el = document.getElementById('setup-wizard');
+  if(el){ el.classList.remove('sw-open'); el.style.display = 'none'; }
+  localStorage.setItem(SW_KEY, '1');
+  setTimeout(function(){ showOnboarding(false); }, 400);
+}
+
+function _swRender(){
+  var step = SW_STEPS[_swStep];
+  var total = SW_STEPS.length;
+  var pct = Math.round((_swStep / (total - 1)) * 100);
+  var pb = document.getElementById('sw-progress-bar');
+  if(pb) pb.style.width = pct + '%';
+
+  var dots = document.getElementById('sw-dots');
+  if(dots){
+    dots.innerHTML = SW_STEPS.map(function(s, i){
+      var cls = 'sw-step-dot';
+      if(i < _swStep) cls += _swCompleted[s.id] ? ' done' : ' skipped';
+      else if(i === _swStep) cls += ' active';
+      return '<div class="'+cls+'" title="'+s.title+'"></div>';
+    }).join('');
+  }
+
+  var c = document.getElementById('sw-content');
+  if(!c) return;
+
+  if(step.id === 'done'){
+    c.innerHTML =
+      '<div style="text-align:center;">' +
+        '<div class="sw-complete-icon">🎉</div>' +
+        '<div class="sw-title" style="text-align:center;margin-bottom:12px;">' + step.title + '</div>' +
+        '<div class="sw-body" style="text-align:center;margin-bottom:20px;">' + step.body + '</div>' +
+        '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px 20px;margin-bottom:24px;text-align:left;">' +
+          SW_STEPS.filter(function(s){ return s.id !== 'welcome' && s.id !== 'done'; }).map(function(s){
+            var done = _swCompleted[s.id];
+            return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px;color:'+(done?'#aaff3e':'#4a5568')+';font-weight:'+(done?'700':'400')+';">' +
+              '<span style="font-size:15px;">'+(done?'✅':'⬜')+'</span>' +
+              '<span>' + s.icon + ' ' + s.title + (done ? '' : ' <span style="font-size:10px;">(skipped)</span>') + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+        '<button class="sw-btn" onclick="closeSW()">' + step.cta + '</button>' +
+        '<div style="font-size:11px;color:#4a5568;text-align:center;margin-top:10px;">Skipped steps are available anytime from your profile menu</div>' +
+      '</div>';
+    return;
+  }
+
+  var gmailConnected = !!(localStorage.getItem('esq_email_provider') && localStorage.getItem('esq_gmail_disconnected') !== '1');
+  var autoCheck = (step.id === 'gmail' && gmailConnected);
+  if(autoCheck) _swCompleted[step.id] = true;
+
+  c.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">' +
+      (step.icon !== '✦' ? '<div class="sw-icon" style="margin:0;font-size:32px;">' + step.icon + '</div>' : '') +
+      (step.time ? '<div class="sw-time-badge">⏱ ' + step.time + '</div>' : '') +
+    '</div>' +
+    '<div class="sw-title">' + step.title + '</div>' +
+    '<div class="sw-body">' + step.body + '</div>' +
+    (step.why ? '<div class="sw-why">' + step.why + '</div>' : '') +
+    '<button class="sw-btn" onclick="_swAction(\'' + step.id + '\')">' + (autoCheck ? '✓ Already connected — Continue →' : step.cta) + '</button>' +
+    (step.skip ? '<div class="sw-skip" onclick="_swSkip()">' + step.skip + '</div>' : '');
+}
+
+function _swAction(stepId){
+  _swCompleted[stepId] = true;
+  var step = SW_STEPS.find(function(s){ return s.id === stepId; });
+  if(step && step.action){
+    if(step.action === 'connectGmail'){
+      localStorage.setItem('esq_sw_resume', String(_swStep + 1));
+      connectGmail(); return;
+    }
+    if(step.action === 'openProfileForSetup'){
+      _swNext();
+      setTimeout(function(){ toggleProfileMenu(); }, 300);
+      return;
+    }
+    if(step.action === 'openSquadFromSetup'){
+      closeSW(); return;
+    }
+    if(step.action === 'closeSW'){
+      closeSW(); return;
+    }
+  }
+  _swNext();
+}
+
+function _swSkip(){ _swNext(); }
+
+function _swNext(){
+  if(_swStep < SW_STEPS.length - 1){ _swStep++; _swRender(); }
+  else { closeSW(); }
+}
 
 /* ===== BADGE SYSTEM ===== */
 var BADGES={
