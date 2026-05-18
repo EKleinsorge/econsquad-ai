@@ -5408,10 +5408,10 @@ var SW_STEPS = [
   },
   {
     id:'profile', icon:'🏙️', time:'~1 min',
-    title:'Tell ARIA about your community',
-    body:'Click the avatar icon (top right) → your name will show there. Add your organisation name and community so every AI response, report, and recommendation is tailored specifically to your market — not a generic answer.',
-    why:'<strong>Why this matters:</strong> ARIA uses your community context in every specialist output. A grant narrative written for "your region" is far more credible than a generic one.',
-    cta:'Open my profile →', skip:'Skip for now', action:'openProfileForSetup'
+    title:'Your profile &amp; account settings',
+    body:'Click the <strong>avatar icon in the top-right corner</strong> any time to: upload your community logo (it appears in the nav bar), manage your subscription, set up SMS alerts, and access your admin panel if you have one. Your name and email come from your account automatically.',
+    why:'<strong>Tip:</strong> Upload your community logo — it replaces the EconSquad AI branding in the nav and gives the platform a local feel for your team.',
+    cta:'Got it — next step →', skip:null, action:null
   },
   {
     id:'sms', icon:'📱', time:'~1 min',
@@ -5423,9 +5423,9 @@ var SW_STEPS = [
   {
     id:'squad', icon:'⚡', time:'~2 min',
     title:'Your AI specialist squad',
-    body:'Your home dashboard (My Squad tab) is where you deploy AI specialists. Each card is a different expert — grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Click <strong>Deploy</strong> on any card to put them to work.',
+    body:'When you close this setup, you\'ll land on the <strong>Home tab — My Squad</strong>. Each card is a different AI expert: grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Hit <strong>Deploy</strong> on any card to put them to work immediately.',
     why:'<strong>Why this matters:</strong> Each specialist saves 2–6 hours per task. Running just 3 tasks per week recovers 6–18 hours of capacity — time you can redirect to higher-value work.',
-    cta:'See my squad →', skip:'I\'ll explore on my own', action:'goToSquad'
+    cta:'Got it — almost done →', skip:null, action:null
   },
   {
     id:'aria', icon:'✨', time:'~1 min',
@@ -5437,15 +5437,15 @@ var SW_STEPS = [
   {
     id:'roi', icon:'📊', time:'~1 min',
     title:'Track your ROI automatically',
-    body:'Every specialist task you run logs your time saved automatically. Go to the <strong>Stats tab</strong> in the top nav → click <strong>ROI Calculator</strong> → enter your salary. EconSquad AI instantly shows your hourly rate, total value recovered, and projected annual ROI.',
-    why:'<strong>Why this matters:</strong> This is your proof of impact. Screenshot it for your board, your leadership, and your own motivation. Users average $28,000+ recovered annually.',
-    cta:'Show me the Stats tab →', skip:null, action:'goToStats'
+    body:'Every specialist task you run logs your time saved automatically. Find it in the <strong>My Stats &amp; ROI tab</strong> in the top nav. Enter your salary and EconSquad AI instantly shows your hourly rate, total hours recovered, and projected annual ROI. One screenshot = powerful proof of impact for leadership.',
+    why:'<strong>Why this matters:</strong> Users average $28,000+ in recovered staff capacity annually. This is your number — own it.',
+    cta:'Got it — I\'m ready →', skip:null, action:null
   },
   {
     id:'done', icon:null, time:null,
-    title:'You\'re Ready &amp; Fully Set Up — High Five! 🙌',
-    body:'Your squad is standing by. ARIA is live. Here\'s your quick reference so you always know where everything lives.',
-    why:null, cta:'Open my dashboard →', skip:null, action:'closeSW'
+    title:'You\'re All Set Up! 🙌',
+    body:'Your squad is standing by and ARIA is live. Here\'s your quick reference — bookmark this mentally so you always know where everything lives.',
+    why:null, cta:'Take me to my dashboard →', skip:null, action:'closeSW'
   }
 ];
 
@@ -5612,13 +5612,6 @@ function _swAction(stepId){
     if(step.action === 'goToSquad'){
       /* Advance to the next wizard step (ARIA tip) instead of closing — closing
          would skip the remaining ARIA, ROI, and Done steps entirely. */
-      _swNext();
-      return;
-    }
-    if(step.action === 'goToStats'){
-      /* Navigate to Stats tab so they can SEE the ROI calculator, then advance */
-      if(typeof showTab === 'function') showTab('stats');
-      else if(typeof showDashTab === 'function') showDashTab('stats-tab', null);
       _swNext();
       return;
     }
@@ -11053,11 +11046,8 @@ function saveSmsSettings(){
       setTimeout(function(){ if(statusEl) statusEl.textContent=''; }, 3000);
       var ps = document.getElementById('sms-phone-status');
       if(ps){ ps.textContent = ''; }
-      /* If the setup wizard is active, close the SMS modal after a brief
-         success pause so the user lands back on the wizard automatically */
-      if(window._swActive){
-        setTimeout(function(){ closeSmsModal(); }, 900);
-      }
+      /* Auto-close the SMS modal after a brief success pause */
+      setTimeout(function(){ closeSmsModal(); }, 900);
     }
   });
 }
