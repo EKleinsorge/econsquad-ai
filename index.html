@@ -2227,13 +2227,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
     <div style="padding:40px 44px 36px;">
 
-      <!-- Header: ARIA orb + step dots -->
+      <!-- Walk-through label -->
+      <div style="text-align:center;margin-bottom:20px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(170,255,62,0.55);">EconSquad AI — Setup Walk Through</span>
+      </div>
+
+      <!-- Header: ARIA orb + step dots + back button -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;">
         <div style="position:relative;width:52px;height:52px;">
           <canvas id="sw-aria-cv" width="52" height="52" data-dorb="sw-aria-orb" style="position:absolute;top:0;left:0;width:52px;height:52px;"></canvas>
           <div id="sw-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;z-index:2;pointer-events:none;"></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;" id="sw-dots"></div>
+        <div id="sw-back-btn" onclick="_swBack()" style="font-size:12px;font-weight:700;color:#4a5568;cursor:pointer;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.07);transition:all .15s;user-select:none;" onmouseover="this.style.color='#8a97b5';this.style.borderColor='rgba(255,255,255,0.15)'" onmouseout="this.style.color='#4a5568';this.style.borderColor='rgba(255,255,255,0.07)'">← Back</div>
       </div>
 
       <!-- Step content (swapped by JS) -->
@@ -5582,6 +5588,9 @@ function _swRender(){
   var pct = Math.round((_swStep / (total - 1)) * 100);
   var pb = document.getElementById('sw-progress-bar');
   if(pb) pb.style.width = pct + '%';
+  /* Hide back button on first and last step */
+  var backBtn = document.getElementById('sw-back-btn');
+  if(backBtn) backBtn.style.visibility = (_swStep === 0 || _swStep === total - 1) ? 'hidden' : 'visible';
 
   var dots = document.getElementById('sw-dots');
   if(dots){
@@ -5729,6 +5738,10 @@ function _swSkipAll(){
 function _swNext(){
   if(_swStep < SW_STEPS.length - 1){ _swStep++; _swRender(); }
   else { closeSW(); }
+}
+
+function _swBack(){
+  if(_swStep > 0){ _swStep--; _swRender(); }
 }
 
 /* ===== BADGE SYSTEM ===== */
