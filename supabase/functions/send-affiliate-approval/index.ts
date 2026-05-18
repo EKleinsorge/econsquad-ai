@@ -8,16 +8,40 @@ const SITE_URL       = 'https://econsquad.ai';
 const FROM_EMAIL     = 'Eric from EconSquad <eric@econsquad.ai>';
 
 Deno.serve(async (req: Request) => {
+  console.log('[send-affiliate-approval] invoked', req.method, req.url);
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
+      },
+    });
+  }
+
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
   try {
-    const { to, name, code } = await req.json();
+    const body = await req.json();
+    console.log('[send-affiliate-approval] body:', JSON.stringify(body));
+    const { to, name, code } = body;
+
+    const CORS = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
+      'Content-Type': 'application/json',
+    };
 
     if (!to || !code) {
+      console.log('[send-affiliate-approval] missing fields, to=', to, 'code=', code);
       return new Response(JSON.stringify({ ok: false, error: 'Missing required fields' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
+        status: 400, headers: CORS,
       });
     }
 
@@ -126,19 +150,24 @@ Deno.serve(async (req: Request) => {
     });
 
     const result = await r.json();
+    console.log('[send-affiliate-approval] Resend status:', r.status, JSON.stringify(result));
     if (!r.ok) {
       return new Response(JSON.stringify({ ok: false, error: result }), {
-        status: 500, headers: { 'Content-Type': 'application/json' },
+        status: 500, headers: CORS,
       });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
+      status: 200, headers: CORS,
     });
 
   } catch (err: any) {
+    console.log('[send-affiliate-approval] caught error:', err.message);
     return new Response(JSON.stringify({ ok: false, error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
     });
   }
 });

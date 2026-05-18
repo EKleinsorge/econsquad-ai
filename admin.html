@@ -2697,7 +2697,8 @@ function _renderAffAppsTable(tbody, rows, profMap){
       actions = '<button class="btn-lime btn-sm" onclick="approveAffiliate(\''+r.id+'\',\''+r.code+'\',\''+safeEmail+'\',\''+safeName+'\')">Approve</button>'
               + ' <button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="rejectAffiliate(\''+r.id+'\')">Reject</button>';
     } else if(r.status==='approved'){
-      actions = '<button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="suspendAffiliate(\''+r.id+'\')">Suspend</button>';
+      actions = '<button class="btn-ghost btn-sm" style="border-color:rgba(170,255,62,0.25);color:#aaff3e;" onclick="resendAffiliateEmail(\''+r.code+'\',\''+safeEmail+'\',\''+safeName+'\')">✉ Resend Email</button>'
+              + ' <button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="suspendAffiliate(\''+r.id+'\')">Suspend</button>';
     } else if(r.status==='suspended'||r.status==='rejected'){
       actions = '<button class="btn-ghost btn-sm" onclick="reactivateAffiliate(\''+r.id+'\')">Reactivate</button>';
     }
@@ -2705,7 +2706,7 @@ function _renderAffAppsTable(tbody, rows, profMap){
     return '<tr>'
       + '<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+email+(org?'  ·  '+org:'')+'</div></td>'
       + '<td><span style="font-family:monospace;color:#aaff3e;font-size:12px;">?ref='+r.code+'</span></td>'
-      + '<td style="font-size:12px;"><div>'+method+'</div><div style="font-size:11px;color:#6b7a96;">'+r.payout_info+'</div></td>'
+      + '<td style="font-size:12px;"><div>'+method+'</div><div style="font-size:11px;color:#6b7a96;">'+(r.payout_info||'')+'</div></td>'
       + '<td style="font-size:12px;color:#8a97b5;">'+applied+'</td>'
       + '<td>'+statusBadge+'</td>'
       + '<td>'+actions+'</td>'
@@ -2723,16 +2724,44 @@ function approveAffiliate(id, code, email, name){
     if(res.error){ showToast('Error: '+res.error.message, 'error'); return; }
     showToast('✓ '+name+' approved! Sending approval email…', 'success');
     /* Send approval email via Edge Function */
+    console.log('[approveAffiliate] invoking send-affiliate-approval', {to: email, name: name, code: code});
     supa.functions.invoke('send-affiliate-approval', {
       body: { to: email, name: name, code: code }
     }).then(function(r){
-      if(r.error || (r.data && !r.data.ok)){
-        showToast('Approved but email failed — check Resend logs.', 'error');
+      console.log('[approveAffiliate] edge function result:', JSON.stringify(r));
+      if(r.error){
+        showToast('Email failed: '+JSON.stringify(r.error), 'error');
+      } else if(r.data && !r.data.ok){
+        showToast('Email failed: '+JSON.stringify(r.data.error), 'error');
       } else {
         showToast('✓ Approval email sent to '+email, 'success');
       }
+    }).catch(function(err){
+      console.error('[approveAffiliate] invoke threw:', err);
+      showToast('Email invoke error: '+err.message, 'error');
     });
     loadAffApps();
+  });
+}
+
+function resendAffiliateEmail(code, email, name){
+  if(!confirm('Resend approval email to '+name+' ('+email+')?')) return;
+  showToast('Sending approval email to '+email+'…', 'success');
+  console.log('[resendAffiliateEmail] invoking send-affiliate-approval', {to: email, name: name, code: code});
+  supa.functions.invoke('send-affiliate-approval', {
+    body: { to: email, name: name, code: code }
+  }).then(function(r){
+    console.log('[resendAffiliateEmail] edge function result:', JSON.stringify(r));
+    if(r.error){
+      showToast('Email failed: '+JSON.stringify(r.error), 'error');
+    } else if(r.data && !r.data.ok){
+      showToast('Email failed: '+JSON.stringify(r.data.error), 'error');
+    } else {
+      showToast('✓ Approval email resent to '+email, 'success');
+    }
+  }).catch(function(err){
+    console.error('[resendAffiliateEmail] invoke threw:', err);
+    showToast('Email invoke error: '+err.message, 'error');
   });
 }
 
