@@ -5460,12 +5460,15 @@ function initSetupWizard(user){
     if(!isNaN(idx) && idx >= 0){
       _swStep = idx;
       _swCompleted['gmail'] = true;
+      window._swActive = true;
       setTimeout(function(){ openSW(); }, 1000);
       return;
     }
   }
   /* Only show once — skip if already completed */
   if(localStorage.getItem(SW_KEY) === '1') return;
+  /* Block the old onboarding modal from firing while wizard is running */
+  window._swActive = true;
   setTimeout(function(){ openSW(); }, 2200);
 }
 
@@ -5496,7 +5499,10 @@ function closeSW(){
   var el = document.getElementById('setup-wizard');
   if(el){ el.classList.remove('sw-open'); el.style.display = 'none'; }
   localStorage.setItem(SW_KEY, '1');
-  setTimeout(function(){ showOnboarding(false); }, 400);
+  /* Mark onboarding as done so the old welcome modal never auto-fires after
+     the setup wizard — the platform tour is still accessible from Resources. */
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  window._swActive = false;
 }
 
 function _swRender(){
@@ -5747,6 +5753,8 @@ function initOnboarding(user){
   /* Don't interrupt a tour that's already visible */
   var tourOverlay = document.getElementById('tour-overlay');
   if(tourOverlay && tourOverlay.style.display !== 'none') return;
+  /* Don't show if setup wizard is active this session */
+  if(window._swActive) return;
   /* Check if user has dismissed permanently */
   var done = localStorage.getItem(ONBOARDING_KEY);
   if(done === '1') return;
