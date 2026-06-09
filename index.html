@@ -1396,6 +1396,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 <div style="font-size:10px;font-weight:800;color:#4a5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Integrations</div>
                 <div id="pm-integrations"><!-- populated by updateIntegrationStatus() --></div>
               </div>
+              <!-- Promo / Focus Group code entry -->
+              <div id="pm-promo-row">
+                <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
+                <div onclick="openPromoModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(170,255,62,0.06)'" onmouseout="this.style.background='transparent'">
+                  <span style="font-size:14px;">🎟️</span>
+                  <div>
+                    <div id="pm-promo-label" style="font-size:12px;font-weight:700;color:#eef3fc;">Enter Access Code</div>
+                    <div id="pm-promo-sub" style="font-size:10px;color:#6b7a96;">Have a promo or beta code?</div>
+                  </div>
+                </div>
+              </div>
               <!-- Admin panel link — only shown for is_admin users -->
               <div id="pm-admin-row" style="display:none;">
                 <div style="height:1px;background:rgba(170,255,62,0.12);margin:4px 0;"></div>
@@ -5273,12 +5284,33 @@ function updatePlanBadge(user){
   if(!pb)return;
 
   /* get trial info from profile */
-  supa.from('profiles').select('plan,trial_end,stripe_customer_id').eq('id',user.id).single().then(function(res){
+  supa.from('profiles').select('plan,trial_end,stripe_customer_id,is_beta_tester,beta_expires_at').eq('id',user.id).single().then(function(res){
     if(!res.data)return;
     var plan=res.data.plan||'trial';
     var trialEnd=res.data.trial_end?new Date(res.data.trial_end):null;
     var now=new Date();
 
+    /* ── Beta / Focus Group access ── */
+    if(res.data.is_beta_tester && res.data.beta_expires_at){
+      var betaExp=new Date(res.data.beta_expires_at);
+      if(now < betaExp){
+        pb.textContent='🧪 Beta Tester';
+        pb.className='plan-badge pro';
+        pb.title='Focus Group Participant — Full access through '+betaExp.toLocaleDateString();
+        pb.onclick=function(){};
+        window._isBetaTester=true;
+        /* update profile menu label */
+        var pLabel=document.getElementById('pm-promo-label');
+        var pSub=document.getElementById('pm-promo-sub');
+        if(pLabel) pLabel.textContent='Beta Access Active';
+        if(pSub) pSub.textContent='Expires '+betaExp.toLocaleDateString();
+        var planEl=document.getElementById('pm-plan');
+        if(planEl) planEl.textContent='🧪 BETA TESTER';
+        return;
+      }
+    }
+
+    window._isBetaTester=false;
     if(plan==='trial'&&trialEnd){
       var msLeft=trialEnd-now;
       var daysLeft=Math.ceil(msLeft/(1000*60*60*24));
@@ -5306,6 +5338,95 @@ function updatePlanBadge(user){
       pb.title='Free trial · Click to manage';
     }
     pb.onclick=function(){ openBillingModal(); };
+  });
+}
+
+/* ===== PROMO / FOCUS GROUP CODE REDEMPTION ===== */
+var VALID_PROMO_CODES = {
+  'FOCUSGROUP': {
+    label:      'Focus Group Participant',
+    expires_at: '2026-06-30T23:59:59+00:00'
+  }
+};
+
+function openPromoModal(){
+  var m=document.getElementById('promo-modal');
+  if(!m)return;
+  document.getElementById('promo-modal-enter').style.display='block';
+  document.getElementById('promo-modal-success').style.display='none';
+  document.getElementById('promo-code-input').value='';
+  document.getElementById('promo-msg').textContent='';
+  document.getElementById('promo-msg').style.color='#ff8080';
+  m.style.display='flex';
+  setTimeout(function(){ document.getElementById('promo-code-input').focus(); },100);
+}
+
+function closePromoModal(){
+  var m=document.getElementById('promo-modal');
+  if(m)m.style.display='none';
+}
+
+/* close on backdrop click */
+document.addEventListener('click',function(e){
+  var m=document.getElementById('promo-modal');
+  if(m&&m.style.display==='flex'&&e.target===m)closePromoModal();
+});
+
+function redeemPromoCode(){
+  if(!currentUser){
+    document.getElementById('promo-msg').textContent='Please sign in first.';
+    return;
+  }
+  var raw=document.getElementById('promo-code-input').value.trim().toUpperCase();
+  var msgEl=document.getElementById('promo-msg');
+  if(!raw){msgEl.textContent='Please enter a code.';return;}
+
+  var promo=VALID_PROMO_CODES[raw];
+  if(!promo){
+    msgEl.style.color='#ff8080';
+    msgEl.textContent='That code is not valid. Check for typos and try again.';
+    return;
+  }
+
+  /* Check if already redeemed */
+  if(window._isBetaTester){
+    msgEl.style.color='#aaff3e';
+    msgEl.textContent='Beta access is already active on your account!';
+    return;
+  }
+
+  msgEl.style.color='#aaff3e';
+  msgEl.textContent='Activating your access…';
+
+  supa.from('profiles').update({
+    is_beta_tester:    true,
+    beta_expires_at:   promo.expires_at,
+    beta_activated_at: new Date().toISOString(),
+    promo_code_used:   raw
+  }).eq('id',currentUser.id).then(function(res){
+    if(res.error){
+      msgEl.style.color='#ff8080';
+      msgEl.textContent='Error: '+res.error.message;
+      return;
+    }
+    /* Show success screen */
+    document.getElementById('promo-modal-enter').style.display='none';
+    document.getElementById('promo-modal-success').style.display='block';
+    /* Update badge immediately */
+    window._isBetaTester=true;
+    var pb=document.getElementById('plan-badge');
+    if(pb){
+      pb.textContent='🧪 Beta Tester';
+      pb.className='plan-badge pro';
+      pb.onclick=function(){};
+    }
+    var pLabel=document.getElementById('pm-promo-label');
+    var pSub=document.getElementById('pm-promo-sub');
+    var betaExp=new Date(promo.expires_at);
+    if(pLabel) pLabel.textContent='Beta Access Active';
+    if(pSub) pSub.textContent='Expires '+betaExp.toLocaleDateString();
+    var planEl=document.getElementById('pm-plan');
+    if(planEl) planEl.textContent='🧪 BETA TESTER';
   });
 }
 
@@ -5346,6 +5467,22 @@ function loadBillingDetails(){
     var plan=d.plan||'trial';
     var trialEnd=d.trial_end?new Date(d.trial_end):null;
     var now=new Date();
+
+    /* ── Beta tester: show special billing screen, no upgrade prompts ── */
+    if(d.is_beta_tester && d.beta_expires_at && now < new Date(d.beta_expires_at)){
+      var betaExp=new Date(d.beta_expires_at);
+      var mc=document.getElementById('billing-modal-content');
+      if(mc) mc.innerHTML='<div style="text-align:center;padding:16px 0;">'
+        +'<div style="font-size:40px;margin-bottom:12px;">🧪</div>'
+        +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#aaff3e;margin-bottom:8px;">Focus Group Participant Access</div>'
+        +'<div style="font-size:14px;color:#8a97b5;line-height:1.7;margin-bottom:20px;">You have full access to EconSquad AI during the beta evaluation period.<br>No payment information is required at this time.</div>'
+        +'<div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px;font-size:12px;color:#6b7a96;line-height:1.7;margin-bottom:24px;">'
+        +'Access expires <strong style="color:#eef3fc;">'+betaExp.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'</strong>.<br>'
+        +'Beginning July 1, 2026, you may choose to subscribe. No automatic charges unless you voluntarily add payment information.</div>'
+        +'<button onclick="closeBillingModal()" style="background:#aaff3e;color:#1a3300;border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:900;font-family:\'DM Sans\',sans-serif;cursor:pointer;">Got it ⚡</button>'
+        +'</div>';
+      return;
+    }
 
     var nameEl=document.getElementById('billing-plan-name');
     var statusEl=document.getElementById('billing-plan-status');
@@ -10626,6 +10763,34 @@ function drawLogo(){if(!logoCtx)return;
     <div class="drawer-hint">Press Enter to send · Shift+Enter for new line</div>
   </div>
 
+</div>
+
+<!-- PROMO / FOCUS GROUP ACCESS CODE MODAL -->
+<div id="promo-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+  <div style="background:rgba(8,12,24,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:36px;width:480px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,0.6);position:relative;">
+    <button onclick="closePromoModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;line-height:1;">×</button>
+    <div id="promo-modal-enter">
+      <div style="font-size:32px;text-align:center;margin-bottom:16px;">🎟️</div>
+      <h2 style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin:0 0 8px;text-align:center;">Enter Access Code</h2>
+      <p style="font-size:13px;color:#6b7a96;text-align:center;margin:0 0 28px;line-height:1.6;">Have a focus group or beta access code? Enter it below to activate your access.</p>
+      <input id="promo-code-input" type="text" placeholder="e.g. FOCUSGROUP" maxlength="40"
+        style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:14px 16px;font-size:16px;font-weight:700;color:#eef3fc;font-family:'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;outline:none;text-align:center;margin-bottom:12px;"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')redeemPromoCode()">
+      <div id="promo-msg" style="font-size:12px;text-align:center;min-height:18px;margin-bottom:16px;"></div>
+      <button onclick="redeemPromoCode()" style="width:100%;background:#aaff3e;color:#1a3300;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:900;font-family:'DM Sans',sans-serif;cursor:pointer;">Activate Access →</button>
+    </div>
+    <div id="promo-modal-success" style="display:none;text-align:center;">
+      <div style="font-size:48px;margin-bottom:16px;">✅</div>
+      <h2 style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:22px;font-weight:900;color:#aaff3e;margin:0 0 12px;">Focus Group Participant Access Activated</h2>
+      <p style="font-size:14px;color:#8a97b5;line-height:1.7;margin:0 0 8px;">You have full access to EconSquad AI during the beta evaluation period.</p>
+      <p style="font-size:14px;color:#8a97b5;line-height:1.7;margin:0 0 24px;">No payment information is required at this time.</p>
+      <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px;margin-bottom:24px;font-size:12px;color:#6b7a96;line-height:1.7;">
+        Your access runs through <strong style="color:#eef3fc;">June 30, 2026</strong>. Beginning July 1, you may choose to subscribe — no automatic charges unless you voluntarily add payment info.
+      </div>
+      <button onclick="closePromoModal()" style="background:#aaff3e;color:#1a3300;border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:900;font-family:'DM Sans',sans-serif;cursor:pointer;">Got it — let's go! ⚡</button>
+    </div>
+  </div>
 </div>
 
 <!-- BILLING & PLAN MODAL -->

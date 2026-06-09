@@ -182,6 +182,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Store</div>
     <div class="sidebar-item" onclick="showAdminSection('shop',this);loadShopProducts()">🛍️ Swag Shop</div>
     <div class="sidebar-item" onclick="showAdminSection('book',this);loadBookSettings()">📘 Book Page</div>
+    <div class="sidebar-section">Beta Program</div>
+    <div class="sidebar-item" onclick="showAdminSection('focus-group',this);loadFocusGroup()">🧪 Focus Group</div>
     <div class="sidebar-section">Partnerships</div>
     <div class="sidebar-item" onclick="showAdminSection('aff-apps',this);loadAffApps()">📥 Applications</div>
     <div class="sidebar-item" onclick="showAdminSection('affiliates',this);loadAffiliates()">🤝 Affiliates</div>
@@ -556,6 +558,41 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- FOCUS GROUP / BETA TESTERS -->
+    <div id="section-focus-group" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div>
+          <div class="page-title">🧪 Focus Group Report</div>
+          <div class="page-sub">Beta testers who activated the FOCUSGROUP promo code</div>
+        </div>
+        <button class="btn-ghost" onclick="loadFocusGroup()" style="font-size:12px;">⟳ Refresh</button>
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;">
+        <div class="stat-card"><div class="stat-num" id="fg-total">—</div><div class="stat-label">TOTAL MEMBERS</div></div>
+        <div class="stat-card"><div class="stat-num" id="fg-active">—</div><div class="stat-label">ACTIVE (LAST 7 DAYS)</div></div>
+        <div class="stat-card"><div class="stat-num" id="fg-sessions">—</div><div class="stat-label">TOTAL SESSIONS</div></div>
+        <div class="stat-card"><div class="stat-num" id="fg-feedback">—</div><div class="stat-label">FEEDBACK SUBMITTED</div></div>
+      </div>
+
+      <!-- Members table -->
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Member</th>
+            <th>Activated</th>
+            <th>Last Login</th>
+            <th>Specialists Used</th>
+            <th>Sessions</th>
+            <th>Feedback</th>
+            <th>Tags</th>
+          </tr></thead>
+          <tbody id="fg-tbody"><tr><td colspan="7" style="text-align:center;color:#6b7a96;padding:32px;">Loading…</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -2635,6 +2672,102 @@ function uploadChapterMedia(mediaType, chNum){
 /* ═══════════════════════════════════════════════════════════════
    AFFILIATE PROGRAM — ADMIN
    ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   FOCUS GROUP / BETA TESTER REPORT
+   ═══════════════════════════════════════════════════════════════ */
+function loadFocusGroup(){
+  var tbody = document.getElementById('fg-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7a96;padding:32px;">Loading…</td></tr>';
+
+  /* Step 1: fetch all beta testers from profiles */
+  supa.from('profiles')
+    .select('id,full_name,email,organization,is_beta_tester,beta_activated_at,beta_expires_at,promo_code_used,last_sign_in_at')
+    .eq('is_beta_tester', true)
+    .order('beta_activated_at', {ascending: false})
+    .then(function(pRes){
+      var members = pRes.data || [];
+      document.getElementById('fg-total').textContent = members.length;
+
+      if(!members.length){
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b7a96;padding:32px;">No focus group members yet.</td></tr>';
+        ['fg-active','fg-sessions','fg-feedback'].forEach(function(id){ document.getElementById(id).textContent='0'; });
+        return;
+      }
+
+      var userIds = members.map(function(m){ return m.id; });
+
+      /* Step 2: fetch task_history for sessions + specialist usage */
+      Promise.all([
+        supa.from('task_history').select('user_id,specialist_name,created_at').in('user_id', userIds),
+        supa.from('problem_reports').select('user_id,created_at').in('user_id', userIds)
+      ]).then(function(results){
+        var tasks    = results[0].data || [];
+        var feedback = results[1].data || [];
+
+        /* Build lookup maps */
+        var sessionMap    = {};   /* user_id -> count */
+        var specialistMap = {};   /* user_id -> Set of specialist names */
+        var lastTaskMap   = {};   /* user_id -> latest task date */
+        var feedbackMap   = {};   /* user_id -> count */
+
+        tasks.forEach(function(t){
+          sessionMap[t.user_id] = (sessionMap[t.user_id]||0) + 1;
+          if(!specialistMap[t.user_id]) specialistMap[t.user_id] = new Set();
+          if(t.specialist_name) specialistMap[t.user_id].add(t.specialist_name);
+          if(!lastTaskMap[t.user_id] || t.created_at > lastTaskMap[t.user_id]) lastTaskMap[t.user_id] = t.created_at;
+        });
+
+        feedback.forEach(function(f){
+          feedbackMap[f.user_id] = (feedbackMap[f.user_id]||0) + 1;
+        });
+
+        /* Summary stats */
+        var totalSessions = Object.values(sessionMap).reduce(function(a,b){return a+b;},0);
+        var totalFeedback = Object.values(feedbackMap).reduce(function(a,b){return a+b;},0);
+        var sevenDaysAgo  = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+        var activeCount   = members.filter(function(m){
+          return (m.last_sign_in_at && m.last_sign_in_at > sevenDaysAgo) ||
+                 (lastTaskMap[m.id] && lastTaskMap[m.id] > sevenDaysAgo);
+        }).length;
+
+        document.getElementById('fg-active').textContent   = activeCount;
+        document.getElementById('fg-sessions').textContent = totalSessions;
+        document.getElementById('fg-feedback').textContent = totalFeedback;
+
+        /* Render table */
+        tbody.innerHTML = members.map(function(m){
+          var name      = m.full_name || m.email || m.id.slice(0,8);
+          var email     = m.email || '—';
+          var activated = m.beta_activated_at ? new Date(m.beta_activated_at).toLocaleDateString() : '—';
+          var lastLogin = m.last_sign_in_at   ? new Date(m.last_sign_in_at).toLocaleDateString()   : '—';
+          var sessions  = sessionMap[m.id]    || 0;
+          var specSet   = specialistMap[m.id] ? Array.from(specialistMap[m.id]) : [];
+          var specCount = specSet.length;
+          var specTip   = specSet.slice(0,5).join(', ') + (specSet.length>5?'…':'');
+          var fbCount   = feedbackMap[m.id]   || 0;
+          var expires   = m.beta_expires_at   ? new Date(m.beta_expires_at).toLocaleDateString() : '—';
+          var isExpired = m.beta_expires_at && new Date(m.beta_expires_at) < new Date();
+
+          return '<tr>'
+            + '<td><div style="font-weight:700;color:#eef3fc;">'+name+'</div>'
+            +     '<div style="font-size:11px;color:#6b7a96;">'+email+'</div>'
+            +     (m.organization?'<div style="font-size:10px;color:#4a5568;">'+m.organization+'</div>':'')
+            + '</td>'
+            + '<td style="font-size:12px;color:#8a97b5;">'+activated+'</td>'
+            + '<td style="font-size:12px;color:#8a97b5;">'+lastLogin+'</td>'
+            + '<td style="font-size:12px;" title="'+specTip+'">'+(specCount?'<span style="color:#aaff3e;font-weight:700;">'+specCount+'</span> specialist'+(specCount!==1?'s':''):'<span style="color:#4a5568;">None yet</span>')+'</td>'
+            + '<td style="font-size:13px;font-weight:700;color:#eef3fc;">'+sessions+'</td>'
+            + '<td style="font-size:12px;">'+(fbCount?'<span style="color:#aaff3e;">'+fbCount+'</span>':'<span style="color:#4a5568;">0</span>')+'</td>'
+            + '<td><span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.04em;">BETA_TESTER</span>'
+            + (isExpired?'<br><span style="background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.2);color:#ff8080;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-top:4px;display:inline-block;">EXPIRED '+expires+'</span>':'')
+            + '</td>'
+            + '</tr>';
+        }).join('');
+      });
+    });
+}
 
 /* ── Applications queue ──────────────────────────────────────── */
 function loadAffApps(){
