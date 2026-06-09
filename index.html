@@ -5387,21 +5387,21 @@ function suRedeemAndSignup(){
   window._pendingPromoCode = code;
 
   /* Trigger account creation — reuse doSignup but without Stripe redirect */
-  var email = authM ? authM.querySelector('#su-email') : document.getElementById('su-email');
-  var pass  = authM ? authM.querySelector('#su-pass')  : document.getElementById('su-pass');
-  var name  = authM ? authM.querySelector('#su-name')  : document.getElementById('su-name');
-
-  var emailVal = email ? email.value.trim() : '';
-  var passVal  = pass  ? pass.value.trim()  : '';
-  var nameVal  = name  ? name.value.trim()  : emailVal.split('@')[0];
+  /* Use same field names as doSignup */
+  var fname = authEl('su-fname'); var fnameVal = fname ? fname.value.trim() : '';
+  var lname = authEl('su-lname'); var lnameVal = lname ? lname.value.trim() : '';
+  var email = authEl('su-email'); var emailVal = email ? email.value.trim() : '';
+  var pass  = authEl('su-pass');  var passVal  = pass  ? pass.value        : '';
+  var org   = authEl('su-org');   var orgVal   = org   ? org.value.trim()  : '';
+  var role  = authEl('su-role');  var roleVal  = role  ? role.value        : '';
 
   if(!emailVal || !passVal){
-    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Go back and fill in your name, email, and password first.'; }
+    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Go back and fill in your email and password first.'; }
     return;
   }
 
   supa.auth.signUp({ email: emailVal, password: passVal,
-    options:{ data:{ full_name: nameVal } }
+    options:{ data:{ full_name:(fnameVal+' '+lnameVal).trim(), organization:orgVal, job_title:roleVal } }
   }).then(function(res){
     if(res.error){
       if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Error: '+res.error.message; }
