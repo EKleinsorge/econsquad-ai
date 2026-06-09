@@ -5423,30 +5423,12 @@ function suRedeemAndSignup(){
 
   if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Code accepted! Creating your account…'; }
 
-  /* Show the checkout button that calls doSignup (which will skip Stripe) */
-  setTimeout(function(){
-    var step2 = authM ? authM.querySelector('#su-step-2')    : document.getElementById('su-step-2');
-    var stepP = authM ? authM.querySelector('#su-step-promo') : document.getElementById('su-step-promo');
-    if(stepP) stepP.style.setProperty('display','none','important');
-    if(step2) step2.style.setProperty('display','block','important');
+  /* Disable the promo button to prevent double-click */
+  var promoBtn = authM ? authM.querySelector('#su-step-promo .modal-btn') : null;
+  if(promoBtn){ promoBtn.disabled=true; promoBtn.textContent='Creating your account…'; }
 
-    /* Update checkout button to reflect beta flow */
-    var btn = authM ? authM.querySelector('#btn-checkout') : document.getElementById('btn-checkout');
-    if(btn){
-      btn.textContent = '⚡ Activate beta access & create account →';
-      btn.disabled = false;
-    }
-
-    /* Show green confirmation banner above button */
-    var existing = authM ? authM.querySelector('#su-promo-confirm') : document.getElementById('su-promo-confirm');
-    if(!existing && btn && btn.parentNode){
-      var d = document.createElement('div');
-      d.id = 'su-promo-confirm';
-      d.style.cssText = 'background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.3);border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;color:#aaff3e;font-weight:700;';
-      d.innerHTML = '🎟️ Code <strong>'+code+'</strong> applied — no credit card needed';
-      btn.parentNode.insertBefore(d, btn);
-    }
-  }, 400);
+  /* Directly call doSignup — it detects esq_pending_promo and skips Stripe */
+  setTimeout(function(){ doSignup(); }, 300);
 }
 
 function openPromoModal(){
