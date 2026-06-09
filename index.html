@@ -5350,22 +5350,87 @@ var VALID_PROMO_CODES = {
 };
 
 function openPromoFromSignup(){
-  /* Remove the cloned auth modal without triggering navigation */
-  var clone = document.getElementById('auth-modal-active');
-  if(clone) clone.remove();
-  /* Force the promo modal open with high-priority styles */
-  var m = document.getElementById('promo-modal');
-  if(!m){ openPromoModal(); return; }
-  var enter = document.getElementById('promo-modal-enter');
-  var success = document.getElementById('promo-modal-success');
-  if(enter) enter.style.display='block';
-  if(success) success.style.display='none';
-  var input = document.getElementById('promo-code-input');
-  if(input) input.value='';
-  var msg = document.getElementById('promo-msg');
-  if(msg){ msg.textContent=''; msg.style.color='#ff8080'; }
-  m.style.cssText='position:fixed!important;inset:0!important;background:rgba(0,0,0,0.92)!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;backdrop-filter:blur(12px)!important;';
-  setTimeout(function(){ if(input) input.focus(); }, 150);
+  /* Legacy — now handled inline via suShowPromoStep */
+  suShowPromoStep();
+}
+
+function suShowPromoStep(){
+  /* Hide step 2, show promo code step — all within the same auth modal clone */
+  var authM = document.getElementById('auth-modal-active') || document.getElementById('auth-modal');
+  if(!authM) return;
+  var step2 = authM.querySelector('#su-step-2');
+  var stepP = authM.querySelector('#su-step-promo');
+  if(step2) step2.style.setProperty('display','none','important');
+  if(stepP) stepP.style.setProperty('display','block','important');
+  var inp = authM.querySelector('#su-promo-input');
+  if(inp){ inp.value=''; setTimeout(function(){ inp.focus(); },100); }
+  var msg = authM.querySelector('#su-promo-msg');
+  if(msg) msg.textContent='';
+}
+
+function suRedeemAndSignup(){
+  var authM = document.getElementById('auth-modal-active') || document.getElementById('auth-modal');
+  var inp   = authM ? authM.querySelector('#su-promo-input') : document.getElementById('su-promo-input');
+  var msgEl = authM ? authM.querySelector('#su-promo-msg')   : document.getElementById('su-promo-msg');
+  var code  = inp ? inp.value.trim().toUpperCase() : '';
+
+  if(!code){ if(msgEl) msgEl.textContent='Please enter your access code.'; return; }
+  var promo = VALID_PROMO_CODES[code];
+  if(!promo){
+    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='That code is not valid. Check for typos.'; }
+    return;
+  }
+
+  if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Valid code! Creating your account…'; }
+
+  /* Store code to apply after account creation */
+  window._pendingPromoCode = code;
+
+  /* Trigger account creation — reuse doSignup but without Stripe redirect */
+  var email = authM ? authM.querySelector('#su-email') : document.getElementById('su-email');
+  var pass  = authM ? authM.querySelector('#su-pass')  : document.getElementById('su-pass');
+  var name  = authM ? authM.querySelector('#su-name')  : document.getElementById('su-name');
+
+  var emailVal = email ? email.value.trim() : '';
+  var passVal  = pass  ? pass.value.trim()  : '';
+  var nameVal  = name  ? name.value.trim()  : emailVal.split('@')[0];
+
+  if(!emailVal || !passVal){
+    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Go back and fill in your name, email, and password first.'; }
+    return;
+  }
+
+  supa.auth.signUp({ email: emailVal, password: passVal,
+    options:{ data:{ full_name: nameVal } }
+  }).then(function(res){
+    if(res.error){
+      if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Error: '+res.error.message; }
+      return;
+    }
+    var userId = res.data && res.data.user ? res.data.user.id : null;
+    /* Apply beta access immediately */
+    if(userId){
+      supa.from('profiles').update({
+        is_beta_tester:    true,
+        beta_expires_at:   VALID_PROMO_CODES[code].expires_at,
+        beta_activated_at: new Date().toISOString(),
+        promo_code_used:   code
+      }).eq('id', userId).then(function(){});
+    }
+    window._pendingPromoCode = null;
+    /* Close auth modal and show success */
+    closeAuth();
+    setTimeout(function(){
+      var m = document.getElementById('promo-modal');
+      if(m){
+        var enter = document.getElementById('promo-modal-enter');
+        var success = document.getElementById('promo-modal-success');
+        if(enter) enter.style.display='none';
+        if(success) success.style.display='block';
+        m.style.cssText='position:fixed!important;inset:0!important;background:rgba(0,0,0,0.92)!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;';
+      }
+    }, 500);
+  });
 }
 
 function openPromoModal(){
@@ -10956,12 +11021,24 @@ function drawLogo(){if(!logoCtx)return;
           <div style="font-size:11px;color:#8a97b5;">You won't be charged for 7 days on Pro. Card entered securely on Stripe. Cancel anytime.</div>
         </div>
 
-        <!-- Focus group code shortcut — above checkout button so it's always in view -->
-        <div style="text-align:center;margin-bottom:12px;padding:10px;background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.15);border-radius:10px;cursor:pointer;" onclick="openPromoFromSignup()">
-          <span style="font-size:12px;color:#aaff3e;font-weight:700;">🎟️ Have a focus group or beta access code? Enter it here →</span>
-        </div>
         <button class="modal-btn" id="btn-checkout" onclick="doSignup()">Continue to checkout →</button>
         <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(1)" style="cursor:pointer;color:#6b7a96;">← Back</span></p>
+        <p class="modal-note" style="text-align:center;margin-top:6px;"><span onclick="suShowPromoStep()" style="cursor:pointer;color:#aaff3e;font-weight:700;">🎟️ Have a focus group or beta access code?</span></p>
+      </div>
+
+      <!-- STEP PROMO: Access code entry (inside auth modal) -->
+      <div id="su-step-promo" style="display:none;">
+        <div class="step-dots"><div class="step-dot active"></div><div class="step-dot"></div></div>
+        <div style="font-size:32px;text-align:center;margin-bottom:12px;">🎟️</div>
+        <h2 class="modal-h2" style="text-align:center;">Enter your <span>access code</span></h2>
+        <p style="font-size:13px;color:#6b7a96;text-align:center;margin:0 0 24px;line-height:1.6;">Enter your focus group or beta access code below. You'll still create a free account — no credit card needed.</p>
+        <input id="su-promo-input" type="text" placeholder="e.g. FOCUSGROUP" maxlength="40"
+          style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:14px 16px;font-size:16px;font-weight:700;color:#eef3fc;font-family:'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;outline:none;text-align:center;margin-bottom:10px;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')suRedeemAndSignup()">
+        <div id="su-promo-msg" style="font-size:12px;text-align:center;min-height:18px;margin-bottom:14px;color:#ff8080;"></div>
+        <button class="modal-btn" onclick="suRedeemAndSignup()">Activate access &amp; create account →</button>
+        <p class="modal-note" style="text-align:center;margin-top:8px;"><span onclick="suNextStep(2)" style="cursor:pointer;color:#6b7a96;">← Back to plan selection</span></p>
       </div>
 
     </div>
