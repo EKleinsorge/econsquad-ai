@@ -149,7 +149,14 @@
     console.log('Problem report:', payload);
     if (window.supabase) {
       window.supabase.from('problem_reports').insert([payload])
-        .then(function() { showReportOK(); }).catch(function() { showReportOK(); });
+        .then(function() {
+          /* Send email notification via edge function */
+          window.supabase.functions.invoke('notify-problem-report', { body: payload })
+            .then(function(r) { console.log('[report] notify result:', JSON.stringify(r)); })
+            .catch(function(e) { console.warn('[report] notify failed:', e); });
+          showReportOK();
+        })
+        .catch(function() { showReportOK(); });
     } else {
       setTimeout(showReportOK, 600);
     }

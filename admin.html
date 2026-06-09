@@ -461,8 +461,34 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 
     <!-- PROBLEM REPORTS -->
     <div id="section-reports" class="admin-section">
-      <div class="page-title">Problem Reports</div>
-      <div class="page-sub">Issues reported by users from within the app</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div>
+          <div class="page-title">Problem Reports</div>
+          <div class="page-sub">Issues reported by users from within the app</div>
+        </div>
+        <button class="btn-ghost" onclick="loadReports()" style="font-size:12px;">⟳ Refresh</button>
+      </div>
+
+      <!-- Notification Recipients -->
+      <div style="background:rgba(14,20,36,0.7);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#eef3fc;">📬 Report Notification Recipients</div>
+            <div style="font-size:11px;color:#6b7a96;margin-top:2px;">These people receive an email every time a problem is reported</div>
+          </div>
+          <button class="btn-lime btn-sm" onclick="saveReportRecipients()">Save</button>
+        </div>
+        <div id="report-recipients-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;min-height:32px;">
+          <span style="font-size:11px;color:#4a5568;">Loading…</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input id="report-recipient-input" type="email" placeholder="Add email address…"
+            style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 12px;font-size:12px;color:#eef3fc;outline:none;"
+            onkeydown="if(event.key==='Enter')addReportRecipient()">
+          <button class="btn-ghost btn-sm" onclick="addReportRecipient()" style="white-space:nowrap;">+ Add</button>
+        </div>
+      </div>
+
       <div class="filter-tabs">
         <button class="filter-tab active" onclick="filterReports('all',this)">All</button>
         <button class="filter-tab" onclick="filterReports('unresolved',this)">Unresolved</button>
@@ -1783,7 +1809,60 @@ function copySql(){
 /* ═══════════════════════════════════════
    PROBLEM REPORTS
 ═══════════════════════════════════════ */
+/* ── Report Recipients ───────────────────────────────────── */
+var _reportRecipients = [];
+
+function loadReportRecipients(){
+  supa.from('app_settings').select('value').eq('key','report_recipients').single().then(function(res){
+    if(res.data && res.data.value){
+      _reportRecipients = res.data.value.split(',').map(function(e){return e.trim();}).filter(Boolean);
+    } else {
+      _reportRecipients = ['eric@gslisolutions.com'];
+    }
+    renderReportRecipients();
+  });
+}
+
+function renderReportRecipients(){
+  var el = document.getElementById('report-recipients-list');
+  if(!el) return;
+  if(!_reportRecipients.length){
+    el.innerHTML = '<span style="font-size:11px;color:#4a5568;">No recipients added yet.</span>';
+    return;
+  }
+  el.innerHTML = _reportRecipients.map(function(email, i){
+    return '<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:4px 12px;font-size:12px;color:#eef3fc;">'
+      + email
+      + '<span onclick="removeReportRecipient('+i+')" style="cursor:pointer;color:#6b7a96;font-size:14px;line-height:1;" title="Remove">×</span>'
+      + '</span>';
+  }).join('');
+}
+
+function addReportRecipient(){
+  var input = document.getElementById('report-recipient-input');
+  var val = input ? input.value.trim().toLowerCase() : '';
+  if(!val || !val.includes('@')){ showToast('Please enter a valid email address.','error'); return; }
+  if(_reportRecipients.includes(val)){ showToast('That email is already in the list.','error'); return; }
+  _reportRecipients.push(val);
+  renderReportRecipients();
+  if(input) input.value = '';
+}
+
+function removeReportRecipient(i){
+  _reportRecipients.splice(i, 1);
+  renderReportRecipients();
+}
+
+function saveReportRecipients(){
+  var value = _reportRecipients.join(',');
+  supa.from('app_settings').upsert({key:'report_recipients', value:value, updated_at:new Date().toISOString()}).then(function(res){
+    if(res.error){ showToast('Error saving: '+res.error.message,'error'); return; }
+    showToast('✓ Recipients saved — '+_reportRecipients.length+' recipient'+(_reportRecipients.length===1?'':'s'),'success');
+  });
+}
+
 function loadReports(){
+  loadReportRecipients();
   supa.from('problem_reports').select('*').order('timestamp',{ascending:false}).then(function(res){
     if(res.error){
       document.getElementById('reports-table').innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">Error loading reports: '+(res.error.message||'Table may not exist')+'</td></tr>';
