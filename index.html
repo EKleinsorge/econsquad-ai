@@ -5350,26 +5350,8 @@ var VALID_PROMO_CODES = {
 };
 
 function openPromoFromSignup(){
-  /* Called from the signup step 2 screen — finish account creation first if needed,
-     then open the promo modal. If they haven't created an account yet, we create it
-     without a plan, then open the promo modal. */
-  var email = (authEl('su-email')||{}).value || '';
-  var pass  = (authEl('su-pass')||{}).value  || '';
-  if(email && pass && !currentUser){
-    /* Create the account silently, then open promo modal */
-    var name = (authEl('su-name')||{}).value || '';
-    supa.auth.signUp({email:email, password:pass,
-      options:{data:{full_name:name||email.split('@')[0]}}
-    }).then(function(res){
-      if(res.error){ openPromoModal(); return; } /* just open modal if error */
-      /* onAuthStateChange will fire and log them in */
-      closeAuth();
-      setTimeout(openPromoModal, 400);
-    });
-  } else {
-    closeAuth();
-    setTimeout(openPromoModal, 200);
-  }
+  closeAuth();
+  setTimeout(openPromoModal, 250);
 }
 
 function openPromoModal(){
@@ -5408,6 +5390,17 @@ function redeemPromoCode(){
   if(!promo){
     msgEl.style.color='#ff8080';
     msgEl.textContent='That code is not valid. Check for typos and try again.';
+    return;
+  }
+
+  /* Not signed in yet — send them back to create account */
+  if(!currentUser){
+    msgEl.style.color='#f5c542';
+    msgEl.textContent='Please create your account first, then enter your code.';
+    setTimeout(function(){
+      closePromoModal();
+      openAuth('signup');
+    }, 2000);
     return;
   }
 
