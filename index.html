@@ -5353,7 +5353,19 @@ function openPromoFromSignup(){
   /* Remove the cloned auth modal without triggering navigation */
   var clone = document.getElementById('auth-modal-active');
   if(clone) clone.remove();
-  openPromoModal();
+  /* Force the promo modal open with high-priority styles */
+  var m = document.getElementById('promo-modal');
+  if(!m){ openPromoModal(); return; }
+  var enter = document.getElementById('promo-modal-enter');
+  var success = document.getElementById('promo-modal-success');
+  if(enter) enter.style.display='block';
+  if(success) success.style.display='none';
+  var input = document.getElementById('promo-code-input');
+  if(input) input.value='';
+  var msg = document.getElementById('promo-msg');
+  if(msg){ msg.textContent=''; msg.style.color='#ff8080'; }
+  m.style.cssText='position:fixed!important;inset:0!important;background:rgba(0,0,0,0.92)!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;backdrop-filter:blur(12px)!important;';
+  setTimeout(function(){ if(input) input.focus(); }, 150);
 }
 
 function openPromoModal(){
