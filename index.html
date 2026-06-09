@@ -3650,9 +3650,25 @@ function doSignup(){
           promo_code_used:   pendingPromo
         }).eq('id', userId).then(function(){});
       }
-      if(btn){btn.textContent='Welcome to Beta! Logging you in…';}
-      /* Sign in immediately (signUp auto-signs-in when email confirm is off) */
-      setTimeout(function(){ closeAuth(); }, 1200);
+      if(btn){btn.textContent='Welcome to Beta! Signing you in…';}
+      /* If signUp returned a session (email confirm OFF), onSignedIn fires automatically.
+         If not, sign in explicitly with the same credentials. */
+      if(authRes.data && authRes.data.session){
+        /* Session exists — onAuthStateChange will call onSignedIn. Just close modal. */
+        setTimeout(function(){ closeAuth(); }, 800);
+      } else {
+        /* No session yet — sign in explicitly */
+        supa.auth.signInWithPassword({ email: email, password: pass }).then(function(siRes){
+          if(siRes.error){
+            /* Email confirm might be on — tell them to check email */
+            showAuthMsg('Account created! Check your email to confirm, then sign in.','ok');
+            if(btn){btn.disabled=false; btn.textContent='Continue to checkout →';}
+          } else {
+            /* onSignedIn will fire via onAuthStateChange */
+            setTimeout(function(){ closeAuth(); }, 600);
+          }
+        });
+      }
       return;
     }
 
