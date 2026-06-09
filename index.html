@@ -3635,6 +3635,27 @@ function doSignup(){
         }).catch(function(){});
     }
 
+    /* Check for pending promo code — if present, skip Stripe entirely */
+    var pendingPromo=null;
+    try{ pendingPromo=localStorage.getItem('esq_pending_promo'); }catch(e){}
+    if(pendingPromo && VALID_PROMO_CODES[pendingPromo]){
+      var promoEntry=VALID_PROMO_CODES[pendingPromo];
+      try{ localStorage.removeItem('esq_pending_promo'); }catch(e){}
+      /* Apply beta access to profile */
+      if(userId){
+        supa.from('profiles').update({
+          is_beta_tester:    true,
+          beta_expires_at:   promoEntry.expires_at,
+          beta_activated_at: new Date().toISOString(),
+          promo_code_used:   pendingPromo
+        }).eq('id', userId).then(function(){});
+      }
+      if(btn){btn.textContent='Welcome to Beta! Logging you in…';}
+      /* Sign in immediately (signUp auto-signs-in when email confirm is off) */
+      setTimeout(function(){ closeAuth(); }, 1200);
+      return;
+    }
+
     /* Step 2: redirect to Stripe Payment Link with user ID + email pre-filled */
     var priceKey=(suSelectedPlan==='starter'?'starter':'pro')+'_'+(suBillingAnnual?'annual':'monthly');
     var paymentLink=PAYMENT_LINKS[priceKey];
@@ -5381,56 +5402,35 @@ function suRedeemAndSignup(){
     return;
   }
 
-  if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Valid code! Creating your account…'; }
+  /* Save code to localStorage — doSignup will pick it up and skip Stripe */
+  try{ localStorage.setItem('esq_pending_promo', code); }catch(e){}
 
-  /* Store code to apply after account creation */
-  window._pendingPromoCode = code;
+  if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Code accepted! Creating your account…'; }
 
-  /* Trigger account creation — reuse doSignup but without Stripe redirect */
-  /* Use same field names as doSignup */
-  var fname = authEl('su-fname'); var fnameVal = fname ? fname.value.trim() : '';
-  var lname = authEl('su-lname'); var lnameVal = lname ? lname.value.trim() : '';
-  var email = authEl('su-email'); var emailVal = email ? email.value.trim() : '';
-  var pass  = authEl('su-pass');  var passVal  = pass  ? pass.value        : '';
-  var org   = authEl('su-org');   var orgVal   = org   ? org.value.trim()  : '';
-  var role  = authEl('su-role');  var roleVal  = role  ? role.value        : '';
+  /* Show the checkout button that calls doSignup (which will skip Stripe) */
+  setTimeout(function(){
+    var step2 = authM ? authM.querySelector('#su-step-2')    : document.getElementById('su-step-2');
+    var stepP = authM ? authM.querySelector('#su-step-promo') : document.getElementById('su-step-promo');
+    if(stepP) stepP.style.setProperty('display','none','important');
+    if(step2) step2.style.setProperty('display','block','important');
 
-  if(!emailVal || !passVal){
-    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Go back and fill in your email and password first.'; }
-    return;
-  }
-
-  supa.auth.signUp({ email: emailVal, password: passVal,
-    options:{ data:{ full_name:(fnameVal+' '+lnameVal).trim(), organization:orgVal, job_title:roleVal } }
-  }).then(function(res){
-    if(res.error){
-      if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Error: '+res.error.message; }
-      return;
+    /* Update checkout button to reflect beta flow */
+    var btn = authM ? authM.querySelector('#btn-checkout') : document.getElementById('btn-checkout');
+    if(btn){
+      btn.textContent = '⚡ Activate beta access & create account →';
+      btn.disabled = false;
     }
-    var userId = res.data && res.data.user ? res.data.user.id : null;
-    /* Apply beta access immediately */
-    if(userId){
-      supa.from('profiles').update({
-        is_beta_tester:    true,
-        beta_expires_at:   VALID_PROMO_CODES[code].expires_at,
-        beta_activated_at: new Date().toISOString(),
-        promo_code_used:   code
-      }).eq('id', userId).then(function(){});
+
+    /* Show green confirmation banner above button */
+    var existing = authM ? authM.querySelector('#su-promo-confirm') : document.getElementById('su-promo-confirm');
+    if(!existing && btn && btn.parentNode){
+      var d = document.createElement('div');
+      d.id = 'su-promo-confirm';
+      d.style.cssText = 'background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.3);border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;color:#aaff3e;font-weight:700;';
+      d.innerHTML = '🎟️ Code <strong>'+code+'</strong> applied — no credit card needed';
+      btn.parentNode.insertBefore(d, btn);
     }
-    window._pendingPromoCode = null;
-    /* Close auth modal and show success */
-    closeAuth();
-    setTimeout(function(){
-      var m = document.getElementById('promo-modal');
-      if(m){
-        var enter = document.getElementById('promo-modal-enter');
-        var success = document.getElementById('promo-modal-success');
-        if(enter) enter.style.display='none';
-        if(success) success.style.display='block';
-        m.style.cssText='position:fixed!important;inset:0!important;background:rgba(0,0,0,0.92)!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;';
-      }
-    }, 500);
-  });
+  }, 400);
 }
 
 function openPromoModal(){
