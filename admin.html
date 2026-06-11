@@ -1884,12 +1884,19 @@ function renderReports(){
     var truncated=prob.length>120?prob.substring(0,120)+'…':prob;
     var resolved=r.resolved;
     var email=r.user||r.user_email||'';
+    var name=r.user_name||'';
     var date=r.timestamp?new Date(r.timestamp).toLocaleDateString():(r.created_at?new Date(r.created_at).toLocaleDateString():'—');
+    var time=r.timestamp?new Date(r.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    var userCell=name
+      ?'<div style="font-weight:600;color:#eef3fc;">'+name+'</div><div style="font-size:11px;color:#6b7a96;">'+email+'</div>'
+      :'<div style="font-size:12px;">'+email+'</div>';
+    var problemCell='<div title="'+prob.replace(/"/g,'&quot;')+'">'+truncated+'</div>'
+      +(r.page?'<div style="font-size:10px;color:#4a5568;margin-top:3px;">📍 '+r.page+'</div>':'');
     return '<tr>'+
-      '<td style="font-size:12px;">'+email+'</td>'+
-      '<td title="'+prob.replace(/"/g,'&quot;')+'">'+truncated+'</td>'+
+      '<td>'+userCell+'</td>'+
+      '<td>'+problemCell+'</td>'+
       '<td style="color:#6b7a96;font-size:12px;">'+(r.version||'—')+'</td>'+
-      '<td>'+date+'</td>'+
+      '<td><div>'+date+'</div><div style="font-size:11px;color:#4a5568;">'+time+'</div></td>'+
       '<td>'+(resolved?'<span class="badge badge-active">Resolved</span>':'<span class="badge badge-pending">Open</span>')+'</td>'+
       '<td><div class="action-group">'+
         (!resolved?'<button class="btn-ghost btn-sm" onclick="markReportResolved(\''+r.id+'\')">Resolve</button>':'')+

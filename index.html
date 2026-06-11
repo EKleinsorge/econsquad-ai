@@ -3281,6 +3281,8 @@ function onSignedIn(user){
     if(greetEl) greetEl.textContent=firstName;
     if(savNameEl) savNameEl.textContent=displayName;
   }
+  var rb=document.getElementById('report-btn-float');
+  if(rb) rb.style.display='flex';
   /* if user came from pricing page, launch checkout */
   if(window._pendingPlan){
     var p=window._pendingPlan;
@@ -3379,6 +3381,9 @@ function onSignedOut(){
   var toggleRow=document.getElementById('logo-toggle-row');
   if(toggleRow)toggleRow.style.display='none';
   try{localStorage.removeItem('econsquad_logo');localStorage.removeItem('econsquad_logo_display');}catch(e){}
+  var rb=document.getElementById('report-btn-float');
+  if(rb) rb.style.display='none';
+  closeReportModal();
 }
 
 /* ── modal open/close ── */
@@ -5318,6 +5323,79 @@ function closeFirstMissionModal(){
   showDashTab('home-tab',null);
 }
 
+/* ===== REPORT A PROBLEM ===== */
+function _getActivePage(){
+  var tabs={
+    'home-tab':'Home','inbox-tab':'Inbox','fullcal-tab':'Calendar',
+    'tasks-tab':'Tasks','stats-tab':'My Stats','squad-tab':'Specialists',
+    'chat-tab':'Specialist Chat','settings-tab':'Settings'
+  };
+  for(var id in tabs){
+    var el=document.getElementById(id);
+    if(el&&el.style.display!=='none') return tabs[id];
+  }
+  return 'Home';
+}
+
+function openReportModal(){
+  var overlay=document.getElementById('report-overlay');
+  var formView=document.getElementById('report-form-view');
+  var okView=document.getElementById('report-ok-view');
+  var ta=document.getElementById('report-textarea');
+  var metaEmail=document.getElementById('report-meta-email');
+  var metaPage=document.getElementById('report-meta-page');
+  var sendBtn=document.getElementById('report-send-btn');
+  if(!overlay) return;
+  if(formView) formView.style.display='block';
+  if(okView) okView.style.display='none';
+  if(ta) ta.value='';
+  if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
+  if(metaEmail) metaEmail.textContent=currentUser?currentUser.email:'Not signed in';
+  if(metaPage) metaPage.textContent=_getActivePage();
+  overlay.style.display='flex';
+  setTimeout(function(){ if(ta) ta.focus(); }, 100);
+}
+
+function closeReportModal(){
+  var overlay=document.getElementById('report-overlay');
+  if(overlay) overlay.style.display='none';
+}
+
+function submitReport(){
+  var ta=document.getElementById('report-textarea');
+  var problem=(ta?ta.value.trim():'');
+  if(!problem){ if(ta){ta.style.borderColor='rgba(255,80,80,0.5)'; setTimeout(function(){ta.style.borderColor='';},1500);} return; }
+  var sendBtn=document.getElementById('report-send-btn');
+  if(sendBtn){ sendBtn.textContent='Sending…'; sendBtn.disabled=true; }
+  var payload={
+    user_id:   currentUser?currentUser.id:null,
+    user:      currentUser?currentUser.email:'',
+    user_name: currentUser?(currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email.split('@')[0]):'',
+    problem:   problem,
+    page:      _getActivePage(),
+    version:   '2026.06.11',
+    user_agent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    resolved:  false
+  };
+  supa.from('problem_reports').insert(payload).then(function(res){
+    if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
+    if(res.error){ showToastMsg('Error sending report — please try again.'); return; }
+    /* fire-and-forget email notification to admin recipients */
+    supa.functions.invoke('notify-problem-report',{body:{
+      problem:   payload.problem,
+      user:      payload.user,
+      version:   payload.version,
+      url:       payload.page,
+      userAgent: payload.user_agent,
+      timestamp: payload.timestamp
+    }}).catch(function(){});
+    var formView=document.getElementById('report-form-view');
+    var okView=document.getElementById('report-ok-view');
+    if(formView) formView.style.display='none';
+    if(okView) okView.style.display='block';
+  });
+}
 
 /* ===== HISTORY TAB ===== */
 var allHistory=[];
@@ -11616,6 +11694,29 @@ function drawLogo(){if(!logoCtx)return;
       <p style="font-size:10px;color:#3d4f6b;text-align:center;margin-top:12px;line-height:1.5;">
         Standard message &amp; data rates may apply. US numbers only (for now). Reply STOP to unsubscribe.
       </p>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT A PROBLEM BUTTON -->
+<div class="report-btn-float" id="report-btn-float" onclick="openReportModal()" style="display:none;" title="Report a Problem">⚑ Report a Problem</div>
+
+<!-- REPORT A PROBLEM MODAL -->
+<div class="report-overlay" id="report-overlay" style="display:none;" onclick="if(event.target===this)closeReportModal()">
+  <div class="report-box">
+    <button class="report-x-btn" onclick="closeReportModal()">✕</button>
+    <div id="report-form-view">
+      <h3>⚑ Report a Problem</h3>
+      <p>Describe what happened and we'll look into it right away.</p>
+      <textarea class="report-ta" id="report-textarea" placeholder="Describe the issue — what were you trying to do and what happened?"></textarea>
+      <div class="report-meta-txt">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
+      <button class="report-send-btn" id="report-send-btn" onclick="submitReport()">Send Report →</button>
+    </div>
+    <div id="report-ok-view" class="report-ok" style="display:none;">
+      <div class="big">✓</div>
+      <h4>Report Sent — Thank You</h4>
+      <p style="color:#6b7a96;font-size:13px;margin-top:8px;">We'll review this and follow up if needed.</p>
+      <button class="report-send-btn" style="margin-top:20px;" onclick="closeReportModal()">Close</button>
     </div>
   </div>
 </div>
