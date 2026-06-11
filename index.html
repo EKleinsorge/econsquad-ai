@@ -1499,11 +1499,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
     <!-- Dashboard sub-bars (hidden on marketing) -->
     <div id="dash-bars" style="display:none;">
       <div class="sav-bar" id="dash-sav-bar">
-        <div class="welcome">Welcome back, <strong>Sarah Mitchell</strong> — Your squad is standing by.</div>
+        <div class="welcome">Welcome back, <strong id="sav-bar-name">there</strong> — Your squad is standing by.</div>
         <div class="sav-right">
-          <div class="sav-pill gp"><span class="sv" id="b-money">$4,820</span><span class="sl">saved this year</span></div>
-          <div class="sav-pill"><span class="sv">61.5 hrs</span><span class="sl">recovered</span></div>
-          <div class="streak"><span class="flame">🔥</span>14-day streak</div>
+          <div class="sav-pill gp"><span class="sv" id="b-money">$0</span><span class="sl">saved this year</span></div>
+          <div class="sav-pill"><span class="sv" id="sav-bar-hours">0 hrs</span><span class="sl">recovered</span></div>
+          <div class="streak" id="sav-bar-streak" style="display:none;"><span class="flame">🔥</span><span id="sav-bar-streak-count">0</span>-day streak</div>
           <div class="mystats-link" onclick="showDashTab('stats-tab',null)">View My Stats →</div>
         </div>
       </div>
@@ -1603,7 +1603,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="mkt-section" style="padding-top:10px;padding-bottom:50px;" id="sec-aria">
         <div class="section-eyebrow">Meet ARIA</div>
         <h2 class="section-h2">Your AI command <span>intelligence</span></h2>
-        <p class="section-sub" style="margin-bottom:40px;">ARIA is always on. Always watching your squad. Always making sure you never miss a deadline, an opportunity, or a minute of savings.</p>
+        <p class="section-sub" style="margin-bottom:40px;">ARIA is your AI Chief of Staff. She analyzes your inbox, calendar, tasks, and activity to help you prioritize work, identify opportunities, and deploy the right specialists.</p>
 
         <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1.4fr;gap:32px;align-items:center;">
 
@@ -1619,7 +1619,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             </div>
             <div style="text-align:center;">
               <div style="font-family:Barlow Condensed,sans-serif;font-size:28px;font-weight:900;color:var(--lime);letter-spacing:.1em;">ARIA</div>
-              <div style="font-size:11px;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;">AI Resource & Intelligence Assistant</div>
+              <div style="font-size:11px;color:var(--text2);letter-spacing:.04em;text-transform:none;margin-top:2px;">Your AI Chief of Staff for economic development</div>
               <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;">
                 <div style="width:7px;height:7px;border-radius:50%;background:var(--lime);animation:pp 2s ease-in-out infinite;"></div>
                 <span style="font-size:12px;color:var(--lime);font-weight:600;">Always active</span>
@@ -1918,6 +1918,25 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div class="stat-card"><div class="stat-val" id="stat-specialists">0</div><div class="stat-lbl">Specialists used</div><div class="stat-delta" id="stat-specialists-delta">Of 18 available</div></div>
           <div class="stat-card"><div class="stat-val green" id="stat-days">0</div><div class="stat-lbl">Days on EconSquad</div><div class="stat-delta" id="stat-days-delta">Keep building momentum</div></div>
         </div>
+        <!-- First deployment guidance — shown after wizard until first mission is logged -->
+        <div id="first-mission-guide" style="display:none;background:linear-gradient(135deg,rgba(170,255,62,0.07),rgba(170,255,62,0.03));border:1px solid rgba(170,255,62,0.25);border-radius:16px;padding:22px 24px;margin-bottom:20px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="font-size:20px;">🚀</span>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#aaff3e;letter-spacing:.02em;">Deploy Your First Specialist</div>
+              </div>
+              <div style="font-size:13px;color:#8a97b5;line-height:1.6;margin-bottom:16px;">Your squad is standing by. Pick one of these recommended specialists for your first deployment — each one delivers a copy-ready output in minutes.</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button onclick="openSpecialistChat(1);document.getElementById('first-mission-guide').style.opacity='0.5';" style="background:rgba(245,197,66,0.12);border:1px solid rgba(245,197,66,0.3);color:#f5c542;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;border-radius:9px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(245,197,66,0.2)'" onmouseout="this.style.background='rgba(245,197,66,0.12)'">✦ Grant Writer Pro <span style="opacity:.7;font-weight:600;">· saves 4.5 hrs</span></button>
+                <button onclick="openSpecialistChat(6);document.getElementById('first-mission-guide').style.opacity='0.5';" style="background:rgba(50,225,200,0.12);border:1px solid rgba(50,225,200,0.3);color:#32e1c8;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;border-radius:9px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(50,225,200,0.2)'" onmouseout="this.style.background='rgba(50,225,200,0.12)'">✦ BRE Survey Builder <span style="opacity:.7;font-weight:600;">· saves 3.8 hrs</span></button>
+                <button onclick="openSpecialistChat(21);document.getElementById('first-mission-guide').style.opacity='0.5';" style="background:rgba(100,175,255,0.12);border:1px solid rgba(100,175,255,0.3);color:#64afff;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:8px 14px;border-radius:9px;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(100,175,255,0.2)'" onmouseout="this.style.background='rgba(100,175,255,0.12)'">✦ RFI Responder <span style="opacity:.7;font-weight:600;">· saves 3 hrs</span></button>
+              </div>
+            </div>
+            <button onclick="document.getElementById('first-mission-guide').style.display='none';localStorage.setItem('esq_first_mission_guide_dismissed','1');" style="background:none;border:none;color:#4a5568;font-size:18px;cursor:pointer;flex-shrink:0;padding:4px;" title="Dismiss">✕</button>
+          </div>
+        </div>
+
         <!-- Main squad tabs -->
         <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:16px;">
           <button class="squad-tab active" id="squad-tab-all" onclick="switchSquadTab('all',this)" style="background:none;border:none;border-bottom:2px solid #aaff3e;color:#aaff3e;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;cursor:pointer;transition:all .2s;">All Specialists</button>
@@ -2413,7 +2432,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div id="ob-aria-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;z-index:2;pointer-events:none;"></div>
       </div>
       <div class="ob-title">Welcome to EconSquad AI</div>
-      <div class="ob-subtitle">I'm ARIA — your AI Chief of Staff for economic development. Ready to stop the busywork and start creating real impact?</div>
+      <div class="ob-subtitle">I'm ARIA — your AI Chief of Staff. I analyze your inbox, calendar, tasks, and activity to help you prioritize work, identify opportunities, and deploy the right specialists. Ready to get started?</div>
       <button class="ob-btn" onclick="obShowPaths()">Let's get started →</button>
       <div class="ob-footer">
         <label class="ob-dont-show"><input type="checkbox" id="ob-dont-show-welcome"> Don't show this again</label>
@@ -3252,12 +3271,15 @@ function onSignedIn(user){
   setTimeout(function(){ if(typeof window.initRightSidebar==='function') window.initRightSidebar(); }, 3000);
   /* update last active */
   updateLastActive();
-  /* update greeting with real first name */
+  /* update greeting and savings bar with real first name */
   var greetEl=document.getElementById('dash-greeting-name');
-  if(greetEl){
+  var savNameEl=document.getElementById('sav-bar-name');
+  if(greetEl||savNameEl){
     var fullName=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:'';
     var firstName=fullName?fullName.split(' ')[0]:user.email.split('@')[0];
-    greetEl.textContent=firstName;
+    var displayName=fullName||firstName;
+    if(greetEl) greetEl.textContent=firstName;
+    if(savNameEl) savNameEl.textContent=displayName;
   }
   /* if user came from pricing page, launch checkout */
   if(window._pendingPlan){
@@ -4418,6 +4440,39 @@ function loadUserStats(){
       var bs=document.getElementById('stat-specialists-big');if(bs)bs.textContent=specCount;
       var bd=document.getElementById('stat-days-big');if(bd)bd.textContent=daysSince;
 
+      /* calculate login streak from task_history dates */
+      var _daysWithTasks = {};
+      tasks.forEach(function(t){
+        if(t.created_at){
+          var d=new Date(t.created_at);
+          var k=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+          _daysWithTasks[k]=true;
+        }
+      });
+      var _streakCheck=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var _todayKey=_streakCheck.getFullYear()+'-'+(_streakCheck.getMonth()+1)+'-'+_streakCheck.getDate();
+      if(!_daysWithTasks[_todayKey]) _streakCheck=new Date(_streakCheck.getTime()-86400000);
+      var loginStreak=0;
+      for(var _si=0;_si<365;_si++){
+        var _k=_streakCheck.getFullYear()+'-'+(_streakCheck.getMonth()+1)+'-'+_streakCheck.getDate();
+        if(!_daysWithTasks[_k]) break;
+        loginStreak++;
+        _streakCheck=new Date(_streakCheck.getTime()-86400000);
+      }
+      /* update savings bar */
+      var sbh=document.getElementById('sav-bar-hours');
+      if(sbh) sbh.textContent=(totalHours>0?totalHours.toFixed(1):0)+' hrs';
+      var sbStreak=document.getElementById('sav-bar-streak');
+      var sbCount=document.getElementById('sav-bar-streak-count');
+      if(sbStreak&&sbCount){
+        if(loginStreak>0){
+          sbCount.textContent=loginStreak;
+          sbStreak.style.display='flex';
+        } else {
+          sbStreak.style.display='none';
+        }
+      }
+
       /* store stats globally for ARIA analysis */
       window._overviewStats = {
         missions:        tasks.length,
@@ -4426,6 +4481,7 @@ function loadUserStats(){
         specCount:       specCount,
         daysSince:       daysSince,
         specUsage:       specUsage,
+        loginStreak:     loginStreak,
       };
 
       /* populate overview ROI cards, then generate ARIA analysis */
@@ -4461,6 +4517,17 @@ function loadUserStats(){
           d.innerHTML='<span style="color:#eef3fc;font-size:13px;font-weight:600;">'+entry[0]+'</span><span style="color:#aaff3e;font-size:13px;font-weight:700;">'+entry[1]+' mission'+(entry[1]>1?'s':'')+'</span>';
           topCont.appendChild(d);
         });
+      }
+
+      /* show/hide first-deployment guidance based on mission count */
+      var guideEl = document.getElementById('first-mission-guide');
+      if(guideEl){
+        var shouldShowGuide = tasks.length===0
+          && !localStorage.getItem('esq_first_mission_done')
+          && !localStorage.getItem('esq_first_mission_guide_dismissed')
+          && localStorage.getItem(SW_KEY)==='1';
+        if(shouldShowGuide) guideEl.style.display='block';
+        if(tasks.length>0) guideEl.style.display='none';
       }
 
       /* update deltas */
@@ -5204,6 +5271,8 @@ function saveTaskToHistory(output){
   var userMsgs=chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | ');
   var specialistDisplayName = sp ? (sp.name+' — '+s.name) : s.name;
   try{ localStorage.setItem('esq_last_mission_ts', String(Date.now())); }catch(e){}
+  var hoursSaved = parseFloat((s.save||'2.0').replace(/[^0-9.]/g,''))||2;
+  var isFirstMission = !localStorage.getItem('esq_first_mission_done');
   supa.from('task_history').insert({
     user_id:currentUser.id,
     specialist_id:chatState.specialistId,
@@ -5212,11 +5281,41 @@ function saveTaskToHistory(output){
     category:s.cat||'',
     prompt:userMsgs.slice(0,500),
     result:output,
-    hours_saved:parseFloat((s.save||'2.0').replace(/[^0-9.]/g,''))||2,
+    hours_saved:hoursSaved,
   }).then(function(){
+    localStorage.setItem('esq_first_mission_done','1');
+    /* hide first-deployment guidance once a mission is logged */
+    var guide = document.getElementById('first-mission-guide');
+    if(guide) guide.style.display='none';
     loadUserStats();
     setTimeout(runBadgeCheck,1000);
+    if(isFirstMission){
+      setTimeout(function(){ showFirstMissionCelebration(specialistDisplayName, hoursSaved); }, 600);
+    }
   });
+}
+
+function showFirstMissionCelebration(specName, hoursSaved){
+  var modal = document.getElementById('first-mission-modal');
+  if(!modal) return;
+  var salary = 75000;
+  try{ var si=document.getElementById('ov-annual-salary')||document.getElementById('sal'); if(si) salary=parseFloat(si.value)||75000; }catch(e){}
+  var hourlyRate = salary/2080;
+  var totalHours = parseFloat(((window._overviewStats&&window._overviewStats.totalHours)||0).toFixed(1));
+  var roiValue = Math.round(totalHours * hourlyRate);
+  var el = function(id){ return document.getElementById(id); };
+  if(el('fm-specialist-name')) el('fm-specialist-name').textContent = specName;
+  if(el('fm-hours-saved'))     el('fm-hours-saved').textContent = hoursSaved.toFixed(1);
+  if(el('fm-total-hours'))     el('fm-total-hours').textContent = totalHours > 0 ? totalHours.toFixed(1) : hoursSaved.toFixed(1);
+  if(el('fm-roi-value'))       el('fm-roi-value').textContent = '$'+(roiValue>0?roiValue:Math.round(hoursSaved*hourlyRate));
+  if(el('fm-hours-label'))     el('fm-hours-label').textContent = hoursSaved.toFixed(1)+' hours';
+  modal.style.display='flex';
+}
+
+function closeFirstMissionModal(){
+  var modal = document.getElementById('first-mission-modal');
+  if(modal) modal.style.display='none';
+  showDashTab('home-tab',null);
 }
 
 
@@ -5878,7 +5977,7 @@ var SW_STEPS = [
   {
     id:'welcome', icon:'✦', time:'~10 min total',
     title:'Welcome to EconSquad AI',
-    body:'I\'m ARIA — your AI Chief of Staff for economic development. In the next 10 minutes we\'ll get you fully set up: connect your tools, personalise your squad, and make sure you know exactly where everything lives so you can hit the ground running.',
+    body:'I\'m ARIA — your AI Chief of Staff. I analyze your inbox, calendar, tasks, and activity to help you prioritize work, identify opportunities, and deploy the right specialists. In the next few minutes we\'ll get you fully set up.',
     why:null, cta:'Let\'s get started →', skip:'Skip setup — take me to the dashboard', action:null
   },
   {
@@ -5891,16 +5990,9 @@ var SW_STEPS = [
   {
     id:'profile', icon:'🏙️', time:'~1 min',
     title:'Your profile &amp; account settings',
-    body:'Click below to open your profile menu. Upload your community logo, manage integrations, adjust your subscription, and access SMS alerts. When you\'re done, click the green <strong>✦ Continue setup →</strong> button at the bottom-right to come back.',
-    why:'<strong>Tip:</strong> Upload your community logo — it replaces the EconSquad AI branding in the nav bar and gives the platform a local feel for your team.',
+    body:'Click below to open your profile menu. Upload your community logo, manage integrations, and adjust your subscription. When you\'re done, click the green <strong>✦ Continue setup →</strong> button at the bottom-right to come back.',
+    why:'<strong>Tip:</strong> Upload your community logo — it replaces the EconSquad AI branding in the nav bar and gives the platform a local feel for your team. You can also set up SMS deadline alerts anytime from this menu.',
     cta:'Open my profile →', skip:'Skip for now', action:'openProfileForSetup'
-  },
-  {
-    id:'sms', icon:'📱', time:'~1 min',
-    title:'Set up SMS alerts',
-    body:'Get a text message when grant deadlines, RFI inquiries, or hot prospects land in your inbox. Click your avatar (top right) → 📱 SMS Alerts → enter your phone number and toggle the alert types you want.',
-    why:'<strong>Why this matters:</strong> Grant windows close fast. An RFI that sits unread for 24 hours is often a lost opportunity. SMS alerts mean you never miss the moment.',
-    cta:'Set up SMS alerts →', skip:'Skip for now', action:'openSmsFromSetup'
   },
   {
     id:'squad', icon:'⚡', time:'~2 min',
@@ -5911,9 +6003,9 @@ var SW_STEPS = [
   },
   {
     id:'aria', icon:'✨', time:'~1 min',
-    title:'ARIA is always with you',
-    body:'Click below to see ARIA live. Look at the <strong>glowing bar at the very bottom</strong> of your screen — that\'s ARIA, your command center. She\'s there on every tab, always ready. Hit <strong>✦ Continue setup</strong> (bottom-right) when you\'re done exploring.',
-    why:'<strong>Why this matters:</strong> The fastest users treat ARIA like a colleague they can interrupt anytime. The more you talk to her, the more she can do for you.',
+    title:'Meet ARIA — Your AI Chief of Staff',
+    body:'Click below to see ARIA live. Look at the <strong>glowing bar at the very bottom</strong> of your screen — that\'s ARIA. She analyzes your inbox, calendar, tasks, and activity to help you prioritize work, find opportunities, and deploy the right specialists. She\'s there on every tab, always ready.',
+    why:'<strong>Why this matters:</strong> The fastest users treat ARIA like a colleague they can interrupt anytime. Ask her what to do today, which specialist to deploy, or what\'s in your inbox — she always has an answer.',
     cta:'Show me ARIA →', skip:null, action:'showAria'
   },
   {
@@ -5994,6 +6086,11 @@ function closeSW(){
   window._swActive = false;
   /* Always land on the Home (squad) tab after finishing setup */
   if(typeof showDashTab === 'function') showDashTab('home-tab', null);
+  /* Show first-deployment guidance if user has no missions yet */
+  if(!localStorage.getItem('esq_first_mission_done') && !localStorage.getItem('esq_first_mission_guide_dismissed')){
+    var guide = document.getElementById('first-mission-guide');
+    if(guide) guide.style.display = 'block';
+  }
 }
 
 /* Apply pulsing green glow to a selector (cycle=true) or single element */
@@ -6322,7 +6419,7 @@ var TOUR_STEPS = [
   { target:'#subtab-roi',             tab:'stats-tab', icon:'💰', title:'ROI Calculator — Enter Your Salary', desc:'Click the ROI Calculator tab and enter your annual salary. EconSquad AI instantly calculates your hourly rate, the dollar value of every hour your squad saves you, and your projected annual return — so you always know exactly what this pays back.', action: function(){ if(typeof switchStatsTab==='function') switchStatsTab('roi', document.getElementById('subtab-roi')); } },
   /* ── RESOURCES + ARIA ── */
   { target:'#dash-nav-resources',     tab:null,        icon:'📚', title:'Resources & Tools',            desc:'Access the Monday AI Drop newsletter, the Less Work More Impact book, the EconSquad swag shop, and replay this tour anytime — all from the Resources menu.' },
-  { target:'#aria-footer-bar',        tab:null,        icon:'✨', title:'ARIA — Your Chief of Staff',   desc:'ARIA is always at the bottom of your screen. Ask her to deploy a specialist, check your inbox, explain any feature, or plan your week. She\'s your command center — and she gets smarter every time you use her.' }
+  { target:'#aria-footer-bar',        tab:null,        icon:'✨', title:'ARIA — Your AI Chief of Staff',   desc:'ARIA is your AI Chief of Staff. She analyzes your inbox, calendar, tasks, and activity to help you prioritize work, identify opportunities, and deploy the right specialists. She\'s always at the bottom of your screen — ask her anything, anytime.' }
 ];
 
 function initOnboarding(user){
@@ -11524,6 +11621,41 @@ function drawLogo(){if(!logoCtx)return;
 </div>
 
 <!-- ARIA FOOTER BAR -->
+<!-- ===== FIRST MISSION CELEBRATION MODAL ===== -->
+<div id="first-mission-modal" style="display:none;position:fixed;inset:0;z-index:110000;background:rgba(4,5,13,0.92);backdrop-filter:blur(14px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:rgba(10,16,28,0.98);border:1px solid rgba(170,255,62,0.3);border-radius:20px;padding:36px 32px;max-width:480px;width:100%;text-align:center;position:relative;box-shadow:0 0 80px rgba(170,255,62,0.15),0 24px 60px rgba(0,0,0,0.6);">
+    <div id="fm-confetti" style="position:absolute;top:0;left:0;right:0;height:6px;border-radius:20px 20px 0 0;background:linear-gradient(90deg,#aaff3e,#f5c542,#64afff,#aaff3e);"></div>
+    <div style="font-size:48px;margin-bottom:8px;">🎉</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;color:#eef3fc;margin-bottom:6px;letter-spacing:.02em;">First Mission Complete!</div>
+    <div style="font-size:13px;color:#6b7a96;margin-bottom:24px;">You just deployed your first AI specialist. ARIA is tracking the impact.</div>
+    <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.18);border-radius:14px;padding:18px 20px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:18px;">⚡</span>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.08em;">Specialist deployed</div>
+          <div id="fm-specialist-name" style="font-size:14px;font-weight:700;color:#aaff3e;margin-top:1px;"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
+          <div id="fm-hours-saved" style="font-family:'Barlow',sans-serif;font-size:24px;font-weight:900;color:#f5c542;line-height:1;">—</div>
+          <div style="font-size:10px;color:#6b7a96;margin-top:3px;">hrs saved</div>
+        </div>
+        <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
+          <div id="fm-total-hours" style="font-family:'Barlow',sans-serif;font-size:24px;font-weight:900;color:#aaff3e;line-height:1;">—</div>
+          <div style="font-size:10px;color:#6b7a96;margin-top:3px;">total hrs</div>
+        </div>
+        <div style="background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;">
+          <div id="fm-roi-value" style="font-family:'Barlow',sans-serif;font-size:24px;font-weight:900;color:#4ade80;line-height:1;">—</div>
+          <div style="font-size:10px;color:#6b7a96;margin-top:3px;">est. value</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#4a5568;margin-bottom:20px;line-height:1.6;">ARIA estimates this mission saved approximately <strong id="fm-hours-label" style="color:#aaff3e;"></strong> of staff capacity — tracked automatically toward your annual ROI.</div>
+    <button onclick="closeFirstMissionModal()" style="background:#aaff3e;color:#0a1a00;border:none;font-family:'Barlow',sans-serif;font-size:14px;font-weight:900;padding:12px 28px;border-radius:10px;cursor:pointer;width:100%;letter-spacing:.02em;transition:opacity .2s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">Continue Exploring Specialists →</button>
+  </div>
+</div>
+
 <div class="aria-footer" id="aria-footer-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9990;display:none;">
   <div class="aria-orb-f" onclick="openAriaRouting()" style="position:relative;overflow:hidden;width:48px;height:48px;">
     <canvas id="aria-footer-cv" width="48" height="48" data-dorb="aria-footer-orb" style="position:absolute;top:0;left:0;width:48px;height:48px;"></canvas>
@@ -11531,7 +11663,7 @@ function drawLogo(){if(!logoCtx)return;
   </div>
   <div class="aria-f-id">
     <div class="afname">ARIA</div>
-    <div class="afull">AI Resource &amp; Intelligence Assistant</div>
+    <div class="afull">Your AI Chief of Staff for Economic Development</div>
   </div>
   <div class="aria-f-pulse"></div>
   <div class="aria-f-div"></div>
