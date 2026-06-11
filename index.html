@@ -1946,7 +1946,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
           <div>
             <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:4px;">ARIA Inbox</h2>
-            <p style="color:#6b7a96;font-size:13px;">Your Gmail and Calendar — organized by ARIA</p>
+            <p style="color:#6b7a96;font-size:13px;">Your email and calendar — organized by ARIA <span id="inbox-account-badge" style="display:none;margin-left:8px;font-size:11px;color:#aaff3e;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);padding:2px 8px;border-radius:10px;"></span></p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;">
             <div id="inbox-connect-btn" style="display:none;gap:8px;align-items:center;">
@@ -1957,8 +1957,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
                 Connect Outlook ✦
               </button>
             </div>
-            <button onclick="analyzeInboxWithARIA()" id="aria-analyze-btn" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
-              ✦ ARIA Analyze
+            <button onclick="analyzeInboxWithARIA()" id="aria-analyze-btn" title="Generate an updated briefing using your latest emails, calendar events, and tasks." style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
+              ✦ Refresh Briefing
             </button>
             <button onclick="refreshInbox()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:11px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;">
               ↻ Refresh
@@ -4221,6 +4221,20 @@ function updateIntegrationStatus(){
   el.innerHTML =
     row('📧', 'Gmail', isGoogle,    'connectGmail',    'disconnectGmail') +
     row('📨', 'Outlook / Microsoft 365', isMicrosoft, 'connectOutlook', 'disconnectOutlook');
+  /* Update inbox header connected-account badge */
+  var badge = document.getElementById('inbox-account-badge');
+  if(badge){
+    if(isGoogle && currentUser && currentUser.email){
+      badge.textContent = '✓ Gmail — ' + currentUser.email;
+      badge.style.display = 'inline';
+    } else if(isMicrosoft){
+      var msEmail = localStorage.getItem('esq_ms_email') || 'Outlook';
+      badge.textContent = '✓ Outlook — ' + msEmail;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
 }
 
 function toggleProfileMenu(){
@@ -5930,7 +5944,10 @@ function initSetupWizard(user){
       _swStep = idx;
       _swCompleted['gmail'] = true;
       window._swActive = true;
-      setTimeout(function(){ openSW(); }, 1000);
+      setTimeout(function(){
+        showToastMsg('✓ Gmail Connected Successfully');
+        openSW();
+      }, 1000);
       return;
     }
   }
@@ -6288,7 +6305,7 @@ var TOUR_STEPS = [
   { target:'#user-avatar',            tab:null,        icon:'👤', title:'Your Profile',                 desc:'Click your avatar to manage your account: update your name, logo, and Anthropic API key, view your subscription plan, adjust text size for accessibility, and sign out. Everything about your account lives here.' },
   { target:'#user-avatar',            tab:null,        icon:'📱', title:'Phone & SMS Alerts',           desc:'Want a text when a grant deadline or RFI drops into your inbox? Click your avatar → 📱 Text Alerts. Enter your phone number, toggle on the alert types you want, and ARIA will text you automatically.' },
   /* ── INBOX ── */
-  { target:'#aria-analyze-btn',       tab:'inbox-tab', icon:'📬', title:'ARIA Inbox — Your Gmail Hub',  desc:'Connect Gmail and ARIA becomes your inbox chief of staff. She sorts every message, surfaces what needs action today, and can draft replies on your behalf. Hit ✦ ARIA Analyze for an instant briefing of your current inbox.' },
+  { target:'#aria-analyze-btn',       tab:'inbox-tab', icon:'📬', title:'ARIA Inbox — Your Unified Inbox',  desc:'Connect your email and ARIA becomes your inbox chief of staff. She sorts every message, surfaces what needs action today, and can draft replies on your behalf. Hit ✦ Refresh Briefing for an instant briefing of your current inbox.' },
   { target:'#aria-briefing-card',     tab:'inbox-tab', icon:'✦',  title:'ARIA Briefing',                desc:'Once Gmail is connected, ARIA delivers a briefing card right here — summarizing your priority messages, flagging deadlines, and surfacing action items. One read and you know exactly what your day needs.', action: function(){ var c=document.getElementById('aria-briefing-card'); if(c && c.style.display==='none') c.style.display='block'; } },
   { target:'#inbox-triage-btn',         tab:'inbox-tab', icon:'🗂️', title:'Email Triage',                 desc:'Use the Unread / Read / Sent pills to switch between your inbox views, then hit ✦ Triage to have ARIA instantly sort and prioritize every email — flagging grant leads, RFI inquiries, prospects, and deadlines so you always work the most important pile first.', noReflow:true, delay:700, action:function(){ var c=document.getElementById('aria-briefing-card'); if(c) c.style.display='none'; } },
   { target:'#esq-filter-bar',         tab:'inbox-tab', icon:'🏷️', title:'Smart Email Tags',             desc:'Each email gets a color-coded tag automatically: RFI, Grants, BRE, Incentives, Prospects, and more. Click any tag chip to filter your inbox instantly. These tags also trigger smart actions — an RFI email shows a Deploy Riley button, a Grant email shows Grant Writer.', delay:700, action:function(){ var c=document.getElementById('aria-briefing-card'); if(c) c.style.display='none'; } },
@@ -8686,6 +8703,7 @@ function _clearMSToken(){
   localStorage.removeItem('esq_ms_token');
   localStorage.removeItem('esq_ms_token_expiry');
   localStorage.removeItem('esq_email_provider');
+  localStorage.removeItem('esq_ms_email');
   _emailProvider = null;
   if(_msalApp){
     _msalApp.getAllAccounts().forEach(function(a){ _msalApp.removeAccount(a); });
@@ -8700,6 +8718,7 @@ function connectOutlook(){
     _msalApp.loginPopup({ scopes:_MSAL_SCOPES, prompt:'select_account' })
       .then(function(response){
         _storeMSToken(response.accessToken, response.expiresOn);
+        if(response.account && response.account.username) localStorage.setItem('esq_ms_email', response.account.username);
         updateIntegrationStatus();
         updateNavConnectStatus();
         var syncBtn = document.getElementById('tasks-sync-btn');
@@ -8873,6 +8892,7 @@ function loadInbox(){
     var searchWrap = document.getElementById('inbox-search-wrap');
     if(searchWrap) searchWrap.style.display = '';
 
+    updateIntegrationStatus();
     if(connectBtn) connectBtn.style.display = 'none';
 
     if(_emailProvider === 'microsoft'){
@@ -9070,7 +9090,7 @@ function runGmailSearch(forceQ){
       return;
     }
     if(window._emailProvider === 'microsoft'){
-      if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7a96;font-size:13px;">Search is currently supported for Gmail only.</div>';
+      if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7a96;font-size:13px;">Connect Gmail to search your emails.</div>';
       return;
     }
     supa.functions.invoke('gmail-calendar', {
@@ -9446,6 +9466,8 @@ function loadCalendar(token){
     if(res.error || !res.data){
       var ct = document.getElementById('calendar-today');
       if(ct) ct.innerHTML = '<div style="color:#4a5568;font-size:12px;padding:12px;">Could not load calendar.</div>';
+      var sl = document.getElementById('esq-schedule-list');
+      if(sl) sl.innerHTML = '<div style="color:#4a5568;font-size:12px;padding:20px 10px;text-align:center;">Could not load events.<br><span style="font-size:11px;">Check your connection and refresh.</span></div>';
       return;
     }
     showCalendarToday(res.data.today || []);
@@ -10187,7 +10209,9 @@ function renderSchedulePanel(filterDate) {
 
   if(!allEvts.length){
     panel.innerHTML = '<div style="color:#4a5568;font-size:12px;padding:20px 10px;text-align:center;">'
-      +(filterDate ? 'No events on this day.' : 'No upcoming events.<br><span style="font-size:11px;">Connect your Google Calendar to sync events.</span>')
+      +(filterDate
+        ? 'No events scheduled on this day.'
+        : 'No Events This Week<br><span style="font-size:11px;display:block;margin-top:4px;">Your calendar is clear — a great time to plan ahead.</span><button onclick="openCalEventModal&&openCalEventModal()" style="margin-top:10px;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer;font-family:\'Barlow\',sans-serif;">+ Schedule Meeting</button>')
       +'</div>';
     return;
   }
