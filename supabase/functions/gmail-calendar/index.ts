@@ -597,6 +597,58 @@ serve(async (req) => {
       result = { created: true, eventId: data.id, htmlLink: data.htmlLink, error: data.error?.message }
     }
 
+    // ===== GMAIL SEARCH =====
+    if (action === 'gmail_search') {
+      const { q, maxResults } = body
+      if (!q || !String(q).trim()) {
+        result = { emails: [], total: 0 }
+      } else {
+        const max = Math.min(Number(maxResults) || 25, 50)
+        const listRes = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${max}&q=${encodeURIComponent(String(q))}&fields=messages,resultSizeEstimate`,
+          { headers: { Authorization: `Bearer ${provider_token}` } }
+        )
+        const listData = await listRes.json()
+        if (listData.error) {
+          result = { emails: [], error: listData.error.message, needsReauth: listData.error.status === 'UNAUTHENTICATED' }
+        } else {
+          const messages = listData.messages || []
+          const total = listData.resultSizeEstimate || messages.length
+          if (!messages.length) {
+            result = { emails: [], total: 0 }
+          } else {
+            const emailPromises = messages.map((msg: any) =>
+              fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date&metadataHeaders=To&fields=id,threadId,snippet,payload/headers,labelIds`,
+                { headers: { Authorization: `Bearer ${provider_token}` } }
+              ).then(r => r.json())
+            )
+            const details = await Promise.all(emailPromises)
+            const emails = details
+              .filter((d: any) => !d.error)
+              .map((detail: any) => {
+                const headers = detail.payload?.headers || []
+                const getH = (name: string) => headers.find((h: any) => h.name === name)?.value || ''
+                const labelIds: string[] = detail.labelIds || []
+                return {
+                  id: detail.id,
+                  threadId: detail.threadId,
+                  from: getH('From'),
+                  to: getH('To'),
+                  subject: getH('Subject') || '(no subject)',
+                  date: getH('Date'),
+                  snippet: (detail.snippet || '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"'),
+                  hasAttachment: labelIds.includes('HAS_ATTACHMENT'),
+                  isUnread: labelIds.includes('UNREAD'),
+                  labels: labelIds
+                }
+              })
+            result = { emails, total }
+          }
+        }
+      }
+    }
+
     // ===== GOOGLE TASKS LIST =====
     if (action === 'google_tasks_list') {
       const listRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists?maxResults=20', {

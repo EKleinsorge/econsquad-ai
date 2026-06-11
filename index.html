@@ -1986,6 +1986,62 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
         <!-- EMAIL LIST -->
         <div id="inbox-grid">
+
+          <!-- GMAIL SEARCH BAR -->
+          <div id="inbox-search-wrap" style="margin-bottom:14px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="flex:1;position:relative;">
+                <input id="inbox-search-input" type="text"
+                  placeholder="Search Gmail — from:name subject:keyword has:attachment…"
+                  oninput="onInboxSearchInput(this.value)"
+                  onkeydown="if(event.key==='Enter')runGmailSearch()"
+                  style="width:100%;padding:9px 36px 9px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#eef3fc;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;box-sizing:border-box;transition:border-color .2s;"
+                  onfocus="this.style.borderColor='rgba(170,255,62,0.4)'"
+                  onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+                <span id="inbox-search-clear" onclick="clearGmailSearch()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#6b7a96;font-size:18px;line-height:1;padding:2px;">×</span>
+              </div>
+              <button onclick="runGmailSearch()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:9px 16px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">🔍 Search</button>
+              <button onclick="toggleAdvSearch()" id="adv-search-toggle" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:12px;font-weight:700;padding:9px 14px;border-radius:10px;cursor:pointer;font-family:'Barlow',sans-serif;white-space:nowrap;">⚙ Advanced</button>
+            </div>
+            <!-- ADVANCED SEARCH PANEL -->
+            <div id="adv-search-panel" style="display:none;margin-top:10px;background:rgba(8,12,24,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">From</label>
+                  <input id="adv-from" type="text" placeholder="name or email" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">To</label>
+                  <input id="adv-to" type="text" placeholder="name or email" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">Subject contains</label>
+                  <input id="adv-subject" type="text" placeholder="words in subject" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">Keyword</label>
+                  <input id="adv-keyword" type="text" placeholder="any word anywhere" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">After date</label>
+                  <input id="adv-after" type="date" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px;">Before date</label>
+                  <input id="adv-before" type="date" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#eef3fc;font-size:12px;outline:none;box-sizing:border-box;" />
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:#6b7a96;">
+                  <input id="adv-attachment" type="checkbox" style="accent-color:#aaff3e;" />
+                  Has attachment
+                </label>
+                <button onclick="applyAdvancedSearch()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;">Apply Search</button>
+                <button onclick="clearAdvancedSearch()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;">Clear</button>
+              </div>
+            </div>
+          </div>
+
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
             <div id="inbox-pills-group" style="display:flex;gap:4px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
               <button id="inbox-pill-unread" onclick="switchInboxMode('unread')" style="font-size:11px;font-weight:700;padding:4px 14px;border-radius:7px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:rgba(170,255,62,0.15);color:#aaff3e;transition:all .2s;">📧 Unread</button>
@@ -8901,6 +8957,120 @@ function loadSentEmailList(token, period){
     if(countEl) countEl.textContent = emails.length + ' sent';
     showEmailList(emails);
   }).catch(function(){ showEmailList([]); });
+}
+
+/* ── Gmail Search ─────────────────────────────────────────────────── */
+var _inboxSearchActive = false;
+var _inboxSearchQuery  = '';
+
+function onInboxSearchInput(val){
+  var clear = document.getElementById('inbox-search-clear');
+  if(clear) clear.style.display = val ? 'block' : 'none';
+}
+
+function clearGmailSearch(){
+  var inp = document.getElementById('inbox-search-input');
+  if(inp) inp.value = '';
+  onInboxSearchInput('');
+  if(_inboxSearchActive){
+    _inboxSearchActive = false;
+    _inboxSearchQuery  = '';
+    var countEl = document.getElementById('unread-count-label');
+    if(countEl) countEl.textContent = '';
+    switchInboxMode(_inboxMode);
+  }
+}
+
+function toggleAdvSearch(){
+  var panel = document.getElementById('adv-search-panel');
+  var btn   = document.getElementById('adv-search-toggle');
+  if(!panel) return;
+  var open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if(btn) btn.style.color = open ? '#6b7a96' : '#aaff3e';
+}
+
+function applyAdvancedSearch(){
+  var from    = (document.getElementById('adv-from')    ? document.getElementById('adv-from').value    : '').trim();
+  var to      = (document.getElementById('adv-to')      ? document.getElementById('adv-to').value      : '').trim();
+  var subject = (document.getElementById('adv-subject') ? document.getElementById('adv-subject').value : '').trim();
+  var keyword = (document.getElementById('adv-keyword') ? document.getElementById('adv-keyword').value : '').trim();
+  var after   = (document.getElementById('adv-after')   ? document.getElementById('adv-after').value   : '').trim();
+  var before  = (document.getElementById('adv-before')  ? document.getElementById('adv-before').value  : '').trim();
+  var attach  = document.getElementById('adv-attachment') ? document.getElementById('adv-attachment').checked : false;
+  var parts = [];
+  if(from)    parts.push('from:' + from);
+  if(to)      parts.push('to:' + to);
+  if(subject) parts.push('subject:' + subject);
+  if(keyword) parts.push(keyword);
+  if(attach)  parts.push('has:attachment');
+  if(after)   parts.push('after:' + after.replace(/-/g, '/'));
+  if(before)  parts.push('before:' + before.replace(/-/g, '/'));
+  var q = parts.join(' ').trim();
+  if(!q){ alert('Please enter at least one search field.'); return; }
+  var inp = document.getElementById('inbox-search-input');
+  if(inp) inp.value = q;
+  onInboxSearchInput(q);
+  runGmailSearch(q);
+}
+
+function clearAdvancedSearch(){
+  ['adv-from','adv-to','adv-subject','adv-keyword','adv-after','adv-before'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  var cb = document.getElementById('adv-attachment');
+  if(cb) cb.checked = false;
+  clearGmailSearch();
+}
+
+function runGmailSearch(forceQ){
+  var inp = document.getElementById('inbox-search-input');
+  var q = forceQ !== undefined ? forceQ : (inp ? inp.value.trim() : '');
+  if(!q){ clearGmailSearch(); return; }
+
+  _inboxSearchActive = true;
+  _inboxSearchQuery  = q;
+
+  var listEl  = document.getElementById('email-list');
+  var countEl = document.getElementById('unread-count-label');
+
+  if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#4a5568;font-size:12px;"><div style="width:24px;height:24px;border:2px solid rgba(170,255,62,0.2);border-top-color:#aaff3e;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;margin-bottom:8px;"></div><br>Searching Gmail…</div>';
+  if(countEl) countEl.textContent = '';
+
+  getProviderToken().then(function(token){
+    if(!token){
+      if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff8080;font-size:13px;">⚠ Gmail not connected. Connect your account to search.</div>';
+      return;
+    }
+    if(window._emailProvider === 'microsoft'){
+      if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7a96;font-size:13px;">Search is currently supported for Gmail only.</div>';
+      return;
+    }
+    supa.functions.invoke('gmail-calendar', {
+      body: { action: 'gmail_search', provider_token: token, q: q, maxResults: 25 }
+    }).then(function(res){
+      if(res.error || !res.data){
+        if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff8080;font-size:13px;">⚠ Search failed. Please try again.</div>';
+        return;
+      }
+      if(res.data.needsReauth){
+        if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff8080;font-size:13px;">⚠ Gmail session expired. Please reconnect your account.</div>';
+        return;
+      }
+      var emails = res.data.emails || [];
+      var total  = res.data.total  || emails.length;
+      if(!emails.length){
+        if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:32px;margin-bottom:12px;">🔍</div><div style="color:#6b7a96;font-size:14px;">No results for <strong style="color:#eef3fc;">' + q.replace(/</g,'&lt;') + '</strong></div><div style="color:#4a5568;font-size:12px;margin-top:6px;">Try different keywords or check the spelling.</div></div>';
+        if(countEl) countEl.textContent = '0 results';
+        return;
+      }
+      if(countEl) countEl.textContent = emails.length + ' result' + (emails.length === 1 ? '' : 's') + (total > emails.length ? ' (showing ' + emails.length + ' of ~' + total + ')' : '');
+      showEmailList(emails);
+    }).catch(function(){
+      if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff8080;font-size:13px;">⚠ Search error. Check your connection and try again.</div>';
+    });
+  });
 }
 
 /* Load ARIA morning briefing */
