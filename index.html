@@ -1267,10 +1267,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <ul class="nav-links" style="display:flex;gap:28px;list-style:none;margin:0;padding:0;">
           <li><a id="dash-nav-home" onclick="showDashTab('home-tab',this)" style="cursor:pointer;">My Squad</a></li>
           <li><a id="dash-nav-inbox" onclick="showDashTab('inbox-tab',this)" style="cursor:pointer;">
-            Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span>
+            Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-inbox" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Email not connected — click to connect">🔗</span>
           </a></li>
-          <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);initFullCalendar();" style="cursor:pointer;">Calendar <span id="cal-nav-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></a></li>
-          <li><a id="dash-nav-tasks" onclick="showDashTab('tasks-tab',this)" style="cursor:pointer;">Tasks <span id="tasks-nav-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span></a></li>
+          <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);initFullCalendar();" style="cursor:pointer;">Calendar <span id="cal-nav-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-cal" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Calendar not connected — click to connect">🔗</span></a></li>
+          <li><a id="dash-nav-tasks" onclick="showDashTab('tasks-tab',this)" style="cursor:pointer;">Tasks <span id="tasks-nav-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-tasks" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Tasks not connected — click to connect">🔗</span></a></li>
           <li class="nav-dropdown">
             <a id="dash-nav-resources" class="nav-dropdown-trigger" style="cursor:pointer;">Resources <span class="nav-caret">▾</span></a>
             <ul class="nav-dropdown-menu">
@@ -1461,14 +1461,17 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div onclick="showDashTab('inbox-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-inbox">
           <span>Inbox</span>
           <span id="mob-inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+          <span id="mob-dot-inbox" style="display:none;font-size:10px;opacity:0.4;margin-left:2px;">🔗</span>
         </div>
         <div onclick="showDashTab('fullcal-tab',null);initFullCalendar();closeMobileMenu();" class="mob-nav-item" id="mob-nav-cal">
           <span>Calendar</span>
           <span id="mob-cal-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+          <span id="mob-dot-cal" style="display:none;font-size:10px;opacity:0.4;margin-left:2px;">🔗</span>
         </div>
         <div onclick="showDashTab('tasks-tab',null);closeMobileMenu();" class="mob-nav-item" id="mob-nav-tasks">
           <span>Tasks</span>
           <span id="mob-tasks-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
+          <span id="mob-dot-tasks" style="display:none;font-size:10px;opacity:0.4;margin-left:2px;">🔗</span>
         </div>
         <!-- Resources group -->
         <div style="padding:10px 22px 4px;font-size:10px;font-weight:800;color:#4a5568;letter-spacing:.1em;text-transform:uppercase;">Resources</div>
@@ -1992,7 +1995,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
             <div style="display:flex;gap:8px;align-items:center;">
               <div style="flex:1;position:relative;">
                 <input id="inbox-search-input" type="text"
-                  placeholder="Search Gmail — from:name subject:keyword has:attachment…"
+                  placeholder="Search Email — from:name subject:keyword has:attachment…"
                   oninput="onInboxSearchInput(this.value)"
                   onkeydown="if(event.key==='Enter')runGmailSearch()"
                   style="width:100%;padding:9px 36px 9px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#eef3fc;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;box-sizing:border-box;transition:border-color .2s;"
@@ -2103,8 +2106,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       <!-- ========== FULL CALENDAR TAB ========== -->
       <div class="page main dash-tab" id="fullcal-tab" style="display:none;padding:24px 32px 24px 24px;">
+        <div id="fullcal-no-provider" style="display:none;"></div>
         <!-- Header row -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div id="fullcal-real-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#eef3fc;">📅 Calendar</div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="esq-sched-filter-label" style="font-size:11px;color:#6b7a96;display:none;"></span>
@@ -2113,7 +2117,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           </div>
         </div>
         <!-- Split pane: schedule left, calendar right -->
-        <div style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;">
+        <div id="fullcal-real-body" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;">
 
           <!-- LEFT: Schedule panel -->
           <div id="esq-schedule-panel" style="background:rgba(10,15,28,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;position:sticky;top:20px;">
@@ -3168,6 +3172,8 @@ function onSignedIn(user){
   setTimeout(loadBadges,700);
   /* pre-load billing so it's instant when clicked */
   setTimeout(loadBillingDetails,1200);
+  /* update nav connection status indicators */
+  setTimeout(updateNavConnectStatus, 500);
   /* pre-load inbox badge count + calendar data (needed regardless of active tab) */
   setTimeout(function(){
     getProviderToken().then(function(token){
@@ -5352,12 +5358,35 @@ showDashTab=function(tabId,el){
   if(tabId==='history-tab')loadHistory();
   if(tabId==='inbox-tab')loadInbox();
   if(tabId==='fullcal-tab'){
-    /* Load calendar data if not yet fetched (e.g. user landed directly on Calendar tab) */
-    if(!window._lastCalEvents && !window._lastCalWeekEvents){
-      getProviderToken().then(function(token){ if(token) loadCalendar(token); });
-    }
+    getProviderToken().then(function(token){
+      var noProvEl   = document.getElementById('fullcal-no-provider');
+      var realHeader = document.getElementById('fullcal-real-header');
+      var realBody   = document.getElementById('fullcal-real-body');
+      if(!token){
+        window._connectReturnTab = 'fullcal-tab';
+        if(noProvEl){ noProvEl.innerHTML = _getConnectScreenHTML('fullcal-tab'); noProvEl.style.display = 'block'; }
+        if(realHeader) realHeader.style.display = 'none';
+        if(realBody)   realBody.style.display   = 'none';
+        return;
+      }
+      /* Provider connected — show real content */
+      if(noProvEl){ noProvEl.style.display = 'none'; noProvEl.innerHTML = ''; }
+      if(realHeader) realHeader.style.display = '';
+      if(realBody)   realBody.style.display   = '';
+      if(!window._lastCalEvents && !window._lastCalWeekEvents) loadCalendar(token);
+    });
   }
-  if(tabId==='tasks-tab'){if(typeof window.loadTasks==='function')window.loadTasks();}
+  if(tabId==='tasks-tab'){
+    getProviderToken().then(function(token){
+      if(!token){
+        window._connectReturnTab = 'tasks-tab';
+        var tasksEl = document.getElementById('tasks-page-content');
+        if(tasksEl) tasksEl.innerHTML = _getConnectScreenHTML('tasks-tab');
+        return;
+      }
+      if(typeof window.loadTasks==='function') window.loadTasks();
+    });
+  }
   if(tabId==='home-tab'){loadUserStats();loadAriaWelcome();}
   if(tabId==='resources-tab'){if(typeof window.loadResourcesFeed==='function')window.loadResourcesFeed();}
   if(tabId==='stats-tab'){
@@ -8608,6 +8637,7 @@ function disconnectGmail(){
   providerToken = null;
   inboxLoaded = false;
   updateIntegrationStatus();
+  updateNavConnectStatus();
   loadInbox();
   showToastMsg('Gmail disconnected.');
 }
@@ -8671,6 +8701,7 @@ function connectOutlook(){
       .then(function(response){
         _storeMSToken(response.accessToken, response.expiresOn);
         updateIntegrationStatus();
+        updateNavConnectStatus();
         var syncBtn = document.getElementById('tasks-sync-btn');
         if(syncBtn) syncBtn.textContent = '↻ Microsoft To Do';
         inboxLoaded = false;
@@ -8703,6 +8734,7 @@ function connectOutlook(){
 function disconnectOutlook(){
   _clearMSToken();
   updateIntegrationStatus();
+  updateNavConnectStatus();
   inboxLoaded = false;
   loadInbox();
   showToastMsg('Outlook disconnected.');
@@ -8825,27 +8857,21 @@ function loadInbox(){
 
   /* Get provider token + detect which email platform is connected */
   getProviderToken().then(function(token){
+    updateNavConnectStatus();
     if(!token){
-      if(connectBtn) connectBtn.style.display = 'none'; /* hide small header buttons — use the big CTA below */
-      var noConnectHTML = '<div style="text-align:center;padding:48px 24px;max-width:420px;margin:0 auto;">'
-        + '<div style="font-size:44px;margin-bottom:16px;">📬</div>'
-        + '<div style="font-size:17px;font-weight:800;color:#eef3fc;margin-bottom:8px;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.02em;">Connect your email to get started</div>'
-        + '<div style="font-size:12px;color:#6b7a96;line-height:1.7;margin-bottom:24px;">ARIA can read and organize your Gmail or Outlook inbox, sync your calendar, and brief you each morning — but first you need to link an account.<br><br>Works with Gmail, Google Workspace, Outlook, and Microsoft 365 — including custom domains like <span style="color:#8a97b5;">you@yourcity.gov</span>.</div>'
-        + '<div style="background:rgba(170,255,62,0.07);border:1px solid rgba(170,255,62,0.18);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;" onclick="toggleProfileMenu()">'
-        + '<span style="font-size:20px;">👤</span>'
-        + '<div><div style="font-size:12px;font-weight:800;color:#aaff3e;">Open your Profile menu</div><div style="font-size:11px;color:#6b7a96;margin-top:2px;">Click your avatar (top right) → Integrations → Connect Gmail or Outlook</div></div>'
-        + '<span style="color:#aaff3e;font-size:16px;margin-left:auto;">↗</span>'
-        + '</div>'
-        + '<div style="display:flex;gap:10px;justify-content:center;">'
-        + '<button onclick="connectGmail();toggleProfileMenu();" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">Connect Gmail →</button>'
-        + '<button onclick="connectOutlook();" style="background:rgba(100,160,255,0.12);border:1px solid rgba(100,160,255,0.3);color:#64a0ff;font-size:12px;font-weight:700;padding:9px 20px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">Connect Outlook →</button>'
-        + '</div></div>';
+      if(connectBtn) connectBtn.style.display = 'none';
       var emailListEl = document.getElementById('email-list');
-      if(emailListEl) emailListEl.innerHTML = noConnectHTML;
+      if(emailListEl) emailListEl.innerHTML = _getConnectScreenHTML('inbox-tab');
       var calTodayEl = document.getElementById('calendar-today');
-      if(calTodayEl) calTodayEl.innerHTML = '<div style="text-align:center;padding:24px 16px;color:#6b7a96;font-size:12px;line-height:1.7;">Connect Gmail or Outlook from your<br><span style="color:#aaff3e;cursor:pointer;" onclick="toggleProfileMenu()">profile menu ↗</span> to see your calendar.</div>';
+      if(calTodayEl) calTodayEl.innerHTML = '';
+      /* hide search bar and pills until connected */
+      var searchWrap = document.getElementById('inbox-search-wrap');
+      if(searchWrap) searchWrap.style.display = 'none';
       return;
     }
+    /* restore search bar if it was hidden */
+    var searchWrap = document.getElementById('inbox-search-wrap');
+    if(searchWrap) searchWrap.style.display = '';
 
     if(connectBtn) connectBtn.style.display = 'none';
 
@@ -9069,6 +9095,69 @@ function runGmailSearch(forceQ){
       showEmailList(emails);
     }).catch(function(){
       if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#ff8080;font-size:13px;">⚠ Search error. Check your connection and try again.</div>';
+    });
+  });
+}
+
+/* ── Provider Connection Gate ─────────────────────────────────────── */
+
+function _getConnectScreenHTML(fromTab) {
+  var features = [
+    ['📬', 'Unified Inbox',       'All your email in one smart view'],
+    ['🔍', 'AI Email Search',     'Find any email instantly with natural language'],
+    ['📅', 'Calendar Intelligence','Events, scheduling, and conflict detection'],
+    ['✅', 'Task Management',     'Gmail and Outlook tasks, synced automatically'],
+    ['✦',  'Daily Briefings',     'ARIA summarizes your priorities every morning'],
+    ['🔔', 'Follow-Up Reminders', 'Never let a critical reply slip through'],
+  ];
+  var featureHTML = features.map(function(f){
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;">'
+      + '<span style="min-width:28px;height:28px;border-radius:8px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.15);display:inline-flex;align-items:center;justify-content:center;font-size:12px;">' + f[0] + '</span>'
+      + '<div><div style="font-size:12px;font-weight:700;color:#c8d8f0;line-height:1.3;">' + f[1] + '</div>'
+      + '<div style="font-size:11px;color:#4a5568;margin-top:1px;">' + f[2] + '</div></div>'
+      + '</div>';
+  }).join('');
+  var skipBtn = (fromTab === 'tasks-tab')
+    ? '<div style="margin-top:14px;"><button onclick="_skipConnectScreen()" style="background:transparent;border:none;color:#4a5568;font-size:11px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:0;">Continue without connecting →</button></div>'
+    : '';
+  return '<div style="max-width:520px;margin:0 auto;padding:48px 24px;text-align:center;">'
+    + '<div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,rgba(170,255,62,0.12),rgba(100,160,255,0.06));border:1px solid rgba(170,255,62,0.2);display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:20px;">🏢</div>'
+    + '<h2 style="font-family:\'Barlow Condensed\',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin:0 0 8px;letter-spacing:.02em;">Connect Your Digital Office</h2>'
+    + '<p style="color:#6b7a96;font-size:13px;line-height:1.7;margin:0 auto 24px;max-width:400px;">Connect your email, calendar, and tasks so ARIA can help manage your communications, meetings, follow-ups, and daily briefings.</p>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;text-align:left;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px 18px;margin-bottom:24px;">'
+    + featureHTML
+    + '</div>'
+    + '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">'
+    + '<button onclick="connectGmail()" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:13px;font-weight:700;padding:11px 24px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">📧 Connect Gmail</button>'
+    + '<button onclick="_connectOutlookFromScreen()" style="background:rgba(100,160,255,0.1);border:1px solid rgba(100,160,255,0.25);color:#64a0ff;font-size:13px;font-weight:700;padding:11px 24px;border-radius:10px;cursor:pointer;font-family:\'Barlow\',sans-serif;">📨 Connect Outlook</button>'
+    + '</div>'
+    + '<div id="connect-screen-outlook-note" style="display:none;background:rgba(100,160,255,0.05);border:1px solid rgba(100,160,255,0.12);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:#8ab4f8;line-height:1.7;text-align:left;">'
+    + '💡 <strong>Outlook / Microsoft 365:</strong> If your organization requires admin approval for third-party apps, ask your IT admin to approve ECONSquad in Microsoft 365 Admin Center → Enterprise Apps.'
+    + '</div>'
+    + '<p style="color:#4a5568;font-size:11px;line-height:1.6;margin:0 auto 4px;max-width:380px;">Works with Gmail, Google Workspace, Outlook, and Microsoft 365 — including custom domains like <span style="color:#6b7a96;">you@yourcity.gov</span>.</p>'
+    + skipBtn
+    + '</div>';
+}
+
+function _connectOutlookFromScreen() {
+  var note = document.getElementById('connect-screen-outlook-note');
+  if(note) note.style.display = 'block';
+  connectOutlook();
+}
+
+function _skipConnectScreen() {
+  var tab = window._connectReturnTab || 'tasks-tab';
+  window._connectReturnTab = null;
+  _origShowDashTab(tab, null);
+  if(tab === 'tasks-tab' && typeof window.loadTasks === 'function') window.loadTasks();
+}
+
+function updateNavConnectStatus() {
+  getProviderToken().then(function(token) {
+    var ids = ['nav-dot-inbox','nav-dot-cal','nav-dot-tasks','mob-dot-inbox','mob-dot-cal','mob-dot-tasks'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if(el) el.style.display = token ? 'none' : 'inline';
     });
   });
 }
