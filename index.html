@@ -5313,6 +5313,7 @@ function closeFirstMissionModal(){
 
 /* ===== REPORT A PROBLEM ===== */
 var _reportSubmitting=false;
+var _reportDone=false;
 
 function _getActivePage(){
   var tabs={
@@ -5331,12 +5332,15 @@ function openReportModal(){
   var overlay=document.getElementById('report-overlay');
   if(!overlay) return;
   _reportSubmitting=false;
+  _reportDone=false;
   var txt=document.getElementById('report-text');
   var status=document.getElementById('report-status');
   var btn=document.getElementById('report-send-btn');
+  var doneBtn=document.getElementById('report-done-close-btn');
   if(txt){txt.value='';txt.style.borderColor='';}
   if(status){status.style.display='none';status.textContent='';}
   if(btn){btn.textContent='Send Report →';btn.disabled=false;btn.style.display='';}
+  if(doneBtn) doneBtn.style.display='none';
   var metaEmail=document.getElementById('report-meta-email');
   var metaPage=document.getElementById('report-meta-page');
   if(metaEmail) metaEmail.textContent=currentUser?currentUser.email:'Not signed in';
@@ -5347,11 +5351,19 @@ function openReportModal(){
 window.openReportModal=openReportModal;
 
 function closeReportModal(){
-  if(_reportSubmitting) return;
+  if(_reportSubmitting||_reportDone) return;
   var overlay=document.getElementById('report-overlay');
   if(overlay) overlay.style.display='none';
 }
 window.closeReportModal=closeReportModal;
+
+function forceCloseReport(){
+  _reportSubmitting=false;
+  _reportDone=false;
+  var overlay=document.getElementById('report-overlay');
+  if(overlay) overlay.style.display='none';
+}
+window.forceCloseReport=forceCloseReport;
 
 function _doReportSubmit(){
   var txt=document.getElementById('report-text');
@@ -5405,14 +5417,22 @@ function _doReportSubmit(){
       return;
     }
     console.log('[report] insert success');
+    _reportSubmitting=false;
+    _reportDone=true;
     if(s){
       s.style.color='#aaff3e';
       s.style.background='rgba(170,255,62,0.07)';
       s.style.borderColor='rgba(170,255,62,0.25)';
-      s.innerHTML='✓ <strong>Report Sent — Thank You</strong><br><small style="color:#8a97b5;font-size:12px;">Your report has been received and will be reviewed by our team.</small>';
+      s.style.padding='18px 20px';
+      s.innerHTML='<div style="font-size:36px;margin-bottom:10px;line-height:1;">✓</div>'
+        +'<strong style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;letter-spacing:.02em;display:block;margin-bottom:10px;">Report Sent — Thank You</strong>'
+        +'<span style="font-size:13px;color:#8a97b5;line-height:1.75;display:block;">Thank you for helping improve ECONSquad AI. Your report has been received and will be reviewed by our team.</span>';
       s.style.display='block';
     }
     if(btn) btn.style.display='none';
+    var doneBtn=document.getElementById('report-done-close-btn');
+    if(doneBtn) doneBtn.style.display='block';
+    console.log('[report] success confirmation displayed — waiting for user close');
     try{
       supa.functions.invoke('notify-problem-report',{body:{
         problem:payload.problem,user:payload.user_email,version:payload.version,
@@ -5420,7 +5440,6 @@ function _doReportSubmit(){
       }}).then(function(r){console.log('[report] notify result:',r);})
          .catch(function(e){console.warn('[report] notify failed:',e);});
     }catch(e){console.warn('[report] notify threw:',e);}
-    setTimeout(function(){closeReportModal();},3000);
   }).catch(function(err){
     clearTimeout(timer);
     _reportSubmitting=false;
@@ -11750,8 +11769,9 @@ function drawLogo(){if(!logoCtx)return;
     <p style="font-size:12px;color:#4a5568;margin:0 0 16px;line-height:1.5;">Describe what happened and we'll look into it right away.</p>
     <textarea id="report-text" placeholder="Describe the issue — what were you trying to do and what happened?" style="width:100%;min-height:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;outline:none;box-sizing:border-box;margin-bottom:10px;display:block;"></textarea>
     <div style="font-size:11px;color:#4a5568;margin-bottom:14px;">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
-    <div id="report-status" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;border:1px solid transparent;"></div>
+    <div id="report-status" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;border:1px solid transparent;text-align:center;"></div>
     <button type="button" id="report-send-btn" style="width:100%;padding:12px;border-radius:10px;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.03em;">Send Report →</button>
+    <button type="button" id="report-done-close-btn" onclick="forceCloseReport()" style="display:none;width:100%;padding:12px;border-radius:10px;background:rgba(170,255,62,0.15);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.03em;margin-top:10px;">Close</button>
   </div>
 </div>
 
