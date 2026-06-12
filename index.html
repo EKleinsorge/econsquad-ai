@@ -5348,7 +5348,8 @@ function openReportModal(){
   var ta=document.getElementById('report-textarea');
   var sendBtn=document.getElementById('report-send-btn');
   if(ta) ta.value='';
-  if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
+  if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;sendBtn.style.background='';sendBtn.style.borderColor='';}
+  var cs=document.getElementById('report-click-status'); if(cs) cs.style.display='none';
   var metaEmail=document.getElementById('report-meta-email');
   var metaPage=document.getElementById('report-meta-page');
   if(metaEmail) metaEmail.textContent=currentUser?currentUser.email:'Not signed in';
@@ -5371,7 +5372,8 @@ function showReportFormView(){
   document.getElementById('report-ok-view').style.display='none';
   document.getElementById('report-error-view').style.display='none';
   var t=document.getElementById('report-timeout-msg'); if(t) t.style.display='none';
-  var b=document.getElementById('report-send-btn'); if(b){b.textContent='Send Report →';b.disabled=false;}
+  var cs=document.getElementById('report-click-status'); if(cs) cs.style.display='none';
+  var b=document.getElementById('report-send-btn'); if(b){b.textContent='Send Report →';b.disabled=false;b.style.background='';b.style.borderColor='';}
 }
 window.showReportFormView = showReportFormView;
 
@@ -11765,7 +11767,7 @@ function drawLogo(){if(!logoCtx)return;
 
 <!-- REPORT A PROBLEM MODAL -->
 <div class="report-overlay" id="report-overlay" style="display:none;" onclick="if(event.target===this)closeReportModal()">
-  <div class="report-box">
+  <div class="report-box" onclick="event.stopPropagation()">
     <button class="report-x-btn" type="button" onclick="closeReportModal()">✕</button>
 
     <!-- FORM VIEW -->
@@ -11775,7 +11777,8 @@ function drawLogo(){if(!logoCtx)return;
       <textarea class="report-ta" id="report-textarea" placeholder="Describe the issue — what were you trying to do and what happened?"></textarea>
       <div class="report-meta-txt">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
       <div id="report-timeout-msg" style="display:none;font-size:12px;color:#f5c542;margin-bottom:12px;padding:10px 14px;background:rgba(245,197,66,0.07);border:1px solid rgba(245,197,66,0.25);border-radius:8px;line-height:1.6;">⏳ Still working... If this doesn't complete, please copy your feedback and email it to Eric at <strong style="color:#f5c542;">eric@gslisolutions.com</strong></div>
-      <button type="button" class="report-send-btn" id="report-send-btn" onclick="submitReport()">Send Report →</button>
+      <div id="report-click-status" style="display:none;margin-bottom:10px;padding:10px 14px;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.35);border-radius:8px;font-size:13px;color:#aaff3e;font-weight:600;letter-spacing:.01em;">Button clicked. Sending report...</div>
+      <button type="button" class="report-send-btn" id="report-send-btn">Send Report →</button>
     </div>
 
     <!-- SUCCESS VIEW -->
@@ -11997,19 +12000,34 @@ function setMobileActiveTab(tabId){
   }
 })();
 
-/* ── Report modal: programmatic binding (backup to inline onclick) ── */
+/* ── Report modal: guaranteed click binding (no inline onclick on button) ── */
 (function(){
-  var btn = document.getElementById('report-send-btn');
-  if(btn){
-    btn.addEventListener('click', function(e){
+  function _bindReportBtn(){
+    var btn=document.getElementById('report-send-btn');
+    if(!btn){ console.warn('[report-modal] Send button not found in DOM'); return; }
+    btn.addEventListener('click',function(e){
       e.preventDefault();
       e.stopPropagation();
-      console.log('[report-send-btn] click via event listener');
-      if(typeof window.submitReport === 'function') window.submitReport();
+      console.log('[report-send-btn] confirmed click');
+      /* Immediate visual proof — fires before any async work */
+      var status=document.getElementById('report-click-status');
+      if(status) status.style.display='block';
+      btn.textContent='Sending...';
+      btn.style.background='rgba(170,255,62,0.25)';
+      btn.style.borderColor='rgba(170,255,62,0.6)';
+      btn.disabled=true;
+      if(typeof window.submitReport==='function'){
+        window.submitReport();
+      } else {
+        console.error('[report-modal] window.submitReport not found');
+      }
     });
-    console.log('[report-modal] Send button event listener attached');
+    console.log('[report-modal] Send button bound');
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',_bindReportBtn);
   } else {
-    console.warn('[report-modal] Send button not found in DOM');
+    _bindReportBtn();
   }
 })();
 </script>
