@@ -1111,9 +1111,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 }
 
 
-.report-btn-float{position:fixed;bottom:80px;right:16px;z-index:7000;background:rgba(14,20,36,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:#6b7a96;display:flex;align-items:center;gap:6px;transition:all .2s;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.report-btn-float{position:fixed;bottom:80px;right:16px;z-index:10000;background:rgba(14,20,36,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:#6b7a96;display:flex;align-items:center;gap:6px;transition:all .2s;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
 .report-btn-float:hover{border-color:rgba(255,80,80,0.4);color:#ff8080;}
-.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:flex;align-items:center;justify-content:center;}
+.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99500;display:flex;align-items:center;justify-content:center;}
 .report-box{background:#0b1120;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px;width:90%;max-width:480px;position:relative;}
 .report-box h3{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:#eef3fc;margin-bottom:6px;}
 .report-box p{font-size:12px;color:#4a5568;margin-bottom:18px;}
@@ -5361,6 +5361,10 @@ function closeReportModal(){
   if(overlay) overlay.style.display='none';
 }
 
+/* expose on window so inline onclick attributes can always reach these */
+window.openReportModal  = openReportModal;
+window.closeReportModal = closeReportModal;
+
 function submitReport(){
   console.log('[submitReport] called');
   var ta=document.getElementById('report-textarea');
@@ -5415,6 +5419,7 @@ function submitReport(){
     showToastMsg('Error: Could not save report. Please try again.');
   });
 }
+window.submitReport = submitReport;
 
 /* ===== HISTORY TAB ===== */
 var allHistory=[];
@@ -11933,6 +11938,22 @@ function setMobileActiveTab(tabId){
         clearInterval(_interval);
       }
     }, 200);
+  }
+})();
+
+/* ── Report modal: programmatic binding (backup to inline onclick) ── */
+(function(){
+  var btn = document.getElementById('report-send-btn');
+  if(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[report-send-btn] click via event listener');
+      if(typeof window.submitReport === 'function') window.submitReport();
+    });
+    console.log('[report-modal] Send button event listener attached');
+  } else {
+    console.warn('[report-modal] Send button not found in DOM');
   }
 })();
 </script>
