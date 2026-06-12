@@ -5435,7 +5435,7 @@ function _doReportSubmit(){
     console.log('[report] success confirmation displayed — waiting for user close');
     try{
       supa.functions.invoke('notify-problem-report',{body:{
-        problem:payload.problem,user:payload.user_email,version:payload.version,
+        problem:payload.problem,user:payload.user_email,userName:payload.user_name,version:payload.version,
         url:payload.page,userAgent:payload.user_agent,timestamp:payload.timestamp
       }}).then(function(r){console.log('[report] notify result:',r);})
          .catch(function(e){console.warn('[report] notify failed:',e);});
