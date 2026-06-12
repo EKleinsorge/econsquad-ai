@@ -5339,17 +5339,18 @@ function _getActivePage(){
 
 function openReportModal(){
   var overlay=document.getElementById('report-overlay');
-  var formView=document.getElementById('report-form-view');
-  var okView=document.getElementById('report-ok-view');
+  if(!overlay) return;
+  /* reset all three states */
+  document.getElementById('report-form-view').style.display='block';
+  document.getElementById('report-ok-view').style.display='none';
+  document.getElementById('report-error-view').style.display='none';
+  var t=document.getElementById('report-timeout-msg'); if(t) t.style.display='none';
   var ta=document.getElementById('report-textarea');
+  var sendBtn=document.getElementById('report-send-btn');
+  if(ta) ta.value='';
+  if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
   var metaEmail=document.getElementById('report-meta-email');
   var metaPage=document.getElementById('report-meta-page');
-  var sendBtn=document.getElementById('report-send-btn');
-  if(!overlay) return;
-  if(formView) formView.style.display='block';
-  if(okView) okView.style.display='none';
-  if(ta) ta.value='';
-  if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
   if(metaEmail) metaEmail.textContent=currentUser?currentUser.email:'Not signed in';
   if(metaPage) metaPage.textContent=_getActivePage();
   overlay.style.display='flex';
@@ -5365,17 +5366,41 @@ function closeReportModal(){
 window.openReportModal  = openReportModal;
 window.closeReportModal = closeReportModal;
 
+function showReportFormView(){
+  document.getElementById('report-form-view').style.display='block';
+  document.getElementById('report-ok-view').style.display='none';
+  document.getElementById('report-error-view').style.display='none';
+  var t=document.getElementById('report-timeout-msg'); if(t) t.style.display='none';
+  var b=document.getElementById('report-send-btn'); if(b){b.textContent='Send Report →';b.disabled=false;}
+}
+window.showReportFormView = showReportFormView;
+
 function submitReport(){
-  console.log('[submitReport] called');
+  console.log('[submitReport] clicked');
   var ta=document.getElementById('report-textarea');
   var problem=(ta?ta.value.trim():'');
   if(!problem){
-    console.log('[submitReport] empty — aborting');
-    if(ta){ta.style.borderColor='rgba(255,80,80,0.5)'; setTimeout(function(){ta.style.borderColor='';},1500);}
+    if(ta){ta.style.borderColor='rgba(255,80,80,0.5)';setTimeout(function(){ta.style.borderColor='';},1500);ta.focus();}
     return;
   }
   var sendBtn=document.getElementById('report-send-btn');
-  if(sendBtn){ sendBtn.textContent='Sending…'; sendBtn.disabled=true; }
+  var timeoutMsg=document.getElementById('report-timeout-msg');
+
+  /* immediate, unmistakable loading state */
+  if(sendBtn){sendBtn.textContent='Sending...';sendBtn.disabled=true;}
+  if(timeoutMsg) timeoutMsg.style.display='none';
+
+  console.log('[submitReport] sending');
+
+  /* 8-second fallback: show inline warning without blocking */
+  var _resolved=false;
+  var _timer=setTimeout(function(){
+    if(!_resolved){
+      console.warn('[submitReport] still waiting after 8 seconds');
+      if(timeoutMsg) timeoutMsg.style.display='block';
+    }
+  },8000);
+
   var payload={
     user_id:    currentUser?currentUser.id:null,
     user_email: currentUser?currentUser.email:'',
@@ -5387,36 +5412,49 @@ function submitReport(){
     timestamp:  new Date().toISOString(),
     resolved:   false
   };
-  console.log('[submitReport] inserting payload:', payload);
+
   supa.from('problem_reports').insert(payload).then(function(res){
-    console.log('[submitReport] insert result:', res);
-    if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
-    if(res.error){
-      console.error('[submitReport] insert error:', res.error);
-      showToastMsg('Error: '+(res.error.message||'Could not save report. Please try again.'));
+    _resolved=true;
+    clearTimeout(_timer);
+
+    if(res&&res.error){
+      console.error('[submitReport] insert failed:',res.error);
+      if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
+      if(timeoutMsg) timeoutMsg.style.display='none';
+      var errDetail=document.getElementById('report-error-detail');
+      if(errDetail) errDetail.textContent='Error: '+(res.error.message||'We could not send your report. Please try again or email Eric directly.');
+      document.getElementById('report-form-view').style.display='none';
+      document.getElementById('report-error-view').style.display='block';
       return;
     }
-    /* show success state */
-    var formView=document.getElementById('report-form-view');
-    var okView=document.getElementById('report-ok-view');
-    if(formView) formView.style.display='none';
-    if(okView) okView.style.display='block';
-    /* fire-and-forget email notification — isolated so any failure can't affect the success UI */
+
+    console.log('[submitReport] insert success');
+
+    /* show success BEFORE anything else — email notification must never block this */
+    document.getElementById('report-form-view').style.display='none';
+    if(timeoutMsg) timeoutMsg.style.display='none';
+    document.getElementById('report-ok-view').style.display='block';
+    console.log('[submitReport] confirmation shown');
+
+    /* fire-and-forget notification — completely isolated */
     try{
       supa.functions.invoke('notify-problem-report',{body:{
-        problem:   payload.problem,
-        user:      payload.user_email,
-        version:   payload.version,
-        url:       payload.page,
-        userAgent: payload.user_agent,
-        timestamp: payload.timestamp
-      }}).then(function(r){ console.log('[submitReport] notify result:', r); })
-         .catch(function(e){ console.warn('[submitReport] notify failed (non-blocking):', e); });
-    }catch(e){ console.warn('[submitReport] notify invoke threw (non-blocking):', e); }
+        problem:payload.problem,user:payload.user_email,version:payload.version,
+        url:payload.page,userAgent:payload.user_agent,timestamp:payload.timestamp
+      }}).then(function(r){console.log('[submitReport] notify result:',r);})
+         .catch(function(e){console.warn('[submitReport] notify failed (non-blocking):',e);});
+    }catch(e){console.warn('[submitReport] notify threw (non-blocking):',e);}
+
   }).catch(function(err){
-    console.error('[submitReport] unhandled promise error:', err);
-    if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
-    showToastMsg('Error: Could not save report. Please try again.');
+    _resolved=true;
+    clearTimeout(_timer);
+    console.error('[submitReport] insert failed:',err);
+    if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
+    if(timeoutMsg) timeoutMsg.style.display='none';
+    var errDetail=document.getElementById('report-error-detail');
+    if(errDetail) errDetail.textContent='We could not send your report. Please try again or email Eric directly.';
+    document.getElementById('report-form-view').style.display='none';
+    document.getElementById('report-error-view').style.display='block';
   });
 }
 window.submitReport = submitReport;
@@ -11728,20 +11766,38 @@ function drawLogo(){if(!logoCtx)return;
 <!-- REPORT A PROBLEM MODAL -->
 <div class="report-overlay" id="report-overlay" style="display:none;" onclick="if(event.target===this)closeReportModal()">
   <div class="report-box">
-    <button class="report-x-btn" onclick="closeReportModal()">✕</button>
+    <button class="report-x-btn" type="button" onclick="closeReportModal()">✕</button>
+
+    <!-- FORM VIEW -->
     <div id="report-form-view">
       <h3>⚑ Report a Problem</h3>
       <p>Describe what happened and we'll look into it right away.</p>
       <textarea class="report-ta" id="report-textarea" placeholder="Describe the issue — what were you trying to do and what happened?"></textarea>
       <div class="report-meta-txt">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
+      <div id="report-timeout-msg" style="display:none;font-size:12px;color:#f5c542;margin-bottom:12px;padding:10px 14px;background:rgba(245,197,66,0.07);border:1px solid rgba(245,197,66,0.25);border-radius:8px;line-height:1.6;">⏳ Still working... If this doesn't complete, please copy your feedback and email it to Eric at <strong style="color:#f5c542;">eric@gslisolutions.com</strong></div>
       <button type="button" class="report-send-btn" id="report-send-btn" onclick="submitReport()">Send Report →</button>
     </div>
-    <div id="report-ok-view" class="report-ok" style="display:none;">
-      <div class="big">✓</div>
-      <h4>Report Sent — Thank You</h4>
-      <p style="color:#6b7a96;font-size:13px;margin-top:8px;">We'll review this and follow up if needed.</p>
-      <button class="report-send-btn" style="margin-top:20px;" onclick="closeReportModal()">Close</button>
+
+    <!-- SUCCESS VIEW -->
+    <div id="report-ok-view" style="display:none;text-align:center;padding:12px 4px;">
+      <div style="font-size:56px;margin-bottom:14px;line-height:1;">✓</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;margin-bottom:14px;letter-spacing:.02em;">Report Sent — Thank You</div>
+      <p style="color:#8a97b5;font-size:14px;line-height:1.75;margin-bottom:28px;">Thank you for helping improve ECONSquad AI. Your report has been received and will be reviewed by our team.</p>
+      <button type="button" class="report-send-btn" onclick="closeReportModal()">Close</button>
     </div>
+
+    <!-- ERROR VIEW -->
+    <div id="report-error-view" style="display:none;text-align:center;padding:12px 4px;">
+      <div style="font-size:48px;margin-bottom:14px;line-height:1;">⚠</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#ff8080;margin-bottom:12px;">Report Not Sent</div>
+      <p id="report-error-detail" style="color:#8a97b5;font-size:13px;line-height:1.7;margin-bottom:6px;">We could not send your report. Please try again or email Eric directly.</p>
+      <p style="color:#4a5568;font-size:12px;margin-bottom:28px;">eric@gslisolutions.com</p>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="report-send-btn" style="flex:1;" onclick="showReportFormView()">Try Again</button>
+        <button type="button" class="report-send-btn" style="flex:1;background:rgba(255,80,80,0.08);border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="closeReportModal()">Close</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
