@@ -1111,20 +1111,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 }
 
 
-.report-btn-float{position:fixed;bottom:80px;right:16px;z-index:10000;background:rgba(14,20,36,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:#6b7a96;display:flex;align-items:center;gap:6px;transition:all .2s;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
-.report-btn-float:hover{border-color:rgba(255,80,80,0.4);color:#ff8080;}
-.report-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99500;display:flex;align-items:center;justify-content:center;}
-.report-box{background:#0b1120;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px;width:90%;max-width:480px;position:relative;}
-.report-box h3{font-family:'Barlow',sans-serif;font-size:18px;font-weight:800;color:#eef3fc;margin-bottom:6px;}
-.report-box p{font-size:12px;color:#4a5568;margin-bottom:18px;}
-.report-ta{width:100%;min-height:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;outline:none;box-sizing:border-box;}
-.report-ta:focus{border-color:rgba(170,255,62,0.3);}
-.report-meta-txt{font-size:11px;color:#4a5568;margin:8px 0 16px;}
-.report-send-btn{width:100%;padding:12px;border-radius:10px;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
-.report-x-btn{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.06);border:none;color:#6b7a96;font-size:14px;cursor:pointer;}
-.report-ok{text-align:center;padding:20px 0;}
-.report-ok .big{font-size:40px;margin-bottom:10px;}
-.report-ok h4{font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#aaff3e;}
+#report-btn-float{position:fixed;bottom:80px;right:16px;z-index:10000;background:rgba(14,20,36,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:#6b7a96;display:flex;align-items:center;gap:6px;transition:all .2s;backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+#report-btn-float:hover{border-color:rgba(255,80,80,0.4);color:#ff8080;}
 .home-chat-section{max-width:760px;margin:0 auto 80px;padding:0 24px;}
 .home-chat-hdr{text-align:center;margin-bottom:28px;}
 .home-chat-hdr h2{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;color:#eef3fc;margin-bottom:8px;}
@@ -5324,6 +5312,8 @@ function closeFirstMissionModal(){
 }
 
 /* ===== REPORT A PROBLEM ===== */
+var _reportSubmitting=false;
+
 function _getActivePage(){
   var tabs={
     'home-tab':'Home','inbox-tab':'Inbox','fullcal-tab':'Calendar',
@@ -5340,69 +5330,52 @@ function _getActivePage(){
 function openReportModal(){
   var overlay=document.getElementById('report-overlay');
   if(!overlay) return;
-  /* reset all three states */
-  document.getElementById('report-form-view').style.display='block';
-  document.getElementById('report-ok-view').style.display='none';
-  document.getElementById('report-error-view').style.display='none';
-  var t=document.getElementById('report-timeout-msg'); if(t) t.style.display='none';
-  var ta=document.getElementById('report-textarea');
-  var sendBtn=document.getElementById('report-send-btn');
-  if(ta) ta.value='';
-  if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;sendBtn.style.background='';sendBtn.style.borderColor='';}
-  var cs=document.getElementById('report-click-status'); if(cs) cs.style.display='none';
+  _reportSubmitting=false;
+  var txt=document.getElementById('report-text');
+  var status=document.getElementById('report-status');
+  var btn=document.getElementById('report-send-btn');
+  if(txt){txt.value='';txt.style.borderColor='';}
+  if(status){status.style.display='none';status.textContent='';}
+  if(btn){btn.textContent='Send Report →';btn.disabled=false;btn.style.display='';}
   var metaEmail=document.getElementById('report-meta-email');
   var metaPage=document.getElementById('report-meta-page');
   if(metaEmail) metaEmail.textContent=currentUser?currentUser.email:'Not signed in';
   if(metaPage) metaPage.textContent=_getActivePage();
   overlay.style.display='flex';
-  setTimeout(function(){ if(ta) ta.focus(); }, 100);
+  setTimeout(function(){if(txt) txt.focus();},100);
 }
+window.openReportModal=openReportModal;
 
 function closeReportModal(){
+  if(_reportSubmitting) return;
   var overlay=document.getElementById('report-overlay');
   if(overlay) overlay.style.display='none';
 }
+window.closeReportModal=closeReportModal;
 
-/* expose on window so inline onclick attributes can always reach these */
-window.openReportModal  = openReportModal;
-window.closeReportModal = closeReportModal;
-
-function showReportFormView(){
-  document.getElementById('report-form-view').style.display='block';
-  document.getElementById('report-ok-view').style.display='none';
-  document.getElementById('report-error-view').style.display='none';
-  var t=document.getElementById('report-timeout-msg'); if(t) t.style.display='none';
-  var cs=document.getElementById('report-click-status'); if(cs) cs.style.display='none';
-  var b=document.getElementById('report-send-btn'); if(b){b.textContent='Send Report →';b.disabled=false;b.style.background='';b.style.borderColor='';}
-}
-window.showReportFormView = showReportFormView;
-
-function submitReport(){
-  console.log('[submitReport] clicked');
-  var ta=document.getElementById('report-textarea');
-  var problem=(ta?ta.value.trim():'');
+function _doReportSubmit(){
+  var txt=document.getElementById('report-text');
+  var problem=txt?txt.value.trim():'';
   if(!problem){
-    if(ta){ta.style.borderColor='rgba(255,80,80,0.5)';setTimeout(function(){ta.style.borderColor='';},1500);ta.focus();}
+    if(txt){txt.style.borderColor='rgba(255,80,80,0.5)';setTimeout(function(){txt.style.borderColor='';},1500);txt.focus();}
+    var btn=document.getElementById('report-send-btn');
+    var status=document.getElementById('report-status');
+    if(btn){btn.textContent='Send Report →';btn.disabled=false;}
+    if(status) status.style.display='none';
     return;
   }
-  var sendBtn=document.getElementById('report-send-btn');
-  var timeoutMsg=document.getElementById('report-timeout-msg');
-
-  /* immediate, unmistakable loading state */
-  if(sendBtn){sendBtn.textContent='Sending...';sendBtn.disabled=true;}
-  if(timeoutMsg) timeoutMsg.style.display='none';
-
-  console.log('[submitReport] sending');
-
-  /* 8-second fallback: show inline warning without blocking */
-  var _resolved=false;
-  var _timer=setTimeout(function(){
-    if(!_resolved){
-      console.warn('[submitReport] still waiting after 8 seconds');
-      if(timeoutMsg) timeoutMsg.style.display='block';
+  _reportSubmitting=true;
+  var status=document.getElementById('report-status');
+  var timer=setTimeout(function(){
+    console.warn('[report] still waiting after 8 seconds');
+    if(status){
+      status.style.color='#f5c542';
+      status.style.background='rgba(245,197,66,0.07)';
+      status.style.borderColor='rgba(245,197,66,0.3)';
+      status.innerHTML='⏳ Still working... If this doesn\'t complete, email <strong>eric@gslisolutions.com</strong>';
+      status.style.display='block';
     }
   },8000);
-
   var payload={
     user_id:    currentUser?currentUser.id:null,
     user_email: currentUser?currentUser.email:'',
@@ -5414,52 +5387,56 @@ function submitReport(){
     timestamp:  new Date().toISOString(),
     resolved:   false
   };
-
   supa.from('problem_reports').insert(payload).then(function(res){
-    _resolved=true;
-    clearTimeout(_timer);
-
+    clearTimeout(timer);
+    _reportSubmitting=false;
+    var btn=document.getElementById('report-send-btn');
+    var s=document.getElementById('report-status');
     if(res&&res.error){
-      console.error('[submitReport] insert failed:',res.error);
-      if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
-      if(timeoutMsg) timeoutMsg.style.display='none';
-      var errDetail=document.getElementById('report-error-detail');
-      if(errDetail) errDetail.textContent='Error: '+(res.error.message||'We could not send your report. Please try again or email Eric directly.');
-      document.getElementById('report-form-view').style.display='none';
-      document.getElementById('report-error-view').style.display='block';
+      console.error('[report] insert failed:',res.error);
+      if(s){
+        s.style.color='#ff8080';
+        s.style.background='rgba(255,80,80,0.07)';
+        s.style.borderColor='rgba(255,80,80,0.25)';
+        s.innerHTML='⚠ <strong>Report Not Sent</strong><br><small style="color:#8a97b5;font-size:12px;">'+(res.error.message||'Unknown error')+'</small><br><small style="color:#4a5568;font-size:11px;">Try again or email eric@gslisolutions.com</small>';
+        s.style.display='block';
+      }
+      if(btn){btn.textContent='Try Again';btn.disabled=false;}
       return;
     }
-
-    console.log('[submitReport] insert success');
-
-    /* show success BEFORE anything else — email notification must never block this */
-    document.getElementById('report-form-view').style.display='none';
-    if(timeoutMsg) timeoutMsg.style.display='none';
-    document.getElementById('report-ok-view').style.display='block';
-    console.log('[submitReport] confirmation shown');
-
-    /* fire-and-forget notification — completely isolated */
+    console.log('[report] insert success');
+    if(s){
+      s.style.color='#aaff3e';
+      s.style.background='rgba(170,255,62,0.07)';
+      s.style.borderColor='rgba(170,255,62,0.25)';
+      s.innerHTML='✓ <strong>Report Sent — Thank You</strong><br><small style="color:#8a97b5;font-size:12px;">Your report has been received and will be reviewed by our team.</small>';
+      s.style.display='block';
+    }
+    if(btn) btn.style.display='none';
     try{
       supa.functions.invoke('notify-problem-report',{body:{
         problem:payload.problem,user:payload.user_email,version:payload.version,
         url:payload.page,userAgent:payload.user_agent,timestamp:payload.timestamp
-      }}).then(function(r){console.log('[submitReport] notify result:',r);})
-         .catch(function(e){console.warn('[submitReport] notify failed (non-blocking):',e);});
-    }catch(e){console.warn('[submitReport] notify threw (non-blocking):',e);}
-
+      }}).then(function(r){console.log('[report] notify result:',r);})
+         .catch(function(e){console.warn('[report] notify failed:',e);});
+    }catch(e){console.warn('[report] notify threw:',e);}
+    setTimeout(function(){closeReportModal();},3000);
   }).catch(function(err){
-    _resolved=true;
-    clearTimeout(_timer);
-    console.error('[submitReport] insert failed:',err);
-    if(sendBtn){sendBtn.textContent='Send Report →';sendBtn.disabled=false;}
-    if(timeoutMsg) timeoutMsg.style.display='none';
-    var errDetail=document.getElementById('report-error-detail');
-    if(errDetail) errDetail.textContent='We could not send your report. Please try again or email Eric directly.';
-    document.getElementById('report-form-view').style.display='none';
-    document.getElementById('report-error-view').style.display='block';
+    clearTimeout(timer);
+    _reportSubmitting=false;
+    console.error('[report] insert threw:',err);
+    var btn=document.getElementById('report-send-btn');
+    var s=document.getElementById('report-status');
+    if(s){
+      s.style.color='#ff8080';
+      s.style.background='rgba(255,80,80,0.07)';
+      s.style.borderColor='rgba(255,80,80,0.25)';
+      s.innerHTML='⚠ <strong>Report Not Sent</strong><br><small style="color:#8a97b5;font-size:12px;">Network error. Please try again.</small><br><small style="color:#4a5568;font-size:11px;">eric@gslisolutions.com</small>';
+      s.style.display='block';
+    }
+    if(btn){btn.textContent='Try Again';btn.disabled=false;}
   });
 }
-window.submitReport = submitReport;
 
 /* ===== HISTORY TAB ===== */
 var allHistory=[];
@@ -11762,47 +11739,67 @@ function drawLogo(){if(!logoCtx)return;
   </div>
 </div>
 
-<!-- REPORT A PROBLEM BUTTON -->
-<div class="report-btn-float" id="report-btn-float" onclick="openReportModal()" style="display:none;" title="Report a Problem">⚑ Report a Problem</div>
+<!-- REPORT A PROBLEM FLOATING BUTTON -->
+<div id="report-btn-float" onclick="openReportModal()" style="display:none;" title="Report a Problem">⚑ Report a Problem</div>
 
 <!-- REPORT A PROBLEM MODAL -->
-<div class="report-overlay" id="report-overlay" style="display:none;" onclick="if(event.target===this)closeReportModal()">
-  <div class="report-box" onclick="event.stopPropagation()">
-    <button class="report-x-btn" type="button" onclick="closeReportModal()">✕</button>
-
-    <!-- FORM VIEW -->
-    <div id="report-form-view">
-      <h3>⚑ Report a Problem</h3>
-      <p>Describe what happened and we'll look into it right away.</p>
-      <textarea class="report-ta" id="report-textarea" placeholder="Describe the issue — what were you trying to do and what happened?"></textarea>
-      <div class="report-meta-txt">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
-      <div id="report-timeout-msg" style="display:none;font-size:12px;color:#f5c542;margin-bottom:12px;padding:10px 14px;background:rgba(245,197,66,0.07);border:1px solid rgba(245,197,66,0.25);border-radius:8px;line-height:1.6;">⏳ Still working... If this doesn't complete, please copy your feedback and email it to Eric at <strong style="color:#f5c542;">eric@gslisolutions.com</strong></div>
-      <div id="report-click-status" style="display:none;margin-bottom:10px;padding:10px 14px;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.35);border-radius:8px;font-size:13px;color:#aaff3e;font-weight:600;letter-spacing:.01em;">Button clicked. Sending report...</div>
-      <button type="button" class="report-send-btn" id="report-send-btn">Send Report →</button>
-    </div>
-
-    <!-- SUCCESS VIEW -->
-    <div id="report-ok-view" style="display:none;text-align:center;padding:12px 4px;">
-      <div style="font-size:56px;margin-bottom:14px;line-height:1;">✓</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;margin-bottom:14px;letter-spacing:.02em;">Report Sent — Thank You</div>
-      <p style="color:#8a97b5;font-size:14px;line-height:1.75;margin-bottom:28px;">Thank you for helping improve ECONSquad AI. Your report has been received and will be reviewed by our team.</p>
-      <button type="button" class="report-send-btn" onclick="closeReportModal()">Close</button>
-    </div>
-
-    <!-- ERROR VIEW -->
-    <div id="report-error-view" style="display:none;text-align:center;padding:12px 4px;">
-      <div style="font-size:48px;margin-bottom:14px;line-height:1;">⚠</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#ff8080;margin-bottom:12px;">Report Not Sent</div>
-      <p id="report-error-detail" style="color:#8a97b5;font-size:13px;line-height:1.7;margin-bottom:6px;">We could not send your report. Please try again or email Eric directly.</p>
-      <p style="color:#4a5568;font-size:12px;margin-bottom:28px;">eric@gslisolutions.com</p>
-      <div style="display:flex;gap:10px;">
-        <button type="button" class="report-send-btn" style="flex:1;" onclick="showReportFormView()">Try Again</button>
-        <button type="button" class="report-send-btn" style="flex:1;background:rgba(255,80,80,0.08);border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="closeReportModal()">Close</button>
-      </div>
-    </div>
-
+<div id="report-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99500;align-items:center;justify-content:center;" onclick="closeReportModal()">
+  <div id="report-box" style="background:#0b1120;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px;width:90%;max-width:480px;position:relative;box-sizing:border-box;">
+    <button id="report-close-btn" type="button" onclick="closeReportModal()" style="position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.06);border:none;color:#6b7a96;font-size:14px;cursor:pointer;">✕</button>
+    <h3 style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;margin:0 0 6px;letter-spacing:.02em;">⚑ Report a Problem</h3>
+    <p style="font-size:12px;color:#4a5568;margin:0 0 16px;line-height:1.5;">Describe what happened and we'll look into it right away.</p>
+    <textarea id="report-text" placeholder="Describe the issue — what were you trying to do and what happened?" style="width:100%;min-height:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;resize:vertical;outline:none;box-sizing:border-box;margin-bottom:10px;display:block;"></textarea>
+    <div style="font-size:11px;color:#4a5568;margin-bottom:14px;">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
+    <div id="report-status" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;border:1px solid transparent;"></div>
+    <button type="button" id="report-send-btn" style="width:100%;padding:12px;border-radius:10px;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.03em;">Send Report →</button>
   </div>
 </div>
+
+<script>
+/* ── Report modal: DOMContentLoaded binding — no inline onclick on send button ── */
+document.addEventListener('DOMContentLoaded', function(){
+  var sendBtn = document.getElementById('report-send-btn');
+  var box     = document.getElementById('report-box');
+
+  /* Stop all clicks inside the box from bubbling to the overlay close handler */
+  if(box){
+    box.addEventListener('click', function(e){ e.stopPropagation(); });
+  }
+
+  if(!sendBtn){
+    console.warn('[report] #report-send-btn not found at DOMContentLoaded');
+    return;
+  }
+
+  sendBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[report] submit click received');
+
+    var status = document.getElementById('report-status');
+    var btn    = document.getElementById('report-send-btn');
+
+    /* Immediate visible feedback — before any async work */
+    if(status){
+      status.style.display     = 'block';
+      status.style.color       = '#aaff3e';
+      status.style.background  = 'rgba(170,255,62,0.1)';
+      status.style.borderColor = 'rgba(170,255,62,0.35)';
+      status.textContent       = 'Sending...';
+    }
+    if(btn){ btn.textContent='Sending...'; btn.disabled=true; }
+
+    if(typeof _doReportSubmit === 'function'){
+      _doReportSubmit();
+    } else {
+      console.error('[report] _doReportSubmit not found');
+      if(status){ status.style.color='#ff8080'; status.textContent='Error: handler not loaded. Refresh and try again.'; }
+    }
+  });
+
+  console.log('[report] send button bound via DOMContentLoaded');
+});
+</script>
 
 <!-- ARIA FOOTER BAR -->
 <!-- ===== FIRST MISSION CELEBRATION MODAL ===== -->
@@ -12000,36 +11997,6 @@ function setMobileActiveTab(tabId){
   }
 })();
 
-/* ── Report modal: guaranteed click binding (no inline onclick on button) ── */
-(function(){
-  function _bindReportBtn(){
-    var btn=document.getElementById('report-send-btn');
-    if(!btn){ console.warn('[report-modal] Send button not found in DOM'); return; }
-    btn.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('[report-send-btn] confirmed click');
-      /* Immediate visual proof — fires before any async work */
-      var status=document.getElementById('report-click-status');
-      if(status) status.style.display='block';
-      btn.textContent='Sending...';
-      btn.style.background='rgba(170,255,62,0.25)';
-      btn.style.borderColor='rgba(170,255,62,0.6)';
-      btn.disabled=true;
-      if(typeof window.submitReport==='function'){
-        window.submitReport();
-      } else {
-        console.error('[report-modal] window.submitReport not found');
-      }
-    });
-    console.log('[report-modal] Send button bound');
-  }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',_bindReportBtn);
-  } else {
-    _bindReportBtn();
-  }
-})();
 </script>
 
 <!-- ===== SMS ALERT SYSTEM ===== -->
