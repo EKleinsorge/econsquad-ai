@@ -1883,7 +1883,7 @@ function renderReports(){
     var prob=r.problem||'';
     var truncated=prob.length>120?prob.substring(0,120)+'…':prob;
     var resolved=r.resolved;
-    var email=r.user||r.user_email||'';
+    var email=r.user_email||r.user||'';
     var name=r.user_name||'';
     var date=r.timestamp?new Date(r.timestamp).toLocaleDateString():(r.created_at?new Date(r.created_at).toLocaleDateString():'—');
     var time=r.timestamp?new Date(r.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';

@@ -3,11 +3,12 @@
 -- Run this in the Supabase SQL Editor (project: kbwcsmctwtgrjtjcghkt)
 -- ============================================================
 
+-- If running for the first time:
 CREATE TABLE IF NOT EXISTS problem_reports (
   id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid         REFERENCES auth.users(id) ON DELETE SET NULL,
   user_name   text,
-  "user"      text,
+  user_email  text,
   problem     text         NOT NULL,
   page        text,
   version     text,
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS problem_reports (
   resolved    boolean      DEFAULT false,
   created_at  timestamptz  DEFAULT now()
 );
+
+-- If the table already exists with a "user" column (reserved word), rename it:
+-- ALTER TABLE problem_reports RENAME COLUMN "user" TO user_email;
 
 -- Enable RLS
 ALTER TABLE problem_reports ENABLE ROW LEVEL SECURITY;

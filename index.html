@@ -5362,38 +5362,57 @@ function closeReportModal(){
 }
 
 function submitReport(){
+  console.log('[submitReport] called');
   var ta=document.getElementById('report-textarea');
   var problem=(ta?ta.value.trim():'');
-  if(!problem){ if(ta){ta.style.borderColor='rgba(255,80,80,0.5)'; setTimeout(function(){ta.style.borderColor='';},1500);} return; }
+  if(!problem){
+    console.log('[submitReport] empty — aborting');
+    if(ta){ta.style.borderColor='rgba(255,80,80,0.5)'; setTimeout(function(){ta.style.borderColor='';},1500);}
+    return;
+  }
   var sendBtn=document.getElementById('report-send-btn');
   if(sendBtn){ sendBtn.textContent='Sending…'; sendBtn.disabled=true; }
   var payload={
-    user_id:   currentUser?currentUser.id:null,
-    user:      currentUser?currentUser.email:'',
-    user_name: currentUser?(currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email.split('@')[0]):'',
-    problem:   problem,
-    page:      _getActivePage(),
-    version:   '2026.06.11',
+    user_id:    currentUser?currentUser.id:null,
+    user_email: currentUser?currentUser.email:'',
+    user_name:  currentUser?(currentUser.user_metadata&&currentUser.user_metadata.full_name?currentUser.user_metadata.full_name:currentUser.email.split('@')[0]):'',
+    problem:    problem,
+    page:       _getActivePage(),
+    version:    '2026.06.11',
     user_agent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-    resolved:  false
+    timestamp:  new Date().toISOString(),
+    resolved:   false
   };
+  console.log('[submitReport] inserting payload:', payload);
   supa.from('problem_reports').insert(payload).then(function(res){
+    console.log('[submitReport] insert result:', res);
     if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
-    if(res.error){ showToastMsg('Error sending report — please try again.'); return; }
-    /* fire-and-forget email notification to admin recipients */
-    supa.functions.invoke('notify-problem-report',{body:{
-      problem:   payload.problem,
-      user:      payload.user,
-      version:   payload.version,
-      url:       payload.page,
-      userAgent: payload.user_agent,
-      timestamp: payload.timestamp
-    }}).catch(function(){});
+    if(res.error){
+      console.error('[submitReport] insert error:', res.error);
+      showToastMsg('Error: '+(res.error.message||'Could not save report. Please try again.'));
+      return;
+    }
+    /* show success state */
     var formView=document.getElementById('report-form-view');
     var okView=document.getElementById('report-ok-view');
     if(formView) formView.style.display='none';
     if(okView) okView.style.display='block';
+    /* fire-and-forget email notification — isolated so any failure can't affect the success UI */
+    try{
+      supa.functions.invoke('notify-problem-report',{body:{
+        problem:   payload.problem,
+        user:      payload.user_email,
+        version:   payload.version,
+        url:       payload.page,
+        userAgent: payload.user_agent,
+        timestamp: payload.timestamp
+      }}).then(function(r){ console.log('[submitReport] notify result:', r); })
+         .catch(function(e){ console.warn('[submitReport] notify failed (non-blocking):', e); });
+    }catch(e){ console.warn('[submitReport] notify invoke threw (non-blocking):', e); }
+  }).catch(function(err){
+    console.error('[submitReport] unhandled promise error:', err);
+    if(sendBtn){ sendBtn.textContent='Send Report →'; sendBtn.disabled=false; }
+    showToastMsg('Error: Could not save report. Please try again.');
   });
 }
 
@@ -11710,7 +11729,7 @@ function drawLogo(){if(!logoCtx)return;
       <p>Describe what happened and we'll look into it right away.</p>
       <textarea class="report-ta" id="report-textarea" placeholder="Describe the issue — what were you trying to do and what happened?"></textarea>
       <div class="report-meta-txt">Sending as: <strong id="report-meta-email" style="color:#8a97b5;">—</strong> · Page: <strong id="report-meta-page" style="color:#8a97b5;">—</strong></div>
-      <button class="report-send-btn" id="report-send-btn" onclick="submitReport()">Send Report →</button>
+      <button type="button" class="report-send-btn" id="report-send-btn" onclick="submitReport()">Send Report →</button>
     </div>
     <div id="report-ok-view" class="report-ok" style="display:none;">
       <div class="big">✓</div>
