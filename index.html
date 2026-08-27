@@ -5105,6 +5105,13 @@ function callSpecialist(userMessage){
   var isFirstMsg = chatState.messages.length === 1;
   var animDone   = !isFirstMsg;   /* skip wait if follow-up message */
   var pendingData = null;         /* holds API response until anim finishes */
+  var showedTyping = false;       /* did we actually put the dots up? */
+  var watchdog = null;
+
+  function unlockInput(){
+    chatState.isTyping=false;
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
+  }
 
   if(isFirstMsg && window.ariaCompute){
     var specInfo = squad && squad.find(function(x){return x.id===chatState.specialistId;});
@@ -5114,13 +5121,23 @@ function callSpecialist(userMessage){
       if(pendingData !== null) applyReply(pendingData);
     });
   } else {
+    /* No compute animation to wait on. window.ariaCompute lives in app.js,
+       which loads asynchronously from the CDN, so on a first message it may
+       not exist yet. animDone previously stayed false forever here: the reply
+       landed in pendingData, applyReply never ran, and since applyReply is the
+       only thing that re-enables the send button, the chat locked up until the
+       page was reloaded. */
+    animDone = true;
     showTyping();
+    showedTyping = true;
   }
 
   function applyReply(data){
-    if(!isFirstMsg) hideTyping();
-    chatState.isTyping=false;
-    if(btn){btn.disabled=false;btn.style.opacity='1';}
+    if(watchdog){ clearTimeout(watchdog); watchdog = null; }
+    /* was: if(!isFirstMsg) hideTyping() — which missed the first-message
+       case above, leaving the dots on screen under the reply. */
+    if(showedTyping) hideTyping();
+    unlockInput();
     if(data.error){ addChatMessage('specialist','Error: ' + data.error); return; }
     var reply=data.reply||'';
     if(!reply){ addChatMessage('specialist','No response — please try again.'); return; }
@@ -5130,6 +5147,20 @@ function callSpecialist(userMessage){
       showFinalOutput(reply);
     }
   }
+
+  /* Never strand a reply or leave the input locked. The compute animation is
+     about 7s; this only fires if something upstream failed to report back. */
+  watchdog = setTimeout(function(){
+    if(!chatState.isTyping) return;
+    animDone = true;
+    if(pendingData !== null){
+      applyReply(pendingData);
+    } else {
+      if(showedTyping) hideTyping();
+      unlockInput();
+      addChatMessage('specialist','That is taking longer than expected. Your message was not lost — please try again.');
+    }
+  }, 45000);
 
   (function(){
     var payload={
@@ -5147,9 +5178,10 @@ function callSpecialist(userMessage){
   })().then(function(r){return r.json();}).then(function(data){
     if(animDone){ applyReply(data); } else { pendingData = data; }
   }).catch(function(err){
-    if(!isFirstMsg) hideTyping();
-    chatState.isTyping=false;
-    if(btn){btn.disabled=false;btn.style.opacity='1';}
+    if(watchdog){ clearTimeout(watchdog); watchdog = null; }
+    console.error('[specialist-chat] request failed', err);
+    if(showedTyping) hideTyping();
+    unlockInput();
     addChatMessage('specialist','Connection error — please try again.');
   });
 }
