@@ -8,7 +8,7 @@ on:
       dry_run:
         description: 'Dry run - check only, do not send'
         required: false
-        default: 'false'
+        default: 'true'
 
 jobs:
   send-monday-drop:
@@ -33,4 +33,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
