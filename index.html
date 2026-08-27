@@ -690,22 +690,28 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 }
 
 /* ===== BADGE SYSTEM ===== */
+#badge-stack{
+  position:fixed;top:22px;right:22px;z-index:99999;
+  display:flex;flex-direction:column;gap:12px;
+  width:min(400px,calc(100vw - 32px));
+  pointer-events:none;
+}
 .badge-toast{
-  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);
-  background:rgba(8,14,28,0.97);border:1px solid rgba(170,255,62,0.35);
-  border-radius:16px;padding:16px 22px;z-index:99999;
-  display:flex;align-items:center;gap:14px;
-  box-shadow:0 8px 40px rgba(170,255,62,0.15),0 2px 12px rgba(0,0,0,0.5);
-  transition:transform .5s cubic-bezier(0.34,1.56,0.64,1),opacity .5s ease;
-  opacity:0;min-width:300px;max-width:420px;
+  position:relative;pointer-events:auto;
+  background:rgba(8,14,28,0.97);border:1px solid rgba(170,255,62,0.42);
+  border-radius:18px;padding:22px 24px;
+  display:flex;align-items:flex-start;gap:16px;
+  box-shadow:0 12px 48px rgba(170,255,62,0.20),0 4px 18px rgba(0,0,0,0.55);
+  transition:transform .5s cubic-bezier(0.34,1.56,0.64,1),opacity .4s ease;
+  opacity:0;transform:translateX(130%);
   backdrop-filter:blur(20px);
 }
-.badge-toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-.badge-toast-icon{font-size:36px;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(255,255,255,.3));}
-.badge-toast-content{}
-.badge-toast-label{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
-.badge-toast-name{font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:2px;}
-.badge-toast-desc{font-size:12px;color:#8a97b5;line-height:1.4;}
+.badge-toast.show{transform:translateX(0);opacity:1;}
+.badge-toast-icon{font-size:46px;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(170,255,62,.35));}
+.badge-toast-content{flex:1;min-width:0;}
+.badge-toast-label{font-size:10.5px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.11em;margin-bottom:5px;}
+.badge-toast-name{font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;margin-bottom:4px;line-height:1.15;}
+.badge-toast-desc{font-size:13px;color:#8a97b5;line-height:1.45;}
 .badge-toast-close{
   background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:8px;
   color:#8a97b5;font-family:'Barlow',sans-serif;font-size:16px;font-weight:700;
@@ -1107,11 +1113,15 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   }
 
   /* BADGE TOAST */
-  .badge-toast { 
-    width: calc(100vw - 32px) !important;
-    left: 16px !important;
+  #badge-stack {
+    top: 14px !important;
     right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
   }
+  .badge-toast { padding: 18px 18px !important; }
+  .badge-toast-icon { font-size: 38px !important; }
+  .badge-toast-name { font-size: 18px !important; }
 }
 
 @media (max-width: 480px) {
@@ -7615,23 +7625,54 @@ function awardBadge(badgeId){
    once showed only the last one, and a 4.5s auto-dismiss meant looking away
    for a moment cost you the notification entirely. */
 var _badgeQueue = [];
-var _badgeShowing = false;
+var BADGE_MAX_VISIBLE = 4;   /* beyond this they queue, so 30 at once can't flood the screen */
+
+function _badgeStack(){
+  var stack=document.getElementById('badge-stack');
+  if(!stack){
+    stack=document.createElement('div');
+    stack.id='badge-stack';
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
 
 function showBadgeToast(badge,badgeId){
   _badgeQueue.push({badge:badge, badgeId:badgeId});
-  if(!_badgeShowing) _renderNextBadgeToast();
+  _renderNextBadgeToast();
 }
 
 function _renderNextBadgeToast(){
-  var existing=document.querySelector('.badge-toast');
-  if(existing)existing.remove();
+  var stack=_badgeStack();
+  /* Fill up to the cap. Several badges commonly unlock together, and seeing
+     them side by side is the whole point — the old code removed the previous
+     toast on every call, so only the last one was ever visible. */
+  while(stack.children.length < BADGE_MAX_VISIBLE && _badgeQueue.length){
+    _mountBadgeToast(stack, _badgeQueue.shift());
+  }
+  _refreshBadgeQueueNote();
+}
 
-  var next=_badgeQueue.shift();
-  if(!next){ _badgeShowing=false; return; }
-  _badgeShowing=true;
+function _refreshBadgeQueueNote(){
+  var stack=document.getElementById('badge-stack');
+  if(!stack) return;
+  var last=stack.lastElementChild;
+  Array.prototype.forEach.call(stack.children,function(t){
+    var n=t.querySelector('.badge-toast-more');
+    if(n) n.remove();
+  });
+  if(_badgeQueue.length && last){
+    var note=document.createElement('div');
+    note.className='badge-toast-more';
+    note.textContent=_badgeQueue.length+' more badge'+(_badgeQueue.length>1?'s':'')+
+      ' waiting \u2014 close one to see the next';
+    var c=last.querySelector('.badge-toast-content');
+    if(c) c.appendChild(note);
+  }
+}
 
+function _mountBadgeToast(stack, next){
   var badge=next.badge, badgeId=next.badgeId;
-  var remaining=_badgeQueue.length;
 
   var toast=document.createElement('div');
   toast.className='badge-toast';
@@ -7643,16 +7684,6 @@ function _renderNextBadgeToast(){
       '<div class="badge-toast-name">'+badge.name+'</div>'+
       '<div class="badge-toast-desc">'+badge.desc+'</div>'+
     '</div>';
-  /* "N more" note, when several unlocked together */
-  if(remaining>0){
-    var more=document.createElement('div');
-    more.className='badge-toast-more';
-    more.textContent=remaining+' more badge'+(remaining>1?'s':'')+
-      ' unlocked \u2014 close this to see '+(remaining>1?'the next':'it');
-    var content=toast.querySelector('.badge-toast-content');
-    if(content) content.appendChild(more);
-  }
-
   /* Manual dismiss. No auto-close: an unlock is worth reading. */
   var closeBtn=document.createElement('button');
   closeBtn.type='button';
@@ -7661,7 +7692,7 @@ function _renderNextBadgeToast(){
   closeBtn.innerHTML='&times;';
   toast.appendChild(closeBtn);
 
-  document.body.appendChild(toast);
+  stack.appendChild(toast);
   setTimeout(function(){toast.classList.add('show');},50);
 
   function dismiss(){
@@ -7669,15 +7700,18 @@ function _renderNextBadgeToast(){
     toast.classList.remove('show');
     setTimeout(function(){
       if(toast.parentNode)toast.remove();
-      _badgeShowing=false;
-      _renderNextBadgeToast();
-    },600);
+      _renderNextBadgeToast();   /* pull the next one in behind it */
+    },450);
   }
-  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') dismiss(); }
+  /* Escape closes the newest one only, so a stack clears top-down */
+  function onKey(e){
+    if(e.key!=='Escape'&&e.key!=='Esc') return;
+    var s=document.getElementById('badge-stack');
+    if(s && s.lastElementChild===toast) dismiss();
+  }
 
   closeBtn.addEventListener('click',dismiss);
   document.addEventListener('keydown',onKey);
-  setTimeout(function(){ try{ closeBtn.focus(); }catch(e){} },700);
 }
 
 /* Check badges after every task */
