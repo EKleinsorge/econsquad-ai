@@ -706,6 +706,15 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .badge-toast-label{font-size:10px;font-weight:800;color:#aaff3e;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
 .badge-toast-name{font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;margin-bottom:2px;}
 .badge-toast-desc{font-size:12px;color:#8a97b5;line-height:1.4;}
+.badge-toast-close{
+  background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:8px;
+  color:#8a97b5;font-family:'Barlow',sans-serif;font-size:16px;font-weight:700;
+  line-height:1;width:28px;height:28px;flex-shrink:0;cursor:pointer;align-self:flex-start;
+  transition:color .18s,border-color .18s,background .18s;
+}
+.badge-toast-close:hover{color:#aaff3e;border-color:rgba(170,255,62,0.45);background:rgba(170,255,62,0.1);}
+.badge-toast-close:focus-visible{outline:2px solid #aaff3e;outline-offset:2px;}
+.badge-toast-more{font-size:11px;color:#6b7a96;margin-top:7px;}
 
 /* Badge showcase grid */
 .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-top:16px;}
@@ -7601,12 +7610,32 @@ function awardBadge(badgeId){
 }
 
 /* Show badge toast notification */
+/* Badge unlocks queue up and are dismissed by hand.
+   Before: each call did existing.remove(), so unlocking several badges at
+   once showed only the last one, and a 4.5s auto-dismiss meant looking away
+   for a moment cost you the notification entirely. */
+var _badgeQueue = [];
+var _badgeShowing = false;
+
 function showBadgeToast(badge,badgeId){
+  _badgeQueue.push({badge:badge, badgeId:badgeId});
+  if(!_badgeShowing) _renderNextBadgeToast();
+}
+
+function _renderNextBadgeToast(){
   var existing=document.querySelector('.badge-toast');
   if(existing)existing.remove();
 
+  var next=_badgeQueue.shift();
+  if(!next){ _badgeShowing=false; return; }
+  _badgeShowing=true;
+
+  var badge=next.badge, badgeId=next.badgeId;
+  var remaining=_badgeQueue.length;
+
   var toast=document.createElement('div');
   toast.className='badge-toast';
+  toast.setAttribute('role','alertdialog');
   toast.innerHTML=
     '<div class="badge-toast-icon" style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+renderBadgeIcon(badgeId,52)+'</div>'+
     '<div class="badge-toast-content">'+
@@ -7614,12 +7643,41 @@ function showBadgeToast(badge,badgeId){
       '<div class="badge-toast-name">'+badge.name+'</div>'+
       '<div class="badge-toast-desc">'+badge.desc+'</div>'+
     '</div>';
+  /* "N more" note, when several unlocked together */
+  if(remaining>0){
+    var more=document.createElement('div');
+    more.className='badge-toast-more';
+    more.textContent=remaining+' more badge'+(remaining>1?'s':'')+
+      ' unlocked \u2014 close this to see '+(remaining>1?'the next':'it');
+    var content=toast.querySelector('.badge-toast-content');
+    if(content) content.appendChild(more);
+  }
+
+  /* Manual dismiss. No auto-close: an unlock is worth reading. */
+  var closeBtn=document.createElement('button');
+  closeBtn.type='button';
+  closeBtn.className='badge-toast-close';
+  closeBtn.setAttribute('aria-label','Close');
+  closeBtn.innerHTML='&times;';
+  toast.appendChild(closeBtn);
+
   document.body.appendChild(toast);
   setTimeout(function(){toast.classList.add('show');},50);
-  setTimeout(function(){
+
+  function dismiss(){
+    document.removeEventListener('keydown',onKey);
     toast.classList.remove('show');
-    setTimeout(function(){if(toast.parentNode)toast.remove();},600);
-  },4500);
+    setTimeout(function(){
+      if(toast.parentNode)toast.remove();
+      _badgeShowing=false;
+      _renderNextBadgeToast();
+    },600);
+  }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') dismiss(); }
+
+  closeBtn.addEventListener('click',dismiss);
+  document.addEventListener('keydown',onKey);
+  setTimeout(function(){ try{ closeBtn.focus(); }catch(e){} },700);
 }
 
 /* Check badges after every task */
