@@ -5154,8 +5154,244 @@ function callSpecialist(userMessage){
   });
 }
 
+/* ============================================================
+   Word-friendly output export
+   ------------------------------------------------------------
+   Focus group, 2026-07-22: pasting specialist output into Word
+   arrived with literal ** asterisks and doubled spacing, which
+   is exactly the cleanup work the platform exists to remove.
+   The on-screen formatter in showFinalOutput() can't be reused
+   for the clipboard — it bakes in #aaff3e lime and dark panel
+   backgrounds, which paste into a white Word page as unreadable
+   text. These helpers emit clean semantic HTML with no colors,
+   so Word applies its own styles.
+   ============================================================ */
+
+function esqEscapeHtml(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+/* inline markdown -> html, on already-escaped text */
+function esqInline(s){
+  return esqEscapeHtml(s)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+}
+
+function esqIsTableRow(line){
+  return /^\s*\|.*\|\s*$/.test(line);
+}
+
+function esqIsTableSep(line){
+  return /^\s*\|[\s:|-]*\|\s*$/.test(line) && line.indexOf('-')!==-1;
+}
+
+function esqSplitRow(line){
+  var t=line.trim().replace(/^\|/,'').replace(/\|$/,'');
+  return t.split('|').map(function(c){return c.trim();});
+}
+
+/* Convert markdown tables to single-line HTML.
+   Single-line on purpose: showFinalOutput's formatter chain runs
+   line-anchored regexes and a final \n -> <br>, so a table with no
+   newlines in it passes through untouched. */
+function esqTablesToHtml(text, dark){
+  var lines=String(text||'').replace(/\r\n/g,'\n').split('\n');
+  var out=[], i=0;
+
+  var tblStyle = dark
+    ? 'border-collapse:collapse;margin:10px 0;font-size:12px;width:100%;'
+    : 'border-collapse:collapse;margin:10px 0;';
+  var thStyle = dark
+    ? 'border:1px solid rgba(170,255,62,0.25);padding:6px 9px;text-align:left;color:#aaff3e;font-weight:700;background:rgba(170,255,62,0.06);'
+    : 'border:1px solid #999;padding:5px 8px;text-align:left;font-weight:bold;';
+  var tdStyle = dark
+    ? 'border:1px solid rgba(255,255,255,0.10);padding:6px 9px;color:#c8d8c0;'
+    : 'border:1px solid #999;padding:5px 8px;';
+
+  while(i<lines.length){
+    if(esqIsTableRow(lines[i]) && i+1<lines.length && esqIsTableSep(lines[i+1])){
+      var head=esqSplitRow(lines[i]);
+      i+=2;
+      var body=[];
+      while(i<lines.length && esqIsTableRow(lines[i])){
+        body.push(esqSplitRow(lines[i]));
+        i++;
+      }
+      var html='<table style="'+tblStyle+'"><thead><tr>';
+      head.forEach(function(h){ html+='<th style="'+thStyle+'">'+esqInline(h)+'</th>'; });
+      html+='</tr></thead><tbody>';
+      body.forEach(function(r){
+        html+='<tr>';
+        for(var c=0;c<head.length;c++){
+          html+='<td style="'+tdStyle+'">'+esqInline(r[c]||'')+'</td>';
+        }
+        html+='</tr>';
+      });
+      html+='</tbody></table>';
+      out.push(html);
+    } else {
+      out.push(lines[i]);
+      i++;
+    }
+  }
+  return out.join('\n');
+}
+
+/* Full markdown -> clean HTML for pasting into Word/Docs. */
+function mdToWordHtml(md){
+  var lines=String(md||'').replace(/\r\n/g,'\n').split('\n');
+  var out=[], i=0;
+
+  function flushList(tag, items){
+    if(!items.length) return;
+    out.push('<'+tag+'>');
+    items.forEach(function(it){ out.push('<li>'+esqInline(it)+'</li>'); });
+    out.push('</'+tag+'>');
+  }
+
+  while(i<lines.length){
+    var line=lines[i];
+
+    /* table */
+    if(esqIsTableRow(line) && i+1<lines.length && esqIsTableSep(lines[i+1])){
+      var head=esqSplitRow(line);
+      i+=2;
+      var rows=[];
+      while(i<lines.length && esqIsTableRow(lines[i])){ rows.push(esqSplitRow(lines[i])); i++; }
+      var t='<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;"><thead><tr>';
+      head.forEach(function(h){ t+='<th align="left">'+esqInline(h)+'</th>'; });
+      t+='</tr></thead><tbody>';
+      rows.forEach(function(r){
+        t+='<tr>';
+        for(var c=0;c<head.length;c++){ t+='<td>'+esqInline(r[c]||'')+'</td>'; }
+        t+='</tr>';
+      });
+      out.push(t+'</tbody></table>');
+      continue;
+    }
+
+    /* heading */
+    var h=line.match(/^(#{1,4})\s+(.+)$/);
+    if(h){
+      var lvl=h[1].length;
+      out.push('<h'+lvl+'>'+esqInline(h[2])+'</h'+lvl+'>');
+      i++; continue;
+    }
+
+    /* bullet list */
+    if(/^\s*[-*+]\s+/.test(line)){
+      var ul=[];
+      while(i<lines.length && /^\s*[-*+]\s+/.test(lines[i])){
+        ul.push(lines[i].replace(/^\s*[-*+]\s+/,''));
+        i++;
+      }
+      flushList('ul', ul);
+      continue;
+    }
+
+    /* numbered list */
+    if(/^\s*\d+[.)]\s+/.test(line)){
+      var ol=[];
+      while(i<lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){
+        ol.push(lines[i].replace(/^\s*\d+[.)]\s+/,''));
+        i++;
+      }
+      flushList('ol', ol);
+      continue;
+    }
+
+    /* blank */
+    if(!line.trim()){ i++; continue; }
+
+    /* paragraph — consume until blank or a block starter */
+    var para=[];
+    while(i<lines.length && lines[i].trim()
+          && !/^(#{1,4})\s+/.test(lines[i])
+          && !/^\s*[-*+]\s+/.test(lines[i])
+          && !/^\s*\d+[.)]\s+/.test(lines[i])
+          && !esqIsTableRow(lines[i])){
+      para.push(lines[i]);
+      i++;
+    }
+    if(para.length) out.push('<p>'+esqInline(para.join(' '))+'</p>');
+  }
+
+  return '<div style="font-family:Calibri,Arial,sans-serif;font-size:11pt;">'+out.join('')+'</div>';
+}
+
+/* Rich copy via a hidden contenteditable + execCommand.
+   Old API, but it works in embedded and iframe contexts, and under
+   managed browser policies, where the async Clipboard API is refused
+   outright. Keeps the formatting, unlike a plain-text fallback. */
+function esqCopyExecHtml(html){
+  var div=document.createElement('div');
+  div.setAttribute('contenteditable','true');
+  div.style.cssText='position:fixed;left:-99999px;top:0;opacity:0;white-space:pre-wrap;';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+  var ok=false, sel=null;
+  try{
+    sel=window.getSelection();
+    var range=document.createRange();
+    range.selectNodeContents(div);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    ok=document.execCommand('copy');
+  }catch(e){ ok=false; }
+  try{ if(sel) sel.removeAllRanges(); }catch(e){}
+  if(div.parentNode) div.parentNode.removeChild(div);
+  return ok;
+}
+
+/* Copy specialist output, in three tiers:
+     1. ClipboardItem + navigator.clipboard.write  — modern, rich
+     2. execCommand over a contenteditable         — older, still rich
+     3. clipboard.writeText                        — plain, last resort
+   onDone receives the tier name so callers can report it if useful. */
+function esqCopyRich(text, onDone, onFail){
+  var done = typeof onDone==='function' ? onDone : function(){};
+  var fail = typeof onFail==='function' ? onFail : function(){};
+  var body = mdToWordHtml(text);
+  var html = '<meta charset="utf-8">'+body;
+
+  function tierExec(){
+    if(esqCopyExecHtml(body)){ done('execCommand'); return true; }
+    return false;
+  }
+  function tierPlain(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text)
+        .then(function(){ done('plain-text'); })
+        .catch(fail);
+    }
+    fail();
+    return null;
+  }
+
+  try{
+    if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      var item=new ClipboardItem({
+        'text/html':  new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([String(text||'')],{type:'text/plain'})
+      });
+      return navigator.clipboard.write([item])
+        .then(function(){ done('ClipboardItem'); })
+        .catch(function(){ if(!tierExec()) return tierPlain(); });
+    }
+  }catch(e){ /* fall through */ }
+
+  if(tierExec()) return;
+  return tierPlain();
+}
+
 function showFinalOutput(text){
   chatState.lastOutput=text;
+  chatState.savedToHistory=false;
   var sp=SPECIALIST_NAMES[chatState.specialistId];
   var s=squad.find(function(x){return x.id===chatState.specialistId;});
   var msgs=document.getElementById('chat-messages');
@@ -5173,8 +5409,9 @@ function showFinalOutput(text){
   var outputBox=document.createElement('div');
   outputBox.style.cssText='flex:1;max-width:100%;';
 
-  /* format the text */
-  var formatted=text
+  /* format the text — tables first, as single-line HTML, so the
+     line-anchored rules below and the final \n -> <br> leave them alone */
+  var formatted=esqTablesToHtml(text,true)
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/^### (.+)$/gm,'<div style="font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#aaff3e;margin:12px 0 4px;">$1</div>')
     .replace(/^## (.+)$/gm,'<div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:900;color:#eef3fc;margin:16px 0 6px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:4px;">$1</div>')
@@ -5195,8 +5432,11 @@ function showFinalOutput(text){
   copyBtn.className='output-btn primary';
   copyBtn.textContent='📋 Copy output';
   copyBtn.onclick=function(){
-    navigator.clipboard.writeText(text).then(function(){
+    esqCopyRich(text, function(){
       copyBtn.textContent='✓ Copied!';
+      setTimeout(function(){copyBtn.textContent='📋 Copy output';},2000);
+    }, function(){
+      copyBtn.textContent='⚠ Copy failed';
       setTimeout(function(){copyBtn.textContent='📋 Copy output';},2000);
     });
   };
@@ -5205,8 +5445,15 @@ function showFinalOutput(text){
   saveBtn.className='output-btn';
   saveBtn.textContent='💾 Save to history';
   saveBtn.onclick=function(){
-    saveTaskToHistory(text);
-    saveBtn.textContent='✓ Saved!';
+    /* The auto-save at the end of showFinalOutput already logged this
+       mission. Clicking here used to write a second row, inflating the
+       ROI hours. Confirm what already happened instead of duplicating it. */
+    if(chatState.savedToHistory){
+      saveBtn.textContent='✓ Already saved';
+    } else {
+      saveTaskToHistory(text);
+      saveBtn.textContent='✓ Saved!';
+    }
     setTimeout(function(){saveBtn.textContent='💾 Save to history';},2000);
   };
 
@@ -5247,9 +5494,12 @@ function showFinalOutput(text){
 
 function copyResult(){
   if(!chatState.lastOutput)return;
-  navigator.clipboard.writeText(chatState.lastOutput).then(function(){
-    var btn=event.target;
+  var btn=event.target;
+  esqCopyRich(chatState.lastOutput, function(){
     btn.textContent='✅ Copied!';
+    setTimeout(function(){btn.textContent='📋 Copy';},2000);
+  }, function(){
+    btn.textContent='⚠ Copy failed';
     setTimeout(function(){btn.textContent='📋 Copy';},2000);
   });
 }
@@ -5262,9 +5512,20 @@ function saveResult(){
 }
 
 function saveTaskToHistory(output){
-  if(!currentUser||!chatState.specialistId)return;
+  /* These guards used to abort with no trace. When they fire, the mission
+     is never recorded — which is what ROI, badges, history and the
+     re-engagement audience all read from. Say so. */
+  if(!currentUser||!chatState.specialistId){
+    console.warn('[task_history] skipped: no user or no specialist selected',
+      {user:!!currentUser, specialistId:chatState.specialistId});
+    return;
+  }
   var s=squad.find(function(x){return x.id===chatState.specialistId;});
-  if(!s)return;
+  if(!s){
+    console.warn('[task_history] skipped: specialist '+chatState.specialistId+
+      ' not found in squad (squad has '+(squad?squad.length:0)+' entries)');
+    return;
+  }
   var sp=SPECIALIST_NAMES[chatState.specialistId];
   var userMsgs=chatState.messages.filter(function(m){return m.role==='user';}).map(function(m){return m.content;}).join(' | ');
   var specialistDisplayName = sp ? (sp.name+' — '+s.name) : s.name;
@@ -5280,7 +5541,31 @@ function saveTaskToHistory(output){
     prompt:userMsgs.slice(0,500),
     result:output,
     hours_saved:hoursSaved,
-  }).then(function(){
+  }).then(function(res){
+    /* supabase-js resolves with {data,error} either way. This callback used
+       to run unconditionally, so a rejected insert still marked the user
+       onboarded and reran the badge check — a failed write was
+       indistinguishable from a successful one, which is why the ROI tracker
+       could read empty with nobody noticing. */
+    if(res && res.error){
+      console.error('[task_history] INSERT FAILED', res.error);
+      var w=document.getElementById('save-history-warn');
+      if(!w){
+        w=document.createElement('div');
+        w.id='save-history-warn';
+        w.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);'+
+          'background:rgba(60,10,10,0.95);border:1px solid #ff7a6e;color:#ffd9d5;'+
+          'font-size:12.5px;padding:10px 16px;border-radius:10px;z-index:99999;'+
+          'max-width:min(520px,92vw);line-height:1.5;';
+        document.body.appendChild(w);
+      }
+      w.textContent='This mission could not be saved to your history, so it '+
+        'will not count toward your ROI or badges. Please report this.';
+      setTimeout(function(){ if(w&&w.parentNode) w.parentNode.removeChild(w); }, 9000);
+      return;
+    }
+
+    chatState.savedToHistory = true;
     localStorage.setItem('esq_first_mission_done','1');
     /* hide first-deployment guidance once a mission is logged */
     var guide = document.getElementById('first-mission-guide');
