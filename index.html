@@ -4207,8 +4207,24 @@ window.addEventListener('load',function(){
   initStripe();
   var params=new URLSearchParams(window.location.search);
   if(params.get('checkout')==='success'){
-    if(currentUser)supa.from('profiles').update({plan:'pro'}).eq('id',currentUser.id);
+    /* The plan is NOT set here. This used to run
+         supa.from('profiles').update({plan:'pro'})
+       which meant visiting /?checkout=success while signed in granted a pro
+       plan with no payment involved — a URL parameter was the only gate.
+       stripe-webhook already sets plan server-side from the real Stripe
+       events (invoice.payment_succeeded, customer.subscription.created /
+       .updated / .deleted, checkout.session.completed), so this was both a
+       revenue hole and redundant. Show the confirmation only; the webhook
+       decides what they actually have. */
     showCheckoutSuccess();
+    /* The webhook lands a moment after Stripe redirects the user back, so
+       refresh the plan badge a few times rather than leaving them looking at
+       "Upgrade →" after they have just paid. */
+    [3000, 8000, 15000].forEach(function(ms){
+      setTimeout(function(){
+        try{ if(currentUser) updatePlanBadge(currentUser); }catch(e){}
+      }, ms);
+    });
   } else if(params.get('checkout')==='cancelled'){
     setTimeout(function(){scrollToSection('sec-pricing');},500);
   }
