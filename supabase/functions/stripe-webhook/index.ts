@@ -50,8 +50,15 @@ serve(async (req) => {
       case 'customer.subscription.updated': {
         const sub        = event.data.object
         const customerId = sub.customer as string
+        await syncTrialDates(supa, customerId, sub)
         const plan       = resolvePlanFromSub(sub)
-        if (plan) await updatePlan(supa, customerId, plan)
+        // While trialing, the profile stays on 'trial' regardless of which
+        // price they picked — the UI reads plan==='trial' to show the countdown.
+        if (sub.status === 'trialing') {
+          await updatePlan(supa, customerId, 'trial')
+        } else if (plan) {
+          await updatePlan(supa, customerId, plan)
+        }
         break
       }
 
@@ -61,8 +68,15 @@ serve(async (req) => {
         const customerId = sub.customer as string
         // Store stripe_customer_id immediately even if still in trial
         await linkCustomer(supa, customerId, sub.metadata?.supabase_uid ?? null)
+        // Trial window comes from Stripe, so changing the trial length there
+        // is all that's needed — nothing in the app hardcodes it any more.
+        await syncTrialDates(supa, customerId, sub)
         const plan = resolvePlanFromSub(sub)
-        if (plan && sub.status === 'active') await updatePlan(supa, customerId, plan)
+        if (sub.status === 'trialing') {
+          await updatePlan(supa, customerId, 'trial')
+        } else if (plan && sub.status === 'active') {
+          await updatePlan(supa, customerId, plan)
+        }
         break
       }
 
@@ -145,6 +159,32 @@ function resolvePlanFromSub(sub: any): string | null {
     if (meta.plan) return meta.plan
   }
   return null
+}
+
+/**
+ * Write the Stripe trial window onto the profile.
+ *
+ * Nothing wrote trial_start / trial_end before this, so they were always null
+ * — and every trial branch in index.html is gated on `plan==='trial' && trialEnd`,
+ * which meant the countdown, the progress bar and the expiry prompt never
+ * rendered for anyone. That was the "trial expiry bug".
+ *
+ * Stripe gives these as Unix seconds; null means no trial on the subscription.
+ */
+async function syncTrialDates(supa: any, customerId: string, sub: any) {
+  const toIso = (s: number | null | undefined) =>
+    s ? new Date(s * 1000).toISOString() : null
+
+  const { error } = await supa
+    .from('profiles')
+    .update({
+      trial_start: toIso(sub.trial_start),
+      trial_end:   toIso(sub.trial_end),
+    })
+    .eq('stripe_customer_id', customerId)
+
+  if (error) console.error('syncTrialDates error:', error.message)
+  else console.log(`Trial window for ${customerId}: ${toIso(sub.trial_start)} → ${toIso(sub.trial_end)}`)
 }
 
 /** Update plan in profiles table by stripe_customer_id */

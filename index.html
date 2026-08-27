@@ -1542,7 +1542,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         </h1>
         <p class="hero-sub">Less work. More impact. EconSquad AI gives you a team of <strong>specialist AI experts</strong> — each trained on a single economic development task. Grant writing, site selection, BRE surveys, incentive modeling and more. Deploy your squad 24/7.</p>
         <div class="hero-ctas">
-          <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 7 days</button>
+          <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 14 days</button>
           <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
         </div>
         <p class="hero-note">Credit card required · No charges until your free trial expires · <span>Cancel anytime</span> · Setup in 3 minutes</p>
@@ -1748,7 +1748,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="mkt-section" id="sec-pricing">
         <div class="section-eyebrow">Pricing</div>
         <h2 class="section-h2">Pick your squad size. <span>Scale anytime.</span></h2>
-        <p class="section-sub">Every plan includes a 7-day free trial. Card required — cancel before trial ends and you won't be charged.</p>
+        <p class="section-sub">Every plan includes a 14-day free trial. Card required — cancel before trial ends and you won't be charged.</p>
 
         <!-- BILLING TOGGLE -->
         <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:24px 0 36px;">
@@ -1777,7 +1777,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li><span class="xx">✗</span> ARIA morning briefing</li>
               <li><span class="xx">✗</span> Gmail · Calendar · Tasks</li>
             </ul>
-            <button class="price-btn outline" onclick="startCheckout('starter')">Start 7-day free trial</button>
+            <button class="price-btn outline" onclick="startCheckout('starter')">Start 14-day free trial</button>
             <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
 
@@ -1799,7 +1799,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <li class="on"><span class="ck">✓</span> History & saved results</li>
               <li class="on"><span class="ck">✓</span> Priority support</li>
             </ul>
-            <button class="price-btn" onclick="startCheckout('pro')">Start 7-day free trial</button>
+            <button class="price-btn" onclick="startCheckout('pro')">Start 14-day free trial</button>
             <p style="font-size:11px;color:#6b7a96;text-align:center;margin-top:8px;">Card required · Cancel anytime</p>
           </div>
 
@@ -1836,7 +1836,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="final-cta">
         <div class="final-cta-box">
           <h2>Less work.<br><span>More impact.</span></h2>
-          <p>Join 2,400+ economic developers who stopped doing it alone. 7-day free trial, no credit card, cancel anytime.</p>
+          <p>Join 2,400+ economic developers who stopped doing it alone. 14-day free trial. Card required, cancel any time before it ends.</p>
           <div class="final-cta-btns">
             <button class="btn-hero" onclick="openAuth('signup')">Hire your squad now →</button>
             <button class="btn-hero-ghost" onclick="switchView('dashboard')">See the dashboard</button>
@@ -3134,6 +3134,11 @@ function toggleAria(){
 var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+/* Trial length in days. Stripe is the source of truth — this is only used for
+   copy and for the progress bar when trial_start is missing. Keep it in sync
+   with the trial period on the Stripe Payment Links. */
+var TRIAL_DAYS=14;
 var currentUser=null;
 
 /* ── Capture affiliate referral code from ?ref=CODE ── */
@@ -4304,7 +4309,7 @@ function toggleProfileMenu(){
     var pmp=document.getElementById('pm-plan');
     if(pmn)pmn.textContent=nm;
     if(pme)pme.textContent=currentUser.email;
-    if(pmp)pmp.textContent='⚡ Trial — 7 days free';
+    if(pmp)pmp.textContent='⚡ Trial — '+TRIAL_DAYS+' days free';
     /* Show "Complete Your Setup" button if wizard not yet finished */
     var setupRow=document.getElementById('pm-setup-row');
     if(setupRow) setupRow.style.display=(localStorage.getItem(SW_KEY)!=='1')?'block':'none';
@@ -6043,7 +6048,7 @@ function updatePlanBadge(user){
   if(!pb)return;
 
   /* get trial info from profile */
-  supa.from('profiles').select('plan,trial_end,stripe_customer_id,is_beta_tester,beta_expires_at').eq('id',user.id).single().then(function(res){
+  supa.from('profiles').select('plan,trial_start,trial_end,stripe_customer_id,is_beta_tester,beta_expires_at').eq('id',user.id).single().then(function(res){
     if(!res.data)return;
     var plan=res.data.plan||'trial';
     var trialEnd=res.data.trial_end?new Date(res.data.trial_end):null;
@@ -6321,10 +6326,16 @@ function loadBillingDetails(){
       if(trialEnd){
         var msLeft=trialEnd-now;
         daysLeft=Math.max(0,Math.ceil(msLeft/(1000*60*60*24)));
-        pct=Math.min(100,Math.max(0,Math.round((1-(msLeft/(7*24*60*60*1000)))*100)));
+        /* Span comes from the actual Stripe trial window when we have it, so
+           changing the trial length in Stripe needs no code change here. */
+        var trialStart=d.trial_start?new Date(d.trial_start):null;
+        var spanMs=(trialStart&&trialEnd>trialStart)
+          ? (trialEnd-trialStart)
+          : TRIAL_DAYS*24*60*60*1000;
+        pct=Math.min(100,Math.max(0,Math.round((1-(msLeft/spanMs))*100)));
       }
       if(nameEl)nameEl.textContent='Pro Trial — Full Access';
-      if(statusEl)statusEl.textContent='You have full Pro Squad access during your 7-day trial';
+      if(statusEl)statusEl.textContent='You have full Pro Squad access during your '+TRIAL_DAYS+'-day trial';
       if(badgeEl){badgeEl.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' left';badgeEl.style.background='rgba(245,197,66,0.15)';badgeEl.style.color='#f5c542';badgeEl.style.border='1px solid rgba(245,197,66,0.3)';}
       if(trialBar)trialBar.style.display='block';
       if(daysLeftEl)daysLeftEl.textContent=daysLeft+' day'+(daysLeft===1?'':'s')+' remaining';
