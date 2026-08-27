@@ -3288,6 +3288,9 @@ function onSignedIn(user){
   setTimeout(function(){ if(typeof window.initRightSidebar==='function') window.initRightSidebar(); }, 3000);
   /* update last active */
   updateLastActive();
+  /* If their trial or focus-group window has lapsed and they never completed
+     checkout, ask for a card. No-ops for anyone with a stripe_customer_id. */
+  checkSubscriptionPrompt(user);
   /* update greeting and savings bar with real first name */
   var greetEl=document.getElementById('dash-greeting-name');
   var savNameEl=document.getElementById('sav-bar-name');
@@ -6273,6 +6276,141 @@ document.addEventListener('click',function(e){
   var m=document.getElementById('billing-modal');
   if(m&&m.style.display==='flex'&&e.target===m)closeBillingModal();
 });
+
+/* ============================================================
+   Lapsed-access subscribe prompt
+   ------------------------------------------------------------
+   The Supabase account is created by doSignup() BEFORE the redirect to
+   Stripe. Anyone who closes the tab on the payment page keeps a working
+   account with no card — profiles.plan defaults to 'trial' and trial_end
+   to now()+interval, so they simply lapse and nothing ever asks again.
+   Twelve users arrived that way between 2026-04-26 and 2026-08-11, and
+   six focus-group accounts lapsed the same way when FOCUSGROUP's
+   beta_expires_at (2026-06-30) passed.
+
+   This asks those people for a card. Deliberately dismissible: they are
+   existing relationships and several of them are the focus group. To make
+   it a hard gate later, drop the "Not right now" button and the overlay
+   click handler.
+   ============================================================ */
+
+function esqAccessLapsed(p){
+  if(!p) return null;
+  if(p.stripe_customer_id) return null;            /* already a Stripe customer */
+  var now = Date.now();
+  if(p.is_beta_tester && p.beta_expires_at){
+    return (new Date(p.beta_expires_at).getTime() < now) ? 'beta' : null;
+  }
+  if(p.trial_end && new Date(p.trial_end).getTime() < now) return 'trial';
+  return null;
+}
+
+function checkSubscriptionPrompt(user){
+  if(!user) return;
+  /* Once per browser session — persistent enough to convert, not nagging. */
+  try{ if(sessionStorage.getItem('esq_sub_prompt_seen') === '1') return; }catch(e){}
+
+  supa.from('profiles')
+    .select('plan,trial_end,stripe_customer_id,is_beta_tester,beta_expires_at')
+    .eq('id', user.id).single()
+    .then(function(res){
+      if(res.error || !res.data) return;
+      var why = esqAccessLapsed(res.data);
+      if(!why) return;
+      /* Let the dashboard settle first — this lands after the welcome splash. */
+      setTimeout(function(){ showSubscribePrompt(why, res.data); }, 2600);
+    });
+}
+
+function showSubscribePrompt(why, profile){
+  if(document.getElementById('sub-prompt-overlay')) return;
+  try{ sessionStorage.setItem('esq_sub_prompt_seen','1'); }catch(e){}
+
+  /* Their own numbers are the argument — these only started recording today. */
+  var hours = 0, missions = 0;
+  try{
+    var st = window._overviewStats || {};
+    hours    = parseFloat(st.totalHours || 0) || 0;
+    missions = parseInt(st.missions || 0, 10) || 0;
+  }catch(e){}
+
+  var isBeta   = (why === 'beta');
+  var heading  = isBeta ? 'Your focus group access has ended'
+                        : 'Your free trial has ended';
+  var subline  = isBeta
+    ? 'Thank you — the feedback you gave shaped what EconSquad is now. Keep your squad by adding a card.'
+    : 'Everything you have built is still here. Add a card to keep your squad working.';
+
+  var statsRow = '';
+  if(hours > 0 || missions > 0){
+    statsRow =
+      '<div style="display:flex;gap:12px;margin:20px 0 4px;">'+
+        (missions>0 ? '<div style="flex:1;background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;">'+
+          '<div style="font-family:Barlow,sans-serif;font-size:26px;font-weight:900;color:#aaff3e;line-height:1;">'+missions+'</div>'+
+          '<div style="font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-top:5px;">Missions run</div></div>' : '')+
+        (hours>0 ? '<div style="flex:1;background:rgba(8,12,24,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;">'+
+          '<div style="font-family:Barlow,sans-serif;font-size:26px;font-weight:900;color:#f5c542;line-height:1;">'+hours.toFixed(1)+'</div>'+
+          '<div style="font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;margin-top:5px;">Hours saved</div></div>' : '')+
+      '</div>';
+  }
+
+  var ov = document.createElement('div');
+  ov.id = 'sub-prompt-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:120000;background:rgba(4,5,13,0.92);'+
+    'backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  ov.innerHTML =
+    '<div role="dialog" aria-modal="true" style="max-width:520px;width:100%;background:rgba(10,16,30,0.98);'+
+      'border:1px solid rgba(170,255,62,0.28);border-radius:20px;padding:32px 34px;'+
+      'box-shadow:0 20px 70px rgba(0,0,0,0.6);">'+
+
+      '<div style="font-size:11px;font-weight:800;color:#aaff3e;text-transform:uppercase;'+
+        'letter-spacing:.12em;margin-bottom:10px;">'+(isBeta?'Focus group':'Trial')+'</div>'+
+
+      '<div style="font-family:\'Barlow Condensed\',Barlow,sans-serif;font-size:32px;font-weight:900;'+
+        'color:#eef3fc;line-height:1.05;margin-bottom:10px;">'+heading+'</div>'+
+
+      '<p style="font-size:14.5px;color:#8a97b5;line-height:1.6;margin:0;">'+subline+'</p>'+
+
+      statsRow+
+
+      '<p style="font-size:13px;color:#6b7a96;line-height:1.6;margin:18px 0 22px;">'+
+        'Your history, badges and saved work stay exactly as they are — adding a card does not reset anything.'+
+      '</p>'+
+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
+        '<button type="button" id="sub-prompt-pro" style="flex:1 1 190px;background:#aaff3e;color:#0a1a00;'+
+          'border:none;font-family:Barlow,sans-serif;font-size:14px;font-weight:900;padding:14px 18px;'+
+          'border-radius:11px;cursor:pointer;letter-spacing:.02em;">Continue with Pro — $99/mo</button>'+
+        '<button type="button" id="sub-prompt-starter" style="flex:1 1 190px;background:transparent;'+
+          'color:#aaff3e;border:1px solid rgba(170,255,62,0.35);font-family:Barlow,sans-serif;'+
+          'font-size:14px;font-weight:800;padding:14px 18px;border-radius:11px;cursor:pointer;">'+
+          'Starter — $49/mo</button>'+
+      '</div>'+
+
+      '<div style="text-align:center;margin-top:16px;">'+
+        '<button type="button" id="sub-prompt-later" style="background:none;border:none;color:#6b7a96;'+
+          'font-family:\'DM Sans\',sans-serif;font-size:12.5px;cursor:pointer;text-decoration:underline;">'+
+          'Not right now</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
+
+  document.getElementById('sub-prompt-later').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+  document.addEventListener('keydown', onKey);
+
+  document.getElementById('sub-prompt-pro').addEventListener('click', function(){
+    close(); launchStripeCheckout('pro');
+  });
+  document.getElementById('sub-prompt-starter').addEventListener('click', function(){
+    close(); launchStripeCheckout('starter');
+  });
+}
 
 function loadBillingDetails(){
   if(!currentUser)return;
