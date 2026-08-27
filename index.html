@@ -12442,7 +12442,12 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
 (function(){
   var s=document.createElement('script');
-  s.src='https://ekleinsorge.github.io/econsquad-ai/app.js?v='+Date.now();
+  /* Same-origin relative path. The absolute github.io URL redirected to the
+     CNAME (econsquad.ai) over http://, and the browser blocked it as mixed
+     content on an https page — so app.js silently never loaded. That is what
+     left window.ariaCompute undefined and locked the chat on a first message.
+     Relative also means local `npx serve .` loads the local copy. */
+  s.src='app.js?v='+Date.now();
   document.body.appendChild(s);
 })();
 </script>
