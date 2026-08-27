@@ -139,17 +139,28 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // ── Dry run ──────────────────────────────────────────────
+    // monday-drop.yml has always passed a dry_run input, but this handler
+    // never read the request body — so "dry run" sent the real newsletter to
+    // the real list. Parse it before anything writes or sends.
+    let body: any = {};
+    try { body = await req.json(); } catch { /* no body is fine */ }
+    const dryRun = body.dry_run === true  || body.dry_run === 'true'
+                || body.dry_run === 1     || body.dry_run === '1';
+
     // Check monthly warning threshold
     const monthlyCount = await getMonthlyCount();
     if (monthlyCount >= WARN_THRESHOLD) {
       console.warn(`⚠️ Monthly send count ${monthlyCount} has reached warning threshold ${WARN_THRESHOLD}`);
-      // Store warning flag in DB so admin can see it
-      await supa.from('monday_drop_sends').insert({
-        subscriber_id: null,
-        issue_number: -1,
-        issue_date: todayDateStr(),
-        issue_title: `WARNING: ${monthlyCount} emails sent this month — approaching limit`,
-      }).select();
+      // Store warning flag in DB so admin can see it (never on a dry run)
+      if (!dryRun) {
+        await supa.from('monday_drop_sends').insert({
+          subscriber_id: null,
+          issue_number: -1,
+          issue_date: todayDateStr(),
+          issue_title: `WARNING: ${monthlyCount} emails sent this month — approaching limit`,
+        }).select();
+      }
     }
 
     // Find today's issue
@@ -164,6 +175,32 @@ Deno.serve(async (req: Request) => {
     const subscribers = await getActiveSubscribers();
     if (!subscribers.length) {
       return new Response(JSON.stringify({ ok: true, sent: 0, message: 'No active subscribers' }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ── Dry run: report and stop, before any insert or send ──
+    if (dryRun) {
+      const { data: already } = await supa
+        .from('monday_drop_sends')
+        .select('subscriber_id')
+        .eq('issue_number', issue.issue);
+      const alreadySent = new Set((already ?? []).map((r: any) => r.subscriber_id));
+      const wouldSend   = subscribers.filter((s: any) => !alreadySent.has(s.id));
+
+      const report = {
+        ok: true,
+        mode: 'dry_run',
+        issue: issue.issue,
+        issue_title: issue.title,
+        subscribers: subscribers.length,
+        would_send: wouldSend.length,
+        would_skip: subscribers.length - wouldSend.length,
+        monthly_count: monthlyCount,
+        sample: wouldSend.slice(0, 10).map((s: any) => s.email),
+      };
+      console.log('Monday Drop DRY RUN — nothing sent:', report);
+      return new Response(JSON.stringify(report), {
         status: 200, headers: { 'Content-Type': 'application/json' },
       });
     }
