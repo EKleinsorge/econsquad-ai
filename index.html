@@ -5534,6 +5534,7 @@ function saveTaskToHistory(output){
   var isFirstMission = !localStorage.getItem('esq_first_mission_done');
   supa.from('task_history').insert({
     user_id:currentUser.id,
+    user_email:currentUser.email||'',
     specialist_id:chatState.specialistId,
     specialist_name:specialistDisplayName,
     specialist_color:s.color,
