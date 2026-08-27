@@ -7905,9 +7905,40 @@ function showLevelUpToast(lvl){
     '<div style="font-size:12px;font-weight:800;color:'+lvl.color+';text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">Level Up!</div>'+
     '<div style="font-family:Barlow,sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:6px;">'+lvl.title+'</div>'+
     '<div style="font-size:13px;color:#8a97b5;">You reached Level '+lvl.level+'</div>';
+  /* Levelling up is the single best moment in the product. It used to vanish
+     after 4s with nothing to click, so looking away meant missing it entirely.
+     It now waits. */
+  toast.setAttribute('role','alertdialog');
+
+  var actions=document.createElement('div');
+  actions.style.cssText='margin-top:22px;display:flex;justify-content:center;';
+
+  var closeBtn=document.createElement('button');
+  closeBtn.type='button';
+  closeBtn.textContent='Nice \u2014 keep going';
+  closeBtn.style.cssText='font-family:Barlow,sans-serif;font-size:13px;font-weight:800;'+
+    'letter-spacing:.03em;padding:11px 24px;border-radius:10px;cursor:pointer;'+
+    'background:'+lvl.color+';color:#06080f;border:1px solid '+lvl.color+';'+
+    'transition:filter .18s;';
+  closeBtn.onmouseenter=function(){ closeBtn.style.filter='brightness(1.12)'; };
+  closeBtn.onmouseleave=function(){ closeBtn.style.filter='none'; };
+  actions.appendChild(closeBtn);
+  toast.appendChild(actions);
+
   document.body.appendChild(toast);
   setTimeout(function(){toast.style.transform='translate(-50%,-50%) scale(1)';toast.style.opacity='1';},50);
-  setTimeout(function(){toast.style.opacity='0';setTimeout(function(){if(toast.parentNode)toast.remove();},400);},4000);
+
+  function dismissLevelUp(){
+    document.removeEventListener('keydown',onLevelKey);
+    toast.style.opacity='0';
+    toast.style.transform='translate(-50%,-50%) scale(0.92)';
+    setTimeout(function(){if(toast.parentNode)toast.remove();},400);
+  }
+  function onLevelKey(e){ if(e.key==='Escape'||e.key==='Esc') dismissLevelUp(); }
+
+  closeBtn.addEventListener('click',dismissLevelUp);
+  document.addEventListener('keydown',onLevelKey);
+  setTimeout(function(){ try{ closeBtn.focus(); }catch(e){} },500);
 }
 
 function loadUserLevel(){
