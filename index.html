@@ -7574,6 +7574,25 @@ var earnedBadges={};
 
 /* ===== ONBOARDING & TOUR ===== */
 var ONBOARDING_KEY = 'esq_onboarding_done';
+var ONBOARDING_SHOWN_KEY = 'esq_onboarding_shown';
+
+/* One place that records "this user has seen onboarding".
+   Until 2026-08-28 the flag was ONLY written when a "don't show this again"
+   checkbox was ticked. Nothing else wrote it — not skipping, not sitting
+   through all 27 tour steps — so anyone who did not notice the checkbox was
+   shown the welcome modal on every single login, for ever. */
+function markOnboardingSeen(){
+  try{ localStorage.setItem(ONBOARDING_KEY,'1'); }catch(e){}
+  if(currentUser){
+    supa.from('profiles').update({onboarding_done:true}).eq('id',currentUser.id)
+      .then(function(){},function(){});
+  }
+}
+
+function _autoShowOnboarding(shownCount){
+  try{ localStorage.setItem(ONBOARDING_SHOWN_KEY, String(shownCount + 1)); }catch(e){}
+  showOnboarding(false);
+}
 var _tourStep = 0;
 
 var TOUR_STEPS = [
@@ -7635,7 +7654,28 @@ function initOnboarding(user){
   /* Check if user has dismissed permanently */
   var done = localStorage.getItem(ONBOARDING_KEY);
   if(done === '1') return;
-  showOnboarding(false);
+
+  /* Auto-show at most three times. "Skip for now" means exactly that, so it
+     must not set the permanent flag — but without a cap, skipping means the
+     modal returns on every login. Replay is always available from Resources. */
+  var shown = parseInt(localStorage.getItem(ONBOARDING_SHOWN_KEY) || '0', 10);
+  if(isNaN(shown)) shown = 0;
+  if(shown >= 3) return;
+
+  /* profiles.onboarding_done has been written since launch and read exactly
+     never, so ticking the box on a laptop did nothing on a phone. Read it. */
+  if(currentUser){
+    supa.from('profiles').select('onboarding_done').eq('id',currentUser.id).single()
+      .then(function(res){
+        if(res && res.data && res.data.onboarding_done){
+          try{ localStorage.setItem(ONBOARDING_KEY,'1'); }catch(e){}
+          return;
+        }
+        _autoShowOnboarding(shown);
+      }, function(){ _autoShowOnboarding(shown); });
+    return;
+  }
+  _autoShowOnboarding(shown);
 }
 
 function showOnboarding(force){
@@ -7676,13 +7716,7 @@ function closeOnboarding(){
     var el = document.getElementById(id);
     return el && el.checked;
   });
-  if(checked){
-    localStorage.setItem(ONBOARDING_KEY,'1');
-    /* Also save to Supabase profiles if possible */
-    if(currentUser){
-      supa.from('profiles').update({onboarding_done:true}).eq('id',currentUser.id).then(function(){});
-    }
-  }
+  if(checked) markOnboardingSeen();
 }
 
 function obShowStep(step){
@@ -8228,12 +8262,10 @@ function endTour(){
   var overlay = document.getElementById('tour-overlay');
   if(overlay){ overlay.classList.remove('active'); overlay.style.display='none'; }
   var dontShow = document.getElementById('tour-dont-show');
-  if(dontShow && dontShow.checked){
-    localStorage.setItem(ONBOARDING_KEY,'1');
-    if(currentUser){
-      supa.from('profiles').update({onboarding_done:true}).eq('id',currentUser.id).then(function(){});
-    }
-  }
+  /* Reaching the final step counts as having seen it, checkbox or not.
+     Someone who sat through all 27 steps does not need asking again. */
+  var finished = (_tourStep >= TOUR_STEPS.length - 1);
+  if(finished || (dontShow && dontShow.checked)) markOnboardingSeen();
 }
 
 /* Allow clicking outside tour tooltip to advance */
@@ -12030,9 +12062,9 @@ var _DEMO_STEPS=[
      +'</div></div>';}
   },
   {lbl:'Ready to start',title:"You're all caught up.",
-   narration:"That's EconSquad. Less work, more impact - starting today. Your first 7 days are completely free. Welcome to your squad.",
+   narration:"That's EconSquad. Less work, more impact - starting today. Your first 14 days are completely free. Welcome to your squad.",
    content:function(){return'<div style="text-align:center;padding:10px 0 20px;">'
-     +'<button class="dt-cta-big" type="button" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad - free for 7 days</button>'
+     +'<button class="dt-cta-big" type="button" onclick="closeDemoTour();openAuth(\'signup\');">Hire your squad - free for 14 days</button>'
      +'<p style="font-size:12px;color:#6b7a96;margin-top:14px;line-height:1.7;">Credit card required &middot; No charges until your free trial expires &middot; Cancel anytime &middot; Setup in 3 minutes</p>'
      +'<p style="font-size:12px;color:#6b7a96;margin-top:8px;">Already have an account? <span style="color:#aaff3e;cursor:pointer;font-weight:700;" onclick="closeDemoTour();openAuth(\'signin\');">Sign In</span></p>'
      +'</div>';}
@@ -12680,7 +12712,7 @@ function drawLogo(){if(!logoCtx)return;
             <div style="font-size:10px;color:#4a5568;margin-top:2px;">No integrations</div>
           </div>
           <div id="su-plan-pro" onclick="suSelectPlan('pro')" style="border:2px solid #aaff3e;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;background:rgba(170,255,62,0.05);position:relative;">
-            <div style="position:absolute;top:-1px;right:10px;font-size:9px;color:#0a1a00;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:#aaff3e;padding:2px 8px;border-radius:0 0 6px 6px;">7-day free trial</div>
+            <div style="position:absolute;top:-1px;right:10px;font-size:9px;color:#0a1a00;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:#aaff3e;padding:2px 8px;border-radius:0 0 6px 6px;">14-day free trial</div>
             <div style="font-family:Barlow,sans-serif;font-size:14px;font-weight:800;color:#eef3fc;margin-top:8px;">Pro Squad</div>
             <div style="font-size:22px;font-weight:900;font-family:Barlow,sans-serif;color:#eef3fc;margin:4px 0;"><span id="su-pro-amt">$99</span><span style="font-size:12px;color:#6b7a96;" id="su-pro-per">/mo</span></div>
             <div style="font-size:11px;color:#aaff3e;margin-top:4px;">All specialists</div>
