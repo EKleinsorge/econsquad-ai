@@ -154,6 +154,17 @@ html.text-xl .card-desc,html.text-xl .notif-body{font-size:130%;}
 .hero-ctas{display:flex;gap:14px;justify-content:center;align-items:center;margin-bottom:16px;}
 .hero-note{font-size:12px;color:var(--text2);}
 .hero-note span{color:var(--lime);}
+/* Launch countdown band — hero, pricing and the subscribe prompt */
+.esq-cd{max-width:560px;margin:0 auto 30px;background:rgba(12,18,34,0.72);border:1px solid rgba(170,255,62,0.22);border-radius:16px;padding:18px 20px 16px;text-align:center;}
+.esq-cd-label{font-size:11px;font-weight:800;color:var(--lime);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px;}
+.esq-cd-digits{display:flex;gap:10px;justify-content:center;}
+.esq-cd-cell{flex:1 1 0;min-width:0;background:rgba(6,10,20,0.75);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:10px 4px;}
+.esq-cd-num{font-family:'Barlow',sans-serif;font-size:30px;font-weight:900;color:#eef3fc;line-height:1;font-variant-numeric:tabular-nums;}
+.esq-cd-unit{font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.09em;margin-top:5px;}
+.esq-cd-note{font-size:13px;color:var(--text2);margin-top:13px;line-height:1.55;}
+.esq-cd-note strong{color:var(--lime);}
+.esq-cd.live{border-color:rgba(170,255,62,0.42);}
+@media(max-width:520px){.esq-cd-num{font-size:23px;}.esq-cd{margin-bottom:22px;padding:15px 13px 13px;}.esq-cd-digits{gap:7px;}}
 
 .proof-strip{background:rgba(10,14,24,0.7);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:14px 48px;display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;}
 .proof-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);}
@@ -1541,6 +1552,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <span class="lime">AI Specialist.</span>
         </h1>
         <p class="hero-sub">Less work. More impact. EconSquad AI gives you a team of <strong>specialist AI experts</strong> — each trained on a single economic development task. Grant writing, site selection, BRE surveys, incentive modeling and more. Deploy your squad 24/7.</p>
+        <div class="esq-cd" id="launch-cd-hero" data-esq-countdown="hero" style="display:none;"></div>
         <div class="hero-ctas">
           <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 14 days</button>
           <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
@@ -1749,6 +1761,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
         <div class="section-eyebrow">Pricing</div>
         <h2 class="section-h2">Pick your squad size. <span>Scale anytime.</span></h2>
         <p class="section-sub">Every plan includes a 14-day free trial. Card required — cancel before trial ends and you won't be charged.</p>
+
+        <div class="esq-cd" id="launch-cd-pricing" data-esq-countdown="pricing" style="display:none;margin-top:26px;"></div>
 
         <!-- BILLING TOGGLE -->
         <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:24px 0 36px;">
@@ -6312,6 +6326,77 @@ document.addEventListener('click',function(e){
    click handler.
    ============================================================ */
 
+/* ============================================================
+   Launch countdown — September 1 2026, 11:00 AM Central
+   ------------------------------------------------------------
+   September 1 is still daylight time in Chicago, so 11:00 Central
+   that day is CDT (UTC−5) = 16:00 UTC. Pinned as UTC so the clock
+   reads the same for a visitor in Boise as one in Boston.
+
+   Any element with data-esq-countdown is picked up automatically;
+   it starts display:none so a JS failure leaves no empty box.
+   ============================================================ */
+var ESQ_LAUNCH_AT    = Date.parse('2026-09-01T16:00:00Z');
+var ESQ_LAUNCH_LABEL = 'September 1 \u00b7 11:00 AM Central';
+
+function esqLaunchParts(){
+  var ms = ESQ_LAUNCH_AT - Date.now();
+  if(!(ms > 0)) return null;
+  var s = Math.floor(ms / 1000);
+  return { d: Math.floor(s/86400), h: Math.floor(s%86400/3600),
+           m: Math.floor(s%3600/60), s: s%60 };
+}
+function esqPreLaunch(){ return esqLaunchParts() !== null; }
+
+function esqCdCell(n, unit){
+  return '<div class="esq-cd-cell"><div class="esq-cd-num">'+
+    (n < 10 ? '0' : '')+n+'</div><div class="esq-cd-unit">'+unit+'</div></div>';
+}
+
+function esqMountCountdown(el, opts){
+  if(!el || el.getAttribute('data-esq-cd-live') === '1') return;
+  el.setAttribute('data-esq-cd-live','1');
+  opts = opts || {};
+  var note     = opts.note     || 'Subscribe now and you are <strong>first in</strong> when the squad goes live.';
+  var liveNote = opts.liveNote || 'The squad is live \u2014 start your free trial and put them to work today.';
+  var timer    = null;
+
+  function paint(){
+    if(!el.isConnected){ if(timer) clearInterval(timer); return; }
+    var p = esqLaunchParts();
+    if(!p){
+      el.className = (el.className.indexOf('live') === -1) ? el.className+' live' : el.className;
+      el.innerHTML = '<div class="esq-cd-label">The squad is live</div>'+
+                     '<div class="esq-cd-note">'+liveNote+'</div>';
+      el.style.display = '';
+      if(timer) clearInterval(timer);
+      return;
+    }
+    /* Hidden view (logged in, marketing page off-screen) — keep ticking, skip the paint. */
+    if(el.offsetParent === null && el.style.display !== 'none') return;
+    el.innerHTML =
+      '<div class="esq-cd-label">Public launch \u00b7 '+ESQ_LAUNCH_LABEL+'</div>'+
+      '<div class="esq-cd-digits">'+
+        esqCdCell(p.d,'days')+esqCdCell(p.h,'hours')+
+        esqCdCell(p.m,'mins')+esqCdCell(p.s,'secs')+
+      '</div>'+
+      '<div class="esq-cd-note">'+note+'</div>';
+    el.style.display = '';
+  }
+  timer = setInterval(paint, 1000);
+  paint();
+}
+
+function esqInitCountdowns(){
+  var els = document.querySelectorAll('[data-esq-countdown]');
+  for(var i = 0; i < els.length; i++) esqMountCountdown(els[i]);
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', esqInitCountdowns);
+} else {
+  esqInitCountdowns();
+}
+
 function esqAccessLapsed(p){
   if(!p) return null;
   if(p.stripe_customer_id) return null;            /* already a Stripe customer */
@@ -6352,12 +6437,18 @@ function showSubscribePrompt(why, profile){
     missions = parseInt(st.missions || 0, 10) || 0;
   }catch(e){}
 
-  var isBeta   = (why === 'beta');
+  var isBeta    = (why === 'beta');
+  var preLaunch = esqPreLaunch();
   var heading  = isBeta ? 'Your focus group access has ended'
                         : 'Your free trial has ended';
   var subline  = isBeta
     ? 'Thank you — the feedback you gave shaped what EconSquad is now. Keep your squad by adding a card.'
     : 'Everything you have built is still here. Add a card to keep your squad working.';
+  if(preLaunch){
+    subline = isBeta
+      ? 'Thank you — the feedback you gave shaped what EconSquad is now. Add a card before launch and you carry straight through with no gap.'
+      : 'Everything you have built is still here. Add a card before launch and you carry straight through with no gap.';
+  }
 
   var statsRow = '';
   if(hours > 0 || missions > 0){
@@ -6392,6 +6483,10 @@ function showSubscribePrompt(why, profile){
 
       statsRow+
 
+      (preLaunch
+        ? '<div class="esq-cd" data-esq-countdown="prompt" style="display:none;max-width:none;margin:20px 0 0;"></div>'
+        : '')+
+
       '<p style="font-size:13px;color:#6b7a96;line-height:1.6;margin:18px 0 22px;">'+
         'Your history, badges and saved work stay exactly as they are — adding a card does not reset anything.'+
       '</p>'+
@@ -6414,6 +6509,11 @@ function showSubscribePrompt(why, profile){
     '</div>';
 
   document.body.appendChild(ov);
+
+  var cdEl = ov.querySelector('[data-esq-countdown]');
+  if(cdEl) esqMountCountdown(cdEl, {
+    note: 'Add your card now and you are <strong>first in</strong> when the squad goes live.'
+  });
 
   function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
   function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
