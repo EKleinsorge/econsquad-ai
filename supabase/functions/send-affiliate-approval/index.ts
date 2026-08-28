@@ -62,26 +62,9 @@ Deno.serve(async (req: Request) => {
 
   <!-- Header -->
   <div style="text-align:center;margin-bottom:32px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 10px;">
-      <tr>
-        <td style="vertical-align:middle;padding-right:10px;">
-          <!-- Logo icon: lime box with triangle-of-dots SVG -->
-          <div style="width:40px;height:40px;background:#aaff3e;border-radius:9px;display:inline-block;text-align:center;line-height:40px;">
-            <svg width="24" height="24" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-top:-2px;">
-              <circle cx="11" cy="6" r="3.2" fill="rgba(15,30,0,0.85)"/>
-              <circle cx="5" cy="16" r="2.6" fill="rgba(15,30,0,0.8)"/>
-              <circle cx="17" cy="16" r="2.6" fill="rgba(15,30,0,0.8)"/>
-              <line x1="11" y1="6" x2="5" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
-              <line x1="11" y1="6" x2="17" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
-              <line x1="5" y1="16" x2="17" y2="16" stroke="rgba(15,30,0,0.45)" stroke-width="1.2"/>
-            </svg>
-          </div>
-        </td>
-        <td style="vertical-align:middle;">
-          <span style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;letter-spacing:.02em;"><span style="color:#ffffff;">Econ</span><span style="color:#aaff3e;">Squad</span> <span style="color:#ffffff;font-size:14px;">AI</span></span>
-        </td>
-      </tr>
-    </table>
+    <div style="margin-bottom:10px;">
+      <span style="font-family:Arial,sans-serif;font-size:26px;font-weight:900;letter-spacing:.02em;"><span style="color:#ffffff;">Econ</span><span style="color:#aaff3e;">Squad</span><span style="color:#ffffff;font-size:16px;font-weight:700;"> AI</span></span>
+    </div>
     <div>
       <span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;">
         ⚡ Squad Affiliate Program
