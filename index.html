@@ -6412,7 +6412,11 @@ function esqConfetti(opts){
     bits.push(b);
   }
 
-  var start = (window.performance && performance.now) ? performance.now() : Date.now();
+  /* Clocked from the first frame that actually runs, not from creation:
+     requestAnimationFrame is paused in a background tab, so a burst that
+     starts while the tab is hidden would otherwise burn its whole duration
+     unseen and clean itself up the moment the visitor came back. */
+  var start = null;
   var raf = null, stopped = false;
 
   function stop(){
@@ -6426,6 +6430,7 @@ function esqConfetti(opts){
 
   function frame(t){
     if(stopped) return;
+    if(start === null) start = t;
     var el = t - start;
     ctx.clearRect(0, 0, W(), H());
     var fade = (el > DUR - 1100) ? Math.max(0, (DUR - el) / 1100) : 1;
@@ -6539,6 +6544,14 @@ if(document.readyState === 'loading'){
 } else {
   esqInitCountdowns();
 }
+
+/* setInterval is throttled to about once a minute in a background tab, so a
+   tab left open across the launch moment could sit on a stale countdown.
+   Repaint the instant it is looked at again — the celebrate guard keeps it
+   to one burst however many times this fires. */
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) esqInitCountdowns();
+});
 
 function esqAccessLapsed(p){
   if(!p) return null;
