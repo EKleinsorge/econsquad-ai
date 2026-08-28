@@ -1,0 +1,28 @@
+# Supabase CLI project config.
+#
+# Added 2026-08-28 after every Stripe webhook came back 401
+# UNAUTHORIZED_NO_AUTH_HEADER. `supabase functions deploy` defaults a
+# function to requiring an Authorization header, and it applies that on
+# EVERY deploy — silently undoing whatever the dashboard toggle said.
+# Stripe authenticates with a signature header, not a JWT, so the gateway
+# rejected all six events before the function ever ran.
+#
+# These three functions are called by systems that cannot send a Supabase
+# key, so they must stay public. Each verifies its own caller:
+#   stripe-webhook  — HMAC signature check against STRIPE_WEBHOOK_SECRET
+#   track-open      — opaque uuid4 tracking token, returns a 1x1 gif
+#   unsubscribe     — opaque token in a link from an email
+#
+# Keeping this in the repo is the point: a dashboard toggle is not a
+# setting, it is a thing someone has to remember. This is the setting.
+
+project_id = "kbwcsmctwtgrjtjcghkt"
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.track-open]
+verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
