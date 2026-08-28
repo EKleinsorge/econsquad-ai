@@ -51,6 +51,7 @@ serve(async (req) => {
           break
         }
         const customerId = invoice.customer as string
+        if (!isOurInvoice(invoice)) return notOurs(event.type, customerId)
         const plan       = resolvePlan(invoice)
         if (plan) await updatePlan(supa, customerId, plan)
         break
@@ -60,6 +61,7 @@ serve(async (req) => {
       case 'customer.subscription.updated': {
         const sub        = event.data.object
         const customerId = sub.customer as string
+        if (!isOurSubscription(sub)) return notOurs(event.type, customerId)
         if (!(await syncSubscription(supa, customerId, sub))) return notLinkedYet(customerId)
         const plan       = resolvePlanFromSub(sub)
         // While trialing, the profile stays on 'trial' regardless of which
@@ -76,6 +78,7 @@ serve(async (req) => {
       case 'customer.subscription.created': {
         const sub        = event.data.object
         const customerId = sub.customer as string
+        if (!isOurSubscription(sub)) return notOurs(event.type, customerId)
         // Payment Links do not set subscription metadata, so this almost
         // always no-ops; the real link happens on checkout.session.completed.
         await linkCustomer(supa, customerId, sub.metadata?.supabase_uid ?? null, null)
@@ -119,6 +122,7 @@ serve(async (req) => {
       case 'customer.subscription.deleted': {
         const sub        = event.data.object
         const customerId = sub.customer as string
+        if (!isOurSubscription(sub)) return notOurs(event.type, customerId)
         await markCanceled(supa, customerId, sub)
         await updatePlan(supa, customerId, 'trial')
         break
@@ -164,9 +168,13 @@ function resolvePlan(invoice: any): string | null {
     const meta = line.price?.metadata ?? {}
     if (meta.plan) return meta.plan
   }
-  // Last resort: use amount to guess (rough fallback)
-  const amount = invoice.amount_paid ?? 0
-  if (amount > 0) return 'starter' // default to starter if paid but unknown price
+  // There used to be a "paid something, call it starter" fallback here. That
+  // silently downgrades a Pro customer to starter the moment a price is added
+  // to Stripe without being added to PRICE_TO_PLAN — wrong data, no error, and
+  // nothing to notice. Failing loudly and leaving the plan alone is better:
+  // the row keeps its last known good value and the log names the price.
+  const unknown = (invoice.lines?.data ?? []).map((l: any) => l.price?.id).filter(Boolean)
+  console.error(`resolvePlan: no known price on invoice ${invoice.id}. Saw: ${unknown.join(', ') || 'none'}. Add it to PRICE_TO_PLAN.`)
   return null
 }
 
@@ -303,6 +311,31 @@ async function linkCustomer(supa: any, customerId: string, uid: string | null, e
  * customer.subscription.deleted: an orphaned customer there would retry for
  * three days against a profile that is never coming.
  */
+function isOurSubscription(sub: any): boolean {
+  const items = sub.items?.data ?? []
+  return items.some((i: any) => !!PRICE_TO_PLAN[i.price?.id ?? ''])
+}
+
+function isOurInvoice(invoice: any): boolean {
+  const lines = invoice.lines?.data ?? []
+  return lines.some((l: any) => !!PRICE_TO_PLAN[l.price?.id ?? ''])
+}
+
+/**
+ * This Stripe account carries a second business alongside EconSquad, so the
+ * webhook receives subscription events for customers who will never have an
+ * EconSquad profile. Without the isOur* guards, notLinkedYet() answers 409 for
+ * them and Stripe retries for three days — a permanently red destination, and
+ * Stripe disables endpoints that fail persistently.
+ */
+function notOurs(eventType: string, customerId: string) {
+  console.log(`Ignoring ${eventType} for ${customerId} — price is not an EconSquad price`)
+  return new Response(JSON.stringify({ received: true, ignored: true }), {
+    headers: { 'Content-Type': 'application/json' },
+    status: 200,
+  })
+}
+
 function notLinkedYet(customerId: string) {
   console.warn(`No profile linked to ${customerId} yet — asking Stripe to retry`)
   return new Response('profile not linked yet', { status: 409 })
