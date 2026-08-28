@@ -6,14 +6,16 @@ const SUPABASE_URL          = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 // Map Stripe Price IDs → plan names.
-// Fill these in with your real Stripe Price IDs from the Dashboard.
+// Live prices, created 2026-08-28. The test-mode IDs these replaced were
+// price_1TVA… — swapping the account to live meant every one of them stopped
+// matching. If a payment ever arrives on an unmapped price, resolvePlanFromSub
+// returns undefined, updatePlan is skipped, and the customer silently stays on
+// 'trial' while their card is charged. Update this whenever a price changes.
 const PRICE_TO_PLAN: Record<string, string> = {
-  // Starter monthly / annual
-  'price_1TVAQmAdXRzmLVohuE3VIA4t': 'starter',  // Starter monthly $49/mo
-  'price_1TVARjAdXRzmLVohbaUYBIFM': 'starter',  // Starter annual  $490/yr
-  // Pro monthly / annual
-  'price_1TVAVUAdXRzmLVohbsc0ce61': 'pro',       // Pro monthly     $99/mo
-  'price_1TVAWTAdXRzmLVohvThiz5yz': 'pro',       // Pro annual      $990/yr
+  'price_1U9HKTAdXRzmLVohsMCudimy': 'starter',  // Starter monthly   $49/mo
+  'price_1U9HVYAdXRzmLVohyACfWvBt': 'starter',  // Starter annual   $490/yr
+  'price_1U9HjkAdXRzmLVohSHH5VeU8': 'pro',      // Pro Squad monthly $99/mo
+  'price_1U9HkRAdXRzmLVohfJSPwS7J': 'pro',      // Pro Squad annual $990/yr
 }
 
 serve(async (req) => {

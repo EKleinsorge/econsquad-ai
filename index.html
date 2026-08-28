@@ -3592,8 +3592,6 @@ function setLoading(btnId,loading){
 /* ── SIGNUP FLOW STATE ── */
 var suSelectedPlan='pro';
 var suBillingAnnual=false;
-var stripeElements=null;
-var stripeCardElement=null;
 
 function suToggleBilling(){
   suBillingAnnual=!suBillingAnnual;
@@ -3676,44 +3674,12 @@ function suNextStep(n){
 }
 
 
-function mountStripeCard(){
-  if(!window.Stripe)return;
-
-  /* Always create a fresh Stripe instance for the clone */
-  var s=Stripe('pk_test_51OpErEAdXRzmLVohoL9hLTLmu4W8yfdqFea6SY3bjE6l5V2wYfZQ7l0l1PRlneW1D6SQik8lkhKooUO31tJGmyUW00FsEKav4h');
-  window._stripeInstance=s;
-  stripeElements=s.elements({
-    appearance:{
-      theme:'night',
-      variables:{
-        colorPrimary:'#aaff3e',
-        colorBackground:'#0d1120',
-        colorText:'#eef3fc',
-        colorDanger:'#ff8080',
-        fontFamily:'DM Sans, sans-serif',
-        borderRadius:'8px',
-      }
-    }
-  });
-  stripeCardElement=stripeElements.create('card',{
-    style:{
-      base:{color:'#eef3fc',fontFamily:'DM Sans,sans-serif',fontSize:'14px','::placeholder':{color:'#6b7a96'}},
-      invalid:{color:'#ff8080'}
-    }
-  });
-
-  /* Mount into the ACTIVE cloned modal, not the hidden original */
-  var m=document.getElementById('auth-modal-active')||document;
-  var el=m.querySelector('#stripe-card-element');
-  if(el){
-    el.innerHTML=''; /* clear any previous mount */
-    stripeCardElement.mount(el);
-    stripeCardElement.on('change',function(e){
-      var err=m.querySelector('#stripe-card-error');
-      if(err){err.textContent=e.error?e.error.message:'';err.style.display=e.error?'block':'none';}
-    });
-  }
-}
+/* mountStripeCard() was removed 2026-08-28 when the account went live.
+   It built a Stripe Elements card form for #stripe-card-element, an id that
+   does not exist anywhere in this file, and nothing ever called it. It also
+   carried a hardcoded pk_test_… publishable key — a live file holding a test
+   key is a trap for whoever wires a card form up next. Checkout goes through
+   PAYMENT_LINKS above. */
 
 /* ── SIGN UP — create account then redirect to Stripe ── */
 function doSignup(){
@@ -4139,18 +4105,19 @@ function deploy(id){
 }
 
 /* ===== STRIPE BILLING ===== */
+/* Live payment links, created 2026-08-28. Each carries a 14-day trial and
+   redirects to /?checkout=success — the trial length lives in Stripe now,
+   not in this file, so changing it means editing the four links.
+   The test links these replaced were buy.stripe.com/test_… */
 var PAYMENT_LINKS={
-  starter_monthly:'https://buy.stripe.com/test_9B65kC90reFCaf147F0RG08',
-  starter_annual: 'https://buy.stripe.com/test_3cIcN41xZeFC86Taw30RG09',
-  pro_monthly:    'https://buy.stripe.com/test_cNi4gyfoPdBybj5gUr0RG06',
-  pro_annual:     'https://buy.stripe.com/test_3cI4gy3G75522Mz5bJ0RG07',
+  starter_monthly:'https://buy.stripe.com/4gM5kCekLeFC3QD7jR0RG00',
+  starter_annual: 'https://buy.stripe.com/6oUcN46Sj9lifzl9rZ0RG01',
+  pro_monthly:    'https://buy.stripe.com/bJe28qb8z9li1IvbA70RG02',
+  pro_annual:     'https://buy.stripe.com/fZudR890r1SQ0Er47F0RG03',
 };
-var PRICE_IDS={
-  starter_monthly:'price_1TVAQmAdXRzmLVohuE3VIA4t',
-  starter_annual: 'price_1TVARjAdXRzmLVohbaUYBIFM',
-  pro_monthly:    'price_1TVAVUAdXRzmLVohbsc0ce61',
-  pro_annual:     'price_1TVAWTAdXRzmLVohvThiz5yz',
-};
+/* PRICE_IDS lived here and was never read by anything — the payment links
+   carry the price. The live IDs that matter are in the stripe-webhook
+   function's PRICE_TO_PLAN map. */
 var billingAnnual=false;
 
 function initStripe(){}
