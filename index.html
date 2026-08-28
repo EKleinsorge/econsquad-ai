@@ -3257,16 +3257,52 @@ var currentUser=null;
 })();
 
 /* ── init on load ── */
+/* The Google scopes the digital office needs. Was written out twice, verbatim,
+   in connectGmail() and the sign-in OAuth call. One copy now. */
+var GOOGLE_SCOPES = 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks';
+
+/* Google issues a refresh token exactly once — at the consent screen — and both
+   OAuth calls here already ask for one (access_type:'offline', prompt:'consent').
+   Supabase hands it to us on the session at that moment and never again: it does
+   not persist it and does not refresh the Google token for us. Their own docs say
+   "extract the provider_token from the session and store it in a secure storage
+   medium."
+
+   Until 2026-08-28 nothing in this repo read provider_refresh_token — zero
+   occurrences — so it was discarded every time. That is why the digital office
+   drops out about an hour after connecting (the access token expires and there is
+   nothing to renew it with) and why it is never connected after a password sign-in.
+
+   This captures it. NOTHING CONSUMES IT YET — the server-side token exchange is a
+   post-launch change. Capturing has to start first, because anyone who connects
+   Gmail while we are still throwing the token away has to sit through the Google
+   consent screen a second time when the exchange ships. */
+function _captureGoogleRefreshToken(session){
+  if(!session || !session.provider_refresh_token || !session.user) return;
+  try{
+    supa.from('google_credentials').upsert({
+      user_id:       session.user.id,
+      refresh_token: session.provider_refresh_token,
+      scopes:        GOOGLE_SCOPES,
+      updated_at:    new Date().toISOString()
+    }, { onConflict:'user_id' }).then(function(res){
+      if(res && res.error) console.warn('[esq] google refresh token not stored:', res.error.message);
+    }, function(err){ console.warn('[esq] google refresh token not stored:', err); });
+  }catch(e){ console.warn('[esq] google refresh token not stored:', e); }
+}
+
 window.addEventListener('load',function(){
   supa.auth.getSession().then(function(res){
     if(res.data&&res.data.session&&res.data.session.user){
       currentUser=res.data.session.user;
+      _captureGoogleRefreshToken(res.data.session);
       onSignedIn(currentUser);
     }
   });
   supa.auth.onAuthStateChange(function(event,session){
     if(event==='SIGNED_IN'&&session){
       currentUser=session.user;
+      _captureGoogleRefreshToken(session);
       onSignedIn(currentUser);
     } else if(event==='SIGNED_OUT'){
       currentUser=null;
@@ -9637,7 +9673,7 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
+      scopes: GOOGLE_SCOPES,
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   }).then(function(res){
@@ -10064,7 +10100,7 @@ function connectGmail(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks',
+      scopes: GOOGLE_SCOPES,
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
