@@ -1563,15 +1563,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </section>
 
       <div class="proof-strip">
-        <div class="proof-item"><strong>2,400+</strong> economic developers</div>
+        <!-- Replaced 2026-08-28. This strip previously claimed 2,400+ economic
+             developers (there were 18 accounts), $4.2M in time saved, a 98%
+             mission success rate and an average 11x ROI. None of it was measured
+             or measurable, and nobody had completed a paid month. Everything
+             below is checkable. Keep it that way: this strip sits in the most
+             read position on the page. -->
+        <div class="proof-item"><strong>90+</strong> registered for launch</div>
         <div class="proof-dot"></div>
-        <div class="proof-item"><strong>$4.2M</strong> in time saved this year</div>
+        <div class="proof-item"><strong>41</strong> states represented</div>
         <div class="proof-dot"></div>
-        <div class="proof-item"><strong>18+</strong> specialist GPTs</div>
+        <div class="proof-item"><strong>22</strong> specialists, built for one profession</div>
         <div class="proof-dot"></div>
-        <div class="proof-item"><strong>98%</strong> mission success rate</div>
-        <div class="proof-dot"></div>
-        <div class="proof-item">Avg <strong>11x</strong> ROI on subscription</div>
+        <div class="proof-item">Live <strong>September 1</strong></div>
       </div>
 
       
@@ -1728,7 +1732,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
       <section class="mkt-section" id="sec-squad" style="padding-top:10px;">
         <div class="section-eyebrow">Meet your squad</div>
-        <h2 class="section-h2" style="margin-bottom:8px;">18 specialists. <span>One mission:</span> you.</h2>
+        <h2 class="section-h2" style="margin-bottom:8px;">22 specialists. <span>One mission:</span> you.</h2>
         <p style="text-align:center;color:var(--text2);font-size:13px;margin-bottom:24px;">Each specialist is trained on a single discipline. Pure expertise, no generalist AI.</p>
         <div class="specialists-scroll" id="mkt-squad"></div>
       </section>
@@ -1748,15 +1752,18 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       </section>
 
       <section class="mkt-section" id="sec-testimonials" style="padding-top:10px;">
-        <div class="section-eyebrow">What economic developers say</div>
-        <h2 class="section-h2">They hired their squad. <span>They never looked back.</span></h2>
-        <p class="section-sub" style="margin-bottom:32px;">Real results from real economic developers across the country.</p>
-        <div class="testimonials-grid">
-          <div class="testi-card"><div class="testi-stars">★★★★★</div><div class="testi-quote">"I wrote a full CDBG grant narrative in 12 minutes. It used to take me an entire afternoon. My director thought I hired a grant writer."</div><div class="testi-author"><div class="testi-avatar">JM</div><div><div class="testi-name">Jennifer Mills</div><div class="testi-role">Director of ED, City of Lakewood</div></div></div></div>
-          <div class="testi-card"><div class="testi-stars">★★★★★</div><div class="testi-quote">"ARIA reminded me about a grant deadline I had completely forgotten. We submitted and we got it. That single reminder paid for 3 years of my subscription."</div><div class="testi-author"><div class="testi-avatar">TR</div><div><div class="testi-name">Tom Rivera</div><div class="testi-role">ED Manager, Coastal Region EDC</div></div></div></div>
-          <div class="testi-card"><div class="testi-stars">★★★★★</div><div class="testi-quote">"The ROI calculator alone sold me. I put in my salary, saw I'd recover $6,200 a year, and signed up in 30 seconds. Best $429 I've ever spent."</div><div class="testi-author"><div class="testi-avatar">SK</div><div><div class="testi-name">Sandra Kim</div><div class="testi-role">VP of Business Development, StatED</div></div></div></div>
-        </div>
-      </section>
+        <!-- Removed 2026-08-28: three testimonials attributed to named people at
+             named organisations (Jennifer Mills / City of Lakewood, Tom Rivera /
+             Coastal Region EDC, Sandra Kim / StatED), each with a quantified
+             claim, one of them quoting a $429 price that has never existed.
+             Endorsements have to be real and attributable. Put quotes back here
+             the moment you have consent to publish them — the focus group will
+             supply real ones within a fortnight. -->
+        <div class="section-eyebrow">How this was built</div>
+        <h2 class="section-h2">Shaped by economic developers. <span>Rebuilt on what they said.</span></h2>
+        <p class="section-sub" style="margin-bottom:8px;">EconSquad was built with a focus group of working economic developers across 41 states — people running real BRE programmes, real grant calendars and real board meetings. They told us what was wrong with it, twice, and we rebuilt it both times.</p>
+        <p class="section-sub" style="margin-bottom:0;">Their feedback is why the output copies cleanly into Word, why ARIA knows which specialist to hand you, and why the squad covers the unglamorous work as thoroughly as the exciting parts.</p>
+</section>
 
       <section class="mkt-section" id="sec-pricing">
         <div class="section-eyebrow">Pricing</div>
@@ -1853,7 +1860,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="final-cta">
         <div class="final-cta-box">
           <h2>Less work.<br><span>More impact.</span></h2>
-          <p>Join 2,400+ economic developers who stopped doing it alone. 14-day free trial. Card required, cancel any time before it ends.</p>
+          <p>Join the economic developers who stopped doing it alone — 90+ registered for launch across 41 states. 14-day free trial. Card required, cancel any time before it ends.</p>
           <div class="final-cta-btns">
             <button class="btn-hero" onclick="openAuth('signup')">Hire your squad now →</button>
             <button class="btn-hero-ghost" onclick="switchView('dashboard')">See the dashboard</button>
@@ -4592,7 +4599,7 @@ function loadUserStats(){
       var sdd=document.getElementById('stat-days-delta');
       if(smd)smd.textContent=missionCount===0?'Run your first mission!':missionCount+' tasks completed';
       if(shd)shd.textContent=totalHours>0?'~$'+(totalHours*36).toFixed(0)+' value recovered':'Start saving time today';
-      if(ssd)ssd.textContent=specCount+' of 18 specialists deployed';
+      if(ssd)ssd.textContent=specCount+' of '+squad.length+' specialists deployed';
       if(sdd)sdd.textContent=daysSince===0?'Welcome to your squad!':daysSince+' days and counting';
 
       /* update greeting */
@@ -7451,7 +7458,7 @@ var BADGES={
   /* Getting Started */
   'first_deploy':   {icon:'🚀',name:'First Deployment',   desc:'Completed your first specialist task',        cat:'Getting Started'},
   'squad_member':   {icon:'👥',name:'Squad Member',        desc:'Used 3 different specialists',                cat:'Getting Started'},
-  'full_squad':     {icon:'🏟️', name:'Full Squad',          desc:'Deployed all 18 specialists at least once',   cat:'Getting Started'},
+  'full_squad':     {icon:'🏟️', name:'Full Squad',          desc:'Deployed all 22 specialists at least once',   cat:'Getting Started'},
 
   /* Time Saved */
   'time_hacker':    {icon:'⏱️', name:'Time Hacker',         desc:'Saved your first 10 hours',                  cat:'Time Saved'},
@@ -12034,7 +12041,7 @@ try{loadSpecialistData();}catch(e){console.warn('loadSpecialistData error:',e);}
   var el=document.getElementById('mkt-squad');
   if(!el)return;
 
-  /* use all 18 specialists */
+  /* use all 22 specialists */
   var mktOrbStates={};
   var mktAnimRunning=false;
 
@@ -12618,7 +12625,7 @@ function drawLogo(){if(!logoCtx)return;
         <!-- Trust note -->
         <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
           <span>🔒</span>
-          <div style="font-size:11px;color:#8a97b5;">You won't be charged for 7 days on Pro. Card entered securely on Stripe. Cancel anytime.</div>
+          <div style="font-size:11px;color:#8a97b5;">You won't be charged for 14 days. Card entered securely on Stripe. Cancel anytime.</div>
         </div>
 
         <button class="modal-btn" id="btn-checkout" onclick="doSignup()">Continue to checkout →</button>
