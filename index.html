@@ -6936,13 +6936,16 @@ function switchPlan(targetPlan){
 }
 
 function openStripePortal(){
-  /* Stripe Customer Portal — handles upgrades, downgrades, cancellations, payment method updates */
-  /* This URL is your test-mode portal. Swap for live URL when going live. */
+  /* Stripe Customer Portal — invoices, payment method, cancellation, plan switch.
+     Live portal link, swapped 2026-08-28. It was the test-mode URL until then, and
+     amusingly the id is identical — Stripe reuses the slug across modes, so the only
+     thing wrong for four months was the `test_` prefix. It was unreachable anyway:
+     no profile had a stripe_customer_id until today. */
   if(!currentProfile||!currentProfile.stripe_customer_id){
-    alert('No billing account found. Please contact support.');
+    alert('You do not have a subscription yet — start a plan and billing will appear here.');
     return;
   }
-  window.open('https://billing.stripe.com/p/login/test_4gM5kCekLeFC3QD7jR0RG00','_blank');
+  window.open('https://billing.stripe.com/p/login/4gM5kCekLeFC3QD7jR0RG00','_blank');
 }
 
 function openUpgradeFlow(){
