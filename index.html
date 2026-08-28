@@ -1544,22 +1544,88 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
     <!-- ========== MARKETING PAGE ========== -->
     <div id="view-marketing" style="overflow-x:hidden;">
 
-      <section class="hero-section" id="sec-hero">
-        <div class="hero-eyebrow"><span class="dot"></span>Built exclusively for economic developers</div>
-        <h1 class="hero-h1">
-          <span class="white">Less Work.</span><br>
-          <span class="lime">More Impact.</span><br>
-          <span class="white">Hire Your</span><br>
-          <span class="lime">AI Specialist.</span>
-        </h1>
-        <p class="hero-sub">Less work. More impact. EconSquad AI gives you a team of <strong>specialist AI experts</strong> — each trained on a single economic development task. Grant writing, site selection, BRE surveys, incentive modeling and more. Deploy your squad 24/7.</p>
-        <div class="esq-cd" id="launch-cd-hero" data-esq-countdown="hero" style="display:none;"></div>
-        <div class="hero-ctas">
-          <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 14 days</button>
-          <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
+
+<style id="esq-hero-v2">
+/* ---- Hero v2 (2026-08-28) ------------------------------------------------
+   Split hero: copy on solid dark at left, photograph right.
+
+   Replaces the centred text-only hero. Scoped entirely to .hero-v2 so the
+   only rules that changed anywhere on the page are the ones in this block —
+   the site's own .hero-section rules still exist untouched and simply lose
+   on specificity here.
+
+   The photograph is a finished composition (mug left, laptop centre, her
+   right). Copy overlaid across it would cover the laptop, which is the one
+   thing in frame doing the selling, so the text gets its own solid ground.
+
+   The countdown and the signature line are the two centred elements; they
+   share one centre axis on purpose, which is why the countdown is capped
+   narrower than the column. -----------------------------------------------*/
+.hero-section.hero-v2{padding:0 !important;text-align:left;display:grid;
+  grid-template-columns:44% 56%;min-height:600px;align-items:stretch;
+  border-bottom:1px solid rgba(255,255,255,.06);}
+.hero-v2 .hv2-copy{padding:46px 34px 44px 48px;display:flex;flex-direction:column;justify-content:center;}
+.hero-v2 .hero-eyebrow{align-self:flex-start;margin-bottom:22px;}
+.hero-v2 .hv2-setup{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-style:italic;
+  font-size:22px;line-height:1.25;color:var(--text2);margin:0 0 12px;max-width:none;}
+.hero-v2 .hero-h1{font-size:54px;line-height:1.0;margin:0 0 20px;max-width:none;
+  margin-left:0;margin-right:0;letter-spacing:-.015em;text-wrap:balance;}
+.hero-v2 .hero-sub{margin:0 0 26px;max-width:44ch;font-size:16.5px;}
+.hero-v2 .esq-cd{max-width:470px;margin-left:auto;margin-right:auto;}
+.hero-v2 .hero-ctas{justify-content:flex-start;flex-wrap:wrap;gap:12px;}
+.hero-v2 .hero-note{text-align:left;}
+.hero-v2 .hv2-guar{font-size:13px;color:var(--text2);margin-top:10px;font-style:italic;text-align:left;}
+.hero-v2 .hv2-sig{margin-top:22px;text-align:center;font-family:'Barlow Condensed',sans-serif;
+  font-weight:900;font-size:32px;line-height:1;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--lime);}
+.hero-v2 .hv2-sig b{color:#ffffff;font-weight:900;}
+.hero-v2 .hv2-img{position:relative;overflow:hidden;}
+.hero-v2 .hv2-img img{width:100%;height:100%;object-fit:cover;object-position:38% 54%;display:block;}
+.hero-v2 .hv2-img:after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(5,7,15,.85),rgba(5,7,15,.22) 5%,transparent 13%);}
+@media(max-width:900px){
+  .hero-section.hero-v2{grid-template-columns:1fr;min-height:0;padding:0 !important;}
+  .hero-v2 .hv2-img{height:270px;order:-1;}
+  .hero-v2 .hv2-img:after{background:linear-gradient(0deg,#05070f,rgba(5,7,15,.32) 32%,transparent 68%);}
+  .hero-v2 .hv2-copy{padding:28px 20px 34px !important;}
+  .hero-v2 .hero-h1{font-size:42px !important;max-width:none;}
+  .hero-v2 .hv2-setup{font-size:19px;max-width:none;}
+  .hero-v2 .hv2-sig{font-size:26px;}
+  .hero-v2 .hero-ctas{flex-direction:column !important;align-items:stretch !important;}
+  .hero-v2 .hero-ctas button{width:100% !important;max-width:none !important;justify-content:center;}
+}
+@media(max-width:480px){
+  .hero-v2 .hero-h1{font-size:38px !important;}
+  .hero-v2 .hv2-setup{font-size:18px;}
+  .hero-v2 .hv2-sig{font-size:23px;}
+}
+</style>
+      <section class="hero-section hero-v2" id="sec-hero">
+        <div class="hv2-copy">
+          <div class="hero-eyebrow"><span class="dot"></span>Built exclusively for economic developers</div>
+          <p class="hv2-setup">What if you could do less work and have more impact?</p>
+          <h1 class="hero-h1">
+            <span class="white">You don&rsquo;t have to do it all yourself</span>
+            <span class="lime">anymore.</span>
+          </h1>
+          <p class="hero-sub">EconSquad AI gives you <strong>22 specialists</strong> who already know economic development. You brief them. They do the work. You get your week back.</p>
+          <div class="esq-cd" id="launch-cd-hero" data-esq-countdown="hero" style="display:none;"></div>
+          <div class="hero-ctas">
+            <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 14 days</button>
+            <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
+          </div>
+          <p class="hero-note">Credit card required · No charges until your free trial expires · <span>Cancel anytime</span> · Setup in 3 minutes</p>
+          <p class="hv2-guar">Guaranteed to pay for itself — or your money back.</p>
+          <div class="hv2-sig">Less Work. <b>More Impact.</b></div>
         </div>
-        <p class="hero-note">Credit card required · No charges until your free trial expires · <span>Cancel anytime</span> · Setup in 3 minutes</p>
-        <p style="font-size:13px;color:var(--text2);margin-top:10px;font-style:italic;">Guaranteed to pay for itself — or your money back.</p>
+        <div class="hv2-img">
+          <img src="hero-desk.jpg"
+               srcset="hero-desk-900.jpg 900w, hero-desk.jpg 1536w"
+               sizes="(max-width:900px) 100vw, 56vw"
+               width="1536" height="1024"
+               fetchpriority="high" decoding="async"
+               alt="An economic developer at her desk with the EconSquad dashboard open, looking out over her community">
+        </div>
       </section>
 
       <div class="proof-strip">
