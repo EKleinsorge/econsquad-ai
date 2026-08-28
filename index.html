@@ -4115,6 +4115,20 @@ var PAYMENT_LINKS={
   pro_monthly:    'https://buy.stripe.com/bJe28qb8z9li1IvbA70RG02',
   pro_annual:     'https://buy.stripe.com/fZudR890r1SQ0Er47F0RG03',
 };
+/* Same four prices, no trial attached. A trial is a property of the payment
+   link rather than the price, so "your first card gets 14 days, a returning
+   customer is billed today" is expressed by choosing between two sets.
+
+   Without this, every link granted 14 days unconditionally: someone could
+   cancel on day 13, resubscribe, and collect another fortnight indefinitely.
+   It also made the lapsed-user prompt incoherent — it announced that a trial
+   had ended and then handed out a new one. */
+var PAYMENT_LINKS_NOW={
+  starter_monthly:'https://buy.stripe.com/cNi4gyfoPdBybj5gUr0RG06',
+  starter_annual: 'https://buy.stripe.com/3cI4gy3G75522Mz5bJ0RG07',
+  pro_monthly:    'https://buy.stripe.com/fZubJ0ekLapm0Er7jR0RG04',
+  pro_annual:     'https://buy.stripe.com/00wfZgekL8hebj50Vt0RG05',
+};
 /* PRICE_IDS lived here and was never read by anything — the payment links
    carry the price. The live IDs that matter are in the stripe-webhook
    function's PRICE_TO_PLAN map. */
@@ -4162,15 +4176,31 @@ function startCheckout(plan){
 
 function launchStripeCheckout(plan){
   var linkKey=(plan==='starter'?'starter':'pro')+'_'+(billingAnnual?'annual':'monthly');
-  var url=PAYMENT_LINKS[linkKey];
-  /* append prefill email and redirect params */
-  var sep=url.indexOf('?')>=0?'&':'?';
-  if(currentUser&&currentUser.email){
-    url+=sep+'prefilled_email='+encodeURIComponent(currentUser.email);
-    sep='&';
+
+  function go(billNow){
+    var url=(billNow?PAYMENT_LINKS_NOW:PAYMENT_LINKS)[linkKey];
+    /* append prefill email and redirect params */
+    var sep=url.indexOf('?')>=0?'&':'?';
+    if(currentUser&&currentUser.email){
+      url+=sep+'prefilled_email='+encodeURIComponent(currentUser.email);
+      sep='&';
+    }
+    /* client_reference_id is the whole mechanism that ties the payment back to
+       the account — checkout.session.completed reads it to write
+       stripe_customer_id. 'guest' is not a uuid, so the webhook falls back to
+       matching on the checkout email. */
+    url+=sep+'client_reference_id='+(currentUser?currentUser.id:'guest');
+    window.location.href=url;
   }
-  url+=sep+'client_reference_id='+(currentUser?currentUser.id:'guest');
-  window.location.href=url;
+
+  /* Never been a Stripe customer -> this is their first card, so they get the
+     trial. Been one before -> they have had it; bill today.
+     Same-tab navigation, so the async lookup cannot be popup-blocked. If the
+     lookup fails we favour the customer and give them the trial. */
+  if(!currentUser){ go(false); return; }
+  supa.from('profiles').select('stripe_customer_id').eq('id',currentUser.id).single()
+    .then(function(res){ go(!!(res.data && res.data.stripe_customer_id)); },
+          function(){ go(false); });
 }
 
 function contactEnterprise(){
@@ -6704,13 +6734,17 @@ function showSubscribePrompt(why, profile){
   var preLaunch = esqPreLaunch();
   var heading  = isBeta ? 'Your focus group access has ended'
                         : 'Your free trial has ended';
+  /* Anyone seeing this prompt has no stripe_customer_id — esqAccessLapsed()
+     returns null for existing customers — so they are certain to get the trial
+     link. The copy can say so plainly instead of announcing that a trial ended
+     and then quietly starting another one. */
   var subline  = isBeta
-    ? 'Thank you — the feedback you gave shaped what EconSquad is now. Keep your squad by adding a card.'
-    : 'Everything you have built is still here. Add a card to keep your squad working.';
+    ? 'Thank you — the feedback you gave shaped what EconSquad is now. Add a card and your 14-day trial starts today.'
+    : 'Everything you have built is still here. Add a card and your 14-day trial starts today.';
   if(preLaunch){
     subline = isBeta
-      ? 'Thank you — the feedback you gave shaped what EconSquad is now. Add a card before launch and you carry straight through with no gap.'
-      : 'Everything you have built is still here. Add a card before launch and you carry straight through with no gap.';
+      ? 'Thank you — the feedback you gave shaped what EconSquad is now. Add a card before launch and your 14-day trial starts today.'
+      : 'Everything you have built is still here. Add a card before launch and your 14-day trial starts today.';
   }
 
   var statsRow = '';
@@ -6751,7 +6785,8 @@ function showSubscribePrompt(why, profile){
         : '')+
 
       '<p style="font-size:13px;color:#6b7a96;line-height:1.6;margin:18px 0 22px;">'+
-        'Your history, badges and saved work stay exactly as they are — adding a card does not reset anything.'+
+        'Nothing is charged for 14 days, and you can cancel any time before then. '+
+        'Your history, badges and saved work stay exactly as they are.'+
       '</p>'+
 
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">'+
