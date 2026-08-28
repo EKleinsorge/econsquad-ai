@@ -238,19 +238,27 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="page-title">Revenue</div>
       <div class="page-sub">Subscription overview and paying customers</div>
       <div class="info-box" style="margin-bottom:20px;">
-        Actual revenue data — connect Stripe secret key to edge function for live data. MRR estimate: Starter × $49 + Pro × $149.
+        Counts come from the subscription columns the Stripe webhook writes — status, tier and billing
+        interval — recorded from 28 Aug 2026 onward. Money is computed from the four live prices with
+        annual normalised to monthly ($49 / $490 Starter, $99 / $990 Pro).
+        <strong style="color:#c8d8f0;">Stripe remains the only place that knows what was actually collected;</strong>
+        this page cannot see charges, refunds or payouts.
       </div>
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-box-val" id="rev-trial">—</div><div class="stat-box-lbl">Trial users</div></div>
-        <div class="stat-box"><div class="stat-box-val" id="rev-starter">—</div><div class="stat-box-lbl">Starter users</div></div>
-        <div class="stat-box"><div class="stat-box-val" id="rev-pro">—</div><div class="stat-box-lbl">Pro users</div></div>
-        <div class="stat-box"><div class="stat-box-val" id="rev-mrr">—</div><div class="stat-box-lbl">Est. MRR</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-trial">—</div><div class="stat-box-lbl">In trial</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-starter">—</div><div class="stat-box-lbl">Active Starter</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-pro">—</div><div class="stat-box-lbl">Active Pro</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-churn">—</div><div class="stat-box-lbl">Cancelled · 30 days</div></div>
+      </div>
+      <div class="stats-row" style="grid-template-columns:repeat(2,1fr);">
+        <div class="stat-box"><div class="stat-box-val" id="rev-mrr">—</div><div class="stat-box-lbl">Committed MRR · active subscriptions</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="rev-pipeline" style="color:#f5c542;">—</div><div class="stat-box-lbl">Trial pipeline · if every trial converts</div></div>
       </div>
       <div class="admin-card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">Paying Customers</div>
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">Stripe customers</div>
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Stripe Customer ID</th><th>Stripe</th></tr></thead>
-          <tbody id="revenue-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
+          <thead><tr><th>Name</th><th>Email</th><th>Tier</th><th>Status</th><th>Billing</th><th>Trial ends</th><th>Stripe</th></tr></thead>
+          <tbody id="revenue-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -526,7 +534,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
 
       <div class="admin-card" style="padding:0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">All Paying Users</div>
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'Barlow',sans-serif;font-size:15px;font-weight:800;">Stripe customers</div>
         <table>
           <thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Stripe Customer ID</th><th>Stripe</th></tr></thead>
           <tbody id="refunds-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span></td></tr></tbody>
@@ -1623,28 +1631,78 @@ function closeDrawer(){
 /* ═══════════════════════════════════════
    REVENUE
 ═══════════════════════════════════════ */
+/* Live prices, mirrored from PRICE_TO_PLAN in the stripe-webhook function.
+   Adding a price in Stripe means touching three places: the payment link,
+   PRICE_TO_PLAN in the webhook, and this map. */
+var ESQ_PRICES = { starter:{ month:49, year:490 }, pro:{ month:99, year:990 } };
+
+/* Annual is normalised to monthly so a $490/yr customer counts as $40.83, not $49.
+   The old code multiplied head-counts by 49 and 149 — Pro is $99, and annual was
+   invisible entirely, so every figure on this page was wrong in two directions. */
+function esqMonthlyValue(tier, interval){
+  var p = ESQ_PRICES[tier];
+  if(!p) return 0;
+  return interval === 'year' ? (p.year / 12) : p.month;
+}
+
+function esqStatusPill(status){
+  var map = {
+    trialing: ['#f5c542','rgba(245,197,66,0.12)'],
+    active:   ['#aaff3e','rgba(170,255,62,0.12)'],
+    past_due: ['#ff8080','rgba(255,128,128,0.12)'],
+    canceled: ['#8a97b5','rgba(255,255,255,0.06)']
+  };
+  var c = map[status] || ['#6b7a96','rgba(255,255,255,0.05)'];
+  return '<span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;'+
+    'font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:'+c[0]+';background:'+c[1]+';">'+
+    (status || 'none')+'</span>';
+}
+
 function loadRevenue(){
   supa.from('profiles').select('*').then(function(res){
-    var data=res.data||[];
-    var trial=data.filter(function(u){return (u.plan||'trial')==='trial';}).length;
-    var starter=data.filter(function(u){return u.plan==='starter';}).length;
-    var pro=data.filter(function(u){return u.plan==='pro';}).length;
-    var mrr=starter*49+pro*149;
-    document.getElementById('rev-trial').textContent=trial;
-    document.getElementById('rev-starter').textContent=starter;
-    document.getElementById('rev-pro').textContent=pro;
-    document.getElementById('rev-mrr').textContent='$'+mrr.toLocaleString();
+    var data  = res.data || [];
+    var money = function(n){ return '$'+Math.round(n).toLocaleString(); };
 
-    /* Paying users table */
-    var paying=data.filter(function(u){return u.stripe_customer_id;});
-    var tbody=document.getElementById('revenue-table');
-    if(!paying.length){tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;">No paying users with Stripe IDs yet</td></tr>';return;}
-    tbody.innerHTML=paying.map(function(u){
+    var inTrial=0, activeStarter=0, activePro=0, churn30=0, mrr=0, pipeline=0;
+    var cutoff = Date.now() - 30*24*60*60*1000;
+
+    data.forEach(function(u){
+      var st = u.subscription_status, tier = u.plan_tier, iv = u.plan_interval;
+      if(st === 'trialing'){ inTrial++; pipeline += esqMonthlyValue(tier, iv); }
+      if(st === 'active'){
+        if(tier === 'starter') activeStarter++;
+        if(tier === 'pro')     activePro++;
+        mrr += esqMonthlyValue(tier, iv);
+      }
+      if(u.canceled_at && new Date(u.canceled_at).getTime() > cutoff) churn30++;
+    });
+
+    document.getElementById('rev-trial').textContent    = inTrial;
+    document.getElementById('rev-starter').textContent  = activeStarter;
+    document.getElementById('rev-pro').textContent      = activePro;
+    document.getElementById('rev-churn').textContent    = churn30;
+    document.getElementById('rev-mrr').textContent      = money(mrr);
+    document.getElementById('rev-pipeline').textContent = money(pipeline);
+
+    /* Everyone Stripe knows about. Deliberately not called "paying customers" —
+       a trialing subscriber has handed over a card but not a cent. */
+    var customers = data.filter(function(u){ return u.stripe_customer_id; });
+    var tbody = document.getElementById('revenue-table');
+    if(!customers.length){
+      tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No Stripe customers yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = customers.map(function(u){
+      var ends = u.trial_end ? new Date(u.trial_end).toLocaleDateString() : '—';
+      var iv   = u.plan_interval === 'year'  ? 'Annual'
+               : u.plan_interval === 'month' ? 'Monthly' : '—';
       return '<tr>'+
         '<td>'+(u.full_name||'—')+'</td>'+
         '<td>'+u.email+'</td>'+
-        '<td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td>'+
-        '<td style="font-family:monospace;font-size:11px;color:#6b7a96;">'+u.stripe_customer_id+'</td>'+
+        '<td>'+(u.plan_tier||'—')+'</td>'+
+        '<td>'+esqStatusPill(u.subscription_status)+'</td>'+
+        '<td style="color:#8a97b5;">'+iv+'</td>'+
+        '<td style="color:#8a97b5;">'+(u.subscription_status==='trialing'?ends:'—')+'</td>'+
         '<td><a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" style="color:#aaff3e;text-decoration:none;font-size:12px;">Open in Stripe →</a></td>'+
       '</tr>';
     }).join('');
@@ -1658,18 +1716,19 @@ function changePlan(email,selectEl,forcePlan){
   var plan=forcePlan||(selectEl?selectEl.value:'');
   if(!plan)return;
   var confirm_msg='Set plan for '+email+' to "'+plan+'"?';
-  if(plan==='trial') confirm_msg='Set plan for '+email+' to Trial? This will give them a fresh 7-day trial starting now.';
+  if(plan==='trial') confirm_msg='Set plan for '+email+' to Trial? This will give them a fresh 14-day trial starting now.';
   if(!window.confirm(confirm_msg)){if(selectEl)selectEl.value='';return;}
-  /* When setting to trial, auto-set a fresh 7-day expiry */
+  /* When setting to trial, auto-set a fresh 14-day expiry — the site, the four
+     Stripe payment links and TRIAL_DAYS in index.html all say 14. */
   var update={plan:plan};
   if(plan==='trial'){
     var exp=new Date();
-    exp.setDate(exp.getDate()+7);
+    exp.setDate(exp.getDate()+14);
     update.trial_end=exp.toISOString();
   }
   supa.from('profiles').update(update).eq('email',email).then(function(res){
     if(res.error){showToast('Error: '+res.error.message,'error');return;}
-    var msg=plan==='trial'?'Trial reset — 7 days starting now for '+email:'Plan updated to '+plan+' for '+email;
+    var msg=plan==='trial'?'Trial reset — 14 days starting now for '+email:'Plan updated to '+plan+' for '+email;
     showToast(msg,'success');
     loadUsers();loadAnalytics();loadRevenue();
     /* refresh drawer if open */
