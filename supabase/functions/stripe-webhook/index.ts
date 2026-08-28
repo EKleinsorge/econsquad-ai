@@ -42,6 +42,14 @@ serve(async (req) => {
         const invoice = event.data.object
         // Only act on subscription invoices (not one-time charges)
         if (!invoice.subscription) break
+        // Stripe issues a $0.00 invoice at the START of a trial and marks it
+        // paid. Treating that as a conversion set plan='starter' the moment a
+        // trial began, so the UI stopped showing the countdown — plan==='trial'
+        // is what gates it. A real conversion has money on it.
+        if ((invoice.amount_paid ?? 0) <= 0) {
+          console.log(`Ignoring $0 invoice ${invoice.id} — trial start, not a conversion`)
+          break
+        }
         const customerId = invoice.customer as string
         const plan       = resolvePlan(invoice)
         if (plan) await updatePlan(supa, customerId, plan)
@@ -52,7 +60,7 @@ serve(async (req) => {
       case 'customer.subscription.updated': {
         const sub        = event.data.object
         const customerId = sub.customer as string
-        await syncTrialDates(supa, customerId, sub)
+        if (!(await syncSubscription(supa, customerId, sub))) return notLinkedYet(customerId)
         const plan       = resolvePlanFromSub(sub)
         // While trialing, the profile stays on 'trial' regardless of which
         // price they picked — the UI reads plan==='trial' to show the countdown.
@@ -68,11 +76,12 @@ serve(async (req) => {
       case 'customer.subscription.created': {
         const sub        = event.data.object
         const customerId = sub.customer as string
-        // Store stripe_customer_id immediately even if still in trial
-        await linkCustomer(supa, customerId, sub.metadata?.supabase_uid ?? null)
+        // Payment Links do not set subscription metadata, so this almost
+        // always no-ops; the real link happens on checkout.session.completed.
+        await linkCustomer(supa, customerId, sub.metadata?.supabase_uid ?? null, null)
         // Trial window comes from Stripe, so changing the trial length there
         // is all that's needed — nothing in the app hardcodes it any more.
-        await syncTrialDates(supa, customerId, sub)
+        if (!(await syncSubscription(supa, customerId, sub))) return notLinkedYet(customerId)
         const plan = resolvePlanFromSub(sub)
         if (sub.status === 'trialing') {
           await updatePlan(supa, customerId, 'trial')
@@ -84,6 +93,11 @@ serve(async (req) => {
 
       // Payment failed — notify user via SMS
       case 'invoice.payment_failed': {
+        // past_due was previously invisible: a failed card looked like nothing
+        // at all in the admin panel.
+        await supa.from('profiles')
+          .update({ subscription_status: 'past_due' })
+          .eq('stripe_customer_id', (event.data.object as any).customer as string)
         const invoice    = event.data.object
         const customerId = invoice.customer as string
         console.log('Payment failed for customer', customerId)
@@ -105,6 +119,7 @@ serve(async (req) => {
       case 'customer.subscription.deleted': {
         const sub        = event.data.object
         const customerId = sub.customer as string
+        await markCanceled(supa, customerId, sub)
         await updatePlan(supa, customerId, 'trial')
         break
       }
@@ -114,7 +129,11 @@ serve(async (req) => {
         const session    = event.data.object
         const customerId = session.customer as string
         const uid        = session.client_reference_id as string | null
-        if (uid && customerId) await linkCustomer(supa, customerId, uid)
+        const email      = session.customer_details?.email ?? session.customer_email ?? null
+        // index.html sends the literal string 'guest' when nobody is signed in,
+        // and a direct share of a payment link sends nothing at all. Email is
+        // the fallback so those checkouts still find their profile.
+        if (customerId) await linkCustomer(supa, customerId, uid, email)
         break
       }
 
@@ -173,42 +192,120 @@ function resolvePlanFromSub(sub: any): string | null {
  *
  * Stripe gives these as Unix seconds; null means no trial on the subscription.
  */
-async function syncTrialDates(supa: any, customerId: string, sub: any) {
+async function syncSubscription(supa: any, customerId: string, sub: any) {
   const toIso = (s: number | null | undefined) =>
     s ? new Date(s * 1000).toISOString() : null
 
-  const { error } = await supa
-    .from('profiles')
-    .update({
-      trial_start: toIso(sub.trial_start),
-      trial_end:   toIso(sub.trial_end),
-    })
-    .eq('stripe_customer_id', customerId)
+  const price    = sub.items?.data?.[0]?.price ?? {}
+  const interval = price.recurring?.interval ?? null      // 'month' | 'year'
+  const tier     = PRICE_TO_PLAN[price.id ?? ''] ?? null  // 'starter' | 'pro'
 
-  if (error) console.error('syncTrialDates error:', error.message)
-  else console.log(`Trial window for ${customerId}: ${toIso(sub.trial_start)} → ${toIso(sub.trial_end)}`)
+  const patch: Record<string, unknown> = {
+    trial_start:         toIso(sub.trial_start),
+    trial_end:           toIso(sub.trial_end),
+    subscription_status: sub.status ?? null,
+    plan_interval:       interval,
+  }
+  // Only overwrite the tier when Stripe actually named a price we know. An
+  // unmapped price should leave the last good value alone, not null it out.
+  if (tier) patch.plan_tier = tier
+  // A subscription that is alive again clears the old cancellation stamp.
+  if (sub.status === 'active' || sub.status === 'trialing') patch.canceled_at = null
+
+  const { data, error } = await supa
+    .from('profiles')
+    .update(patch)
+    .eq('stripe_customer_id', customerId)
+    .select('id')
+
+  if (error) { console.error('syncSubscription error:', error.message); return 0 }
+  const n = data?.length ?? 0
+  console.log(`Synced ${customerId} (${n} row): status=${sub.status} tier=${tier} interval=${interval} trial_end=${toIso(sub.trial_end)}`)
+  return n
+}
+
+/**
+ * Record the cancellation so churn is countable.
+ *
+ * updatePlan() puts `plan` back to 'trial' on cancel, which makes a churned
+ * customer indistinguishable from someone who never subscribed — there was no
+ * cancellation history at all before this.
+ */
+async function markCanceled(supa: any, customerId: string, sub: any) {
+  const endedAt = sub.ended_at
+    ? new Date(sub.ended_at * 1000).toISOString()
+    : new Date().toISOString()
+
+  const { data, error } = await supa
+    .from('profiles')
+    .update({ subscription_status: 'canceled', canceled_at: endedAt })
+    .eq('stripe_customer_id', customerId)
+    .select('id')
+
+  if (error) console.error('markCanceled error:', error.message)
+  else console.log(`Marked ${customerId} canceled at ${endedAt} (${data?.length ?? 0} row)`)
 }
 
 /** Update plan in profiles table by stripe_customer_id */
 async function updatePlan(supa: any, customerId: string, plan: string) {
-  const { error } = await supa
+  const { data, error } = await supa
     .from('profiles')
     .update({ plan })
     .eq('stripe_customer_id', customerId)
+    .select('id')
 
-  if (error) console.error('updatePlan error:', error.message)
-  else console.log(`Updated plan to "${plan}" for customer ${customerId}`)
+  if (error) { console.error('updatePlan error:', error.message); return 0 }
+  const n = data?.length ?? 0
+  console.log(`Updated plan to "${plan}" for customer ${customerId} (${n} row)`)
+  return n
 }
 
-/** Store stripe_customer_id on the profile (by uid or email lookup) */
-async function linkCustomer(supa: any, customerId: string, uid: string | null) {
-  if (uid) {
-    const { error } = await supa
+/** Store stripe_customer_id on the profile, by uid then by email. */
+async function linkCustomer(supa: any, customerId: string, uid: string | null, email: string | null) {
+  const isUuid = !!uid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uid)
+  if (isUuid) {
+    const { data, error } = await supa
       .from('profiles')
       .update({ stripe_customer_id: customerId })
       .eq('id', uid)
+      .select('id')
     if (error) console.error('linkCustomer (uid) error:', error.message)
+    else if ((data?.length ?? 0) > 0) {
+      console.log(`Linked ${customerId} to profile ${uid}`)
+      return true
+    }
   }
+  if (email) {
+    const { data, error } = await supa
+      .from('profiles')
+      .update({ stripe_customer_id: customerId })
+      .ilike('email', email)
+      .select('id')
+    if (error) console.error('linkCustomer (email) error:', error.message)
+    else if ((data?.length ?? 0) > 0) {
+      console.log(`Linked ${customerId} to profile by email ${email}`)
+      return true
+    }
+  }
+  console.error(`linkCustomer: no profile matched uid=${uid} email=${email}`)
+  return false
+}
+
+/**
+ * Stripe creates the subscription BEFORE the checkout session completes, so
+ * customer.subscription.created usually arrives about a second before the
+ * profile has a stripe_customer_id to match on. A zero-row update is not an
+ * error in PostgREST, so this used to succeed silently and the trial window
+ * was never written — the original trial-expiry bug, wearing a new hat.
+ *
+ * Answering non-2xx makes Stripe redeliver on its own schedule, by which time
+ * checkout.session.completed has linked the customer. Deliberately NOT used on
+ * customer.subscription.deleted: an orphaned customer there would retry for
+ * three days against a profile that is never coming.
+ */
+function notLinkedYet(customerId: string) {
+  console.warn(`No profile linked to ${customerId} yet — asking Stripe to retry`)
+  return new Response('profile not linked yet', { status: 409 })
 }
 
 /** Fire an SMS via the send-sms Edge Function (best-effort, never throws) */
