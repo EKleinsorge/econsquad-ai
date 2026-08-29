@@ -3257,9 +3257,43 @@ var currentUser=null;
 })();
 
 /* ── init on load ── */
-/* The Google scopes the digital office needs. Was written out twice, verbatim,
-   in connectGmail() and the sign-in OAuth call. One copy now. */
-var GOOGLE_SCOPES = 'email profile https://mail.google.com/ https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks';
+/* ── Google scopes: TWO sets, and they must stay separate ──────────────────
+   Until 2026-08-28 both OAuth calls asked for the same thing: signing in with
+   Google requested the full Gmail set, whether or not the person ever opened
+   the digital office. That is expensive in a way that is invisible until it
+   is too late.
+
+   An OAuth app that has not completed Google verification can authorise
+   100 NEW USERS IN TOTAL, over the lifetime of the project, once it shows the
+   unverified-app screen. The cap cannot be reset. Requesting Gmail scopes at
+   sign-in spends one of those hundred on every single signup — and shows the
+   "Google hasn't verified this app" warning to someone who has been a customer
+   for four seconds.
+
+   email/profile/openid are BASIC scopes: no warning screen, no cap, no
+   seven-day authorisation expiry. So sign-in asks for those and nothing else.
+   The Gmail and Calendar scopes are requested later, by connectGmail(), at the
+   moment the user deliberately connects their office — which is the only
+   moment the cost is worth paying. */
+var GOOGLE_SCOPES_SIGNIN = 'openid email profile';
+
+/* What the digital office actually needs, and no more.
+   Was https://mail.google.com/ — the broadest Gmail scope there is. It grants
+   IMAP, SMTP and POP3, and reads on the consent screen as "read, compose, send
+   and permanently delete all your email". The edge function never deletes,
+   never trashes and never touches labels: it lists messages, gets messages, and
+   sends. gmail.readonly + gmail.send covers that exactly.
+
+   This does not escape Google's "restricted" tier — gmail.readonly is restricted
+   and still needs the CASA security assessment for verification — but it removes
+   "permanently delete all your email" from the screen a prospect reads before
+   deciding whether to trust you with their inbox. gmail.send is only sensitive,
+   not restricted. */
+var GOOGLE_SCOPES_OFFICE = 'openid email profile'
+  + ' https://www.googleapis.com/auth/gmail.readonly'
+  + ' https://www.googleapis.com/auth/gmail.send'
+  + ' https://www.googleapis.com/auth/calendar.events'
+  + ' https://www.googleapis.com/auth/tasks';
 
 /* Google issues a refresh token exactly once — at the consent screen — and both
    OAuth calls here already ask for one (access_type:'offline', prompt:'consent').
@@ -3277,13 +3311,20 @@ var GOOGLE_SCOPES = 'email profile https://mail.google.com/ https://www.googleap
    post-launch change. Capturing has to start first, because anyone who connects
    Gmail while we are still throwing the token away has to sit through the Google
    consent screen a second time when the exchange ships. */
+var GMAIL_SCOPE_KEY = 'esq_gmail_scope_office';
+
 function _captureGoogleRefreshToken(session){
   if(!session || !session.provider_refresh_token || !session.user) return;
+  /* Only connectGmail() asks for access_type:'offline', so a refresh token
+     landing here means the office consent screen was actually completed. That
+     makes this the one reliable moment to record that the session token now
+     carries Gmail scopes and not just openid/email/profile. */
+  try{ localStorage.setItem(GMAIL_SCOPE_KEY,'1'); }catch(e){}
   try{
     supa.from('google_credentials').upsert({
       user_id:       session.user.id,
       refresh_token: session.provider_refresh_token,
-      scopes:        GOOGLE_SCOPES,
+      scopes:        GOOGLE_SCOPES_OFFICE,
       updated_at:    new Date().toISOString()
     }, { onConflict:'user_id' }).then(function(res){
       if(res && res.error) console.warn('[esq] google refresh token not stored:', res.error.message);
@@ -9673,8 +9714,10 @@ function doGoogleSignin(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: GOOGLE_SCOPES,
-      queryParams: { access_type: 'offline', prompt: 'consent' }
+      scopes: GOOGLE_SCOPES_SIGNIN
+      /* No access_type:'offline' here on purpose. There is no Google API call
+         to make with a sign-in token, so there is nothing to refresh, and
+         prompt:'consent' would force the consent screen on every sign-in. */
     }
   }).then(function(res){
     if(res.error){
@@ -10074,7 +10117,17 @@ function getProviderToken(){
     _emailProvider = null;
     return Promise.resolve(null);
   }
-  /* Fall back to Google / Supabase session token */
+  /* Fall back to Google / Supabase session token.
+     Since 2026-08-28 signing in with Google requests basic scopes only, so a
+     session token is NOT automatically a Gmail token. Without this gate the
+     first inbox call after a plain Google sign-in would 403 instead of showing
+     the Connect prompt. Anyone who connected under the old broad scope will be
+     asked to reconnect once — which is wanted anyway, because that reconnect is
+     what captures their refresh token. */
+  if(localStorage.getItem(GMAIL_SCOPE_KEY) !== '1'){
+    _emailProvider = null;
+    return Promise.resolve(null);
+  }
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
     if(session && session.provider_token){
@@ -10100,7 +10153,7 @@ function connectGmail(){
     provider: 'google',
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      scopes: GOOGLE_SCOPES,
+      scopes: GOOGLE_SCOPES_OFFICE,
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
@@ -10110,6 +10163,7 @@ function connectGmail(){
 function disconnectGmail(){
   localStorage.removeItem('esq_email_provider');
   localStorage.setItem('esq_gmail_disconnected', '1'); /* prevent auto-re-detect from Supabase session */
+  localStorage.removeItem(GMAIL_SCOPE_KEY);
   _emailProvider = null;
   providerToken = null;
   inboxLoaded = false;

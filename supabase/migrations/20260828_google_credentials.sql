@@ -40,8 +40,8 @@
 --
 -- SECURITY
 --
--- These tokens carry https://mail.google.com/ — full read/write access to
--- the user's mail. This table is deliberately write-only from the client:
+-- These tokens carry gmail.readonly — the ability to read every message in
+-- the user's mailbox — plus gmail.send. This table is deliberately write-only from the client:
 -- a user can insert, update and delete their own row and CANNOT read any
 -- row back, not even their own. SELECT is revoked from anon and
 -- authenticated outright, on top of RLS having no SELECT policy at all.
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.google_credentials (
 );
 
 COMMENT ON TABLE public.google_credentials IS
-  'Google OAuth refresh tokens. Write-only from the client: SELECT is revoked and no SELECT policy exists, so only the service role can read a token. Carries full mail.google.com scope — treat as a credential store, never expose through PostgREST.';
+  'Google OAuth refresh tokens. Write-only from the client: SELECT is revoked and no SELECT policy exists, so only the service role can read a token. Grants gmail.readonly over the user''s entire mailbox — treat as a credential store, never expose through PostgREST.';
 COMMENT ON COLUMN public.google_credentials.refresh_token IS
   'Long-lived Google refresh token. Exchanged server-side for an access token. Revoked by Google if unused for 6 months, if the user revokes access, or after a password change on the Google account — the exchange must handle invalid_grant by clearing the row and prompting a reconnect.';
 COMMENT ON COLUMN public.google_credentials.scopes IS
