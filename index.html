@@ -6584,11 +6584,30 @@ function esqPreLaunch(){ return esqLaunchParts() !== null; }
    -------------------------------------------------------------- */
 var ESQ_SHOW_COLORS = ['#aaff3e','#f5c542','#64afff','#eef3fc','#7be0a4','#ff8fb1'];
 
+var ESQ_STAGE_KEY = 'esq_stage_mode';
+
+/* Reduced motion silently kills the whole launch celebration, and that is a
+   worse failure than it looks: on Windows, "Animation effects" is off by
+   default on a lot of managed machines and is forced off by battery saver.
+   Verified 2026-08-29 in headless Chromium — with prefers-reduced-motion the
+   canvas is never created and zero pixels are drawn, while the bands still
+   flip to "The squad is live". So the projector at the party shows a text
+   change and nothing else, and nobody in the room can tell why.
+
+   Respecting the setting is still right for an ordinary visitor. Stage mode
+   is the deliberate exception: run esqStage(true) once on whatever laptop
+   drives the party and the show runs regardless. */
+function esqStageOn(){
+  try{ return localStorage.getItem(ESQ_STAGE_KEY) === '1'; }catch(e){ return false; }
+}
+function esqMotionBlocked(){
+  try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch(e){ return false; }
+}
+
 function esqConfetti(opts){
   opts = opts || {};
-  try{
-    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  }catch(e){}
+  if(esqMotionBlocked() && !opts.force && !esqStageOn()) return;
 
   var prev = document.getElementById('esq-confetti');
   if(prev && prev._esqStop) prev._esqStop();
@@ -6869,6 +6888,37 @@ function esqInitCountdowns(){
   }
 }
 
+/* Turn the party laptop into a stage. Persists per browser, so do it once on
+   the machine that will be projecting and forget about it. */
+function esqStage(on){
+  var want = (on !== false);
+  try{
+    if(want) localStorage.setItem(ESQ_STAGE_KEY,'1');
+    else     localStorage.removeItem(ESQ_STAGE_KEY);
+  }catch(e){ return 'Could not write localStorage — private window?'; }
+  return want
+    ? 'Stage mode ON for this browser. The launch show will run even with reduced motion.'
+    : 'Stage mode off. Reduced motion will suppress the show again.';
+}
+
+/* One command to answer "will the party actually work on this laptop". */
+function esqLaunchStatus(){
+  var ms      = ESQ_LAUNCH_AT - Date.now();
+  var blocked = esqMotionBlocked();
+  var stage   = esqStageOn();
+  var bands   = document.querySelectorAll('[data-esq-countdown]').length;
+  var lines = [
+    'Launch at:      ' + new Date(ESQ_LAUNCH_AT).toString(),
+    'Time remaining: ' + (ms > 0 ? (Math.floor(ms/3600000) + 'h ' + Math.floor(ms/60000)%60 + 'm ' + Math.floor(ms/1000)%60 + 's') : 'already passed'),
+    'Countdown bands mounted: ' + bands,
+    'Reduced motion: ' + (blocked ? 'ON — would suppress the show' : 'off'),
+    'Stage mode:     ' + (stage ? 'ON — show forced' : 'off'),
+    'Celebration will run: ' + ((!blocked || stage) ? 'YES' : 'NO  <-- run esqStage(true)')
+  ];
+  if(bands === 0) lines.push('WARNING: no countdown bands on this page.');
+  return lines.join('\n');
+}
+
 /* Rehearsal / stage control. esqLaunchDemo(10) puts launch ten seconds
    out and rewinds every band; Ctrl+F5 restores the real date. */
 function esqLaunchDemo(seconds){
@@ -6881,7 +6931,13 @@ function esqLaunchDemo(seconds){
     els[i].className = 'esq-cd';
   }
   esqInitCountdowns();
-  return 'Launch set ' + secs + 's out. Ctrl+F5 to restore the real date.';
+  var msg = 'Launch set ' + secs + 's out. Ctrl+F5 to restore the real date.';
+  if(esqMotionBlocked() && !esqStageOn()){
+    msg += '\n\n*** REDUCED MOTION IS ON. The bands will flip but NO confetti'
+         + ' will run — on this machine the real launch would be silent too.'
+         + ' Run esqStage(true), then rehearse again. ***';
+  }
+  return msg;
 }
 
 if(document.readyState === 'loading'){
