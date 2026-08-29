@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EconSquad AI v05.04.1730</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&family=Allura&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --navy:#06080f;--navy2:#0d1220;
@@ -1580,6 +1580,19 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   color:var(--lime);}
 .hero-v2 .hv2-sig b{color:#ffffff;font-weight:900;}
 .hero-v2 .hv2-img{position:relative;overflow:hidden;}
+/* The handwritten note, as live text rather than baked into the jpg.
+   Same script, same lime underline. It scales with the viewport, survives a
+   re-crop, and can be reworded without regenerating a photograph. */
+.hero-v2 .hv2-note{position:absolute;z-index:2;left:6%;top:7%;width:64%;max-width:440px;
+  transform:rotate(-4.5deg);transform-origin:left top;pointer-events:none;
+  text-shadow:0 2px 20px rgba(3,6,14,.85), 0 1px 4px rgba(3,6,14,.7);}
+.hero-v2 .hv2-note span{display:block;font-family:'Allura',cursive;font-weight:400;
+  font-size:clamp(28px,3.4vw,52px);line-height:1.04;color:#f4f7fb;}
+.hero-v2 .hv2-note span+span{padding-left:.6em;}
+.hero-v2 .hv2-note svg{display:block;width:72%;margin:-.22em 0 0 1.3em;overflow:visible;}
+.hero-v2 .hv2-note svg path{fill:none;stroke:#aaff3e;stroke-width:9;stroke-linecap:round;
+  filter:drop-shadow(0 2px 12px rgba(3,6,14,.6));}
+@media(max-width:900px){.hero-v2 .hv2-note{display:none;}}
 .hero-v2 .hv2-img img{width:100%;height:100%;object-fit:cover;object-position:38% 54%;display:block;}
 .hero-v2 .hv2-img:after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(90deg,rgba(5,7,15,.85),rgba(5,7,15,.22) 5%,transparent 13%);}
@@ -1619,6 +1632,11 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <div class="hv2-sig">Less Work. <b>More Impact.</b></div>
         </div>
         <div class="hv2-img">
+          <div class="hv2-note" aria-hidden="true">
+            <span>More time for</span>
+            <span>what matters most.</span>
+            <svg viewBox="0 0 300 26" preserveAspectRatio="none"><path d="M4 21 C70 16, 150 9, 296 5"/></svg>
+          </div>
           <img src="hero-desk.jpg"
                srcset="hero-desk-900.jpg 900w, hero-desk.jpg 1536w"
                sizes="(max-width:900px) 100vw, 56vw"
