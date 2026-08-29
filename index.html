@@ -3352,8 +3352,29 @@ window.addEventListener('load',function(){
   });
 });
 
+/* doSignup() stashes a validated code here rather than granting it, because
+   redeem_promo_code() needs an authenticated session and signUp() does not
+   always return one (it depends on whether email confirmation is on). This
+   runs on the first signed-in state after that. */
+function _redeemPendingPromo(){
+  var code = window._promoToRedeem;
+  if(!code) return;
+  window._promoToRedeem = null;
+  supa.rpc('redeem_promo_code', { p_code: code }).then(function(res){
+    var row = res && res.data && res.data.length ? res.data[0] : null;
+    if(res.error || !row || !row.ok){
+      console.warn('[esq] promo redemption failed:',
+        (row && row.message) || (res.error && res.error.message) || 'unknown');
+      return;
+    }
+    window._isBetaTester = true;
+    if(typeof showToastMsg === 'function') showToastMsg('Beta access activated.');
+  }, function(err){ console.warn('[esq] promo redemption failed:', err); });
+}
+
 function onSignedIn(user){
   closeAuth();
+  _redeemPendingPromo();
   var av=document.getElementById('user-avatar');
   if(av){
     var nm=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:user.email;
@@ -3880,18 +3901,11 @@ function doSignup(){
     /* Check for pending promo code — if present, skip Stripe entirely */
     var pendingPromo=null;
     try{ pendingPromo=localStorage.getItem('esq_pending_promo'); }catch(e){}
-    if(pendingPromo && VALID_PROMO_CODES[pendingPromo]){
-      var promoEntry=VALID_PROMO_CODES[pendingPromo];
+    if(pendingPromo){
       try{ localStorage.removeItem('esq_pending_promo'); }catch(e){}
-      /* Apply beta access to profile */
-      if(userId){
-        supa.from('profiles').update({
-          is_beta_tester:    true,
-          beta_expires_at:   promoEntry.expires_at,
-          beta_activated_at: new Date().toISOString(),
-          promo_code_used:   pendingPromo
-        }).eq('id', userId).then(function(){});
-      }
+      /* Redeem server-side. This needs a session, so it runs after sign-in
+         below rather than here — stash it for _redeemPendingPromo(). */
+      window._promoToRedeem = pendingPromo;
       if(btn){btn.textContent='Welcome to Beta! Signing you in…';}
       /* If signUp returned a session (email confirm OFF), onSignedIn fires automatically.
          If not, sign in explicitly with the same credentials. */
@@ -6288,13 +6302,20 @@ function updatePlanBadge(user){
   });
 }
 
-/* ===== PROMO / FOCUS GROUP CODE REDEMPTION ===== */
-var VALID_PROMO_CODES = {
-  'FOCUSGROUP': {
-    label:      'Focus Group Participant',
-    expires_at: '2026-06-30T23:59:59+00:00'
-  }
-};
+/* ===== PROMO / FOCUS GROUP CODE REDEMPTION =====
+   The codes used to live right here, in plain text, in a file anyone can
+   read with Ctrl-U — and doSignup() treats a pending promo as a reason to
+   "skip Stripe entirely", so one view-source produced a free account with
+   no card. They now live in the promo_codes table, reachable only through
+   two SECURITY DEFINER functions:
+
+     promo_code_check(code)  -> { valid, label }   anon may call this
+     redeem_promo_code(code) -> { ok, message, expires_at }   auth only
+
+   The grant is no longer a client-side UPDATE either. The four beta
+   columns are frozen by protect_privileged_profile_columns(), and
+   redeem_promo_code lifts that freeze for its own transaction only.
+   See supabase/migrations/20260828_promo_codes_server_side.sql. */
 
 function openPromoFromSignup(){
   /* Legacy — now handled inline via suShowPromoStep */
@@ -6322,23 +6343,34 @@ function suRedeemAndSignup(){
   var code  = inp ? inp.value.trim().toUpperCase() : '';
 
   if(!code){ if(msgEl) msgEl.textContent='Please enter your access code.'; return; }
-  var promo = VALID_PROMO_CODES[code];
-  if(!promo){
-    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='That code is not valid. Check for typos.'; }
-    return;
-  }
+  if(msgEl){ msgEl.style.color='#8a97b5'; msgEl.textContent='Checking…'; }
 
-  /* Save code to localStorage — doSignup will pick it up and skip Stripe */
-  try{ localStorage.setItem('esq_pending_promo', code); }catch(e){}
+  /* Ask the server. This only reports valid/invalid — it never returns the
+     code list, the expiry or the redemption count. The real grant happens
+     after the account exists, in doSignup(). */
+  supa.rpc('promo_code_check', { p_code: code }).then(function(res){
+    var row = res && res.data && res.data.length ? res.data[0] : null;
+    if(res && res.error){
+      if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Could not check that code right now. Try again.'; }
+      return;
+    }
+    if(!row || !row.valid){
+      if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='That code is not valid. Check for typos.'; }
+      return;
+    }
 
-  if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Code accepted! Creating your account…'; }
+    /* Save code to localStorage — doSignup will pick it up and skip Stripe */
+    try{ localStorage.setItem('esq_pending_promo', code); }catch(e){}
 
-  /* Disable the promo button to prevent double-click */
-  var promoBtn = authM ? authM.querySelector('#su-step-promo .modal-btn') : null;
-  if(promoBtn){ promoBtn.disabled=true; promoBtn.textContent='Creating your account…'; }
+    if(msgEl){ msgEl.style.color='#aaff3e'; msgEl.textContent='✓ Code accepted! Creating your account…'; }
 
-  /* Directly call doSignup — it detects esq_pending_promo and skips Stripe */
-  setTimeout(function(){ doSignup(); }, 300);
+    var promoBtn = authM ? authM.querySelector('#su-step-promo .modal-btn') : null;
+    if(promoBtn){ promoBtn.disabled=true; promoBtn.textContent='Creating your account…'; }
+
+    setTimeout(function(){ doSignup(); }, 300);
+  }, function(){
+    if(msgEl){ msgEl.style.color='#ff8080'; msgEl.textContent='Could not check that code right now. Try again.'; }
+  });
 }
 
 function openPromoModal(){
@@ -6373,12 +6405,8 @@ function redeemPromoCode(){
   var msgEl=document.getElementById('promo-msg');
   if(!raw){msgEl.textContent='Please enter a code.';return;}
 
-  var promo=VALID_PROMO_CODES[raw];
-  if(!promo){
-    msgEl.style.color='#ff8080';
-    msgEl.textContent='That code is not valid. Check for typos and try again.';
-    return;
-  }
+  /* Validity is decided by redeem_promo_code() below — there is nothing
+     here to check it against any more, and nothing should be. */
 
   /* Not signed in yet — send them back to create account */
   if(!currentUser){
@@ -6401,15 +6429,13 @@ function redeemPromoCode(){
   msgEl.style.color='#aaff3e';
   msgEl.textContent='Activating your access…';
 
-  supa.from('profiles').update({
-    is_beta_tester:    true,
-    beta_expires_at:   promo.expires_at,
-    beta_activated_at: new Date().toISOString(),
-    promo_code_used:   raw
-  }).eq('id',currentUser.id).then(function(res){
-    if(res.error){
+  supa.rpc('redeem_promo_code', { p_code: raw }).then(function(res){
+    var row = res && res.data && res.data.length ? res.data[0] : null;
+    if(res.error || !row || !row.ok){
       msgEl.style.color='#ff8080';
-      msgEl.textContent='Error: '+res.error.message;
+      msgEl.textContent = (row && row.message) ? row.message
+                        : (res.error ? 'Error: '+res.error.message
+                                     : 'That code is not valid. Check for typos and try again.');
       return;
     }
     /* Show success screen */
@@ -6425,9 +6451,14 @@ function redeemPromoCode(){
     }
     var pLabel=document.getElementById('pm-promo-label');
     var pSub=document.getElementById('pm-promo-sub');
-    var betaExp=new Date(promo.expires_at);
+    /* The expiry comes back from redeem_promo_code() — the client no longer
+       knows any code's expiry, which is the whole point. */
     if(pLabel) pLabel.textContent='Beta Access Active';
-    if(pSub) pSub.textContent='Expires '+betaExp.toLocaleDateString();
+    if(pSub){
+      pSub.textContent = row.expires_at
+        ? 'Expires '+new Date(row.expires_at).toLocaleDateString()
+        : 'Beta access active';
+    }
     var planEl=document.getElementById('pm-plan');
     if(planEl) planEl.textContent='🧪 BETA TESTER';
   });
