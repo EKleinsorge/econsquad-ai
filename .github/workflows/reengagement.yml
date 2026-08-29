@@ -1,0 +1,40 @@
+name: Re-engagement — Weekly Send
+
+# Sibling of monday-drop.yml, one hour later so the two never contend for the
+# same Resend rate window. Actions cron is UTC and ignores DST, so this drifts
+# by an hour across the year relative to Central — deliberate, it does not
+# matter for a Monday-morning send.
+on:
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run - check only, do not send'
+        required: false
+        default: 'true'
+
+jobs:
+  send-reengagement:
+    name: Send Re-engagement
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger send-reengagement Edge Function
+        run: |
+          echo "Triggering re-engagement send at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-reengagement" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"dry_run\": \"$DRY_RUN\"}")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP=$(echo "$RESPONSE" | tail -n1)
+          echo "HTTP $HTTP"
+          echo "$BODY"
+          if [ "$HTTP" != "200" ]; then exit 1; fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
