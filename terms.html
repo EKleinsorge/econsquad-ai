@@ -24,7 +24,26 @@ a:hover{text-decoration:underline;}
 /* NAV */
 .nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
 .logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
-.logo-icon{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 32%,#d4ff70,#aaff3e 48%,#5a9900);box-shadow:0 0 14px rgba(170,255,62,.45);}
+/* Logo orb - same geometry, glow and colour cycle as the homepage.
+   28px sphere inside a 42px field; glow radii 11/20/36 at .55/.26/.12,
+   derived from LSPH=28 and the g1/g2/g3 formula in index.html. Eight colours
+   at ~75s each (HOLD=4500 frames) = a ten-minute cycle, matching the canvas
+   version without carrying its particle engine onto every page. */
+.logo-icon{width:42px;height:42px;border-radius:50%;background:none;box-shadow:none;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon::before{content:"";position:absolute;top:7px;left:7px;width:28px;height:28px;border-radius:50%;animation:esqOrbCycle 600s linear infinite}
+.logo-icon svg{position:relative;z-index:2;width:16px;height:16px}
+@keyframes esqOrbCycle{
+  0.0%,10.9%{background:radial-gradient(circle at 36% 32%,#ffe47a,#f5c542 48%,#a06800);box-shadow:0 0 11px rgba(255,210,60,.55),0 0 20px rgba(255,210,60,.26),0 0 36px rgba(255,210,60,.12)}
+  12.5%,23.4%{background:radial-gradient(circle at 36% 32%,#93c5fd,#3b82f6 48%,#1e3a8a);box-shadow:0 0 11px rgba(100,175,255,.55),0 0 20px rgba(100,175,255,.26),0 0 36px rgba(100,175,255,.12)}
+  25.0%,35.9%{background:radial-gradient(circle at 36% 32%,#99f6e4,#14b8a6 48%,#064e3b);box-shadow:0 0 11px rgba(50,225,200,.55),0 0 20px rgba(50,225,200,.26),0 0 36px rgba(50,225,200,.12)}
+  37.5%,48.4%{background:radial-gradient(circle at 36% 32%,#e9d5ff,#9333ea 48%,#3b0764);box-shadow:0 0 11px rgba(200,140,255,.55),0 0 20px rgba(200,140,255,.26),0 0 36px rgba(200,140,255,.12)}
+  50.0%,60.9%{background:radial-gradient(circle at 36% 32%,#d4ff70,#aaff3e 48%,#3a6600);box-shadow:0 0 11px rgba(175,255,65,.55),0 0 20px rgba(175,255,65,.26),0 0 36px rgba(175,255,65,.12)}
+  62.5%,73.4%{background:radial-gradient(circle at 36% 32%,#fed7aa,#ea580c 48%,#7c2d12);box-shadow:0 0 11px rgba(255,155,65,.55),0 0 20px rgba(255,155,65,.26),0 0 36px rgba(255,155,65,.12)}
+  75.0%,85.9%{background:radial-gradient(circle at 36% 32%,#e2e8f0,#64748b 48%,#1e293b);box-shadow:0 0 11px rgba(165,185,210,.55),0 0 20px rgba(165,185,210,.26),0 0 36px rgba(165,185,210,.12)}
+  87.5%,98.4%{background:radial-gradient(circle at 36% 32%,#bae6fd,#0284c7 48%,#082f49);box-shadow:0 0 11px rgba(130,220,255,.55),0 0 20px rgba(130,220,255,.26),0 0 36px rgba(130,220,255,.12)}
+  100%{background:radial-gradient(circle at 36% 32%,#ffe47a,#f5c542 48%,#a06800);box-shadow:0 0 11px rgba(255,210,60,.55),0 0 20px rgba(255,210,60,.26),0 0 36px rgba(255,210,60,.12)}
+}
+@media(prefers-reduced-motion:reduce){.logo-icon::before{animation:none;background:radial-gradient(circle at 36% 32%,#d4ff70,#aaff3e 48%,#3a6600);box-shadow:0 0 11px rgba(175,255,65,.55),0 0 20px rgba(175,255,65,.26),0 0 36px rgba(175,255,65,.12)}}
 .logo-icon svg{width:22px;height:22px;}
 .logo-text-wrap{}
 .logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}

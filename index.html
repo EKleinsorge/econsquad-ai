@@ -5180,6 +5180,21 @@ function ariaFindSpecialist(){
   /* Keyword-based specialist routing */
   if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
   var best=ariaFallbackMatch(task);
+  var recBtn=document.getElementById('aria-rec-btn');
+  if(!best){
+    /* Say we do not know rather than name a specialist we did not match. */
+    ariaRecommendedId=null;
+    document.getElementById('aria-rec-name').textContent='Not sure yet';
+    document.getElementById('aria-rec-role').textContent='';
+    document.getElementById('aria-rec-reason').textContent=
+      'I could not match that to a specialist confidently. Try naming the document \u2014 grant, RFP, RFI, BRE survey, press release, cover letter, board report, workforce or market analysis \u2014 or browse all 22 in Meet the Squad.';
+    var orb0=document.getElementById('aria-rec-orb');
+    if(orb0)orb0.style.background='radial-gradient(circle at 36% 32%,#8a97b5,rgba(0,0,0,0.8))';
+    if(recBtn)recBtn.style.display='none';
+    document.getElementById('aria-result').style.display='block';
+    return;
+  }
+  if(recBtn)recBtn.style.display='';
   if(best){
     ariaRecommendedId=best.id;
     var col=CAT_COLORS[best.cat]||'#aaff3e';
@@ -5193,34 +5208,60 @@ function ariaFindSpecialist(){
 }
 
 function ariaFallbackMatch(task){
-  var t=task.toLowerCase();
+  /* Rewritten 2026-08-31. Two bugs made this recommend the wrong specialist
+     with full confidence:
+       1. ids 10, 19, 20, 21 and 22 had no keywords at all, so Market Analyst,
+          Email Regenerator, Cover Letter Writer, RFI Responder and Data
+          Analyzer could never be returned. "I need a cover letter" scored
+          zero everywhere.
+       2. the no-match path was `return best||specs[0]` — it handed back the
+          FIRST specialist in the list and the UI announced it as "your best
+          match". A miss was indistinguishable from a hit.
+     Now: phrases score higher than single words, and a zero score returns
+     null so the caller can say it does not know. */
+  var t=' '+String(task||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ')+' ';
   var specs=Object.values(ttSpecData);
   var keywords={
-    1:['grant','narrative','cdbg','eda','write'],
-    2:['find','search','funding','opportunity','discover'],
-    3:['rfp','response','proposal','bid'],
-    4:['site','score','location','rank','evaluate'],
-    5:['compare','comparison','sites','competing'],
-    6:['bre','survey','retention','expansion','business'],
-    7:['bre report','retention report','visit'],
-    8:['impact','jobs','wages','tax revenue','economic'],
-    9:['swot','strategy','strengths','weaknesses'],
-    11:['incentive','package','tif','abatement'],
-    12:['tax credit','wotc','opportunity zone'],
-    13:['press release','announcement','media'],
-    14:['social','linkedin','twitter','facebook','content'],
-    15:['workforce','labor','skills','training'],
-    16:['talent','workers','availability'],
-    17:['annual report','year end','impact report'],
-    18:['board report','stakeholder','quarterly'],
+    1:['grant narrative','grant application','write a grant','grant writing','cdbg','eda','usda','arpa','narrative','grant'],
+    2:['find grants','find funding','funding opportunity','grant search','opportunities','funding','discover'],
+    3:['rfp','request for proposal','proposal','bid response','bid'],
+    4:['site selection','score a site','evaluate a site','site score','building','location','site'],
+    5:['compare sites','site comparison','competing sites','side by side','compare'],
+    6:['bre survey','retention survey','survey questions','bre','retention','expansion','survey'],
+    7:['bre report','bre data','retention report','survey results','data into a report','site visit','visit notes'],
+    8:['economic impact','impact analysis','jobs created','wages','tax revenue','impact'],
+    9:['swot','strengths weaknesses','strategic plan','strengths','weaknesses','strategy'],
+    10:['market analysis','market research','target industry','prospect','prospects','competitor','industry trends','market'],
+    11:['incentive package','incentive','tif','abatement','cost benefit'],
+    12:['tax credit','tax credits','wotc','opportunity zone','credits'],
+    13:['press release','media release','announcement','press','media'],
+    14:['social post','social media','linkedin','twitter','facebook','instagram','social','content'],
+    15:['workforce','labor market','labour','skills gap','training','labor'],
+    16:['talent report','talent availability','available workers','talent','workers','wage data'],
+    17:['annual report','year end report','year in review','impact report'],
+    18:['board report','board packet','stakeholder report','quarterly report','board','stakeholder'],
+    19:['rewrite this email','email copy','follow up email','cold email','email'],
+    20:['cover letter','letter of interest','letter of support','cover','letter'],
+    21:['rfi','request for information','information request','respond to an rfi'],
+    22:['analyze data','analyse data','spreadsheet','csv','crunch numbers','dataset','data set','statistics','data']
   };
+  /* Distinctive single tokens carry as much weight as a phrase. Without this,
+     "linkedin post about the announcement" tied 1-1 between Social Content AI
+     and Press Release Pro, and the lower id won. */
+  var STRONG={linkedin:1,twitter:1,facebook:1,instagram:1,swot:1,rfi:1,rfp:1,
+              tif:1,wotc:1,cdbg:1,eda:1,usda:1,arpa:1,spreadsheet:1,csv:1};
   var best=null,bestScore=0;
   specs.forEach(function(s){
     var kws=keywords[s.id]||[];
-    var score=kws.filter(function(k){return t.includes(k);}).length;
+    var score=0;
+    kws.forEach(function(k){
+      if(t.indexOf(' '+k+' ')!==-1 || t.indexOf(' '+k)!==-1){
+        score += (k.indexOf(' ')!==-1 || STRONG[k]) ? 3 : 1;
+      }
+    });
     if(score>bestScore){bestScore=score;best=s;}
   });
-  return best||specs[0];
+  return bestScore>0 ? best : null;      /* null = say so, do not guess */
 }
 
 function deployFromAria(){
