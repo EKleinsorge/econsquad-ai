@@ -1234,6 +1234,169 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 #sms-modal .sms-disabled .sms-type-sub{opacity:.35;}
 </style>
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
+
+<style id="esq-fold-v3">
+/* ============================================================
+   Top fold, rebuilt 2026-08-31. Everything is scoped to .f3,
+   .f3squad and .f3tip — no existing selector is touched.
+   Colours come from the same :root tokens as the rest of the site.
+   ============================================================ */
+.f3{position:relative;overflow:hidden;padding:62px 32px 42px !important;text-align:center;
+  display:block !important;min-height:0 !important;background:transparent}
+.f3::before{content:"";position:absolute;left:50%;top:-26%;width:76%;height:150%;
+  transform:translateX(-50%);pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(170,255,62,.05),transparent 62%)}
+.f3-col{position:relative;z-index:2;max-width:900px;margin:0 auto}
+
+.f3-eyebrow{font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;
+  font-size:clamp(21px,2.1vw,29px);letter-spacing:.055em;line-height:1;margin:0 0 14px;color:#fff}
+.f3-eyebrow span{color:var(--lime)}
+.f3 h1.f3-h1{font-family:'Barlow Condensed',sans-serif;font-weight:900;line-height:.92;
+  letter-spacing:.004em;font-size:clamp(44px,5.8vw,80px);text-transform:uppercase;
+  margin:0;color:#fff;text-align:center}
+.f3 h1.f3-h1 span{color:var(--lime)}
+.f3-rule{display:flex;align-items:center;justify-content:center;gap:16px;margin:18px 0 16px}
+.f3-rule i{height:1px;flex:0 0 62px;background:linear-gradient(90deg,transparent,var(--limeborder))}
+.f3-rule i+i{background:linear-gradient(90deg,var(--limeborder),transparent)}
+.f3-rule span{font-family:'Barlow Condensed',sans-serif;font-size:clamp(17px,1.6vw,23px);
+  font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--lime)}
+.f3-sub{font-size:clamp(16px,1.35vw,18.5px);line-height:1.58;color:#c6cfdf;
+  max-width:620px;margin:0 auto 26px}
+.f3-sub b{color:#eef3fc;font-weight:700;box-shadow:inset 0 -.42em 0 rgba(170,255,62,.14)}
+
+.f3-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:14px}
+.f3 button.f3-btn{background:var(--lime);color:#12280a;border:none;font-family:'Barlow',sans-serif;
+  font-size:16.5px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;
+  padding:17px 36px;border-radius:11px;cursor:pointer;
+  box-shadow:0 8px 26px rgba(170,255,62,.20);transition:transform .15s,box-shadow .2s}
+.f3 button.f3-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(170,255,62,.30)}
+.f3 button.f3-ghost{background:rgba(255,255,255,.02);color:#d8e3f0;border:1px solid rgba(255,255,255,.16);
+  font-family:'Barlow',sans-serif;font-size:15px;font-weight:700;letter-spacing:.03em;
+  text-transform:uppercase;padding:16px 26px;border-radius:11px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:9px;transition:border-color .2s,color .2s,background .2s}
+.f3 button.f3-ghost:hover{border-color:rgba(170,255,62,.4);color:#fff;background:rgba(170,255,62,.05)}
+.f3-orb{width:15px;height:15px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);
+  box-shadow:0 0 7px rgba(170,255,62,.55);animation:f3pulse 3.4s ease-in-out infinite}
+@keyframes f3pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.15);opacity:1}}
+
+.f3-trust{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;font-size:12.5px;color:#8593ae}
+.f3-trust b{color:#c3cddd;font-weight:600}
+.f3-trust i{color:var(--lime);margin-right:5px;font-weight:800;font-style:normal}
+.f3-guar{font-size:12.5px;color:#7f8da7;margin:10px 0 0}
+.f3-guar b{color:var(--lime);font-weight:700}
+
+/* countdown shell — the digits inside are still painted by the site's own
+   esqMountCountdown(), so the launch celebration stays wired up. */
+.f3-cd{max-width:560px;margin:28px auto 0;padding:20px 22px 17px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(14,22,40,.9),rgba(9,13,25,.9));
+  border:1px solid rgba(170,255,62,.20);
+  box-shadow:0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.03)}
+.f3-cdlive{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:5px}
+.f3-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);flex-shrink:0;
+  animation:f3ping 2.6s ease-out infinite}
+@keyframes f3ping{0%{box-shadow:0 0 0 0 rgba(170,255,62,.55)}70%{box-shadow:0 0 0 9px rgba(170,255,62,0)}100%{box-shadow:0 0 0 0 rgba(170,255,62,0)}}
+.f3-cdhead{font-family:'Barlow Condensed',sans-serif;font-size:clamp(19px,1.8vw,24px);
+  font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#fff;line-height:1}
+.f3-cdwhen{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lime);text-align:center;margin-bottom:14px}
+/* restyle the site's own countdown markup inside this shell */
+.f3-cd .esq-cd{max-width:none;margin:0;padding:0;background:none;border:none;border-radius:0}
+.f3-cd .esq-cd-label{display:none}          /* our heading above replaces it */
+.f3-cd .esq-cd-digits{gap:9px}
+.f3-cd .esq-cd-cell{background:rgba(4,7,14,.7);border:1px solid rgba(255,255,255,.06);
+  border-radius:11px;padding:11px 4px}
+.f3-cd .esq-cd-num{font-size:clamp(25px,2.6vw,31px);color:#fff;letter-spacing:-.01em}
+.f3-cd .esq-cd-unit{font-size:9.5px;color:#6d7c95;letter-spacing:.13em;margin-top:6px;font-weight:700}
+.f3-cd .esq-cd-note{font-size:12.5px;color:#8b98b2;margin-top:13px;line-height:1.5}
+.f3-cd .esq-cd-note strong{color:#cfd9e8;font-weight:600}
+
+/* ── squad rail ─────────────────────────────────────────────── */
+.f3squad{padding:14px 0 60px !important;position:relative;background:transparent}
+.f3-shead{max-width:1180px;margin:0 auto 4px;padding:0 32px;text-align:center}
+.f3squad h2.f3-sh{font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;
+  font-size:clamp(28px,3.4vw,44px);line-height:1;letter-spacing:.005em;margin:0;color:#fff;text-align:center}
+.f3squad h2.f3-sh span{color:var(--lime)}
+.f3-shead p{font-size:11px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;
+  color:#6f7d97;margin:13px 0 0}
+
+.f3-railouter{position:relative;max-width:1310px;margin:22px auto 0;padding:0 46px}
+.f3-rail{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;cursor:grab;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 3.5%,#000 96.5%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 3.5%,#000 96.5%,transparent)}
+.f3-rail::-webkit-scrollbar{display:none}
+.f3-rail.dragging{cursor:grabbing}
+.f3-track{display:flex;gap:16px;width:max-content;padding:14px 0 18px}
+
+.f3-arw{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;
+  background:rgba(12,17,30,.9);border:1px solid rgba(255,255,255,.13);color:#c7d3e4;font-size:15px;
+  cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.f3-arw:hover{border-color:var(--limeborder);color:var(--lime)}
+.f3-arw.l{left:2px}.f3-arw.r{right:2px}
+
+.f3-card{flex:0 0 176px;width:176px;background:rgba(9,12,22,.66);
+  border:1px solid rgba(255,255,255,.055);border-radius:16px;padding:18px 13px 15px;
+  display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;
+  transition:transform .25s,border-color .25s,box-shadow .25s,background .25s}
+.f3-card:hover{transform:translateY(-5px)}
+.f3-ow{position:relative;width:70px;height:70px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.f3-og{position:absolute;inset:0;border-radius:50%}
+.f3-os{position:relative;z-index:2;width:31px;height:31px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.f3-os svg{width:16px;height:16px;color:rgba(255,255,255,.92)}
+.f3-nm{font-size:13px;font-weight:800;letter-spacing:.045em;text-transform:uppercase;color:#eef3fc;
+  line-height:1.2;text-align:center;min-height:32px;display:flex;align-items:center}
+.f3-act{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;
+  letter-spacing:.04em;line-height:1.2;text-align:center}
+.f3-act i{width:5px;height:5px;border-radius:50%;flex-shrink:0;display:inline-block;
+  animation:f3live 2.8s ease-in-out infinite}
+@keyframes f3live{0%,100%{opacity:.45}50%{opacity:1}}
+.f3-cap{font-size:11.5px;color:#8391aa;text-align:center;line-height:1.42;min-height:33px}
+
+.f3-aria{max-width:760px;margin:28px auto 0;padding:0 32px;display:flex;align-items:center;
+  justify-content:center;gap:16px;text-align:left;flex-wrap:wrap}
+.f3-ariaorb{width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 35% 32%,#d4ff70,#aaff3e 48%,#5a9900);
+  box-shadow:0 0 16px rgba(170,255,62,.45),0 0 40px rgba(170,255,62,.16);
+  animation:f3pulse 4.2s ease-in-out infinite}
+.f3-ariak{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;
+  letter-spacing:.09em;text-transform:uppercase;color:#fff;line-height:1}
+.f3-ariak em{color:var(--lime);font-style:normal;font-size:10.5px;letter-spacing:.15em;
+  margin-left:9px;font-family:'Barlow',sans-serif;font-weight:800}
+.f3-aria p{margin:5px 0 0;font-size:13.5px;color:#98a5bd;line-height:1.5;max-width:430px}
+
+.f3tip{position:fixed;z-index:999990;width:290px;padding:15px 17px 14px;border-radius:15px;
+  background:rgba(9,13,24,.98);border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 24px 60px rgba(0,0,0,.72);opacity:0;visibility:hidden;transform:translateY(6px);
+  transition:opacity .16s,transform .16s,visibility .16s;pointer-events:none}
+.f3tip.on{opacity:1;visibility:visible;transform:translateY(0)}
+.f3tip .c{font-size:9.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;margin-bottom:6px}
+.f3tip .n{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:900;line-height:1;
+  color:#eef3fc;text-transform:uppercase}
+.f3tip .d{font-size:13px;line-height:1.55;color:#bcc6d8;margin-top:9px}
+.f3tip .s{font-size:11.5px;font-weight:800;color:var(--lime);margin-top:11px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08)}
+
+@media(prefers-reduced-motion:reduce){
+  .f3-orb,.f3-ariaorb,.f3-dot,.f3-act i{animation:none}
+}
+@media(max-width:900px){
+  .f3-railouter{padding:0 18px;margin-top:18px}
+  .f3-arw{display:none}
+  .f3-rail{-webkit-mask-image:none;mask-image:none}
+}
+@media(max-width:760px){
+  .f3{padding:40px 18px 32px !important}
+  .f3-shead{padding:0 18px}
+  .f3 button.f3-btn,.f3 button.f3-ghost{flex:1 1 100%;justify-content:center}
+  .f3-cd{padding:17px 14px 14px}
+  .f3-cd .esq-cd-digits{gap:7px}
+  .f3-cd .esq-cd-num{font-size:23px}
+  .f3-card{flex-basis:190px;width:190px}
+  .f3-track{gap:14px}
+  .f3-aria{padding:0 18px;gap:13px}
+}
+</style>
 </head>
 <body>
 
@@ -1622,38 +1785,51 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   .hero-v2 .hv2-sig{font-size:23px;}
 }
 </style>
-      <section class="hero-section hero-v2" id="sec-hero">
-        <div class="hv2-copy">
-          <div class="hero-eyebrow"><span class="dot"></span>Built exclusively for economic developers</div>
-          <p class="hv2-setup">What if you could do less work and have more impact?</p>
-          <h1 class="hero-h1">
-            <span class="white">You don&rsquo;t have to do it all yourself</span>
-            <span class="lime">anymore.</span>
-          </h1>
-          <p class="hero-sub">EconSquad AI gives you <strong>22 specialists</strong> who already know economic development. You brief them. They do the work. You get your week back.</p>
-          <div class="esq-cd" id="launch-cd-hero" data-esq-countdown="hero" style="display:none;"></div>
-          <div class="hero-ctas">
-            <button class="btn-hero" onclick="openAuth('signup')">Hire your squad — free for 14 days</button>
-            <button class="btn-hero-ghost" style="border-color:rgba(170,255,62,0.35);color:#aaff3e;display:flex;align-items:center;gap:8px;" onclick="openDemoTour()"><span style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);box-shadow:0 0 6px rgba(170,255,62,0.5);display:inline-block;flex-shrink:0;animation:ariaorb 3s ease-in-out infinite;"></span> Take a Tour with ARIA</button>
+      <section class="hero-section f3" id="sec-hero">
+        <div class="f3-col">
+          <p class="f3-eyebrow">Less work. <span>More impact.</span></p>
+          <h1 class="f3-h1">Meet your economic<br>development <span>team.</span></h1>
+          <div class="f3-rule"><i></i><span>Built to work for you</span><i></i></div>
+          <p class="f3-sub">Put your ECONSquad to work on the tasks consuming your day &mdash; so you
+            can focus on <b>creating jobs</b>, <b>attracting investment</b> and
+            <b>growing your community</b>.</p>
+          <div class="f3-ctas">
+            <button class="f3-btn" onclick="openAuth('signup')">Put my squad to work &rarr;</button>
+            <button class="f3-ghost" onclick="openDemoTour()"><span class="f3-orb"></span> Take a tour with ARIA</button>
           </div>
-          <p class="hero-note">Credit card required · No charges until your free trial expires · <span>Cancel anytime</span> · Setup in 3 minutes</p>
-          <p class="hv2-guar">Guaranteed to pay for itself — or your money back.</p>
-          <div class="hv2-sig">Less Work. <b>More Impact.</b></div>
-        </div>
-        <div class="hv2-img">
-          <div class="hv2-note" aria-hidden="true">
-            <span>More time for</span>
-            <span>what matters most.</span>
-            <svg viewBox="0 0 300 26" preserveAspectRatio="none"><path d="M4 21 C70 16, 150 9, 296 5"/></svg>
+          <div class="f3-trust">
+            <span><i>&#10003;</i><b>Try it free for 14 days</b></span>
+            <span><i>&#10003;</i><b>Cancel anytime</b></span>
+            <span><i>&#10003;</i><b>Setup takes 3 minutes</b></span>
           </div>
-          <img src="hero-desk.jpg"
-               srcset="hero-desk-900.jpg 900w, hero-desk.jpg 1536w"
-               sizes="(max-width:900px) 100vw, 56vw"
-               width="1536" height="1024"
-               fetchpriority="high" decoding="async"
-               alt="An economic developer at her desk with the EconSquad dashboard open, looking out over her community">
+          <p class="f3-guar">Guaranteed to pay for itself &mdash; <b>or your money back.</b></p>
+          <div class="f3-cd">
+            <div class="f3-cdlive"><span class="f3-dot"></span><span class="f3-cdhead">The squad goes live Tuesday.</span></div>
+            <div class="f3-cdwhen">September 1 &bull; 11:30 AM Central</div>
+            <div class="esq-cd" id="launch-cd-hero" data-esq-countdown="hero" style="display:none;"></div>
+          </div>
         </div>
       </section>
+
+      <section class="mkt-section f3squad" id="sec-squad-rail">
+        <div class="f3-shead">
+          <h2 class="f3-sh">Whatever the mission,<br><span>there&rsquo;s a specialist for it.</span></h2>
+          <p>Your economic development squad &mdash; working 24/7</p>
+        </div>
+        <div class="f3-railouter">
+          <button class="f3-arw l" id="f3prev" type="button" aria-label="Previous specialists">&lsaquo;</button>
+          <button class="f3-arw r" id="f3next" type="button" aria-label="Next specialists">&rsaquo;</button>
+          <div class="f3-rail" id="f3rail"><div class="f3-track" id="f3track"></div></div>
+        </div>
+        <div class="f3-aria">
+          <div class="f3-ariaorb"></div>
+          <div>
+            <div class="f3-ariak">ARIA <em>Your AI Chief of Staff</em></div>
+            <p>Tell ARIA what you need. She puts the right specialists to work.</p>
+          </div>
+        </div>
+      </section>
+      <div class="f3tip" id="f3tip"></div>
 
       <div class="proof-strip">
         <!-- Replaced 2026-08-28. This strip previously claimed 2,400+ economic
@@ -1662,9 +1838,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
              or measurable, and nobody had completed a paid month. Everything
              below is checkable. Keep it that way: this strip sits in the most
              read position on the page. -->
-        <div class="proof-item"><strong>90+</strong> registered for launch</div>
+        <div class="proof-item"><strong>100+</strong> registered for launch</div>
         <div class="proof-dot"></div>
-        <div class="proof-item"><strong>41</strong> states represented</div>
+        <div class="proof-item"><strong>45</strong> states represented</div>
         <div class="proof-dot"></div>
         <div class="proof-item"><strong>22</strong> specialists, built for one profession</div>
         <div class="proof-dot"></div>
@@ -1953,7 +2129,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
       <section class="final-cta">
         <div class="final-cta-box">
           <h2>Less work.<br><span>More impact.</span></h2>
-          <p>Join the economic developers who stopped doing it alone — 90+ registered for launch across 41 states. 14-day free trial. Card required, cancel any time before it ends.</p>
+          <p>Join the economic developers who stopped doing it alone — 100+ registered for launch across 45 states. 14-day free trial. Card required, cancel any time before it ends.</p>
           <div class="final-cta-btns">
             <button class="btn-hero" onclick="openAuth('signup')">Hire your squad now →</button>
             <button class="btn-hero-ghost" onclick="switchView('dashboard')">See the dashboard</button>
@@ -6839,7 +7015,7 @@ function esqMountCountdown(el, opts){
   if(!el) return;
   if(el._esqCdTimer){ clearInterval(el._esqCdTimer); el._esqCdTimer = null; }
   opts = opts || {};
-  var note     = opts.note     || 'Subscribe now and you are <strong>first in</strong> when the squad goes live.';
+  var note     = opts.note     || 'Be one of the <strong>first economic developers</strong> to put your new Squad to work.';
   var liveNote = opts.liveNote || 'The squad is live \u2014 start your free trial and put them to work today.';
 
   function paint(){
@@ -6862,7 +7038,7 @@ function esqMountCountdown(el, opts){
       '<div class="esq-cd-label">Public launch \u00b7 '+ESQ_LAUNCH_LABEL+'</div>'+
       '<div class="esq-cd-digits">'+
         esqCdCell(p.d,'days')+esqCdCell(p.h,'hours')+
-        esqCdCell(p.m,'mins')+esqCdCell(p.s,'secs')+
+        esqCdCell(p.m,'min')+esqCdCell(p.s,'sec')+
       '</div>'+
       '<div class="esq-cd-note">'+note+'</div>';
     el.style.display = '';
@@ -14179,5 +14355,162 @@ function _renderAff_login(){
   </div>
 </div>
 
+
+<script id="esq-fold-v3-js">
+/* Top-fold squad rail, added 2026-08-31.
+   Reads the existing `squad`, `ORB_C`, `ORB_ICONS` and `CAT_COLORS`
+   definitions already in this file — no duplicated specialist data. */
+(function(){
+  function boot(){
+    var rail=document.getElementById('f3rail'), track=document.getElementById('f3track');
+    if(!rail||!track||typeof squad==='undefined') return;
+
+    /* the two new scannable lines per specialist, keyed by the real squad id */
+    var EXTRA={
+      1:['Writing Narratives','Draft grant narratives that win'],
+      2:['Finding Opportunities','Find grants & funding opportunities'],
+      3:['Drafting Responses','Answer RFPs ready to submit'],
+      4:['Analyzing Sites','Evaluate sites & buildings'],
+      5:['Comparing Locations','Rank competing sites side by side'],
+      6:['Building Surveys','Ask the questions that surface risk'],
+      7:['Analyzing Results','Turn BRE data into insights'],
+      8:['Modeling Impact','Show jobs, wages & tax revenue'],
+      9:['Assessing Position','Map strengths, gaps & threats'],
+      10:['Researching Companies','Find & qualify ideal prospects'],
+      11:['Modeling Packages','Build incentives that close deals'],
+      12:['Finding Credits','Surface credits others miss'],
+      13:['Announcing Wins','Write releases editors pick up'],
+      14:['Creating Content','Create content that attracts investment'],
+      15:['Analyzing Workforce','Analyze labor & workforce data'],
+      16:['Measuring Talent','Answer the talent question fast'],
+      17:['Building Reports','Turn a year of work into a story'],
+      18:['Briefing the Board','Brief your board in one page'],
+      19:['Rewriting Email','Turn ignored email into replies'],
+      20:['Opening Doors','Open with a letter that lands'],
+      21:['Drafting Responses','Create compelling RFI responses'],
+      22:['Crunching Numbers','Turn data into actionable insights']
+    };
+    var FALLBACK='<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+
+    function card(sp){
+      var c=ORB_C[sp.color]; if(!c) return '';
+      var rgb=c.r.join(','), cat=(typeof CAT_COLORS!=='undefined'&&CAT_COLORS[sp.cat])||'#aaff3e';
+      var ex=EXTRA[sp.id]||['Standing By', sp.role||''];
+      var ico=(typeof ORB_ICONS!=='undefined'&&ORB_ICONS[sp.id])||FALLBACK;
+      return '<div class="f3-card" data-id="'+sp.id+'" style="--rgb:'+rgb+'">'+
+        '<div class="f3-ow">'+
+          '<div class="f3-og" style="background:radial-gradient(circle at 50% 50%,rgba('+rgb+',.28),rgba('+rgb+',.09) 42%,transparent 68%)"></div>'+
+          '<div class="f3-os" style="background:radial-gradient(circle at 36% 32%,'+c.hi+','+c.mid+' 48%,'+c.lo+');'+
+            'box-shadow:0 0 13px rgba('+rgb+',.6),0 0 28px rgba('+rgb+',.28),0 0 50px rgba('+rgb+',.12)">'+
+            '<svg viewBox="0 0 24 24">'+ico+'</svg></div>'+
+        '</div>'+
+        '<div class="f3-nm">'+sp.name+'</div>'+
+        '<div class="f3-act" style="color:'+cat+'"><i style="background:'+cat+'"></i>'+ex[0]+'</div>'+
+        '<div class="f3-cap">'+ex[1]+'</div></div>';
+    }
+
+    var one=squad.map(card).join('');
+    track.innerHTML=one+one;                     /* two runs -> seamless loop */
+
+    var half=0;
+    function measure(){ half=track.scrollWidth/2; }
+    measure(); window.addEventListener('load',measure); window.addEventListener('resize',measure);
+
+    var reduce=false;
+    try{ reduce=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+    var SPEED=0.34, paused=false, dragging=false, resumeT=null, last=0, pos=0;
+    /* scrollLeft truncates sub-pixel writes, so the true position is kept as a float */
+    function resync(){ pos=rail.scrollLeft; }
+    function loop(ts){
+      if(!last) last=ts;
+      var dt=Math.min(ts-last,50); last=ts;
+      if(!paused&&!dragging&&!reduce&&half>0){
+        pos+=SPEED*(dt/16.67);
+        if(pos>=half) pos-=half;
+        rail.scrollLeft=pos;
+      }
+      requestAnimationFrame(loop);
+    }
+    if(!reduce) requestAnimationFrame(loop);
+    function hold(ms){ paused=true; clearTimeout(resumeT); resumeT=setTimeout(function(){paused=false;},ms||2500); }
+
+    rail.addEventListener('mouseenter',function(){paused=true;clearTimeout(resumeT);});
+    rail.addEventListener('mouseleave',function(){ if(!dragging){resync();paused=false;} });
+    rail.addEventListener('focusin',function(){paused=true;});
+
+    function step(dir){
+      var w=(window.innerWidth<=760?190:176)+(window.innerWidth<=760?14:16);
+      rail.scrollBy({left:dir*w*3,behavior:'smooth'});
+      hold(3000); setTimeout(resync,420);
+    }
+    var nx=document.getElementById('f3next'), pv=document.getElementById('f3prev');
+    if(nx) nx.onclick=function(){step(1);};
+    if(pv) pv.onclick=function(){step(-1);};
+
+    var sx=0, ss=0, moved=0;
+    rail.addEventListener('pointerdown',function(e){
+      dragging=true; moved=0; sx=e.clientX; ss=rail.scrollLeft;
+      rail.classList.add('dragging');
+      try{ rail.setPointerCapture(e.pointerId); }catch(err){}
+    });
+    rail.addEventListener('pointermove',function(e){
+      if(!dragging)return;
+      var d=e.clientX-sx; moved=Math.abs(d); rail.scrollLeft=ss-d;
+      if(half>0){ if(rail.scrollLeft>=half){rail.scrollLeft-=half; ss-=half;}
+                  if(rail.scrollLeft<=0){rail.scrollLeft+=half; ss+=half;} }
+    });
+    function endDrag(){ if(!dragging)return; dragging=false; rail.classList.remove('dragging'); resync(); hold(2500); }
+    rail.addEventListener('pointerup',endDrag);
+    rail.addEventListener('pointercancel',endDrag);
+    rail.addEventListener('scroll',function(){
+      if(half>0&&rail.scrollLeft>=half) rail.scrollLeft-=half;
+      if(paused||dragging) resync();
+    },{passive:true});
+
+    /* helper panel */
+    var tip=document.getElementById('f3tip'), by={}, hideT;
+    squad.forEach(function(sp){ by[sp.id]=sp; });
+    function open(el){
+      var sp=by[el.dataset.id]; if(!sp||!tip)return;
+      var cat=(typeof CAT_COLORS!=='undefined'&&CAT_COLORS[sp.cat])||'#aaff3e';
+      var cn=(typeof CAT_NAMES!=='undefined'&&CAT_NAMES[sp.cat])||sp.cat||'';
+      tip.innerHTML='<div class="c" style="color:'+cat+'">'+cn+'</div>'+
+        '<div class="n">'+sp.name+'</div>'+
+        '<div class="d">'+(sp.desc||'')+'</div>'+
+        '<div class="s">'+(sp.save||'')+'</div>';
+      tip.classList.add('on');
+      var r=el.getBoundingClientRect(), th=tip.offsetHeight, tw=290;
+      var l=Math.max(12,Math.min(r.left+r.width/2-tw/2, window.innerWidth-tw-12));
+      var t=r.top-th-14; if(t<12) t=r.bottom+14;
+      tip.style.left=l+'px'; tip.style.top=t+'px';
+    }
+    function close(){ if(tip) tip.classList.remove('on'); }
+    track.addEventListener('mouseover',function(e){
+      var el=e.target.closest('.f3-card'); if(!el)return;
+      clearTimeout(hideT);
+      var rgb=el.style.getPropertyValue('--rgb');
+      el.style.borderColor='rgba('+rgb+',.30)';
+      el.style.boxShadow='0 14px 36px rgba('+rgb+',.13)';
+      el.style.background='rgba(13,17,31,.9)';
+      open(el);
+    });
+    track.addEventListener('mouseout',function(e){
+      var el=e.target.closest('.f3-card'); if(!el||el.contains(e.relatedTarget))return;
+      el.style.borderColor=''; el.style.boxShadow=''; el.style.background='';
+      hideT=setTimeout(close,120);
+    });
+    track.addEventListener('click',function(e){
+      var el=e.target.closest('.f3-card'); if(!el||moved>6)return;
+      hold(6000); open(el);
+    });
+    document.addEventListener('click',function(e){
+      if(!e.target.closest('.f3-card')&&!e.target.closest('.f3tip')) close();
+    });
+    window.addEventListener('scroll',close,{passive:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
+  else boot();
+})();
+</script>
 </body>
 </html>
