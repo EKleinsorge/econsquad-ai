@@ -4668,7 +4668,17 @@ function updateIntegrationStatus(){
   var el = document.getElementById('pm-integrations');
   if(!el) return;
   var storedProvider = localStorage.getItem('esq_email_provider') || _emailProvider;
-  var isGoogle    = (storedProvider === 'google') && localStorage.getItem('esq_gmail_disconnected') !== '1';
+  /* The dot must agree with getProviderToken(), which refuses to return a token
+     unless GMAIL_SCOPE_KEY is set. Before this fix the panel read only
+     esq_email_provider, so a leftover 'google' from before the 2026-08-28 scope
+     split showed a green dot and a Disconnect button while the inbox and
+     calendar came back empty — and the only route back was to guess at
+     Disconnect-then-Connect. Now an unusable connection reads as disconnected,
+     so the button offered is the one that actually fixes it. */
+  var hasOfficeScope = localStorage.getItem(GMAIL_SCOPE_KEY) === '1';
+  var isGoogle    = (storedProvider === 'google')
+                 && localStorage.getItem('esq_gmail_disconnected') !== '1'
+                 && hasOfficeScope;
   var isMicrosoft = (storedProvider === 'microsoft');
   var row = function(icon, label, connected, connectFn, disconnectFn){
     var statusDot = connected
