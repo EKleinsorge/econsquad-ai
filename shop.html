@@ -130,7 +130,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
       <p>Tee + Mug + Notebook — everything you need to look the part at your next EDC conference.</p>
     </div>
     <!-- REPLACE HREF WITH YOUR STRIPE PAYMENT LINK FOR BUNDLE -->
-    <a href="#" class="btn-lime" style="font-size:14px;padding:12px 28px;white-space:nowrap;">Get the Bundle · $54.99 →</a>
+    <a id="bundle-btn" class="btn-lime" style="font-size:14px;padding:12px 28px;white-space:nowrap;background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Bundle coming soon</a>
   </div>
 
   <!-- Filter tabs -->
@@ -156,7 +156,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$28.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -170,7 +173,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$26.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -184,7 +190,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$48.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -201,7 +210,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$16.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -215,7 +227,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$34.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -229,7 +244,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$14.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -243,7 +261,10 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-footer">
           <div class="product-price">$12.99</div>
           <!-- REPLACE HREF WITH STRIPE PAYMENT LINK -->
-          <a href="#" class="btn-add">Add to Cart →</a>
+          <!-- No Stripe link yet: a live "Add to Cart" pointing at # just bounces
+               the visitor to the top of the page. Shows Coming soon until a
+               stripe_link exists (either here, or on the row in shop_products). -->
+          <span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>
         </div>
       </div>
     </div>
@@ -256,7 +277,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
         <div class="product-desc">6-pack of die-cut EconSquad AI stickers. Laptop-ready. Weather resistant. Coming soon.</div>
         <div class="product-footer">
           <div class="product-price" style="color:var(--text2);">Coming Soon</div>
-          <a href="#" class="btn-add">Notify Me</a>
+          <a href="contact.html" class="btn-add">Notify Me &rarr;</a>
         </div>
       </div>
     </div>
@@ -312,7 +333,7 @@ function filterProducts(cat, btn) {
         ? '<a href="#" class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;pointer-events:none;">Coming Soon</a>'
         : (p.stripe_link
             ? '<a href="'+p.stripe_link+'" class="btn-add" target="_blank">Order →</a>'
-            : '<a href="#" class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;">Buy →</a>');
+            : '<span class="btn-add" style="background:rgba(255,255,255,0.08);color:#8a97b5;cursor:default;">Coming soon</span>');
       return '<div class="product-card'+(p.coming_soon?' coming-soon':'')+'" data-cat="'+escHtml(p.category)+'">'
         +'<div class="product-img">'+imgHtml+badge+'</div>'
         +'<div class="product-info">'
@@ -342,13 +363,17 @@ function filterProducts(cat, btn) {
     if(res.error || !res.data) return;
     var settings = {};
     res.data.forEach(function(r){ settings[r.key]=r.value; });
-    var bundleBtn = document.querySelector('.bundle-banner a');
+    var bundleBtn = document.getElementById('bundle-btn') || document.querySelector('.bundle-banner a');
     if(bundleBtn){
       if(settings.bundle_stripe_link && settings.bundle_stripe_link !== '#'){
+        /* a real link exists — wake the button back up */
         bundleBtn.href = settings.bundle_stripe_link;
-      }
-      if(settings.bundle_price){
-        bundleBtn.textContent = 'Get the Bundle · '+settings.bundle_price+' →';
+        bundleBtn.style.background = '';
+        bundleBtn.style.color = '';
+        bundleBtn.style.cursor = '';
+        bundleBtn.textContent = 'Get the Bundle · '+(settings.bundle_price||'$54.99')+' →';
+      } else if(settings.bundle_price){
+        bundleBtn.textContent = 'Bundle coming soon';
       }
     }
   });

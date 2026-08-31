@@ -4583,7 +4583,7 @@ function launchStripeCheckout(plan){
 }
 
 function contactEnterprise(){
-  window.location.href='mailto:hello@econsquadai.com?subject=Enterprise%20Plan%20Inquiry&body=Hi%2C%20I%27m%20interested%20in%20the%20Enterprise%20plan%20for%20EconSquad%20AI.';
+  window.location.href='mailto:hello@econsquad.ai?subject=Enterprise%20Plan%20Inquiry&body=Hi%2C%20I%27m%20interested%20in%20the%20Enterprise%20plan%20for%20EconSquad%20AI.';
 }
 
 function showCheckoutSuccess(){
@@ -14535,6 +14535,37 @@ function _renderAff_login(){
     });
     window.addEventListener('scroll',close,{passive:true});
   }
+  /* ── When the countdown reaches zero ───────────────────────────
+     esqMountCountdown() swaps #launch-cd-hero to its "live" state and adds the
+     class `live`. Our shell has its own static heading above it ("The squad
+     goes live Tuesday"), and .f3-cd .esq-cd-label is hidden by our CSS — so
+     without this the panel would keep announcing a future event after launch.
+     Watch for the class and rewrite the shell's own words. */
+  function watchGoLive(){
+    var cd=document.getElementById('launch-cd-hero');
+    var head=document.querySelector('.f3-cd .f3-cdhead');
+    var when=document.querySelector('.f3-cd .f3-cdwhen');
+    if(!cd||!head||!when) return;
+    var done=false;
+    function apply(){
+      if(done) return;
+      if(cd.className.indexOf('live')===-1) return;
+      done=true;
+      head.textContent='The ECONSquad is officially open for hire.';
+      when.textContent='Live now \u00b7 September 1';
+      var note=cd.querySelector('.esq-cd-note');
+      if(note) note.innerHTML='Your squad is standing by. <strong>Start your free trial</strong> and put them to work today.';
+    }
+    apply();                                   /* already live on load */
+    try{
+      new MutationObserver(apply).observe(cd,{attributes:true,attributeFilter:['class'],childList:true});
+    }catch(e){
+      var n=0, t=setInterval(function(){ apply(); if(done||++n>7200) clearInterval(t); },1000);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',watchGoLive);
+  else watchGoLive();
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
   else boot();
 })();
