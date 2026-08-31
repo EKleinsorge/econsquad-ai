@@ -1404,6 +1404,15 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .dt-orbs svg{width:14px;height:14px;color:rgba(255,255,255,.92);}
 @keyframes f3live2{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.dt-orbs{animation:none}}
+
+/* Merch (Book / Shop) is hidden for launch. It is hidden in CSS and revealed by
+   JS only when book_settings.merch_visible === 'true', so there is never a flash
+   of a link that is about to disappear. Flip the row in Supabase to turn it on —
+   no deploy needed. book-reader.html (free online book) is NOT hidden. */
+.esq-merch{display:none !important}
+body.esq-merch-on li.esq-merch{display:list-item !important}
+body.esq-merch-on a.esq-merch{display:inline-block !important}
+body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
 </style>
 </head>
 <body>
@@ -1452,8 +1461,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <li><a onclick="scrollToSection('sec-squad')">Specialists</a></li>
           <li><a onclick="scrollToSection('sec-pricing')">Pricing</a></li>
           <li><a onclick="scrollToSection('sec-aria')">About ARIA</a></li>
-          <li><a href="book.html">Book</a></li>
-          <li><a href="shop.html">Shop</a></li>
+          <li><a href="support.html">Support</a></li>
+          <li ><a class="esq-merch" href="book.html">Book</a></li>
+          <li ><a class="esq-merch" href="shop.html">Shop</a></li>
         </ul>
       </div>
 
@@ -1469,8 +1479,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <li class="nav-dropdown">
             <a id="dash-nav-resources" class="nav-dropdown-trigger" style="cursor:pointer;">Resources <span class="nav-caret">▾</span></a>
             <ul class="nav-dropdown-menu">
-              <li><a href="shop.html" target="_blank">🛍️ SwagShop</a></li>
-              <li><a href="book.html" target="_blank">📖 Book</a></li>
+              <li><a class="esq-merch" href="shop.html" target="_blank">🛍️ SwagShop</a></li>
+              <li><a class="esq-merch" href="book.html" target="_blank">📖 Book</a></li>
               <li><a onclick="showDashTab('resources-tab',null)" style="cursor:pointer;">📬 Monday AI for ED Drop</a></li>
               <div class="nav-dd-divider"></div>
               <li><a onclick="openBillingModal()" style="cursor:pointer;">💳 Billing</a></li>
@@ -2188,8 +2198,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
           <a href="terms.html" target="_blank">Terms</a>
           <a href="support.html" target="_blank">Support</a>
           <a href="blog.html" target="_blank">Blog</a>
-          <a href="book.html" target="_blank">Book</a>
-          <a href="shop.html" target="_blank">Shop</a>
+          <a href="book.html" target="_blank" class="esq-merch">Book</a>
+          <a href="shop.html" target="_blank" class="esq-merch">Shop</a>
           <a href="contact.html" target="_blank">Contact</a>
           <a href="support.html#partner-program" target="_blank" style="color:var(--lime);font-weight:700;">Squad Affiliates</a>
         </div>
@@ -2668,12 +2678,12 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
               <div><div class="res-quick-title">Less Work. More Impact.</div><div class="res-quick-desc">Read the full book online — all 16 chapters in the web reader</div></div>
               <div class="res-quick-arrow">→</div>
             </a>
-            <a class="res-quick-card" href="book.html" target="_blank">
+            <a class="res-quick-card esq-merch" href="book.html" target="_blank">
               <div class="res-quick-icon">🛒</div>
               <div><div class="res-quick-title">Get the Book</div><div class="res-quick-desc">Digital, hardcover, and team editions available</div></div>
               <div class="res-quick-arrow">→</div>
             </a>
-            <a class="res-quick-card" href="shop.html" target="_blank">
+            <a class="res-quick-card esq-merch" href="shop.html" target="_blank">
               <div class="res-quick-icon">👕</div>
               <div><div class="res-quick-title">EconSquad Swag Shop</div><div class="res-quick-desc">Apparel, drinkware, and accessories for ED pros</div></div>
               <div class="res-quick-arrow">→</div>
@@ -14568,6 +14578,25 @@ function _renderAff_login(){
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
   else boot();
+})();
+</script>
+
+<script id="esq-merch-flag">
+/* Book and Shop are hidden for launch (nothing is buyable yet). To bring them
+   back, set book_settings.merch_visible = 'true' in Supabase — no deploy. */
+(function(){
+  function go(){
+    try{
+      if(typeof supa==='undefined') return;
+      supa.from('book_settings').select('key,value').eq('key','merch_visible')
+        .then(function(res){
+          if(res && res.data && res.data[0] && String(res.data[0].value).toLowerCase()==='true'){
+            document.body.classList.add('esq-merch-on');
+          }
+        }, function(){});
+    }catch(e){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
 })();
 </script>
 </body>
