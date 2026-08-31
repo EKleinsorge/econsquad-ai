@@ -14599,5 +14599,19 @@ function _renderAff_login(){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
 })();
 </script>
+
+<script id="esq-hash-nav">
+/* Sub-page nav links point at index.html#sec-xxx. Without this the browser
+   lands at the top of the page because those sections are revealed by JS. */
+(function(){
+  function jump(){
+    var h=(location.hash||'').replace('#','');
+    if(!h || !document.getElementById(h)) return;
+    setTimeout(function(){ try{ scrollToSection(h); }catch(e){} }, 400);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',jump); else jump();
+  window.addEventListener('hashchange', jump);
+})();
+</script>
 </body>
 </html>
