@@ -5220,7 +5220,20 @@ function ariaFallbackMatch(task){
      Now: phrases score higher than single words, and a zero score returns
      null so the caller can say it does not know. */
   var t=' '+String(task||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ')+' ';
-  var specs=Object.values(ttSpecData);
+  /* Search the full squad, not just ttSpecData. ttSpecData is populated only
+     from the `specialists` table, so any specialist missing a row there was
+     invisible to ARIA — which is why "I need a cover letter" found nothing
+     even after Clara had keywords. The DB row, where it exists, wins for the
+     display copy; the code array guarantees nobody is missing. */
+  var specs=(typeof squad!=='undefined'&&squad.length?squad:[]).map(function(x){
+    var db=ttSpecData[x.id]||{};
+    return {id:x.id,
+            name:db.name||x.name,
+            role:db.role||x.role,
+            cat:db.cat||x.cat,
+            description:db.description||x.desc||''};
+  });
+  if(!specs.length) specs=Object.values(ttSpecData);
   var keywords={
     1:['grant narrative','grant application','write a grant','grant writing','cdbg','eda','usda','arpa','narrative','grant'],
     2:['find grants','find funding','funding opportunity','grant search','opportunities','funding','discover'],
