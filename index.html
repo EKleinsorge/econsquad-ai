@@ -1396,6 +1396,14 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
   .f3-track{gap:14px}
   .f3-aria{padding:0 18px;gap:13px}
 }
+
+/* tour specialist orb — matches the dashboard and the homepage rail */
+.dt-orbw{position:relative;width:46px;height:46px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.dt-orbg{position:absolute;inset:-6px;border-radius:50%;}
+.dt-orbs{position:relative;z-index:2;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:f3live2 4.4s ease-in-out infinite;}
+.dt-orbs svg{width:14px;height:14px;color:rgba(255,255,255,.92);}
+@keyframes f3live2{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.dt-orbs{animation:none}}
 </style>
 </head>
 <body>
@@ -12380,11 +12388,26 @@ function _dtEC(cls,ini,snd,addr,subj,prev,tL,tC,tBg,tBd,bL,bBg,bBd,bC,av){
     +'<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-size:10px;padding:4px 10px;border-radius:7px;">Archive</span>'
     +'</div></div>';
 }
-function _dtSC(icon,name,role,desc,c,bg,bd){
-  return'<div class="dt-sc"><div style="width:46px;height:46px;border-radius:14px;background:'+bg+';border:1px solid '+bd+';display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">'+icon+'</div>'
-    +'<div style="flex:1;min-width:0;"><div style="font-family:\'Barlow\',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:1px;">'+name+'</div>'
-    +'<div style="font-size:11px;color:'+c+';font-weight:600;margin-bottom:5px;">'+role+'</div>'
-    +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+desc+'</div></div>'
+function _dtSC(id){
+  /* Rebuilt 2026-08-31: the tour used to draw an emoji in a rounded square with
+     invented role titles. It now renders the real orb (same ORB_C gradient and
+     ORB_ICONS glyph as the dashboard) and reads the real name, role and
+     description straight from `squad` / `SPECIALIST_NAMES`, so the tour can
+     never drift out of step with the product. */
+  var sp=null;
+  for(var i=0;i<squad.length;i++){ if(squad[i].id===id){ sp=squad[i]; break; } }
+  if(!sp) return '';
+  var col=ORB_C[sp.color]||ORB_C.lime, rgb=col.r.join(',');
+  var person=(typeof SPECIALIST_NAMES!=='undefined'&&SPECIALIST_NAMES[sp.id])?SPECIALIST_NAMES[sp.id].name:sp.name;
+  var ico=(typeof ORB_ICONS!=='undefined'&&ORB_ICONS[sp.id])||'<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.3"/>';
+  return'<div class="dt-sc">'
+    +'<div class="dt-orbw"><div class="dt-orbg" style="background:radial-gradient(circle at 50% 50%,rgba('+rgb+',.30),rgba('+rgb+',.10) 44%,transparent 70%);"></div>'
+      +'<div class="dt-orbs" style="background:radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+');box-shadow:0 0 12px rgba('+rgb+',.60),0 0 26px rgba('+rgb+',.26);">'
+        +'<svg viewBox="0 0 24 24">'+ico+'</svg></div></div>'
+    +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-family:\'Barlow\',sans-serif;font-size:15px;font-weight:800;color:#eef3fc;margin-bottom:1px;">'+person+'</div>'
+      +'<div style="font-size:11px;color:'+col.txt+';font-weight:700;margin-bottom:5px;">'+sp.name+' &middot; '+sp.role+'</div>'
+      +'<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+sp.desc+'</div></div>'
     +'<span style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:10px;font-weight:700;padding:6px 14px;border-radius:8px;align-self:center;white-space:nowrap;">Deploy</span></div>';
 }
 function _dtCE(time,title,loc,c){
@@ -12411,9 +12434,9 @@ var _DEMO_STEPS=[
   },
   {lbl:'Step 2 of 5',title:'Your Squad',
    narration:"Deploy a specialist for any task. Each one is trained on a single economic development job. Just click Deploy and describe what you need. Results in minutes, not hours.",
-   content:function(){return _dtSC('🗺','Riley','Site Selection and RFI Specialist','Analyzes sites, writes competitive RFI responses, and identifies location incentives.','#64afff','rgba(100,175,255,0.12)','rgba(100,175,255,0.3)')
-     +_dtSC('📝','Grant Writer','Federal and State Grant Specialist','Writes compelling narratives for EDA, CDBG, USDA, and ARPA funding. Formats to funder requirements.','#f5c542','rgba(245,197,66,0.12)','rgba(245,197,66,0.3)')
-     +_dtSC('🤝','BRE Specialist','Business Retention and Expansion Expert','Drafts BRE surveys, analyzes company responses, and flags at-risk businesses needing outreach.','#32e1c8','rgba(50,225,200,0.12)','rgba(50,225,200,0.3)');}
+   content:function(){return _dtSC(21)   /* RFI Responder  - Riley */
+     +_dtSC(1)                        /* Grant Writer Pro - Gary  */
+     +_dtSC(6);}                      /* BRE Survey Builder - Blake */
   },
   {lbl:'Step 3 of 5',title:'ARIA Calendar',
    narration:"Your Gmail or Outlook calendar syncs automatically. I keep track of site visits, council meetings, and grant deadlines so nothing slips through.",
