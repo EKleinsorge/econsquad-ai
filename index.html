@@ -7340,9 +7340,91 @@ function esqAudioPrime(){
       for(var i=0;i<len;i++) d[i] = Math.random()*2 - 1;
     }
     if(_esqAC.state === 'suspended'){ try{ _esqAC.resume(); }catch(e){} }
+    try{ esqDecodeShowAudio(); }catch(e){}
     return _esqAC;
   }catch(e){ return null; }
 }
+/* ---- Recorded show audio -------------------------------------------
+   Two ElevenLabs tracks, trimmed and peak-normalised to -3 dBFS:
+     audio/launch-show.mp3   10.5s  the fireworks, head trimmed to 0 ms so
+                                    the first bang lands with the confetti
+     audio/crowd-cheer.mp3   10.7s  the crowd, swelling through the middle
+
+   These are the real show. The synthesised fanfare and per-burst booms
+   below are the fallback and only run if these fail to load, so a bad
+   network at the venue costs you fidelity, not silence.
+
+   Bytes are prefetched at page load (a plain fetch needs no user gesture
+   and warms the HTTP cache), then decoded when the audio context is
+   primed. That way the click-to-arm step is instant even seconds before
+   zero, instead of waiting on a 250 KB download. */
+var ESQ_SHOW_SRC   = 'audio/launch-show.mp3';
+var ESQ_CHEER_SRC  = 'audio/crowd-cheer.mp3';
+var _esqShowBytes = null, _esqCheerBytes = null;
+var _esqShowBuf   = null, _esqCheerBuf   = null;
+var _esqShowNodes = [];
+
+function esqPrefetchShowAudio(){
+  if(_esqShowBytes || !window.fetch) return;
+  var grab = function(url, set){
+    fetch(url, {cache:'force-cache'})
+      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
+      .then(function(b){ if(b) set(b); })
+      .catch(function(){});
+  };
+  grab(ESQ_SHOW_SRC,  function(b){ _esqShowBytes  = b; });
+  grab(ESQ_CHEER_SRC, function(b){ _esqCheerBytes = b; });
+}
+try{
+  if(document.readyState === 'complete') esqPrefetchShowAudio();
+  else window.addEventListener('load', esqPrefetchShowAudio, {once:true});
+}catch(e){}
+
+function esqDecodeShowAudio(){
+  if(!_esqAC) return;
+  var dec = function(bytes, set){
+    if(!bytes) return;
+    try{
+      /* Slice: decodeAudioData detaches the buffer, so keep the original
+         in case a second prime needs to decode again. */
+      _esqAC.decodeAudioData(bytes.slice(0), function(buf){ set(buf); }, function(){});
+    }catch(e){}
+  };
+  if(!_esqShowBuf)  dec(_esqShowBytes,  function(b){ _esqShowBuf  = b; });
+  if(!_esqCheerBuf) dec(_esqCheerBytes, function(b){ _esqCheerBuf = b; });
+}
+
+/* Returns true if the recorded show started. false means the caller should
+   fall back to the synthesised version. */
+function esqPlayShowAudio(){
+  if(!esqSoundOn()) return false;
+  var ac = esqAudioPrime();
+  if(!ac || ac.state !== 'running') return false;
+  if(!_esqShowBuf) { esqDecodeShowAudio(); return false; }
+  try{
+    esqStopShowAudio();
+    var t = ac.currentTime + 0.02;
+    var start = function(buf, gain){
+      if(!buf) return;
+      var src = ac.createBufferSource(), g = ac.createGain();
+      src.buffer = buf;
+      g.gain.value = gain;
+      src.connect(g); g.connect(_esqMaster);
+      src.start(t);
+      _esqShowNodes.push(src);
+    };
+    start(_esqShowBuf, 1.0);
+    /* Crowd sits under the fireworks, not level with them. */
+    start(_esqCheerBuf, 0.5);
+    return true;
+  }catch(e){ return false; }
+}
+
+function esqStopShowAudio(){
+  _esqShowNodes.forEach(function(n){ try{ n.stop(); }catch(e){} });
+  _esqShowNodes = [];
+}
+
 /* Build it the moment the user touches the page, long before zero. */
 ['pointerdown','keydown','touchstart'].forEach(function(ev){
   try{ window.addEventListener(ev, function(){ if(esqSoundOn()) esqAudioPrime(); }, {once:true, passive:true}); }catch(e){}
@@ -7483,8 +7565,14 @@ function esqConfetti(opts){
   var LAST_LOFT = Math.max(600, DUR - 2800);
 
   /* Fires with the confetti, not with the first shell — the paper is what
-     the room sees first. */
-  if(opts.sound !== false) esqPlayFanfare();
+     the room sees first. The recorded track already contains its own bangs,
+     so when it plays we suppress the synthesised per-burst booms below;
+     otherwise you get two sets of fireworks a few milliseconds apart. */
+  var _liveAudio = false;
+  if(opts.sound !== false){
+    _liveAudio = esqPlayShowAudio();
+    if(!_liveAudio) esqPlayFanfare();
+  }
 
   var cv = document.createElement('canvas');
   cv.id = 'esq-confetti';
@@ -7569,12 +7657,13 @@ function esqConfetti(opts){
     sh.color = pick();
     sh.hist = [];
     sh.up = true;
-    /* Only about half whistle — sixteen at once is a kettle, not a show. */
-    if(Math.random() < 0.55) esqPlayWhistle(sh.x / Math.max(1, W()));
+    /* Only about half whistle — sixteen at once is a kettle, not a show.
+       Silent when the recorded track is carrying the audio. */
+    if(!_liveAudio && Math.random() < 0.55) esqPlayWhistle(sh.x / Math.max(1, W()));
   }
 
   function burst(sh){
-    esqPlayBoom(sh.x / Math.max(1, W()));
+    if(!_liveAudio) esqPlayBoom(sh.x / Math.max(1, W()));
     var speed  = 4.2 + Math.random()*2.6;
     var accent = pick();
     for(var k = 0; k < SPARKS; k++){
@@ -7599,6 +7688,7 @@ function esqConfetti(opts){
   var raf = null, stopped = false;
 
   function stop(){
+    try{ esqStopShowAudio(); }catch(e){}
     if(stopped) return;
     stopped = true;
     if(raf) cancelAnimationFrame(raf);
