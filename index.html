@@ -3546,14 +3546,33 @@ function _captureGoogleRefreshToken(session){
      carries Gmail scopes and not just openid/email/profile. */
   try{ localStorage.setItem(GMAIL_SCOPE_KEY,'1'); }catch(e){}
   try{
-    supa.from('google_credentials').upsert({
+    /* Deliberately insert-then-update rather than upsert.
+       Postgres requires TABLE-LEVEL SELECT privilege for
+       INSERT ... ON CONFLICT DO UPDATE, because DO UPDATE reads the
+       pre-existing row. SELECT is revoked from `authenticated` on this
+       table on purpose, so that a stolen session can never read a mail
+       credential back out. Two statements keep the table write-only.
+       23505 = unique_violation, i.e. the row already exists. */
+    var _gcRow = {
       user_id:       session.user.id,
       refresh_token: session.provider_refresh_token,
       scopes:        GOOGLE_SCOPES_OFFICE,
       updated_at:    new Date().toISOString()
-    }, { onConflict:'user_id' }).then(function(res){
-      if(res && res.error) console.warn('[esq] google refresh token not stored:', res.error.message);
-    }, function(err){ console.warn('[esq] google refresh token not stored:', err); });
+    };
+    var _gcWarn = function(m){ console.warn('[esq] google refresh token not stored:', m); };
+    supa.from('google_credentials').insert(_gcRow).then(function(res){
+      if(!res || !res.error) return;
+      if(res.error.code === '23505'){
+        return supa.from('google_credentials').update({
+          refresh_token: _gcRow.refresh_token,
+          scopes:        _gcRow.scopes,
+          updated_at:    _gcRow.updated_at
+        }).eq('user_id', _gcRow.user_id).then(function(u){
+          if(u && u.error) _gcWarn(u.error.message);
+        }, function(e){ _gcWarn(e); });
+      }
+      _gcWarn(res.error.message);
+    }, function(err){ _gcWarn(err); });
   }catch(e){ console.warn('[esq] google refresh token not stored:', e); }
 }
 
@@ -10504,6 +10523,12 @@ function getProviderToken(){
     _emailProvider = null;
     return Promise.resolve(null);
   }
+  /* A token we minted earlier and that has not expired yet. */
+  if(_gTokenCache && Date.now() < _gTokenExpiry - 60000){
+    providerToken = _gTokenCache;
+    _emailProvider = 'google';
+    return Promise.resolve(_gTokenCache);
+  }
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
     if(session && session.provider_token){
@@ -10512,8 +10537,47 @@ function getProviderToken(){
       localStorage.setItem('esq_email_provider','google');
       return providerToken;
     }
-    return null;
-  });
+    /* Session token is gone — Supabase never refreshes it, and Google's expires
+       after about an hour. Ask the server to mint a new one from the stored
+       refresh token. Added 2026-08-31; before this the office simply went quiet.
+       Everything below is fail-safe: any error, any non-answer, and we return
+       null exactly as before, which shows the Connect prompt. */
+    return _refreshGoogleToken(session);
+  }).catch(function(){ return null; });
+}
+
+var _gTokenCache = null, _gTokenExpiry = 0;
+
+function _refreshGoogleToken(session){
+  try{
+    if(!session || !session.access_token) return Promise.resolve(null);
+    return fetch(SUPA_URL + '/functions/v1/google-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      }
+    }).then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d) return null;
+        if(d.reconnect){
+          /* The stored refresh token is gone or dead. Stop claiming a
+             connection so the UI offers Connect rather than Disconnect. */
+          try{ localStorage.removeItem(GMAIL_SCOPE_KEY); }catch(e){}
+          _gTokenCache = null; _gTokenExpiry = 0;
+          return null;
+        }
+        if(!d.access_token) return null;
+        _gTokenCache  = d.access_token;
+        _gTokenExpiry = Date.now() + (Number(d.expires_in || 3600) * 1000);
+        providerToken = d.access_token;
+        _emailProvider = 'google';
+        try{ localStorage.setItem('esq_email_provider','google'); }catch(e){}
+        return d.access_token;
+      })
+      .catch(function(){ return null; });   /* offline, 404, anything: behave as before */
+  }catch(e){ return Promise.resolve(null); }
 }
 
 /* Connect Gmail - triggers Google OAuth with Gmail scopes */
