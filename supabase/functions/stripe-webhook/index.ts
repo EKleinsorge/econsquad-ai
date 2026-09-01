@@ -54,6 +54,8 @@ serve(async (req) => {
         if (!isOurInvoice(invoice)) return notOurs(event.type, customerId)
         const plan       = resolvePlan(invoice)
         if (plan) await updatePlan(supa, customerId, plan)
+        // A real payment is also the moment an affiliate earns.
+        await recordAffiliateCommission(supa, customerId, invoice, plan)
         break
       }
 
@@ -252,6 +254,111 @@ async function markCanceled(supa: any, customerId: string, sub: any) {
 
   if (error) console.error('markCanceled error:', error.message)
   else console.log(`Marked ${customerId} canceled at ${endedAt} (${data?.length ?? 0} row)`)
+}
+
+/**
+ * Pay the affiliate who referred this customer.
+ *
+ * Added 2026-09-01. Before this, nothing in the entire codebase created a
+ * commission — affiliate-guide.html promises "10% of each subscriber's
+ * monthly fee, paid every month for as long as they stay", and delivering on
+ * that depended on an admin manually clicking "+ Commission" for every
+ * partner every month. One missed month is a trust problem with the exact
+ * people promoting the product.
+ *
+ * Runs only on invoice.payment_succeeded with real money on it. The caller
+ * has already discarded the $0 invoice Stripe issues at the start of a trial,
+ * so a trial signup earns nothing and the first genuine charge earns the
+ * first commission — which is what the guide describes.
+ *
+ * IDEMPOTENCY. Stripe redelivers events, and a redelivery here means paying
+ * a partner twice for one invoice. affiliate_commissions.stripe_invoice_id
+ * carries a unique index, so the second insert fails with 23505 and that is
+ * treated as success, not as an error.
+ *
+ * The rate comes from affiliates.commission_rate rather than a constant, so
+ * changing a partner's terms is a data edit, not a redeploy.
+ *
+ * Deliberately never throws. An affiliate payout must not be able to fail a
+ * webhook that also records the customer's subscription — that would make
+ * Stripe retry a delivery whose important half already succeeded.
+ */
+async function recordAffiliateCommission(
+  supa: any, customerId: string, invoice: any, plan: string | null,
+) {
+  try {
+    const amountPaid = (invoice.amount_paid ?? 0) / 100
+    if (amountPaid <= 0) return
+
+    // Which of our users is this?
+    const { data: prof } = await supa
+      .from('profiles').select('id').eq('stripe_customer_id', customerId).maybeSingle()
+    if (!prof?.id) return   // not linked yet; nothing to attribute
+
+    // Were they referred by an approved partner?
+    // The unique constraint is (affiliate_id, referred_user_id), so in
+    // principle one person could carry two referral rows. maybeSingle()
+    // would throw on that; order by signup and take the first instead, so
+    // the partner who actually brought them is the one who gets paid.
+    const { data: refs } = await supa
+      .from('affiliate_referrals')
+      .select('id, affiliate_id, signed_up_at, affiliates!inner(id, status, commission_rate)')
+      .eq('referred_user_id', prof.id)
+      .order('signed_up_at', { ascending: true })
+      .limit(1)
+    const ref = Array.isArray(refs) ? refs[0] : null
+    if (!ref?.affiliate_id) return
+
+    const aff = (ref as any).affiliates
+    if (!aff || aff.status !== 'approved') {
+      console.log(`Referral exists for ${prof.id} but partner is ${aff?.status ?? 'missing'} — no commission`)
+      return
+    }
+
+    const rate   = Number(aff.commission_rate ?? 0.10)
+    const amount = Math.round(amountPaid * rate * 100) / 100
+    if (!(amount > 0)) return
+
+    const period = new Date((invoice.created ?? Math.floor(Date.now() / 1000)) * 1000)
+      .toISOString().slice(0, 7)          // YYYY-MM
+
+    const { error } = await supa.from('affiliate_commissions').insert({
+      affiliate_id:      ref.affiliate_id,
+      period_month:      period,
+      type:              'recurring',
+      amount,
+      referred_user_id:  prof.id,
+      status:            'pending',
+      stripe_invoice_id: invoice.id,
+      description:       `${Math.round(rate * 100)}% of $${amountPaid.toFixed(2)}`
+                       + (plan ? ` (${plan})` : ''),
+    })
+
+    if (error) {
+      if (error.code === '23505') {
+        console.log(`Commission for invoice ${invoice.id} already recorded — skipping`)
+      } else {
+        console.error('recordAffiliateCommission insert failed:', error.message)
+      }
+      return
+    }
+
+    // First real payment converts the referral. The roll-up columns the
+    // admin page reads are maintained by a database trigger, not here.
+    await supa.from('affiliate_referrals').update({
+      converted_to_paid: true,
+      conversion_date:   new Date().toISOString(),
+      subscription_plan: plan ?? null,
+      monthly_amount:    amountPaid,
+      is_active:         true,
+    }).eq('id', ref.id)
+
+    console.log(`Commission $${amount} to affiliate ${ref.affiliate_id} for invoice ${invoice.id}`)
+  } catch (e) {
+    // Never let a payout problem fail the webhook.
+    console.error('recordAffiliateCommission threw:',
+      e instanceof Error ? e.message : String(e))
+  }
 }
 
 /** Update plan in profiles table by stripe_customer_id */
