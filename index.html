@@ -2363,17 +2363,37 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           try{ fn(); }catch(err){ toInbox(); }
         });
 
-        /* Mirror a nav badge onto a card, only when it is actually showing one. */
-        function mirror(srcId, dstId){
+        /* Read a nav badge's count, or '' when it isn't showing one.
+           Returns the raw text so '99+' survives instead of becoming 99. */
+        function navText(id){
           try{
-            var src = $(srcId), dst = $(dstId);
-            if(!src || !dst) return;
-            var n = (src.textContent || '').trim();
-            if(n && src.style.display !== 'none'){
-              dst.textContent = n + ' waiting';
-              dst.style.display = 'inline-block';
-            } else { dst.style.display = 'none'; }
+            var el = $(id);
+            if(!el || el.style.display === 'none') return '';
+            var t = (el.textContent || '').trim();
+            return (t && t !== '0') ? t : '';
+          }catch(e){ return ''; }
+        }
+        function setPill(id, text){
+          try{
+            var el = $(id);
+            if(!el) return;
+            if(text){ el.textContent = text; el.style.display = 'inline-block'; }
+            else { el.style.display = 'none'; }
           }catch(e){}
+        }
+        /* The two nav badges count different things — cal-nav-badge is events
+           in the next 7 days, tasks-nav-badge is every non-completed task — so
+           the Calendar & Tasks card has to name both rather than borrow one. */
+        function fillPills(){
+          var unread = navText('inbox-badge');
+          setPill('esqwt-b-inbox', unread ? unread + ' unread' : '');
+
+          var evts  = navText('cal-nav-badge');
+          var tasks = navText('tasks-nav-badge');
+          var parts = [];
+          if(evts)  parts.push(evts + ' this week');
+          if(tasks) parts.push(tasks + ' open');
+          setPill('esqwt-b-cal', parts.join(' \u00b7 '));
         }
 
         /* Called by the ARIA splash when it dismisses, and directly on any
@@ -2393,8 +2413,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             var nm = $('esqwt-name');
             if(nm) nm.textContent = firstName ? (', ' + firstName) : '';
 
-            mirror('inbox-badge',     'esqwt-b-inbox');
-            mirror('tasks-nav-badge', 'esqwt-b-cal');
+            fillPills();
 
             /* Don't let the hub become the tab a ?ret=1 return restores. */
             var prev = null;
