@@ -3756,6 +3756,63 @@ var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var TRIAL_DAYS=14;
 var currentUser=null;
 
+/* ── Record an affiliate referral ──────────────────────────────────────
+   Rewritten 2026-09-01. The original fired once, inline in doSignup(), and
+   had two faults that both lost commission silently:
+
+   1. NO ERROR CHECK. It removed esq_ref inside .then() whether the insert
+      had worked or not, so a single failure destroyed the attribution
+      permanently — and nothing was logged, so nobody would ever know.
+
+   2. IT RAN BEFORE THERE WAS RELIABLY A SESSION. The RLS policy on
+      affiliate_referrals is WITH CHECK (referred_user_id = auth.uid()), so
+      the insert needs a signed-in caller. supa.auth.signUp() only returns a
+      session when email confirmation is OFF in Supabase. Turn confirmation
+      on and every referral insert is rejected — no error surfaced, the
+      partner just never gets credited.
+
+   Now: the code is only cleared on a confirmed insert, and the attempt is
+   retried from onSignedIn(), so a referral that could not be written at
+   signup lands the next time that person signs in, any time inside the
+   30-day window. */
+var ESQ_REF_WINDOW_MS = 30*24*60*60*1000;
+
+function _recordAffiliateReferral(userId, email){
+  try{
+    if(!userId) return;
+    var refData=null;
+    try{ refData=JSON.parse(localStorage.getItem('esq_ref')||'null'); }catch(e){ return; }
+    if(!refData || !refData.code) return;
+    if(Date.now()-refData.ts >= ESQ_REF_WINDOW_MS){
+      try{ localStorage.removeItem('esq_ref'); }catch(e){}   /* expired, stop retrying */
+      return;
+    }
+    supa.from('affiliates').select('id').eq('code',refData.code).eq('status','approved').maybeSingle()
+      .then(function(affRes){
+        if(affRes.error || !affRes.data || !affRes.data.id){
+          if(affRes.error) console.warn('[esq] affiliate lookup failed:', affRes.error.message);
+          return;   /* unknown or unapproved code — keep esq_ref, it may be approved later */
+        }
+        supa.from('affiliate_referrals').insert({
+          affiliate_id:     affRes.data.id,
+          referred_user_id: userId,
+          referred_email:   email
+        }).then(function(insRes){
+          if(insRes && insRes.error){
+            /* 23505 = already recorded. That counts as done. */
+            if(insRes.error.code === '23505'){
+              try{ localStorage.removeItem('esq_ref'); }catch(e){}
+              return;
+            }
+            console.warn('[esq] referral not recorded:', insRes.error.message);
+            return;   /* leave esq_ref in place so the next sign-in retries */
+          }
+          try{ localStorage.removeItem('esq_ref'); }catch(e){}
+        }, function(err){ console.warn('[esq] referral not recorded:', err); });
+      }, function(err){ console.warn('[esq] affiliate lookup failed:', err); });
+  }catch(e){}
+}
+
 /* ── Capture affiliate referral code from ?ref=CODE ── */
 (function(){
   try{
@@ -3919,6 +3976,9 @@ function _redeemPendingPromo(){
 function onSignedIn(user){
   closeAuth();
   _redeemPendingPromo();
+  /* Catches any referral that could not be written at signup. No-op once
+     it has been recorded, or once the 30-day window has passed. */
+  try{ _recordAffiliateReferral(user && user.id, user && user.email); }catch(e){}
   var av=document.getElementById('user-avatar');
   if(av){
     var nm=user.user_metadata&&user.user_metadata.full_name?user.user_metadata.full_name:user.email;
@@ -4432,22 +4492,8 @@ function doSignup(){
 
     var userId=authRes.data&&authRes.data.user?authRes.data.user.id:'';
 
-    /* Step 1b: record affiliate referral if ref code is stored and still within 30 days */
-    var refData=null;
-    try{refData=JSON.parse(localStorage.getItem('esq_ref')||'null');}catch(e){}
-    if(refData && refData.code && (Date.now()-refData.ts < 30*24*60*60*1000)){
-      /* Look up affiliate by code, then insert referral record */
-      supa.from('affiliates').select('id').eq('code',refData.code).eq('status','approved').single()
-        .then(function(affRes){
-          if(affRes.data && affRes.data.id){
-            supa.from('affiliate_referrals').insert({
-              affiliate_id: affRes.data.id,
-              referred_user_id: userId,
-              referred_email: email
-            }).then(function(){ localStorage.removeItem('esq_ref'); });
-          }
-        }).catch(function(){});
-    }
+    /* Step 1b: record the affiliate referral. */
+    _recordAffiliateReferral(userId, email);
 
     /* Check for pending promo code — if present, skip Stripe entirely */
     var pendingPromo=null;

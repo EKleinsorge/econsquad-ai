@@ -48,7 +48,12 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-pending{background:rgba(245,197,66,0.15);color:#f5c542;}
 .badge-active{background:rgba(74,222,128,0.15);color:#4ade80;}
 .badge-suspended{background:rgba(255,80,80,0.15);color:#ff8080;}
-.badge-cancelled{background:rgba(255,80,80,0.15);color:#ff8080;}
+/* Cancelled gets its own colour rather than sharing red with Trial Expired
+   and Suspended — the whole point of the status is that you can pick churned
+   customers out of the list at a glance. */
+.badge-cancelled{background:rgba(200,140,255,0.15);color:#c88cff;}
+.badge-past_due{background:rgba(255,155,65,0.15);color:#ff9b41;}
+.badge-rejected{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
 /* User filter tabs */
@@ -298,12 +303,14 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="page-sub">Everyone who has signed up for EconSquad AI</div>
 
       <!-- Status stat boxes -->
-      <div class="stats-row" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px;">
+      <div class="stats-row" style="grid-template-columns:repeat(auto-fit,minmax(118px,1fr));margin-bottom:20px;">
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-all">—</div><div class="stat-box-lbl">Total</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-in_trial" style="color:#f5c542;">—</div><div class="stat-box-lbl">In Trial</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-starter" style="color:#64afff;">—</div><div class="stat-box-lbl">Starter</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-pro" style="color:#aaff3e;">—</div><div class="stat-box-lbl">Pro</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-expired" style="color:#ff8080;">—</div><div class="stat-box-lbl">Trial Expired</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-cancelled" style="color:#c88cff;">—</div><div class="stat-box-lbl">Cancelled</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-past_due" style="color:#ff9b41;">—</div><div class="stat-box-lbl">Payment Failed</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-suspended" style="color:#ff8080;">—</div><div class="stat-box-lbl">Suspended</div></div>
       </div>
 
@@ -314,6 +321,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="user-filter-tab" onclick="filterUsers('starter',this)">Starter</div>
         <div class="user-filter-tab" onclick="filterUsers('pro',this)">Pro</div>
         <div class="user-filter-tab" onclick="filterUsers('expired',this)">Trial Expired</div>
+        <div class="user-filter-tab" onclick="filterUsers('cancelled',this)">Cancelled</div>
+        <div class="user-filter-tab" onclick="filterUsers('past_due',this)">Payment Failed</div>
         <div class="user-filter-tab" onclick="filterUsers('suspended',this)">Suspended</div>
       </div>
 
@@ -1405,9 +1414,19 @@ var allUsersData=[];
 var allUsersTaskMap={};
 var activeUserFilter='all';
 
+/* A cancelled customer used to be invisible here. The Stripe webhook records
+   a cancellation as subscription_status='canceled' + canceled_at, and its
+   updatePlan() puts `plan` back to 'trial' — so this function, which only ever
+   looked at `plan`, saw a trial with an expired trial_end and filed a churned
+   customer under "Trial Expired", right beside people who never subscribed at
+   all. The data was there the whole time; nothing read it.
+   Fixed 2026-09-01. subscription_status is now checked before plan. */
 function userStatus(u){
   var plan=u.plan||'trial';
-  if(plan==='suspended'||plan==='cancelled') return plan;
+  if(plan==='suspended') return 'suspended';
+  var sub=u.subscription_status||'';
+  if(sub==='canceled'||plan==='cancelled') return 'cancelled';
+  if(sub==='past_due') return 'past_due';
   if(plan==='pro') return 'pro';
   if(plan==='starter') return 'starter';
   /* trial — check expiry */
@@ -1423,12 +1442,19 @@ function userStatus(u){
 
 function userStatusBadge(u){
   var s=userStatus(u);
-  var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',suspended:'Suspended',cancelled:'Cancelled'};
+  var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',
+              suspended:'Suspended',cancelled:'Cancelled',past_due:'Payment Failed'};
   var exp=u.trial_end||u.trial_expires_at||null;
   var label=labels[s]||s;
   if(s==='in_trial'&&exp){
     var daysLeft=Math.ceil((new Date(exp)-new Date())/(1000*60*60*24));
     if(daysLeft>0) label='Trial — '+daysLeft+'d left';
+  }
+  /* How long ago they went is the whole point of the list — a churn from
+     yesterday and one from four months ago need different emails. */
+  if(s==='cancelled'&&u.canceled_at){
+    var d=Math.floor((Date.now()-new Date(u.canceled_at))/86400000);
+    label='Cancelled — '+(d<=0?'today':(d===1?'1d ago':d+'d ago'));
   }
   return '<span class="badge badge-'+s+'">'+label+'</span>';
 }
@@ -1446,13 +1472,13 @@ function loadUsers(){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
     /* update stat counts */
-    var counts={all:profiles.length,in_trial:0,starter:0,pro:0,expired:0,suspended:0};
+    var counts={all:profiles.length,in_trial:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
     profiles.forEach(function(u){
       var s=userStatus(u);
       if(counts[s]!==undefined) counts[s]++;
       else counts[s]=1;
     });
-    ['all','in_trial','starter','pro','expired','suspended'].forEach(function(k){
+    ['all','in_trial','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
       var el=document.getElementById('usr-cnt-'+k);
       if(el) el.textContent=counts[k]||0;
     });
@@ -1496,7 +1522,121 @@ function buildUserActions(u){
   if(u.stripe_customer_id){
     actions+=' <a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" class="btn-ghost btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;">Stripe ↗</a>';
   }
+  actions+=' <button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="openDeleteUser(\''+u.email+'\',\''+escHtml(u.full_name||u.email)+'\')">Delete</button>';
   return actions;
+}
+
+/* ── Delete an account ────────────────────────────────────────────────
+   Calls the admin_delete_user() SQL function (SECURITY DEFINER, admin-only,
+   see supabase/migrations/20260901_admin_delete_user.sql). That function
+   walks the schema for every table holding this person's rows, clears them,
+   then removes the auth user.
+
+   The confirmation asks for the email to be typed rather than offering a
+   yes/no. A destructive action one careless click away from a row of Msg
+   and +Trial buttons will eventually be taken by accident; making you
+   reproduce the address means you have to look at which row you are on. */
+function openDeleteUser(email, name){
+  var m=document.getElementById('del-user-modal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='del-user-modal';
+    m.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);'+
+      'display:flex;align-items:center;justify-content:center;padding:20px;';
+    m.innerHTML=
+      '<div style="background:#0d1428;border:1px solid rgba(255,80,80,.35);border-radius:16px;'+
+        'padding:28px 30px;width:520px;max-width:94vw;">'+
+        '<div style="font-family:Barlow,sans-serif;font-size:20px;font-weight:800;color:#ff8080;'+
+          'margin-bottom:6px;">Delete this account permanently</div>'+
+        '<div id="del-user-who" style="font-size:14px;color:#eef3fc;margin-bottom:16px;"></div>'+
+        '<div style="background:rgba(255,80,80,.07);border:1px solid rgba(255,80,80,.2);'+
+          'border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#8a97b5;'+
+          'line-height:1.7;">'+
+          'Removes their login, profile, task history, saved work and every other row '+
+          'tied to them. <strong style="color:#ff8080;">This cannot be undone</strong> — '+
+          'there is no soft delete and no recovery.<br><br>'+
+          'It does <strong>not</strong> cancel a Stripe subscription. If they are still '+
+          'billing, cancel in Stripe first or they keep being charged with no way to log in.'+
+        '</div>'+
+        '<label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;'+
+          'text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">'+
+          'Type the email address to confirm</label>'+
+        '<input id="del-user-input" type="text" autocomplete="off" style="width:100%;'+
+          'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);'+
+          'border-radius:8px;padding:11px 14px;color:#eef3fc;font-size:14px;outline:none;'+
+          'box-sizing:border-box;font-family:inherit;">'+
+        '<div id="del-user-msg" style="font-size:12px;color:#ff8080;margin-top:10px;min-height:16px;"></div>'+
+        '<div style="display:flex;gap:10px;margin-top:18px;">'+
+          '<button id="del-user-cancel" style="flex:1;background:rgba(255,255,255,.06);'+
+            'border:1px solid rgba(255,255,255,.12);color:#8a97b5;border-radius:9px;padding:12px;'+
+            'font-family:Barlow,sans-serif;font-weight:800;font-size:14px;cursor:pointer;">Cancel</button>'+
+          '<button id="del-user-go" disabled style="flex:1;background:rgba(255,80,80,.25);'+
+            'border:1px solid rgba(255,80,80,.4);color:#ff8080;border-radius:9px;padding:12px;'+
+            'font-family:Barlow,sans-serif;font-weight:800;font-size:14px;cursor:not-allowed;'+
+            'opacity:.55;">Delete permanently</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(m);
+  }
+  m.style.display='flex';
+  var who=document.getElementById('del-user-who');
+  var inp=document.getElementById('del-user-input');
+  var go=document.getElementById('del-user-go');
+  var msg=document.getElementById('del-user-msg');
+  who.innerHTML='<strong>'+escHtml(name)+'</strong> &middot; '+escHtml(email);
+  inp.value=''; msg.textContent=''; inp.focus();
+
+  var enable=function(on){
+    go.disabled=!on;
+    go.style.cursor=on?'pointer':'not-allowed';
+    go.style.opacity=on?'1':'.55';
+    go.style.background=on?'#ff5050':'rgba(255,80,80,.25)';
+    go.style.color=on?'#fff':'#ff8080';
+  };
+  enable(false);
+  inp.oninput=function(){ enable(inp.value.trim().toLowerCase()===email.toLowerCase()); };
+
+  document.getElementById('del-user-cancel').onclick=function(){ m.style.display='none'; };
+  m.onclick=function(e){ if(e.target===m) m.style.display='none'; };
+
+  go.onclick=function(){
+    if(go.disabled) return;
+    go.disabled=true; go.textContent='Deleting…'; msg.textContent='';
+    supa.rpc('admin_delete_user',{p_email:email}).then(function(res){
+      if(res.error){
+        msg.textContent=res.error.message||'Delete failed.';
+        go.textContent='Delete permanently'; enable(true);
+        return;
+      }
+      var d=res.data||{};
+      if(d.ok===false){
+        msg.textContent=d.error||'Delete failed.';
+        /* A live subscription needs an explicit second decision. */
+        if(d.needs_force){
+          go.textContent='Delete anyway';
+          go.onclick=function(){
+            go.disabled=true; go.textContent='Deleting…';
+            supa.rpc('admin_delete_user',{p_email:email,p_force:true}).then(function(r2){
+              if(r2.error||(r2.data&&r2.data.ok===false)){
+                msg.textContent=(r2.error&&r2.error.message)||(r2.data&&r2.data.error)||'Delete failed.';
+                go.textContent='Delete anyway'; enable(true); return;
+              }
+              m.style.display='none'; loadUsers();
+            });
+          };
+        } else {
+          go.textContent='Delete permanently';
+        }
+        enable(true);
+        return;
+      }
+      m.style.display='none';
+      loadUsers();
+    }, function(err){
+      msg.textContent=String(err&&err.message||err);
+      go.textContent='Delete permanently'; enable(true);
+    });
+  };
 }
 
 function escHtml(str){
@@ -2963,7 +3103,7 @@ function _renderAffAppsTable(tbody, rows, profMap){
     var statusBadge = {
       pending:  '<span class="badge badge-pending">Pending</span>',
       approved: '<span class="badge badge-active">Approved</span>',
-      rejected: '<span class="badge badge-cancelled">Rejected</span>',
+      rejected: '<span class="badge badge-rejected">Rejected</span>',
       suspended:'<span class="badge badge-suspended">Suspended</span>'
     }[r.status] || r.status;
     /* Escape for inline onclick */
