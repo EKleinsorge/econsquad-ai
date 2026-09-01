@@ -2211,7 +2211,28 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
 
       <!-- ===== WHERE DO YOU WANT TO GO? (post sign-in hub) ===== -->
       <style id="esq-whereto-css">
-        .esqwt{max-width:1000px;margin:0 auto;padding:54px 20px 90px;text-align:center;}
+        .esqwt{max-width:1000px;margin:0 auto;padding:44px 20px 90px;text-align:center;}
+        /* ARIA, settled in and waiting. Deliberately calmer than the sign-in
+           splash: one slow breath, two soft rings, no swirls. She has already
+           made her entrance — here she is just present. */
+        .esqwt-aria{position:relative;width:124px;height:124px;margin:0 auto 18px;
+          display:flex;align-items:center;justify-content:center;
+          animation:esqwtFloat 5.5s ease-in-out infinite;}
+        .esqwt-ring{position:absolute;border-radius:50%;border:1px solid rgba(170,255,62,.22);}
+        .esqwt-ring1{width:98px;height:98px;animation:esqwtRing 3.8s ease-in-out infinite;}
+        .esqwt-ring2{width:124px;height:124px;border-color:rgba(170,255,62,.11);
+          animation:esqwtRing 3.8s ease-in-out .95s infinite;}
+        .esqwt-core{width:66px;height:66px;border-radius:50%;display:flex;
+          align-items:center;justify-content:center;
+          background:radial-gradient(circle at 34% 28%,rgba(214,255,158,.98) 0%,rgba(170,255,62,.85) 42%,rgba(118,198,28,.5) 70%,transparent 78%);
+          animation:esqwtBreathe 3.8s ease-in-out infinite;}
+        @keyframes esqwtBreathe{
+          0%,100%{transform:scale(1);box-shadow:0 0 30px rgba(170,255,62,.4),0 0 70px rgba(170,255,62,.15);}
+          50%    {transform:scale(1.06);box-shadow:0 0 44px rgba(170,255,62,.62),0 0 98px rgba(170,255,62,.26);}}
+        @keyframes esqwtRing{
+          0%,100%{transform:scale(.9);opacity:.55;}
+          50%    {transform:scale(1.09);opacity:.14;}}
+        @keyframes esqwtFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
         .esqwt-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;
           font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#6b7a96;margin-bottom:20px;}
         .esqwt-dot{width:7px;height:7px;border-radius:50%;background:#aaff3e;
@@ -2245,7 +2266,8 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           font-size:13px;color:#4a5568;margin-top:30px;padding:8px;transition:color .18s;}
         .esqwt-skip:hover{color:#aaff3e;}
         @media(prefers-reduced-motion:reduce){
-          .esqwt-dot{animation:none;}
+          .esqwt-dot,.esqwt-aria,.esqwt-ring,.esqwt-core{animation:none;}
+          .esqwt-core{box-shadow:0 0 34px rgba(170,255,62,.45);}
           .esqwt-card,.esqwt-orb,.esqwt-go{transition:none;}
           .esqwt-card:hover{transform:none;}
         }
@@ -2253,7 +2275,14 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
 
       <div class="page main dash-tab" id="welcome-tab" style="display:none;">
         <div class="esqwt">
-          <div class="esqwt-eyebrow"><span class="esqwt-dot"></span>Your squad is standing by</div>
+          <div class="esqwt-aria" aria-hidden="true">
+            <span class="esqwt-ring esqwt-ring1"></span>
+            <span class="esqwt-ring esqwt-ring2"></span>
+            <span class="esqwt-core">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(8,32,0,.62)"><path d="M12 2 L13.5 9 L20 12 L13.5 15 L12 22 L10.5 15 L4 12 L10.5 9 Z"/></svg>
+            </span>
+          </div>
+          <div class="esqwt-eyebrow"><span class="esqwt-dot"></span>ARIA is standing by</div>
           <h1 class="esqwt-h1">Welcome back<span id="esqwt-name"></span>.</h1>
           <div class="esqwt-rule"></div>
           <p class="esqwt-q">Where do you want to go?</p>
@@ -2264,11 +2293,11 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                     style="--a:170,255,62;" onmouseover="this.style.borderColor='rgba(170,255,62,.35)'"
                     onmouseout="this.style.borderColor=''">
               <span class="esqwt-orb" style="background:radial-gradient(circle at 34% 28%,rgba(170,255,62,.9) 0%,rgba(170,255,62,.28) 58%,transparent 72%);box-shadow:0 0 26px rgba(170,255,62,.32);">
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#0a1a00" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3 L13.6 9.4 L20 12 L13.6 14.6 L12 21 L10.4 14.6 L4 12 L10.4 9.4 Z"/></svg>
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#0a1a00" stroke-width="1.7"><circle cx="12" cy="6.6" r="2.7"/><circle cx="6.4" cy="16" r="2.7"/><circle cx="17.6" cy="16" r="2.7"/><path d="M10.6 9.1 L7.8 13.5 M13.4 9.1 L16.2 13.5 M9.1 16 h5.8" stroke-linecap="round" opacity=".55"/></svg>
               </span>
               <span class="esqwt-title">Deploy a Specialist</span>
               <span class="esqwt-desc">Hand a real task to one of your 22 specialists and get a finished draft back.</span>
-              <span class="esqwt-go" style="color:#aaff3e;">Meet the squad &rarr;</span>
+              <span class="esqwt-go" style="color:#aaff3e;">Put them to work &rarr;</span>
             </button>
 
             <button type="button" class="esqwt-card" data-esqwt="inbox"
