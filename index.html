@@ -4843,13 +4843,81 @@ function contactEnterprise(){
   window.location.href='mailto:hello@econsquad.ai?subject=Enterprise%20Plan%20Inquiry&body=Hi%2C%20I%27m%20interested%20in%20the%20Enterprise%20plan%20for%20EconSquad%20AI.';
 }
 
-function showCheckoutSuccess(){
-  var toast=document.createElement('div');
-  toast.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(10,20,10,0.97);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-size:14px;font-weight:700;padding:14px 28px;border-radius:12px;z-index:9999;font-family:Barlow,sans-serif;';
-  toast.textContent='\uD83C\uDF89 Welcome to EconSquad AI! Your squad is ready.';
-  document.body.appendChild(toast);
-  setTimeout(function(){if(toast.parentNode)toast.remove();},5000);
-  switchView('dashboard');
+/* `signedIn` is passed in rather than read from currentUser, because the
+   caller has to resolve the Supabase session first: the auth restore runs on
+   this same load event and is asynchronous, so currentUser is still null here
+   even for somebody who is perfectly well signed in.
+
+   THE SIGNED-OUT CASE IS THE ONE THAT MATTERS. Stripe returns the customer to
+   econsquad.ai, but that is not necessarily the browser they signed up in —
+   they may have paid on a phone, in a private window, or after clearing
+   cookies. This function used to call switchView('dashboard') unconditionally,
+   and switchView hides #nav-ctas-marketing (the Sign in button) when it shows
+   the dashboard. So a signed-out customer landed on an empty dashboard with
+   the only route back in hidden from them. Two launch testers reported exactly
+   that: "it doesn't take you back to the site to log in, no links on the page."
+   Added 2026-09-01. */
+function showCheckoutSuccess(signedIn){
+  if(signedIn){
+    var toast=document.createElement('div');
+    toast.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(10,20,10,0.97);border:1px solid rgba(170,255,62,0.4);color:#aaff3e;font-size:14px;font-weight:700;padding:14px 28px;border-radius:12px;z-index:9999;font-family:Barlow,sans-serif;';
+    toast.textContent='\uD83C\uDF89 Welcome to EconSquad AI! Your squad is ready.';
+    document.body.appendChild(toast);
+    setTimeout(function(){if(toast.parentNode)toast.remove();},5000);
+    switchView('dashboard');
+    return;
+  }
+  _checkoutSignInPanel();
+}
+
+/* Paid, but not signed in on this device. Give them one obvious next step. */
+function _checkoutSignInPanel(){
+  try{
+    /* Make sure the marketing chrome (and its Sign in button) is what sits
+       behind this panel, whatever else may have run. */
+    try{ switchView('marketing'); }catch(e){}
+
+    var ov=document.createElement('div');
+    ov.id='esq-paid-panel';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483646;background:rgba(4,5,13,.93);'+
+      'display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    var card=document.createElement('div');
+    card.style.cssText='background:#0d1428;border:1px solid rgba(170,255,62,.22);border-radius:18px;'+
+      'padding:38px 34px 30px;width:470px;max-width:94vw;text-align:center;'+
+      'box-shadow:0 24px 70px rgba(0,0,0,.6);';
+
+    card.innerHTML =
+      '<div style="width:62px;height:62px;border-radius:50%;margin:0 auto 20px;display:flex;'+
+        'align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,'+
+        'rgba(214,255,158,.95) 0%,rgba(170,255,62,.8) 45%,rgba(118,198,28,.45) 72%,transparent 80%);'+
+        'box-shadow:0 0 34px rgba(170,255,62,.4);">'+
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0a1a00" '+
+        'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'+
+        '<path d="M4.5 12.5 L9.5 17.5 L19.5 6.5"/></svg></div>'+
+      '<div style="font-family:Barlow Condensed,Barlow,sans-serif;font-weight:900;'+
+        'font-size:36px;line-height:1.05;color:#eef3fc;margin-bottom:12px;">Payment received.</div>'+
+      '<div style="font-family:DM Sans,sans-serif;font-size:14px;line-height:1.65;color:#8a97b5;'+
+        'margin-bottom:26px;">Your subscription is active. Sign in with the email you used at '+
+        'checkout and your squad is ready to go.</div>'+
+      '<button id="esq-paid-signin" style="width:100%;background:#aaff3e;border:none;'+
+        'border-radius:10px;padding:14px;font-family:Barlow,sans-serif;font-size:15px;'+
+        'font-weight:800;color:#0a1a00;cursor:pointer;">Sign in &rarr;</button>'+
+      '<div style="margin-top:16px;font-family:DM Sans,sans-serif;font-size:12px;color:#4a5568;">'+
+        'Used a different email? <a href="contact.html" style="color:#6b7a96;">Get help &rarr;</a></div>';
+
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+
+    var btn=document.getElementById('esq-paid-signin');
+    if(btn) btn.addEventListener('click', function(){
+      try{ ov.remove(); }catch(e){}
+      try{ openAuth('signin'); }catch(e){}
+    });
+  }catch(e){
+    /* Last resort: never leave them staring at nothing. */
+    try{ switchView('marketing'); openAuth('signin'); }catch(_){}
+  }
 }
 
 /* handle checkout return & pending plan after signup */
@@ -4866,15 +4934,24 @@ window.addEventListener('load',function(){
        .updated / .deleted, checkout.session.completed), so this was both a
        revenue hole and redundant. Show the confirmation only; the webhook
        decides what they actually have. */
-    showCheckoutSuccess();
-    /* The webhook lands a moment after Stripe redirects the user back, so
-       refresh the plan badge a few times rather than leaving them looking at
-       "Upgrade →" after they have just paid. */
-    [3000, 8000, 15000].forEach(function(ms){
-      setTimeout(function(){
-        try{ if(currentUser) updatePlanBadge(currentUser); }catch(e){}
-      }, ms);
-    });
+    /* Resolve the session before deciding what to show. The auth restore is
+       async and fires on this same load event, so reading currentUser here
+       would report "signed out" for everyone. */
+    supa.auth.getSession().then(function(res){
+      var signedIn = !!(res && res.data && res.data.session);
+      showCheckoutSuccess(signedIn);
+      if(!signedIn) return;
+      /* The webhook lands a moment after Stripe redirects the user back, so
+         refresh the plan badge a few times rather than leaving them looking at
+         "Upgrade →" after they have just paid. */
+      [3000, 8000, 15000].forEach(function(ms){
+        setTimeout(function(){
+          try{ if(currentUser) updatePlanBadge(currentUser); }catch(e){}
+        }, ms);
+      });
+    }, function(){ showCheckoutSuccess(false); });
+    /* Drop the parameter so a refresh doesn't replay the confirmation. */
+    try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
   } else if(params.get('checkout')==='cancelled'){
     setTimeout(function(){scrollToSection('sec-pricing');},500);
   }
