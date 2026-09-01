@@ -3,3 +3,8 @@ book-extract.txt
 
 # Supabase local temp files
 supabase/.temp/
+
+# Build/scratch artefacts that should never be committed.
+# deploy-log.txt is rewritten by deploy-webhook.bat on every run.
+deploy-log.txt
+index-backup-*.html

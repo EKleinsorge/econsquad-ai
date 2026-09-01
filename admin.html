@@ -1207,6 +1207,20 @@ function showToast(msg,type){
 /* ═══════════════════════════════════════
    NAVIGATION
 ═══════════════════════════════════════ */
+/* Deep links from email. The problem-report notification links straight to
+   admin.html#reports; without this the hash was ignored and every alert
+   dumped you on the Overview to go hunting. Any section name works —
+   #reports, #users, #revenue — and the sidebar highlight follows. */
+function esqAdminHashRoute(){
+  try{
+    var name=(location.hash||'').replace(/^#/,'').split(/[/?]/)[0].trim();
+    if(!name) return;
+    if(!document.getElementById('section-'+name)) return;
+    showAdminSection(name, null);
+  }catch(e){}
+}
+window.addEventListener('hashchange', esqAdminHashRoute);
+
 function showAdminSection(name,el){
   document.querySelectorAll('.admin-section').forEach(function(s){s.classList.remove('active');});
   document.querySelectorAll('.sidebar-item').forEach(function(s){s.classList.remove('active');});
@@ -1224,6 +1238,8 @@ function showAdminSection(name,el){
    LOAD ALL DATA
 ═══════════════════════════════════════ */
 function loadAllData(){
+  /* After the sections are in the DOM, honour a #section deep link. */
+  setTimeout(esqAdminHashRoute, 0);
   loadOverview();
   loadSpecialists();
   loadRequests();

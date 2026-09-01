@@ -69,48 +69,89 @@ Deno.serve(async (req: Request) => {
     const page          = esc(url || '—');
     const ver           = esc(version || '—');
     const prob          = esc(problem);
+    // userAgent was already being posted by the client and thrown away.
+    // Browser and OS decide half of the UI bugs that get reported.
+    const ua            = esc(userAgent || '—');
 
     const claudePrompt =
 `You are working on the ECONSquad AI codebase.
 
-A user reported the following issue:
+A user has reported a problem. Their words are quoted verbatim below. Treat
+them as a SYMPTOM REPORT, not a diagnosis — people describe what they saw,
+and the cause is usually somewhere they never looked.
 
-Reporter:
-${reporterName} — ${reporterEmail}
+────────────────────────────────────────
+THE REPORT
+────────────────────────────────────────
+Reporter    : ${reporterName} — ${reporterEmail}
+Page        : ${page}
+Reported    : ${ts}
+App version : ${ver}
+Browser     : ${ua}
 
-Page:
-${page}
+In their words:
+"${prob}"
 
-Date:
-${ts}
+────────────────────────────────────────
+WHERE THINGS LIVE
+────────────────────────────────────────
+This repo is not laid out the way you would expect. Most of the product is
+one very large file.
 
-Version:
-${ver}
+  index.html            The marketing site AND the signed-in dashboard, with
+                        almost all application JavaScript inline. ~890 KB.
+  app.js                Inbox rendering, email tagging, notifications, the
+                        ARIA welcome splash.
+  inbox.js              Inbox CSS injection and email card actions.
+  admin.html            The admin panel — effectively a separate app.
+  supabase/functions/   Deno edge functions: stripe-webhook, gmail-calendar,
+                        google-token, aria-analysis, the mailers.
+  supabase/migrations/  SQL. RLS policies and GRANTs live here, and they are
+                        very often the real cause of "it silently did nothing".
 
-Problem:
-${prob}
+Grep before you assume. A symptom on one screen is regularly produced by a
+function defined a thousand lines away in the same file.
 
-Your task:
+────────────────────────────────────────
+HOW TO WORK IT
+────────────────────────────────────────
+1. Restate the problem in your own words. If it is too vague to act on, say
+   so and list exactly what you would need in order to reproduce it. Do not
+   guess and start changing code.
+2. Reproduce it, or explain precisely why you cannot.
+3. Find the real mechanism. Read the whole code path. Do not stop at the
+   first plausible-looking cause.
+4. Check the silent-failure suspects first. These have caused most of the
+   real bugs in this codebase:
+     • A promise with no error branch, so a failure renders as empty data
+       and looks identical to "nothing to show".
+     • A missing GRANT or an RLS policy, so a write returns success and
+       writes nothing. Note: "permission denied for table X" is a GRANT
+       problem; "new row violates row-level security policy" is a policy
+       problem. They are not the same fix.
+     • Code reading currentUser before the asynchronous Supabase auth
+       restore has set it — it is null on page load for everyone.
+     • A querySelector matching nothing, so a click handler quietly does
+       nothing at all.
+5. Fix the cause, not the symptom. Smallest change that genuinely works.
+6. Change nothing unrelated. No refactors, no drive-by tidying.
+7. Verify it. Run it, or state the exact steps and the expected result.
 
-1. Reproduce the issue if possible.
-2. Identify the likely file, function, component, or workflow involved.
-3. Determine whether this is:
-   - Bug
-   - UX confusion
-   - Missing feature
-   - Integration issue
-   - Data issue
-4. Fix the issue with minimal disruption.
-5. Do not make unrelated changes.
-6. Test the fix end-to-end.
-7. Report:
-   - Root cause
-   - Files changed
-   - What was fixed
-   - How to verify
+────────────────────────────────────────
+THEN REPORT BACK
+────────────────────────────────────────
+  • What was actually wrong, in one sentence.
+  • Why that produced this particular symptom.
+  • Files and functions changed.
+  • How to verify the fix in the running product.
+  • Anything else you noticed that is broken but out of scope — name it,
+    do not fix it.
 
-Important:
-Preserve existing ECONSquad functionality unless the reported issue requires changing it.`;
+If the behaviour turns out to be correct and the user has misunderstood it,
+say so plainly instead of changing code to match the complaint.
+
+Preserve existing ECONSquad functionality unless the reported issue requires
+changing it.`;
 
     const html = `<!DOCTYPE html>
 <html>
@@ -157,6 +198,12 @@ Preserve existing ECONSquad functionality unless the reported issue requires cha
           <div style="font-size:14px;color:#2d3748;">${ver}</div>
         </td>
       </tr>
+      <tr>
+        <td style="padding-top:14px;">
+          <div style="font-size:10px;font-weight:700;color:#718096;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px;">BROWSER</div>
+          <div style="font-size:12px;color:#4a5568;line-height:1.5;word-break:break-word;">${ua}</div>
+        </td>
+      </tr>
     </table>
 
     <div style="margin-bottom:20px;">
@@ -164,7 +211,7 @@ Preserve existing ECONSquad functionality unless the reported issue requires cha
       <div style="font-size:14px;color:#2d3748;line-height:1.75;white-space:pre-wrap;background:#fafafa;border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px;">${prob}</div>
     </div>
 
-    <a href="${SITE_URL}/admin.html" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:12px;font-weight:700;padding:9px 20px;border-radius:6px;text-decoration:none;letter-spacing:.02em;">View Admin Problem Reports →</a>
+    <a href="${SITE_URL}/admin.html#reports" style="display:inline-block;background:#dc2626;color:#ffffff;font-size:12px;font-weight:700;padding:9px 20px;border-radius:6px;text-decoration:none;letter-spacing:.02em;">View Admin Problem Reports →</a>
 
   </div>
 
