@@ -1516,13 +1516,12 @@ function renderUsersTable(filter){
 
 function buildUserActions(u){
   var actions='';
-  actions+='<select class="inline-select" onchange="changePlan(\''+u.email+'\',this)" title="Change plan"><option value="">Plan...</option><option value="trial">Trial</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="suspended">Suspend</option></select>';
+  actions+='<select class="inline-select" onchange="changePlan(\''+u.email+'\',this)" title="Change plan"><option value="">Plan...</option><option value="trial">Trial</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="suspended">Suspend</option><option value="__delete" style="color:#ff8080;">Delete account\u2026</option></select>';
   actions+=' <button class="btn-ghost btn-sm" onclick="openExtendTrial(\''+u.email+'\',\''+escHtml(u.full_name||u.email)+'\')">+Trial</button>';
   actions+=' <button class="btn-ghost btn-sm" onclick="openQuickMsg(\''+u.email+'\')">Msg</button>';
   if(u.stripe_customer_id){
     actions+=' <a href="https://dashboard.stripe.com/customers/'+u.stripe_customer_id+'" target="_blank" class="btn-ghost btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;">Stripe ↗</a>';
   }
-  actions+=' <button class="btn-ghost btn-sm" style="border-color:rgba(255,80,80,0.3);color:#ff8080;" onclick="openDeleteUser(\''+u.email+'\',\''+escHtml(u.full_name||u.email)+'\')">Delete</button>';
   return actions;
 }
 
@@ -1855,6 +1854,19 @@ function loadRevenue(){
 function changePlan(email,selectEl,forcePlan){
   var plan=forcePlan||(selectEl?selectEl.value:'');
   if(!plan)return;
+  /* Delete lives in this dropdown rather than as its own button, so the
+     destructive action is one deliberate menu choice instead of something
+     sitting a stray click away from Msg and +Trial. Reset the select first
+     so the row doesn't sit there reading "Delete account…" afterwards. */
+  if(plan==='__delete'){
+    if(selectEl) selectEl.value='';
+    var who=email;
+    for(var i=0;i<allUsersData.length;i++){
+      if(allUsersData[i].email===email){ who=allUsersData[i].full_name||email; break; }
+    }
+    openDeleteUser(email, who);
+    return;
+  }
   var confirm_msg='Set plan for '+email+' to "'+plan+'"?';
   if(plan==='trial') confirm_msg='Set plan for '+email+' to Trial? This will give them a fresh 14-day trial starting now.';
   if(!window.confirm(confirm_msg)){if(selectEl)selectEl.value='';return;}
