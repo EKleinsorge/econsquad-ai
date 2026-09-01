@@ -7360,8 +7360,9 @@ function esqAudioPrime(){
    zero, instead of waiting on a 250 KB download. */
 var ESQ_SHOW_SRC   = 'audio/launch-show.mp3';
 var ESQ_CHEER_SRC  = 'audio/crowd-cheer.mp3';
-var _esqShowBytes = null, _esqCheerBytes = null;
-var _esqShowBuf   = null, _esqCheerBuf   = null;
+var ESQ_CD_SRC     = 'audio/crowd-countdown.mp3';
+var _esqShowBytes = null, _esqCheerBytes = null, _esqCdBytes = null;
+var _esqShowBuf   = null, _esqCheerBuf   = null, _esqCdBuf   = null;
 var _esqShowNodes = [];
 
 function esqPrefetchShowAudio(){
@@ -7374,6 +7375,7 @@ function esqPrefetchShowAudio(){
   };
   grab(ESQ_SHOW_SRC,  function(b){ _esqShowBytes  = b; });
   grab(ESQ_CHEER_SRC, function(b){ _esqCheerBytes = b; });
+  grab(ESQ_CD_SRC,    function(b){ _esqCdBytes    = b; });
 }
 try{
   if(document.readyState === 'complete') esqPrefetchShowAudio();
@@ -7392,6 +7394,7 @@ function esqDecodeShowAudio(){
   };
   if(!_esqShowBuf)  dec(_esqShowBytes,  function(b){ _esqShowBuf  = b; });
   if(!_esqCheerBuf) dec(_esqCheerBytes, function(b){ _esqCheerBuf = b; });
+  if(!_esqCdBuf)    dec(_esqCdBytes,    function(b){ _esqCdBuf    = b; });
 }
 
 /* Returns true if the recorded show started. false means the caller should
@@ -7450,9 +7453,206 @@ function esqStopShowAudio(){
   _esqShowNodes = [];
 }
 
+/* ---- Crowd countdown ------------------------------------------------
+   audio/crowd-countdown.mp3 — a crowd counting ten down to one, trimmed so
+   the file ENDS on "one". That trim is the whole alignment mechanism: we
+   start the clip at (launch - its duration), so wherever "one" sits in the
+   file, it lands on zero. Trailing silence would push the count early.
+
+   Deliberately NOT driven by the countdown's paint() loop. That is a
+   setInterval(1000), which drifts, can be throttled in a background tab,
+   and only knows about whole seconds — none of which is good enough when
+   "one!" has to hit the same instant as the first shell. This schedules
+   against the AudioContext clock, which is sample-accurate.
+
+   Joining late is handled: land on the page at T-6 with an 11-second clip
+   and it starts six seconds in, so you hear "six, five, four…" rather than
+   nothing or a count that finishes after the fireworks. */
+var _esqCdNode = null, _esqCdArmed = false, _esqCdRetry = null;
+
+function esqArmCrowdCountdown(){
+  if(_esqCdArmed) return;
+  try{
+    if(typeof ESQ_LAUNCH_AT === 'undefined') return;
+    var ms = ESQ_LAUNCH_AT - Date.now();
+    if(ms <= 0) return;                       /* already launched */
+
+    var again = function(delay){
+      clearTimeout(_esqCdRetry);
+      _esqCdRetry = setTimeout(esqArmCrowdCountdown, delay);
+    };
+
+    /* Too far out to schedule — look again shortly. */
+    if(ms > 120000){ again(Math.min(60000, ms - 60000)); return; }
+
+    if(!esqSoundOn()) return;
+    var ac = esqAudioPrime();
+    /* Not armed yet (nobody has clicked) or still decoding — the click may
+       well come at T-20, so keep checking rather than giving up here. */
+    if(!ac || ac.state !== 'running' || !_esqCdBuf){ again(1500); return; }
+
+    _esqCdArmed = true;
+    var dur    = _esqCdBuf.duration;
+    var lead   = ms / 1000;                        /* seconds until zero */
+    var offset = Math.max(0, dur - lead);          /* joined late? skip ahead */
+    var when   = ac.currentTime + Math.max(0, lead - dur);
+
+    var src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = _esqCdBuf;
+    g.gain.value = 0.95;
+    src.connect(g); g.connect(_esqMaster);
+    src.start(when, offset);
+    _esqCdNode = src;
+  }catch(e){}
+}
+
+function esqStopCrowdCountdown(){
+  try{ if(_esqCdNode) _esqCdNode.stop(); }catch(e){}
+  _esqCdNode = null;
+  clearTimeout(_esqCdRetry);
+}
+
+/* ---- Big countdown takeover ----------------------------------------
+   Full-screen 10 -> 1 for the last eleven seconds, then the go-live
+   message with a Close button that drops the visitor on the landing page.
+
+   THE NUMBERS ARE NOT ON A ONE-SECOND TIMER. A real crowd does not count
+   to a metronome, and audio/crowd-countdown.mp3 does not either — its ten
+   shouts land 0.8 to 1.4 seconds apart. These marks were measured off the
+   waveform of that exact file, as seconds before zero, so the digit on
+   screen changes on the syllable rather than near it.
+
+   Stated relative to zero rather than to the start of the clip, so they
+   stay correct no matter how the file is trimmed. If the audio is ever
+   re-recorded, re-measure these.
+
+   With sound muted or blocked it still runs — you just get a countdown
+   whose pacing happens to breathe like a human one. */
+var ESQ_CD_MARKS = [
+  {n:'10', at:10.979}, {n:'9', at:10.179}, {n:'8', at:8.799},
+  {n:'7',  at:7.779},  {n:'6', at:6.819},  {n:'5', at:5.599},
+  {n:'4',  at:4.359},  {n:'3', at:3.179},  {n:'2', at:2.099},
+  {n:'1',  at:1.059}
+];
+var _esqBigTimers = [], _esqBigArmed = false;
+
+function esqBigEl(){
+  var ov = document.getElementById('esq-cdbig');
+  if(ov) return ov;
+
+  if(!document.getElementById('esq-cdbig-css')){
+    var st = document.createElement('style');
+    st.id = 'esq-cdbig-css';
+    st.textContent =
+      '#esq-cdbig{position:fixed;inset:0;z-index:199000;display:flex;flex-direction:column;'+
+        'align-items:center;justify-content:center;text-align:center;padding:24px;'+
+        'background:radial-gradient(ellipse at 50% 45%,rgba(10,22,40,.97) 0%,rgba(4,5,13,.985) 70%);'+
+        'transition:opacity .32s ease;}'+
+      '#esq-cdbig .cdnum{font-family:\'Barlow Condensed\',Barlow,sans-serif;font-weight:900;'+
+        'font-size:clamp(190px,36vw,540px);line-height:.82;color:#aaff3e;letter-spacing:-.03em;'+
+        'text-shadow:0 0 90px rgba(170,255,62,.55),0 0 190px rgba(170,255,62,.28);}'+
+      '#esq-cdbig .cdnum.pop{animation:esqCdPop .34s cubic-bezier(.2,1.3,.4,1);}'+
+      '@keyframes esqCdPop{0%{transform:scale(1.38);opacity:.15}60%{opacity:1}100%{transform:scale(1)}}'+
+      '#esq-cdbig .cdsub{font-family:Barlow,sans-serif;font-weight:800;'+
+        'font-size:clamp(13px,2vw,20px);letter-spacing:.22em;text-transform:uppercase;'+
+        'color:#6b7a96;margin-top:26px;}'+
+      '#esq-cdbig .cdlive{font-family:\'Barlow Condensed\',Barlow,sans-serif;font-weight:900;'+
+        'font-size:clamp(44px,8.4vw,132px);line-height:.96;letter-spacing:-.02em;color:#eef3fc;'+
+        'max-width:16ch;text-shadow:0 0 70px rgba(170,255,62,.3);}'+
+      '#esq-cdbig .cdlive em{font-style:normal;color:#aaff3e;}'+
+      '#esq-cdbig .cdlivesub{font-family:\'DM Sans\',sans-serif;font-size:clamp(14px,1.8vw,19px);'+
+        'color:#8a97b5;margin-top:22px;max-width:44ch;line-height:1.6;}'+
+      '#esq-cdbig .cdclose{margin-top:38px;background:#aaff3e;color:#0a1a00;border:none;'+
+        'border-radius:12px;font-family:Barlow,sans-serif;font-size:16px;font-weight:800;'+
+        'padding:15px 44px;cursor:pointer;box-shadow:0 0 40px rgba(170,255,62,.35);}'+
+      '#esq-cdbig .cdclose:hover{transform:translateY(-1px);}'+
+      '@media(prefers-reduced-motion:reduce){#esq-cdbig .cdnum.pop{animation:none;}}';
+    document.head.appendChild(st);
+  }
+
+  ov = document.createElement('div');
+  ov.id = 'esq-cdbig';
+  ov.innerHTML = '<div class="cdnum" id="esq-cdbig-num"></div>'+
+                 '<div class="cdsub" id="esq-cdbig-sub">The ECONSquad goes live in</div>';
+  document.body.appendChild(ov);
+  return ov;
+}
+
+function esqBigShowNumber(n){
+  try{
+    var ov  = esqBigEl();
+    var num = document.getElementById('esq-cdbig-num');
+    if(!num) return;
+    num.textContent = n;
+    /* Restart the pop by removing and forcing a reflow. */
+    num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+  }catch(e){}
+}
+
+function esqBigShowLive(){
+  try{
+    var ov = esqBigEl();
+    ov.innerHTML =
+      '<div class="cdlive">The ECONSquad is officially <em>open for hire</em>.</div>'+
+      '<div class="cdlivesub">All 22 specialists are standing by. Start your free trial '+
+        'and put them to work today.</div>'+
+      '<button type="button" class="cdclose" onclick="esqBigCountdownClose()">Close</button>';
+  }catch(e){}
+}
+
+/* Close drops them on the landing page, at the top. */
+function esqBigCountdownClose(){
+  try{
+    var ov = document.getElementById('esq-cdbig');
+    if(ov){ ov.style.opacity = '0'; setTimeout(function(){ try{ ov.remove(); }catch(e){} }, 340); }
+  }catch(e){}
+  try{ switchView('marketing'); }catch(e){}
+  try{
+    var sa = document.querySelector('.scroll-area');
+    if(sa) sa.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }catch(e){}
+}
+
+function esqClearBigCountdown(){
+  _esqBigTimers.forEach(function(t){ clearTimeout(t); });
+  _esqBigTimers = [];
+  _esqBigArmed = false;
+  try{ var ov = document.getElementById('esq-cdbig'); if(ov) ov.remove(); }catch(e){}
+}
+
+function esqArmBigCountdown(){
+  if(_esqBigArmed) return;
+  try{
+    if(typeof ESQ_LAUNCH_AT === 'undefined') return;
+    var ms = ESQ_LAUNCH_AT - Date.now();
+    if(ms <= 0) return;
+    /* Not yet — look again nearer the time. */
+    if(ms > 20000){
+      _esqBigTimers.push(setTimeout(function(){ _esqBigArmed = false; esqArmBigCountdown(); },
+                                    Math.min(15000, ms - 15000)));
+      _esqBigArmed = true;
+      return;
+    }
+    _esqBigArmed = true;
+    ESQ_CD_MARKS.forEach(function(m){
+      var d = ms - m.at*1000;
+      /* Already gone past this one — skip it rather than firing them all at once. */
+      if(d < -400) return;
+      _esqBigTimers.push(setTimeout(function(){ esqBigShowNumber(m.n); }, Math.max(0, d)));
+    });
+    _esqBigTimers.push(setTimeout(esqBigShowLive, Math.max(0, ms)));
+  }catch(e){}
+}
+
 /* Build it the moment the user touches the page, long before zero. */
 ['pointerdown','keydown','touchstart'].forEach(function(ev){
-  try{ window.addEventListener(ev, function(){ if(esqSoundOn()) esqAudioPrime(); }, {once:true, passive:true}); }catch(e){}
+  try{ window.addEventListener(ev, function(){
+    if(!esqSoundOn()) return;
+    esqAudioPrime();
+    /* They may only have clicked at T-20 — schedule the count now. */
+    setTimeout(function(){ try{ esqArmCrowdCountdown(); }catch(e){} }, 300);
+  }, {once:true, passive:true}); }catch(e){}
 });
 
 function _esqPan(xFrac){
@@ -7858,6 +8058,8 @@ function esqMountCountdown(el, opts){
 function esqInitCountdowns(){
   var els = document.querySelectorAll('[data-esq-countdown]');
   for(var i = 0; i < els.length; i++) esqMountCountdown(els[i]);
+  try{ esqArmCrowdCountdown(); }catch(e){}
+  try{ esqArmBigCountdown();   }catch(e){}
 
   /* Arrived just after the moment — one burst, once per browser. */
   var since = Date.now() - ESQ_LAUNCH_AT;
@@ -7908,6 +8110,11 @@ function esqLaunchDemo(seconds){
   var secs = (seconds == null) ? 10 : seconds;
   ESQ_LAUNCH_AT = Date.now() + secs*1000;
   _esqLaunchCelebrated = false;
+  /* A rehearsal moves zero, so the crowd countdown has to be re-scheduled
+     against the new one. esqInitCountdowns() below re-arms it. */
+  try{ esqStopCrowdCountdown(); }catch(e){}
+  try{ esqClearBigCountdown();  }catch(e){}
+  _esqCdArmed = false;
   var els = document.querySelectorAll('[data-esq-countdown]');
   for(var i = 0; i < els.length; i++){
     els[i].removeAttribute('data-esq-cd-ticked');
@@ -7915,6 +8122,15 @@ function esqLaunchDemo(seconds){
   }
   esqInitCountdowns();
   var msg = 'Launch set ' + secs + 's out. Ctrl+F5 to restore the real date.';
+  if(_esqCdBuf && secs < _esqCdBuf.duration){
+    msg += '\n\nNote: the crowd countdown is ' + _esqCdBuf.duration.toFixed(1)
+         + 's, so this rehearsal joins it partway in. Use'
+         + ' esqLaunchDemo(' + Math.ceil(_esqCdBuf.duration + 2) + ') to hear it from "ten".';
+  }
+  if(esqSoundOn() && (!_esqAC || _esqAC.state !== 'running')){
+    msg += '\n\n*** NO AUDIO YET. Click anywhere on the page once, then'
+         + ' rehearse again — browsers block sound until the page is clicked. ***';
+  }
   if(esqMotionBlocked() && !esqStageOn()){
     msg += '\n\n*** REDUCED MOTION IS ON. The bands will flip but NO confetti'
          + ' will run — on this machine the real launch would be silent too.'
