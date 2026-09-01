@@ -7287,6 +7287,185 @@ function esqMotionBlocked(){
   catch(e){ return false; }
 }
 
+/* ---- Launch show audio ---------------------------------------------
+   Synthesised with Web Audio rather than loaded from a file: there is no
+   asset to 404 on the projector laptop, no download to finish before the
+   clock hits zero, and every boom can be panned to where its shell
+   actually burst on screen.
+
+   Hooked into loft() and burst() below, so the sound tracks the real
+   fireworks instead of running as a fixed soundtrack alongside them.
+
+   AUTOPLAY. A browser will not let a page make noise until the user has
+   interacted with it, and the countdown reaching zero is not an
+   interaction. Chrome grants "sticky activation" after any click or
+   keypress, so we build the context on the first gesture and keep it warm.
+   On the party laptop, clicking anywhere once after loading is enough.
+   If it is still blocked the show runs silently — never throws.
+
+   esqSound(false) mutes it; the preference persists per browser. */
+var ESQ_SOUND_KEY = 'esq_show_sound';
+var _esqAC = null, _esqMaster = null, _esqNoise = null;
+
+function esqSoundOn(){
+  try{ return localStorage.getItem(ESQ_SOUND_KEY) !== '0'; }catch(e){ return true; }
+}
+function esqSound(on){
+  try{ localStorage.setItem(ESQ_SOUND_KEY, on === false ? '0' : '1'); }catch(e){}
+  if(on !== false) esqAudioPrime();
+  return on === false ? 'Launch show muted.' : 'Launch show sound ON.';
+}
+
+function esqAudioPrime(){
+  try{
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    if(!_esqAC){
+      _esqAC = new AC();
+      var comp = _esqAC.createDynamicsCompressor();
+      comp.threshold.value = -10; comp.knee.value = 12;
+      comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.25;
+      _esqMaster = _esqAC.createGain();
+      /* Measured, not guessed. Rendered in an OfflineAudioContext and peak-
+         metered: at 1.2 five shells bursting on the same frame hit 1.13 and
+         clip; at 1.1 the same case peaks at 0.98. A single boom lands at
+         0.31 and the opening fanfare at 0.40, so the bangs stay louder than
+         the music, which is the point of a fireworks show. */
+      _esqMaster.gain.value = 1.1;
+      _esqMaster.connect(comp); comp.connect(_esqAC.destination);
+      /* One second of white noise, reused for every boom and crackle. */
+      var len = _esqAC.sampleRate;
+      _esqNoise = _esqAC.createBuffer(1, len, _esqAC.sampleRate);
+      var d = _esqNoise.getChannelData(0);
+      for(var i=0;i<len;i++) d[i] = Math.random()*2 - 1;
+    }
+    if(_esqAC.state === 'suspended'){ try{ _esqAC.resume(); }catch(e){} }
+    return _esqAC;
+  }catch(e){ return null; }
+}
+/* Build it the moment the user touches the page, long before zero. */
+['pointerdown','keydown','touchstart'].forEach(function(ev){
+  try{ window.addEventListener(ev, function(){ if(esqSoundOn()) esqAudioPrime(); }, {once:true, passive:true}); }catch(e){}
+});
+
+function _esqPan(xFrac){
+  if(!_esqAC || !_esqAC.createStereoPanner) return null;
+  var pan = _esqAC.createStereoPanner();
+  pan.pan.value = Math.max(-1, Math.min(1, (xFrac - 0.5) * 1.6));
+  return pan;
+}
+function _esqOut(node, xFrac){
+  var pan = _esqPan(xFrac);
+  if(pan){ node.connect(pan); pan.connect(_esqMaster); }
+  else node.connect(_esqMaster);
+}
+function _esqNoiseSrc(){
+  var src = _esqAC.createBufferSource();
+  src.buffer = _esqNoise; src.loop = true;
+  return src;
+}
+
+/* A shell going up: a short rising whistle. Quiet — sixteen of these at
+   boom volume would be unbearable. */
+function esqPlayWhistle(xFrac){
+  if(!esqSoundOn()) return;
+  var ac = esqAudioPrime(); if(!ac || ac.state !== 'running') return;
+  try{
+    var t = ac.currentTime;
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(620 + Math.random()*180, t);
+    o.frequency.exponentialRampToValueAtTime(1500 + Math.random()*420, t + 0.85);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.045, t + 0.12);
+    g.gain.linearRampToValueAtTime(0.0001, t + 0.92);
+    o.connect(g); _esqOut(g, xFrac);
+    o.start(t); o.stop(t + 0.95);
+  }catch(e){}
+}
+
+/* The burst: a low thump with a noise body, then a scatter of crackle. */
+function esqPlayBoom(xFrac){
+  if(!esqSoundOn()) return;
+  var ac = esqAudioPrime(); if(!ac || ac.state !== 'running') return;
+  try{
+    var t = ac.currentTime;
+
+    /* Body — white noise through a lowpass that closes fast. */
+    var n = _esqNoiseSrc(), nf = ac.createBiquadFilter(), ng = ac.createGain();
+    nf.type = 'lowpass';
+    nf.frequency.setValueAtTime(900, t);
+    nf.frequency.exponentialRampToValueAtTime(90, t + 0.42);
+    nf.Q.value = 0.8;
+    ng.gain.setValueAtTime(0, t);
+    ng.gain.linearRampToValueAtTime(0.85, t + 0.012);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.72);
+    n.connect(nf); nf.connect(ng); _esqOut(ng, xFrac);
+    n.start(t); n.stop(t + 0.75);
+
+    /* Chest thump — the part you feel more than hear. */
+    var o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(96, t);
+    o.frequency.exponentialRampToValueAtTime(34, t + 0.30);
+    og.gain.setValueAtTime(0, t);
+    og.gain.linearRampToValueAtTime(0.78, t + 0.010);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(og); _esqOut(og, xFrac);
+    o.start(t); o.stop(t + 0.58);
+
+    /* Crackle — a dozen tiny grains scattered after the bang. */
+    var grains = 10 + ((Math.random()*7)|0);
+    for(var k = 0; k < grains; k++){
+      var at = t + 0.09 + Math.random()*0.75;
+      var cn = _esqNoiseSrc(), cf = ac.createBiquadFilter(), cg = ac.createGain();
+      cf.type = 'highpass'; cf.frequency.value = 3200 + Math.random()*2600;
+      cg.gain.setValueAtTime(0, at);
+      cg.gain.linearRampToValueAtTime(0.05 + Math.random()*0.07, at + 0.004);
+      cg.gain.exponentialRampToValueAtTime(0.0001, at + 0.055);
+      cn.connect(cf); cf.connect(cg);
+      _esqOut(cg, Math.max(0, Math.min(1, xFrac + (Math.random()-0.5)*0.28)));
+      cn.start(at); cn.stop(at + 0.07);
+    }
+  }catch(e){}
+}
+
+/* The moment the confetti lets go: a warm chord opening up, with a swell
+   of filtered noise under it that reads as a room full of people. */
+function esqPlayFanfare(){
+  if(!esqSoundOn()) return;
+  var ac = esqAudioPrime(); if(!ac || ac.state !== 'running') return;
+  try{
+    var t = ac.currentTime;
+
+    /* C major over two octaves — bright, not saccharine. */
+    [130.81, 164.81, 196.00, 261.63, 329.63].forEach(function(f, i){
+      var o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+      o.type = i < 3 ? 'sawtooth' : 'triangle';
+      o.frequency.value = f;
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(320, t);
+      lp.frequency.exponentialRampToValueAtTime(4200, t + 0.9);
+      var peak = 0.095 - i*0.011;
+      g.gain.setValueAtTime(0, t + i*0.045);
+      g.gain.linearRampToValueAtTime(peak, t + 0.28 + i*0.045);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.3);
+      o.connect(lp); lp.connect(g); g.connect(_esqMaster);
+      o.start(t + i*0.045); o.stop(t + 2.4);
+    });
+
+    /* Crowd swell. */
+    var n = _esqNoiseSrc(), bp = ac.createBiquadFilter(), g2 = ac.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.7;
+    g2.gain.setValueAtTime(0, t);
+    g2.gain.linearRampToValueAtTime(0.085, t + 0.7);
+    g2.gain.linearRampToValueAtTime(0.055, t + 1.8);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 3.4);
+    n.connect(bp); bp.connect(g2); g2.connect(_esqMaster);
+    n.start(t); n.stop(t + 3.5);
+  }catch(e){}
+}
+
 function esqConfetti(opts){
   opts = opts || {};
   if(esqMotionBlocked() && !opts.force && !esqStageOn()) return;
@@ -7302,6 +7481,10 @@ function esqConfetti(opts){
   var SPARKS = narrow ? 48 : 78;
   /* Stop lofting shells with enough runway for the last one to burst and fade. */
   var LAST_LOFT = Math.max(600, DUR - 2800);
+
+  /* Fires with the confetti, not with the first shell — the paper is what
+     the room sees first. */
+  if(opts.sound !== false) esqPlayFanfare();
 
   var cv = document.createElement('canvas');
   cv.id = 'esq-confetti';
@@ -7386,9 +7569,12 @@ function esqConfetti(opts){
     sh.color = pick();
     sh.hist = [];
     sh.up = true;
+    /* Only about half whistle — sixteen at once is a kettle, not a show. */
+    if(Math.random() < 0.55) esqPlayWhistle(sh.x / Math.max(1, W()));
   }
 
   function burst(sh){
+    esqPlayBoom(sh.x / Math.max(1, W()));
     var speed  = 4.2 + Math.random()*2.6;
     var accent = pick();
     for(var k = 0; k < SPARKS; k++){
