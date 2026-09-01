@@ -1173,7 +1173,9 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .hcs:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
 .scroll-area,#inbox-tab{padding-bottom:90px !important;}
 @media(max-width:600px){#esq-right-sidebar{display:none !important;}}
-@media(max-width:860px){#fullcal-tab>div:last-child{grid-template-columns:1fr !important;}#esq-schedule-panel{position:static !important;}}
+/* The Calendar tab shows one pane at a time (see esqCalView), so there is no
+   longer a two-column grid to collapse or a sticky panel to unstick here. */
+#esq-schedule-list .esq-sched-row{max-width:100%;}
 #esq-schedule-list::-webkit-scrollbar{width:4px;}
 #esq-schedule-list::-webkit-scrollbar-track{background:transparent;}
 #esq-schedule-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px;}
@@ -1474,7 +1476,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           <li><a id="dash-nav-inbox" onclick="showDashTab('inbox-tab',this)" style="cursor:pointer;">
             Inbox <span id="inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-inbox" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Email not connected — click to connect">🔗</span>
           </a></li>
-          <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);initFullCalendar();" style="cursor:pointer;">Calendar <span id="cal-nav-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-cal" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Calendar not connected — click to connect">🔗</span></a></li>
+          <li><a id="dash-nav-fullcal" onclick="showDashTab('fullcal-tab',this);esqCalViewRestore();" style="cursor:pointer;">Calendar <span id="cal-nav-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-cal" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Calendar not connected — click to connect">🔗</span></a></li>
           <li><a id="dash-nav-tasks" onclick="showDashTab('tasks-tab',this)" style="cursor:pointer;">Tasks <span id="tasks-nav-badge" style="display:none;background:#f87171;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;"></span><span id="nav-dot-tasks" style="display:none;font-size:10px;opacity:0.45;margin-left:3px;vertical-align:middle;" title="Tasks not connected — click to connect">🔗</span></a></li>
           <li class="nav-dropdown">
             <a id="dash-nav-resources" class="nav-dropdown-trigger" style="cursor:pointer;">Resources <span class="nav-caret">▾</span></a>
@@ -1668,7 +1670,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           <span id="mob-inbox-badge" style="display:none;background:#aaff3e;color:#0a1a00;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
           <span id="mob-dot-inbox" style="display:none;font-size:10px;opacity:0.4;margin-left:2px;">🔗</span>
         </div>
-        <div onclick="showDashTab('fullcal-tab',null);initFullCalendar();closeMobileMenu();" class="mob-nav-item" id="mob-nav-cal">
+        <div onclick="showDashTab('fullcal-tab',null);esqCalViewRestore();closeMobileMenu();" class="mob-nav-item" id="mob-nav-cal">
           <span>Calendar</span>
           <span id="mob-cal-badge" style="display:none;background:#4a9eff;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;"></span>
           <span id="mob-dot-cal" style="display:none;font-size:10px;opacity:0.4;margin-left:2px;">🔗</span>
@@ -1888,7 +1890,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
       <section class="roi-section" id="sec-roi">
         <div class="roi-card">
           <h2>See exactly how much your squad <span>saves you</span></h2>
-          <p>Enter your salary. We'll show you what your time is actually worth — and how fast EconSquad AI pays for itself.</p>
+          <p>Enter your salary. We'll show you what your time is actually worth — and how fast EconSquad AI pays for itself. Based on recovering <strong>200 hours a year</strong> — five full workweeks.</p>
           <div class="salary-row">
             <span class="salary-label">My annual salary:</span>
             <input class="salary-input" type="number" id="mkt-sal" value="75000" oninput="calcMktROI()">
@@ -1896,8 +1898,8 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           <div class="roi-nums-row">
             <div class="roi-num-box"><div class="rn gold" id="mkt-saved">$2,218</div><div class="rl">Value recovered<br>first year</div></div>
             <div class="roi-num-box"><div class="rn lime" id="mkt-mult">5x</div><div class="rl">Return on your<br>subscription</div></div>
-            <div class="roi-num-box"><div class="rn green">61.5 hrs</div><div class="rl">Hours saved<br>annually</div></div>
-            <div class="roi-num-box"><div class="rn blue">8 days</div><div class="rl">Full workdays<br>recovered</div></div>
+            <div class="roi-num-box"><div class="rn green" id="mkt-hrs">200 hrs</div><div class="rl">Hours saved<br>annually</div></div>
+            <div class="roi-num-box"><div class="rn blue" id="mkt-weeks">5 weeks</div><div class="rl">Full workweeks<br>recovered</div></div>
           </div>
           <button class="btn-hero" onclick="openAuth('signup')">Start saving time today →</button>
         </div>
@@ -2159,7 +2161,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           <p class="final-note">Already a member? <span onclick="switchView('dashboard')">Sign in →</span></p>
         </div>
       </section>
-<section id="home-aria-chat" style="background:rgba(8,12,24,0.8);padding:60px 0 20px;"><div class="home-chat-section"><div class="home-chat-hdr"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:6px 16px;margin-bottom:16px;"><span style="width:8px;height:8px;border-radius:50%;background:#aaff3e;display:inline-block;"></span><span style="font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;color:#aaff3e;letter-spacing:.06em;">ARIA IS ONLINE</span></div><h2>Ask ARIA Anything</h2><p>Have questions about EconSquad? Ask our AI assistant.</p></div><div class="home-chat-box"><div class="home-chat-msgs" id="home-chat-messages"><div class="hcm"><div class="hcav aria">A</div><div class="hcbub">Hi! I am ARIA. I help economic developers save time on grants, RFIs, BRE surveys, and more. What would you like to know about EconSquad?</div></div></div><div class="home-chat-starters"><button class="hcs" id="hcs1">What can EconSquad do?</button><button class="hcs" id="hcs2">How does grant writing work?</button><button class="hcs" id="hcs3">What is Riley?</button><button class="hcs" id="hcs4">Pricing?</button></div><div class="home-chat-input-row"><input class="home-chat-in" id="home-chat-input" type="text" placeholder="Ask about EconSquad..."/><button class="home-chat-go" id="home-chat-send">Ask ARIA</button></div></div></div></section>
+<section id="home-aria-chat" style="background:rgba(8,12,24,0.8);padding:60px 0 20px;"><div class="home-chat-section"><div class="home-chat-hdr"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:6px 16px;margin-bottom:16px;"><span style="width:8px;height:8px;border-radius:50%;background:#aaff3e;display:inline-block;"></span><span style="font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;color:#aaff3e;letter-spacing:.06em;">ARIA IS ONLINE</span></div><h2>Ask ARIA</h2><p>Quick answers on pricing, the specialists, the trial and how it all works.</p></div><div class="home-chat-box"><div class="home-chat-msgs" id="home-chat-messages"><div class="hcm"><div class="hcav aria">A</div><div class="hcbub">Hi! I am ARIA. I help economic developers save time on grants, RFIs, BRE surveys, and more. What would you like to know about EconSquad?</div></div></div><div class="home-chat-starters"><button class="hcs" id="hcs1">What can EconSquad do?</button><button class="hcs" id="hcs2">How does grant writing work?</button><button class="hcs" id="hcs3">What is Riley?</button><button class="hcs" id="hcs4">Pricing?</button></div><div class="home-chat-input-row"><input class="home-chat-in" id="home-chat-input" type="text" placeholder="Ask about EconSquad..."/><button class="home-chat-go" id="home-chat-send">Ask ARIA</button></div></div></div></section>
 
       <!-- PARTNER PROGRAM CALLOUT -->
       <section style="background:rgba(4,6,12,0.6);border-top:1px solid rgba(255,255,255,0.05);padding:56px 40px;text-align:center;">
@@ -2347,7 +2349,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           inbox: function(){ showDashTab('inbox-tab', $('dash-nav-inbox')); },
           cal:   function(){
             showDashTab('fullcal-tab', $('dash-nav-fullcal'));
-            if(typeof initFullCalendar === 'function') initFullCalendar();
+            if(typeof esqCalViewRestore === 'function') esqCalViewRestore();
           },
           dash:  function(){ showDashTab('home-tab', $('dash-nav-home')); }
         };
@@ -2676,23 +2678,31 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
         <div id="fullcal-no-provider" style="display:none;"></div>
         <!-- Header row -->
         <div id="fullcal-real-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#eef3fc;">📅 Calendar</div>
+          <div style="display:flex;align-items:center;gap:18px;">
+            <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#eef3fc;">📅 Calendar</div>
+            <div id="esq-cal-viewtoggle" style="display:inline-flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;">
+              <button type="button" id="esq-calview-list" onclick="esqCalView('list')" style="background:none;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:6px 16px;cursor:pointer;color:#6b7a96;transition:all .18s;">Schedule</button>
+              <button type="button" id="esq-calview-grid" onclick="esqCalView('grid')" style="background:none;border:none;border-radius:7px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:800;padding:6px 16px;cursor:pointer;color:#6b7a96;transition:all .18s;">Calendar</button>
+            </div>
+          </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="esq-sched-filter-label" style="font-size:11px;color:#6b7a96;display:none;"></span>
             <button id="esq-sched-clear-btn" onclick="clearScheduleFilter()" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:inherit;">✕ Clear filter</button>
             <button id="sched-meeting-btn" onclick="openScheduleMeeting()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-size:12px;font-weight:700;padding:6px 16px;border-radius:8px;cursor:pointer;font-family:inherit;">＋ Schedule Meeting</button>
           </div>
         </div>
-        <!-- Split pane: schedule left, calendar right -->
-        <div id="fullcal-real-body" style="display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;">
+        <!-- Two views, one at a time. Was a 300px + 1fr grid with the schedule
+             panel position:sticky; below the stack breakpoint the calendar slid
+             over the pinned list. Split into its own view 2026-09-01. -->
+        <div id="fullcal-real-body">
 
           <!-- LEFT: Schedule panel -->
-          <div id="esq-schedule-panel" style="background:rgba(10,15,28,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;position:sticky;top:20px;">
+          <div id="esq-schedule-panel" style="background:rgba(10,15,28,0.7);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;">
             <div style="padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
               <span style="font-family:'Barlow',sans-serif;font-size:11px;font-weight:800;color:#6b7a96;text-transform:uppercase;letter-spacing:.1em;">Schedule</span>
               <span id="esq-sched-count" style="font-size:10px;color:#4a5568;"></span>
             </div>
-            <div id="esq-schedule-list" style="padding:10px 8px;max-height:calc(100vh - 220px);overflow-y:auto;">
+            <div id="esq-schedule-list" style="padding:10px 8px;">
               <div style="color:#4a5568;font-size:12px;padding:16px;text-align:center;">Loading events…</div>
             </div>
           </div>
@@ -2851,7 +2861,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                 <span id="r-hourly" style="color:#eef3fc;font-weight:700;">$36.06</span>
               </div>
               <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                <span style="color:#8a97b5;font-size:13px;">Time Value Saved YTD (<span id="r-hours-label">61.5</span> hrs)</span>
+                <span style="color:#8a97b5;font-size:13px;">Time Value Saved YTD (<span id="r-hours-label">200.0</span> hrs)</span>
                 <span id="r-saved" style="color:#aaff3e;font-weight:700;font-size:16px;">$2,218</span>
               </div>
               <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
@@ -3203,6 +3213,54 @@ function showDashTab(tabId,el){
 }
 
 var _fcInstance = null;
+
+/* ── Calendar tab: Schedule view / Calendar view ───────────────────────
+   These used to sit side by side in a 300px + 1fr grid with the schedule
+   panel position:sticky. Once the viewport narrowed enough for the grid to
+   stack, the calendar scrolled straight over the pinned list. They are now
+   two views of the same tab, one visible at a time.
+
+   The important detail: FullCalendar measures its container when it renders,
+   and a container inside display:none measures zero. So every time the grid
+   view is revealed we have to call updateSize() after the element is actually
+   laid out — otherwise you get a collapsed, unreadable calendar. */
+function esqCalView(view){
+  try{
+    if(view!=='grid') view='list';
+    try{ localStorage.setItem('esq_cal_view', view); }catch(e){}
+
+    var panel = document.getElementById('esq-schedule-panel');
+    var grid  = document.getElementById('esq-fullcal');
+    if(panel) panel.style.display = (view==='list') ? 'block' : 'none';
+    if(grid)  grid.style.display  = (view==='grid') ? 'block' : 'none';
+
+    var bl = document.getElementById('esq-calview-list');
+    var bg = document.getElementById('esq-calview-grid');
+    [[bl, view==='list'], [bg, view==='grid']].forEach(function(pair){
+      var b = pair[0]; if(!b) return;
+      b.style.background = pair[1] ? 'rgba(170,255,62,0.14)' : 'none';
+      b.style.color      = pair[1] ? '#aaff3e' : '#6b7a96';
+    });
+
+    if(view==='grid'){
+      if(typeof initFullCalendar==='function') initFullCalendar();
+      /* Two frames: one for the display change to apply, one for layout. */
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          try{ if(_fcInstance) _fcInstance.updateSize(); }catch(e){}
+        });
+      });
+    }
+  }catch(e){}
+}
+
+/* Restore whichever view they were last on when the tab is opened. */
+function esqCalViewRestore(){
+  var v='list';
+  try{ v = localStorage.getItem('esq_cal_view') || 'list'; }catch(e){}
+  esqCalView(v);
+}
+
 function initFullCalendar(){
   var el = document.getElementById('esq-fullcal');
   if(!el || typeof FullCalendar === 'undefined') return;
@@ -3263,6 +3321,9 @@ function initFullCalendar(){
       var label = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
       if(lbl){ lbl.textContent = label; lbl.style.display='inline'; }
       if(btn){ btn.style.display='inline-block'; }
+      /* The schedule list is a separate view now, so filtering it from the
+         calendar has to take the user there or nothing appears to happen. */
+      try{ esqCalView('list'); }catch(e){}
       renderSchedulePanel(_schedFilterDate);
     },
     eventClick: function(info){
@@ -3602,14 +3663,28 @@ function escHtml(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+/* Hours the calculator assumes a subscriber recovers in a year.
+   200 = five full 40-hour workweeks, ~3.8 hours a week. Deliberately
+   conservative: it is the number that has to survive a sceptical EDO
+   director reading it, and a claim that sounds invented costs more than a
+   bigger multiple wins. Was 61.5 with no stated basis. Changed 2026-09-01. */
+var MKT_HOURS_SAVED_YR = 200;
+
 function calcMktROI(){
-  var sal=parseFloat(document.getElementById('mkt-sal').value)||75000;
-  var hr=sal/2080; var proj=hr*61.5;
+  var el=function(id){ return document.getElementById(id); };
+  var salEl=el('mkt-sal');
+  var sal=parseFloat(salEl&&salEl.value)||75000;
+  var hr=sal/2080;
+  var proj=hr*MKT_HOURS_SAVED_YR;
   var subYr=490; /* starter $490/yr */
   var mult=proj>0?Math.max(1,Math.round(proj/subYr)):0;
-  var ms=document.getElementById('mkt-saved');var mm=document.getElementById('mkt-mult');
-  if(ms)ms.textContent='$'+Math.round(proj).toLocaleString();
-  if(mm)mm.textContent=mult+'x';
+  /* All four boxes are written here. The hours and workweeks figures used to
+     be static HTML, so they sat at 61.5 hrs / 8 days no matter what anyone
+     typed — two of the four numbers were decoration. */
+  if(el('mkt-saved')) el('mkt-saved').textContent='$'+Math.round(proj).toLocaleString();
+  if(el('mkt-mult'))  el('mkt-mult').textContent=mult+'x';
+  if(el('mkt-hrs'))   el('mkt-hrs').textContent=MKT_HOURS_SAVED_YR+' hrs';
+  if(el('mkt-weeks')) el('mkt-weeks').textContent=(Math.round(MKT_HOURS_SAVED_YR/40*10)/10)+' weeks';
 }
 function calcROI(){
   var salEl=document.getElementById('sal');
@@ -3623,7 +3698,8 @@ function calcROI(){
   var hr=sal/2080;
   /* 2. Time Value Saved YTD = hours saved × hourly rate */
   var hours=(window._overviewStats&&window._overviewStats.totalHours>0)
-              ?window._overviewStats.totalHours:61.5;
+              ?window._overviewStats.totalHours
+              :(typeof MKT_HOURS_SAVED_YR!=='undefined'?MKT_HOURS_SAVED_YR:200);
   var saved=hr*hours;
   /* 3. Projected Annual = (YTD value / months elapsed) × 12 */
   var daysSince=(window._overviewStats&&window._overviewStats.daysSince>0)
@@ -3653,7 +3729,10 @@ function calcROI(){
 }
 function calcSignupROI(){
   var sal=parseFloat(document.getElementById('signup-sal').value)||75000;
-  var hr=sal/2080;var saved=hr*61.5;var mult=Math.round(saved/429);
+  /* 61.5 hours and a $429 plan, neither of which is current. */
+  var hr=sal/2080;
+  var saved=hr*(typeof MKT_HOURS_SAVED_YR!=='undefined'?MKT_HOURS_SAVED_YR:200);
+  var mult=Math.max(1,Math.round(saved/490));
   var sv=document.getElementById('signup-val');var sm=document.getElementById('signup-mult');
   if(sv)sv.textContent='$'+Math.round(saved).toLocaleString();
   if(sm)sm.textContent=mult+'x';
@@ -5612,14 +5691,31 @@ function ariaFallbackMatch(task){
 }
 
 function deployFromAria(){
+  /* Capture before closing — the panel resets ariaRecommendedId. */
+  var id = ariaRecommendedId;
   closeAriaRouting();
-  if(!currentUser){openAuth('signup');return;}
-  /* scroll to specialist in dashboard */
+  if(!currentUser){ openAuth('signup'); return; }
+  if(!id) return;
+
+  /* This used to hunt for a card with document.querySelector('[data-sid=...]')
+     and .click() it. Nothing in this document has ever carried a data-sid
+     attribute — the string appeared exactly once in the whole file, inside
+     that selector — so the query always returned null and the button silently
+     did nothing but close the panel. openSpecialistChat(id) is what the squad
+     cards themselves call. Fixed 2026-09-01. */
   switchView('dashboard');
   setTimeout(function(){
-    var card=document.querySelector('[data-sid="'+ariaRecommendedId+'"]');
-    if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.click();}
-  },400);
+    try{
+      if(typeof openSpecialistChat === 'function'){ openSpecialistChat(id); return; }
+      if(typeof deploy === 'function'){ deploy(id); return; }
+    }catch(e){}
+    /* Last resort: land them on the squad grid rather than nowhere. */
+    try{
+      showDashTab('home-tab', document.getElementById('dash-nav-home'));
+      var grid=document.getElementById('squad-tab-all');
+      if(grid) grid.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(e){}
+  },350);
 }
 
 /* ===== CUSTOM SPECIALIST ===== */
@@ -10006,30 +10102,118 @@ function cleanForSpeech(text){
     .trim();
 }
 
-function speakText(text, specialistId){
-  if(!voiceEnabled||!speechSynth)return;
-  speechSynth.cancel();
-  var clean=cleanForSpeech(text);
-  if(clean.length>700)clean=clean.slice(0,700)+'...';
-  var profile=specialistId?SPECIALIST_VOICES[specialistId]:null;
-  var utt=new SpeechSynthesisUtterance(clean);
-  if(profile){
-    utt.voice=profile.gender==='male'?(maleVoice||ariaVoice):(femaleVoice||ariaVoice);
-    utt.rate=profile.rate||0.95;
-    utt.pitch=profile.pitch||1.0;
-  } else {
-    utt.voice=ariaVoice||femaleVoice;
-    utt.rate=0.95;utt.pitch=1.05;
+/* ── Speech playback ────────────────────────────────────────────────
+   Rewritten 2026-09-01. Three separate Chrome bugs were making the
+   specialists repeat themselves and stop mid-sentence:
+
+   1. CHROME KILLS ANY UTTERANCE LONGER THAN ~15 SECONDS. This is a
+      long-standing engine bug, not a timeout we set. A 700-character reply
+      runs well past that, so it simply stopped talking partway through.
+      The fix is to split the text into sentence-sized chunks and queue
+      them, so no single utterance is long enough to be killed.
+
+   2. cancel() IMMEDIATELY FOLLOWED BY speak() RACES. Chrome can drop the new
+      utterance, or start it and then replay it. That is the repeating.
+      A short delay between the two makes it deterministic.
+
+   3. THE SYNTH GOES DORMANT while speaking in a background-ish tab. The
+      standard workaround is to poke resume() every few seconds while a
+      queue is in flight.
+
+   Also guards against double invocation: an identical request within a
+   second is ignored, because the caller fires from a setTimeout that can
+   land twice if a message re-renders. */
+var _spQueue = [], _spTimer = null, _spKeepAlive = null, _spLast = '', _spLastAt = 0;
+
+function _spStopKeepAlive(){
+  if(_spKeepAlive){ clearInterval(_spKeepAlive); _spKeepAlive = null; }
+}
+
+function _spChunk(text){
+  /* Split on sentence ends, then hard-wrap anything still too long.
+     ~180 characters is comfortably inside the 15-second window at rate .95. */
+  var parts = String(text).match(/[^.!?]+[.!?]+[\])'"`\u2019\u201d]*|[^.!?]+$/g) || [text];
+  var out = [], buf = '';
+  parts.forEach(function(p){
+    p = p.trim();
+    if(!p) return;
+    if((buf + ' ' + p).trim().length <= 180){ buf = (buf ? buf + ' ' : '') + p; return; }
+    if(buf){ out.push(buf); buf = ''; }
+    while(p.length > 180){
+      var cut = p.lastIndexOf(' ', 180);
+      if(cut < 60) cut = 180;
+      out.push(p.slice(0, cut).trim());
+      p = p.slice(cut).trim();
+    }
+    buf = p;
+  });
+  if(buf) out.push(buf);
+  return out.filter(Boolean);
+}
+
+function _spSpeakNext(profile){
+  if(!_spQueue.length){
+    _spStopKeepAlive();
+    updateSpeakerButton(false);
+    return;
   }
-  utt.volume=0.9;
-  utt.onstart=function(){updateSpeakerButton(true);};
-  utt.onend=function(){updateSpeakerButton(false);};
-  utt.onerror=function(){updateSpeakerButton(false);};
-  speechSynth.speak(utt);
+  var chunk = _spQueue.shift();
+  var utt = new SpeechSynthesisUtterance(chunk);
+  if(profile){
+    utt.voice = profile.gender==='male' ? (maleVoice||ariaVoice) : (femaleVoice||ariaVoice);
+    utt.rate  = profile.rate  || 0.95;
+    utt.pitch = profile.pitch || 1.0;
+  } else {
+    utt.voice = ariaVoice||femaleVoice;
+    utt.rate = 0.95; utt.pitch = 1.05;
+  }
+  utt.volume = 0.9;
+  utt.onend   = function(){ _spSpeakNext(profile); };
+  utt.onerror = function(){ _spQueue = []; _spStopKeepAlive(); updateSpeakerButton(false); };
+  try{ speechSynth.speak(utt); }
+  catch(e){ _spQueue = []; _spStopKeepAlive(); updateSpeakerButton(false); }
+}
+
+function speakText(text, specialistId){
+  if(!voiceEnabled||!speechSynth) return;
+
+  var clean = cleanForSpeech(text);
+  if(!clean) return;
+  if(clean.length > 1400) clean = clean.slice(0,1400) + '...';
+
+  /* Ignore an identical repeat request landing within a second. */
+  var now = Date.now();
+  if(clean === _spLast && (now - _spLastAt) < 1000) return;
+  _spLast = clean; _spLastAt = now;
+
+  if(_spTimer){ clearTimeout(_spTimer); _spTimer = null; }
+  _spQueue = [];
+  _spStopKeepAlive();
+  try{ speechSynth.cancel(); }catch(e){}
+
+  var profile = specialistId ? SPECIALIST_VOICES[specialistId] : null;
+
+  /* Let cancel() actually settle before queueing — see note 2 above. */
+  _spTimer = setTimeout(function(){
+    _spTimer = null;
+    _spQueue = _spChunk(clean);
+    if(!_spQueue.length) return;
+    updateSpeakerButton(true);
+    _spKeepAlive = setInterval(function(){
+      if(!speechSynth.speaking && !speechSynth.pending){ _spStopKeepAlive(); return; }
+      try{ speechSynth.resume(); }catch(e){}
+    }, 5000);
+    _spSpeakNext(profile);
+  }, 120);
 }
 
 /* Stop speaking */
 function stopSpeaking(){
+  /* Clear the queue first — otherwise the in-flight utterance's onend fires
+     and cheerfully starts the next chunk right after the cancel. */
+  _spQueue=[];
+  if(_spTimer){ clearTimeout(_spTimer); _spTimer=null; }
+  _spStopKeepAlive();
   if(speechSynth)speechSynth.cancel();
   updateSpeakerButton(false);
 }
@@ -10228,15 +10412,37 @@ function renderSquadTab(tab){
   }
 
   if(tab==='recent'){
-    /* use task_history counts to determine most used */
+    /* renderSquad() runs exactly once, at page setup, and gates its
+       task_history fetch on currentUser — which is still null at that point
+       because the Supabase auth restore is asynchronous. So the fetch was
+       skipped, window._taskHistory stayed undefined for the entire session,
+       and Most Used showed "Complete some missions" no matter how many
+       missions you had actually run. Load it here, on demand, the first time
+       the tab is opened. Fixed 2026-09-01. */
+    if(window._taskHistory === undefined && currentUser){
+      container.innerHTML='<div style="padding:40px;text-align:center;color:#4a5568;font-size:13px;">Loading your missions\u2026</div>';
+      var _done=function(rows){
+        window._taskHistory = rows || [];
+        if(currentSquadTab==='recent') renderSquadTab('recent');
+      };
+      supa.from('task_history').select('specialist_id').eq('user_id',currentUser.id)
+        .then(function(res){ _done(res && res.data); }, function(){ _done([]); });
+      return;
+    }
+    /* use task_history counts to determine most used.
+       Keys are stringified on both sides so an id that comes back from
+       PostgREST as text still matches squad[].id as a number. */
     var counts={};
     if(window._taskHistory){
       window._taskHistory.forEach(function(t){
-        counts[t.specialist_id]=(counts[t.specialist_id]||0)+1;
+        var k=String(t.specialist_id);
+        counts[k]=(counts[k]||0)+1;
       });
     }
-    var sorted=squad.slice().sort(function(a,b){return (counts[b.id]||0)-(counts[a.id]||0);});
-    var topUsed=sorted.filter(function(s){return (counts[s.id]||0)>0;});
+    var sorted=squad.slice().sort(function(a,b){
+      return (counts[String(b.id)]||0)-(counts[String(a.id)]||0);
+    });
+    var topUsed=sorted.filter(function(s){return (counts[String(s.id)]||0)>0;});
     if(!topUsed.length){
       container.innerHTML='<div style="padding:40px;text-align:center;color:#4a5568;font-size:13px;">Complete some missions to see your most used specialists here.</div>';
     } else {
@@ -12881,9 +13087,9 @@ var _DEMO_STEPS=[
   {lbl:'Welcome',title:'Meet ARIA',
    narration:"Hi! I'm ARIA - your AI economic development assistant. I work 24/7 so you don't have to. Let me show you what we accomplish together.",
    content:function(){return'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">'
-     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#aaff3e;margin-bottom:4px;">61.5 hrs</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Saved per ED professional annually</div></div>'
-     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#f5c542;margin-bottom:4px;">5x ROI</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Return on your subscription</div></div>'
-     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#64afff;margin-bottom:4px;">8 days</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Full workdays recovered per year</div></div>'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#aaff3e;margin-bottom:4px;">200 hrs</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Saved per ED professional annually</div></div>'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#f5c542;margin-bottom:4px;">20x ROI</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Return on your subscription</div></div>'
+     +'<div style="background:rgba(14,20,36,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px;text-align:center;"><div style="font-family:Barlow Condensed,sans-serif;font-size:30px;font-weight:900;color:#64afff;margin-bottom:4px;">5 weeks</div><div style="font-size:11px;color:#6b7a96;line-height:1.4;">Full workweeks recovered per year</div></div>'
      +'</div>';}
   },
   {lbl:'Step 1 of 5',title:'ARIA Inbox',

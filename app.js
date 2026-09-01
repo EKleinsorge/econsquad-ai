@@ -185,6 +185,57 @@
     });
   }
 
+  /* ── ARIA's landing-page answers ──────────────────────────────────
+     This used to POST straight to https://api.anthropic.com/v1/messages
+     from the browser, with no x-api-key and no anthropic-version header.
+     It could never have returned anything but an error, and every visitor
+     who tried it was told "Having trouble connecting right now." Adding a
+     key was not an option either: anything shipped in this file is public,
+     and an unauthenticated LLM endpoint on a marketing page is an unbounded
+     bill and an obvious abuse target.
+
+     So this answers from a written FAQ instead. It is honest about being a
+     guide rather than a general AI, it cannot break at a launch party, and
+     it costs nothing. The real ARIA lives inside the product, where there is
+     an account behind every request.
+     Rewritten 2026-09-01. */
+  var ARIA_FAQ = [
+    { re: /price|pricing|cost|how much|\$|plan|tier|cheap|expensive/,
+      a: "Two plans. Starter is $49/month or $490/year and includes 17 of the 22 specialists. Pro Squad is $99/month or $990/year and unlocks all 22 plus the Gmail and Calendar integration. Both start with a 14-day free trial \u2014 a card is required, and you can cancel any time before it ends." },
+    { re: /trial|free|try it|14 day|credit card|cancel/,
+      a: "The trial runs 14 days and includes everything in the plan you pick. A card is required up front, nothing is charged until day 15, and cancelling before then costs you nothing \u2014 your history and saved work stay put if you come back." },
+    { re: /grant|rfp|funding|cdbg|eda|usda/,
+      a: "Gary, the Grant Writer, drafts full narratives \u2014 need statement, project description, budget justification \u2014 from your project details. Tell him the funder and the program and he writes to that format. Most people get a usable first draft in a few minutes instead of a few days." },
+    { re: /riley|who is riley/,
+      a: "Riley is your RFI Responder. Site selectors send an information request, Riley pulls it apart and drafts the response \u2014 sites, workforce data, incentives, utilities \u2014 in the structure the selector asked for. RFIs are usually the most deadline-driven thing on an ED professional's desk." },
+    { re: /specialist|who|squad|team|22|roster|what can|what does|do for me/,
+      a: "There are 22 specialists, each built for one job an economic developer actually does \u2014 grant writing, RFI responses, BRE surveys, incentive modelling, workforce analysis, press releases, board reports, cover letters and more. You describe the task in plain English and they hand back a finished draft." },
+    { re: /gmail|email|inbox|calendar|outlook|office|integrat/,
+      a: "Pro Squad connects your Gmail and Google Calendar. Your inbox gets triaged automatically \u2014 RFIs, grants and BRE mail surfaced ahead of the noise \u2014 and your calendar sits alongside it, so the whole day is on one screen." },
+    { re: /secure|security|privacy|data|safe|confidential|store/,
+      a: "Your work lives in your own account and is not used to train anything. Task history is stored in our database, tied to your login. Gmail access is read-and-send only, granted by you through Google's own consent screen, and you can disconnect it at any time." },
+    { re: /how does it work|how do i start|get started|sign up|onboard|setup|training/,
+      a: "Pick a specialist, describe your task in plain English, and read the draft. There is no setup, no training and no prompt engineering \u2014 the expertise is already built into each one. Most people have something useful out of it inside five minutes." },
+    { re: /roi|save|hours|time|worth|value/,
+      a: "We model it at 200 hours a year \u2014 five full workweeks \u2014 which at a typical ED salary is several times what the subscription costs. The ROI calculator further up this page will run your own salary through it." },
+    { re: /demo|book|call|talk|sales|contact|support|help/,
+      a: "Happy to talk. Use the Contact page and we'll get back to you \u2014 or just start the 14-day trial and have a look around first; most people find that faster than a demo." },
+    { re: /who are you|what are you|are you (a )?(real|human|bot|ai)|your name/,
+      a: "I'm ARIA. Out here on the website I answer common questions from a set list \u2014 inside the product I do the real work: routing you to the right specialist, triaging your inbox and briefing you on your day." }
+  ];
+
+  var ARIA_FALLBACK =
+    "I answer the common ones from a set list out here \u2014 pricing, the trial, the specialists, security, integrations. " +
+    "For anything else the Contact page will reach a person, and the full ARIA inside the product can take the actual work on.";
+
+  function ariaAnswer(msg) {
+    var q = String(msg || '').toLowerCase();
+    for (var i = 0; i < ARIA_FAQ.length; i++) {
+      if (ARIA_FAQ[i].re.test(q)) return ARIA_FAQ[i].a;
+    }
+    return ARIA_FALLBACK;
+  }
+
   function doSend(preset) {
     var input = eid('home-chat-input');
     var msg = preset || (input ? input.value.trim() : '');
@@ -195,27 +246,14 @@
     addMsg('user', msg, false);
     addMsg('aria', '...', true);
     chatHistory.push({ role: 'user', content: msg });
-    fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: 'You are ARIA, the AI assistant for EconSquad, a platform built exclusively for economic developers. EconSquad gives economic developers AI specialists for grants, RFIs, BRE surveys, incentive modeling, workforce analysis, and more. It includes an AI inbox organizer, calendar, specialist deployment, and XP leveling system. Answer questions warmly and concisely in under 3 sentences. Never make up specific pricing numbers.',
-        messages: chatHistory
-      })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      var reply = (d.content && d.content[0] && d.content[0].text) || 'Not sure about that one — reach out to our team!';
+
+    /* A beat of thinking time, so it reads as a reply rather than a lookup. */
+    var reply = ariaAnswer(msg);
+    setTimeout(function() {
       chatHistory.push({ role: 'assistant', content: reply });
       updateLastMsg(reply);
       if (sendBtn) sendBtn.disabled = false;
-    })
-    .catch(function() {
-      updateLastMsg('Having trouble connecting right now. Try again in a moment!');
-      if (sendBtn) sendBtn.disabled = false;
-    });
+    }, 420 + Math.min(700, reply.length * 2));
   }
 
   function addMsg(role, text, typing) {
