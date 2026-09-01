@@ -10531,18 +10531,35 @@ function getProviderToken(){
   }
   return supa.auth.getSession().then(function(res){
     var session = res.data && res.data.session;
-    if(session && session.provider_token){
-      providerToken = session.provider_token;
-      _emailProvider = 'google';
-      localStorage.setItem('esq_email_provider','google');
-      return providerToken;
-    }
-    /* Session token is gone — Supabase never refreshes it, and Google's expires
-       after about an hour. Ask the server to mint a new one from the stored
-       refresh token. Added 2026-08-31; before this the office simply went quiet.
-       Everything below is fail-safe: any error, any non-answer, and we return
-       null exactly as before, which shows the Connect prompt. */
-    return _refreshGoogleToken(session);
+    /* Mint from the stored refresh token FIRST, and only fall back to the
+       session token. session.provider_token is not trustworthy on its own:
+       Supabase writes it once at sign-in, never refreshes it, and never marks
+       it expired — so it sits in localStorage looking perfectly valid for
+       hours after Google has stopped honouring it. Preferring it is exactly
+       how the digital office went quiet about an hour after connecting.
+       A minted token is authoritative and carries its own expiry.
+       Reordered 2026-09-01 after a live 403 from gmail.googleapis.com.
+
+       Everything here is fail-safe: any error, any non-answer, and we end up
+       returning null exactly as before, which shows the Connect prompt. */
+    return _refreshGoogleToken(session).then(function(minted){
+      if(minted) return minted;
+      /* _refreshGoogleToken clears GMAIL_SCOPE_KEY when the server says the
+         stored token is dead. Don't paper over that with a stale session
+         token — the user genuinely needs to reconnect. */
+      if(localStorage.getItem(GMAIL_SCOPE_KEY) !== '1') return null;
+      /* No refresh token on file yet, or the mint failed for some other
+         reason. Use whatever the session carries. That is the pre-2026-08-31
+         behaviour, so this path is never worse than before — only sometimes
+         better. */
+      if(session && session.provider_token){
+        providerToken = session.provider_token;
+        _emailProvider = 'google';
+        localStorage.setItem('esq_email_provider','google');
+        return providerToken;
+      }
+      return null;
+    });
   }).catch(function(){ return null; });
 }
 
