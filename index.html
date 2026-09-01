@@ -7404,14 +7404,24 @@ function esqPlayShowAudio(){
   try{
     esqStopShowAudio();
     var t = ac.currentTime + 0.02;
+    /* Both tracks run flat out to their last sample and then simply stop,
+       which reads as the power being cut. Ride the last stretch down to
+       nothing instead. 1.5s lands the silence with the final sparks: shells
+       stop lofting at 7.2s and the last burst fades around 9.5s. */
+    var FADE = 1.5;
     var start = function(buf, gain){
       if(!buf) return;
       var src = ac.createBufferSource(), g = ac.createGain();
       src.buffer = buf;
-      g.gain.value = gain;
+      var dur  = buf.duration;
+      var from = Math.max(0, dur - FADE);
+      g.gain.setValueAtTime(gain, t);
+      g.gain.setValueAtTime(gain, t + from);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur);
       src.connect(g); g.connect(_esqMaster);
       src.start(t);
-      _esqShowNodes.push(src);
+      src.stop(t + dur + 0.05);
+      _esqShowNodes.push({ src: src, gain: g });
     };
     start(_esqShowBuf, 1.0);
     /* Crowd sits under the fireworks, not level with them. */
@@ -7420,8 +7430,23 @@ function esqPlayShowAudio(){
   }catch(e){ return false; }
 }
 
+/* Cutting the show short should duck out over a third of a second rather
+   than chop the waveform mid-cycle, which clicks. */
 function esqStopShowAudio(){
-  _esqShowNodes.forEach(function(n){ try{ n.stop(); }catch(e){} });
+  var ac = _esqAC;
+  _esqShowNodes.forEach(function(n){
+    try{
+      if(ac && n.gain){
+        var t = ac.currentTime;
+        n.gain.gain.cancelScheduledValues(t);
+        n.gain.gain.setValueAtTime(Math.max(0.0001, n.gain.gain.value), t);
+        n.gain.gain.linearRampToValueAtTime(0.0001, t + 0.35);
+        n.src.stop(t + 0.40);
+      } else {
+        n.src.stop();
+      }
+    }catch(e){ try{ n.src.stop(); }catch(_){} }
+  });
   _esqShowNodes = [];
 }
 
