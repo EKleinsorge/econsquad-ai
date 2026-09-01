@@ -2208,6 +2208,179 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
 
     <!-- ========== DASHBOARD ========== -->
     <div id="view-dashboard" style="display:none;">
+
+      <!-- ===== WHERE DO YOU WANT TO GO? (post sign-in hub) ===== -->
+      <style id="esq-whereto-css">
+        .esqwt{max-width:1000px;margin:0 auto;padding:54px 20px 90px;text-align:center;}
+        .esqwt-eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:'DM Sans',sans-serif;
+          font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#6b7a96;margin-bottom:20px;}
+        .esqwt-dot{width:7px;height:7px;border-radius:50%;background:#aaff3e;
+          box-shadow:0 0 10px rgba(170,255,62,.9);animation:esqwtPulse 2.4s ease-in-out infinite;}
+        @keyframes esqwtPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+        .esqwt-h1{font-family:'Barlow Condensed',Barlow,sans-serif;font-weight:900;
+          font-size:clamp(40px,7vw,72px);line-height:.98;letter-spacing:-.02em;color:#eef3fc;margin:0 0 14px;}
+        .esqwt-h1 span{color:#aaff3e;}
+        .esqwt-rule{width:52px;height:2px;background:rgba(170,255,62,.4);margin:0 auto 30px;border-radius:2px;}
+        .esqwt-q{font-family:Barlow,sans-serif;font-weight:800;font-size:clamp(19px,2.4vw,26px);
+          color:#b8c8e0;margin:0 0 32px;}
+        .esqwt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;text-align:left;}
+        @media(max-width:860px){.esqwt-grid{grid-template-columns:1fr;}}
+        .esqwt-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:0;
+          background:rgba(14,20,36,.8);border:1px solid rgba(255,255,255,.07);border-radius:18px;
+          padding:28px 24px 24px;cursor:pointer;font:inherit;text-align:left;width:100%;
+          transition:border-color .2s,background .2s,transform .18s;}
+        .esqwt-card:hover{transform:translateY(-3px);background:rgba(20,28,50,.92);}
+        .esqwt-card:focus-visible{outline:2px solid #aaff3e;outline-offset:3px;}
+        .esqwt-orb{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;
+          justify-content:center;margin-bottom:18px;transition:box-shadow .25s,transform .25s;}
+        .esqwt-card:hover .esqwt-orb{transform:scale(1.06);}
+        .esqwt-title{font-family:Barlow,sans-serif;font-weight:800;font-size:17px;color:#eef3fc;margin-bottom:7px;}
+        .esqwt-desc{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;color:#6b7a96;margin-bottom:16px;}
+        .esqwt-go{font-family:Barlow,sans-serif;font-size:12px;font-weight:800;letter-spacing:.04em;
+          margin-top:auto;transition:transform .18s;display:inline-block;}
+        .esqwt-card:hover .esqwt-go{transform:translateX(3px);}
+        .esqwt-pill{position:absolute;top:20px;right:20px;display:none;font-family:Barlow,sans-serif;
+          font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.03em;}
+        .esqwt-skip{background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;
+          font-size:13px;color:#4a5568;margin-top:30px;padding:8px;transition:color .18s;}
+        .esqwt-skip:hover{color:#aaff3e;}
+        @media(prefers-reduced-motion:reduce){
+          .esqwt-dot{animation:none;}
+          .esqwt-card,.esqwt-orb,.esqwt-go{transition:none;}
+          .esqwt-card:hover{transform:none;}
+        }
+      </style>
+
+      <div class="page main dash-tab" id="welcome-tab" style="display:none;">
+        <div class="esqwt">
+          <div class="esqwt-eyebrow"><span class="esqwt-dot"></span>Your squad is standing by</div>
+          <h1 class="esqwt-h1">Welcome back<span id="esqwt-name"></span>.</h1>
+          <div class="esqwt-rule"></div>
+          <p class="esqwt-q">Where do you want to go?</p>
+
+          <div class="esqwt-grid">
+
+            <button type="button" class="esqwt-card" data-esqwt="squad"
+                    style="--a:170,255,62;" onmouseover="this.style.borderColor='rgba(170,255,62,.35)'"
+                    onmouseout="this.style.borderColor=''">
+              <span class="esqwt-orb" style="background:radial-gradient(circle at 34% 28%,rgba(170,255,62,.9) 0%,rgba(170,255,62,.28) 58%,transparent 72%);box-shadow:0 0 26px rgba(170,255,62,.32);">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#0a1a00" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3 L13.6 9.4 L20 12 L13.6 14.6 L12 21 L10.4 14.6 L4 12 L10.4 9.4 Z"/></svg>
+              </span>
+              <span class="esqwt-title">Deploy a Specialist</span>
+              <span class="esqwt-desc">Hand a real task to one of your 22 specialists and get a finished draft back.</span>
+              <span class="esqwt-go" style="color:#aaff3e;">Meet the squad &rarr;</span>
+            </button>
+
+            <button type="button" class="esqwt-card" data-esqwt="inbox"
+                    onmouseover="this.style.borderColor='rgba(100,175,255,.35)'"
+                    onmouseout="this.style.borderColor=''">
+              <span class="esqwt-pill" id="esqwt-b-inbox" style="background:rgba(100,175,255,.18);color:#64afff;"></span>
+              <span class="esqwt-orb" style="background:radial-gradient(circle at 34% 28%,rgba(100,175,255,.9) 0%,rgba(100,175,255,.28) 58%,transparent 72%);box-shadow:0 0 26px rgba(100,175,255,.3);">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#04122b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.6 7.2 L12 13 L20.4 7.2"/></svg>
+              </span>
+              <span class="esqwt-title">My Inbox</span>
+              <span class="esqwt-desc">Today&rsquo;s email, already triaged. ARIA flags what actually needs you.</span>
+              <span class="esqwt-go" style="color:#64afff;">Open the inbox &rarr;</span>
+            </button>
+
+            <button type="button" class="esqwt-card" data-esqwt="cal"
+                    onmouseover="this.style.borderColor='rgba(245,197,66,.35)'"
+                    onmouseout="this.style.borderColor=''">
+              <span class="esqwt-pill" id="esqwt-b-cal" style="background:rgba(245,197,66,.18);color:#f5c542;"></span>
+              <span class="esqwt-orb" style="background:radial-gradient(circle at 34% 28%,rgba(245,197,66,.9) 0%,rgba(245,197,66,.28) 58%,transparent 72%);box-shadow:0 0 26px rgba(245,197,66,.3);">
+                <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#2a1e00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10.2 H21 M8 3 v4 M16 3 v4"/></svg>
+              </span>
+              <span class="esqwt-title">Calendar &amp; Tasks</span>
+              <span class="esqwt-desc">What&rsquo;s on today, what&rsquo;s coming, and everything still open.</span>
+              <span class="esqwt-go" style="color:#f5c542;">See my day &rarr;</span>
+            </button>
+
+          </div>
+
+          <button type="button" class="esqwt-skip" data-esqwt="dash">Skip straight to my dashboard &rarr;</button>
+        </div>
+      </div>
+
+      <script id="esq-whereto-js">
+      (function(){
+        function $(id){ return document.getElementById(id); }
+        function toInbox(){
+          try{ showDashTab('inbox-tab', $('dash-nav-inbox')); }catch(e){}
+        }
+        var ACTIONS = {
+          squad: function(){
+            showDashTab('home-tab', $('dash-nav-home'));
+            setTimeout(function(){
+              var el = $('squad-tab-all');
+              if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+            }, 140);
+          },
+          inbox: function(){ showDashTab('inbox-tab', $('dash-nav-inbox')); },
+          cal:   function(){
+            showDashTab('fullcal-tab', $('dash-nav-fullcal'));
+            if(typeof initFullCalendar === 'function') initFullCalendar();
+          },
+          dash:  function(){ showDashTab('home-tab', $('dash-nav-home')); }
+        };
+
+        document.addEventListener('click', function(e){
+          var el = e.target;
+          if(!el || !el.closest) return;
+          var t = el.closest('[data-esqwt]');
+          if(!t) return;
+          var fn = ACTIONS[t.getAttribute('data-esqwt')];
+          if(!fn) return;
+          e.preventDefault();
+          try{ fn(); }catch(err){ toInbox(); }
+        });
+
+        /* Mirror a nav badge onto a card, only when it is actually showing one. */
+        function mirror(srcId, dstId){
+          try{
+            var src = $(srcId), dst = $(dstId);
+            if(!src || !dst) return;
+            var n = (src.textContent || '').trim();
+            if(n && src.style.display !== 'none'){
+              dst.textContent = n + ' waiting';
+              dst.style.display = 'inline-block';
+            } else { dst.style.display = 'none'; }
+          }catch(e){}
+        }
+
+        /* Called by the ARIA splash when it dismisses, and directly on any
+           later sign-in in the same browser session (the splash only plays
+           once per session). Anything unexpected in here and we fall through
+           to the inbox, which is where sign-in used to land. */
+        window.esqWhereTo = function(firstName){
+          try{
+            if(!firstName){
+              try{
+                var u = window.currentUser;
+                var full = (u && u.user_metadata && u.user_metadata.full_name)
+                         ? u.user_metadata.full_name : (u ? u.email : '');
+                firstName = full ? String(full).split(' ')[0].split('@')[0] : '';
+              }catch(e){ firstName = ''; }
+            }
+            var nm = $('esqwt-name');
+            if(nm) nm.textContent = firstName ? (', ' + firstName) : '';
+
+            mirror('inbox-badge',     'esqwt-b-inbox');
+            mirror('tasks-nav-badge', 'esqwt-b-cal');
+
+            /* Don't let the hub become the tab a ?ret=1 return restores. */
+            var prev = null;
+            try{ prev = localStorage.getItem('esq_last_tab'); }catch(e){}
+            showDashTab('welcome-tab', null);
+            try{
+              localStorage.setItem('esq_last_tab',
+                (prev && prev !== 'welcome-tab') ? prev : 'home-tab');
+            }catch(e){}
+          }catch(e){ toInbox(); }
+        };
+      })();
+      </script>
+      <!-- ===== end Where do you want to go? ===== -->
+
       <div class="page active main dash-tab" id="home-tab">
         <div class="hero-dash">
           <div>
@@ -3759,10 +3932,17 @@ function onSignedIn(user){
         splashFirst = fn ? fn.split(' ')[0] : user.email.split('@')[0];
       } catch(e) {}
       setTimeout(function(){
-        if (typeof window.showWelcomeSplash === 'function') {
+        /* The ARIA splash only plays once per browser session, and it hands off
+           to esqWhereTo() when it dismisses. On any later sign-in this session
+           there is no splash to wait for, so show the hub directly. */
+        var splashPending = false;
+        try{ splashPending = !sessionStorage.getItem('esq_splash_shown'); }catch(e){}
+        if (splashPending && typeof window.showWelcomeSplash === 'function') {
           window.showWelcomeSplash(splashFirst);
+        } else if (typeof window.esqWhereTo === 'function') {
+          window.esqWhereTo(splashFirst);
         } else {
-          /* fallback: restore last tab if no splash available */
+          /* fallback: restore last tab if neither is available */
           var lastTab2 = null;
           try{ lastTab2 = localStorage.getItem('esq_last_tab'); }catch(e){}
           if(lastTab2 && lastTab2 !== 'home-tab') showDashTab(lastTab2, null);

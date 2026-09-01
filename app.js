@@ -2565,6 +2565,12 @@
         overlay.style.animation = 'ariaSplashOverlayOut .6s ease forwards';
         setTimeout(function() {
           overlay.remove();
+          /* Hand off to the "Where do you want to go?" hub when index.html
+             defines one. Any failure falls through to the inbox, which is
+             exactly what this did before the hub existed. */
+          if (typeof window.esqWhereTo === 'function') {
+            try { window.esqWhereTo(); return; } catch(e) {}
+          }
           if (typeof window.showDashTab === 'function') {
             window.showDashTab('inbox-tab', document.getElementById('dash-nav-inbox'));
           }
