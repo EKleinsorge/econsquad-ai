@@ -126,6 +126,13 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
   footer{padding:24px 20px;}
   .footer-inner{flex-direction:column;text-align:center;}
 }
+
+/* Footer logo: the animated orb (.logo-icon::before) is sized 28px at a 7px
+   offset for the 42px nav field. The footer renders that field at 30px, so
+   the orb overflowed and covered the wordmark. The footer's own SVG is a
+   complete logo on its own — glow only. */
+.footer-logo .logo-icon::before{display:none;}
+.footer-logo .logo-icon{border-radius:50%;box-shadow:0 0 13px rgba(170,255,62,.28),0 0 26px rgba(170,255,62,.12);}
 </style>
 </head>
 <body>

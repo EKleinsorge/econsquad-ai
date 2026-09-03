@@ -54,6 +54,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-cancelled{background:rgba(200,140,255,0.15);color:#c88cff;}
 .badge-past_due{background:rgba(255,155,65,0.15);color:#ff9b41;}
 .badge-no_card{background:rgba(138,151,181,0.14);color:#8a97b5;}
+.badge-beta{background:rgba(200,140,255,0.14);color:#c88cff;}
 .badge-rejected{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
@@ -70,6 +71,12 @@ select option:hover,select option:focus,select option:checked{background:#1a2d50
 .inline-select option{background:#0d1526;color:#eef3fc;}
 .inline-select option:hover,.inline-select option:focus,.inline-select option:checked{background:#1a2d50;color:#aaff3e;}
 label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
+/* An opt-in row with explanatory text. NOT a <label> — the rule above turns
+   any label into an uppercase 11px block, which shredded this layout. */
+.opt-row{display:flex;align-items:flex-start;gap:9px;margin-top:10px;cursor:pointer;}
+.opt-row input[type=checkbox]{margin:3px 0 0;flex:0 0 auto;width:15px;height:15px;cursor:pointer;}
+.opt-row span{font-size:12px;font-weight:400;color:#8a97b5;line-height:1.6;text-transform:none;letter-spacing:normal;min-width:0;}
+.opt-row strong{color:#eef3fc;font-weight:700;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 .form-field{margin-bottom:14px;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
@@ -308,6 +315,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-all">—</div><div class="stat-box-lbl">Total</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-in_trial" style="color:#f5c542;">—</div><div class="stat-box-lbl">In Trial</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-no_card" style="color:#8a97b5;">—</div><div class="stat-box-lbl">No Card</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-beta" style="color:#c88cff;">—</div><div class="stat-box-lbl">Beta / Comped</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-starter" style="color:#64afff;">—</div><div class="stat-box-lbl">Starter</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-pro" style="color:#aaff3e;">—</div><div class="stat-box-lbl">Pro</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-expired" style="color:#ff8080;">—</div><div class="stat-box-lbl">Trial Expired</div></div>
@@ -321,6 +329,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="user-filter-tab active" onclick="filterUsers('all',this)">All</div>
         <div class="user-filter-tab" onclick="filterUsers('in_trial',this)">In Trial</div>
         <div class="user-filter-tab" onclick="filterUsers('no_card',this)">No Card</div>
+        <div class="user-filter-tab" onclick="filterUsers('beta',this)">Beta / Comped</div>
         <div class="user-filter-tab" onclick="filterUsers('starter',this)">Starter</div>
         <div class="user-filter-tab" onclick="filterUsers('pro',this)">Pro</div>
         <div class="user-filter-tab" onclick="filterUsers('expired',this)">Trial Expired</div>
@@ -489,15 +498,13 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
             </select>
           </div>
         </div>
-        <label style="display:flex;align-items:flex-start;gap:9px;margin-top:6px;cursor:pointer;">
-          <input type="checkbox" id="msg-email" checked style="margin-top:3px;flex-shrink:0;">
-          <span style="font-size:12px;color:#8a97b5;line-height:1.6;">
-            <strong style="color:#eef3fc;">Also email them.</strong>
+        <div class="opt-row" onclick="if(event.target.tagName!=='INPUT'){var c=document.getElementById('msg-email');c.checked=!c.checked;}">
+          <input type="checkbox" id="msg-email" checked onclick="event.stopPropagation();">
+          <span><strong>Also email them.</strong>
             Unticked, this only writes the in-app banner &mdash; which they see next time
             they sign in, and never if they don't. Anyone who has unsubscribed is
-            skipped automatically on segment and hand-picked sends.
-          </span>
-        </label>
+            skipped automatically on segment and hand-picked sends.</span>
+        </div>
 
         <div id="msg-preview" style="margin-top:14px;font-size:12px;color:#6b7a96;line-height:1.7;"></div>
         <div id="msg-progress" style="margin-top:8px;font-size:12px;min-height:16px;"></div>
@@ -1136,14 +1143,15 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
     <div class="form-field"><label>To</label><input id="qmsg-to" type="email" readonly style="opacity:.7;"></div>
     <div class="form-field"><label>Title</label><input id="qmsg-title" type="text" placeholder="Message title..."></div>
     <div class="form-field"><label>Body</label><textarea id="qmsg-body" rows="4" placeholder="Message body..."></textarea></div>
-    <label style="display:flex;align-items:flex-start;gap:9px;margin-top:4px;cursor:pointer;">
-      <input type="checkbox" id="qmsg-email" checked style="margin-top:3px;flex-shrink:0;">
-      <span style="font-size:12px;color:#8a97b5;line-height:1.6;">
-        <strong style="color:#eef3fc;">Also email it.</strong>
-        Unticked, this only writes the in-app banner \u2014 which they see the next
-        time they sign in, and never if they don't.
-      </span>
-    </label>
+    <!-- Deliberately a div, not a label. admin.html has a global `label`
+         rule (display:block, uppercase, 11px, letter-spaced) that mangled
+         this into a column of shouting fragments. -->
+    <div class="opt-row" onclick="if(event.target.tagName!=='INPUT'){var c=document.getElementById('qmsg-email');c.checked=!c.checked;}">
+      <input type="checkbox" id="qmsg-email" checked onclick="event.stopPropagation();">
+      <span><strong>Also email it.</strong>
+        Unticked, this only writes the in-app banner &mdash; which they see the next
+        time they sign in, and never if they don't.</span>
+    </div>
     <div id="qmsg-status" style="font-size:12px;margin-top:10px;min-height:16px;"></div>
     <div style="display:flex;gap:10px;margin-top:12px;">
       <button class="btn-lime" id="qmsg-send-btn" onclick="sendQuickMsg()">Send Message →</button>
@@ -1492,6 +1500,12 @@ function userStatus(u){
   if(sub==='past_due') return 'past_due';
   if(plan==='pro') return 'pro';
   if(plan==='starter') return 'starter';
+  /* Comped focus-group and beta accounts were never going to enter a card,
+     so counting them as "No Card" buried the four people who actually did
+     abandon checkout among ten who were never asked to. Checked after the
+     paid tiers, so a beta tester who later subscribes shows as Starter/Pro.
+     Added 2026-09-01. */
+  if(u.is_beta_tester) return 'beta';
   /* Signed up but never completed Stripe checkout. stripe_customer_id is
      written by checkout.session.completed, so its absence means no card was
      ever entered. These accounts looked identical to real trials — same
@@ -1515,7 +1529,7 @@ function userStatusBadge(u){
   var s=userStatus(u);
   var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',
               suspended:'Suspended',cancelled:'Cancelled',past_due:'Payment Failed',
-              no_card:'No Card — Never Checked Out'};
+              no_card:'No Card — Never Checked Out',beta:'Beta / Comped'};
   var exp=u.trial_end||u.trial_expires_at||null;
   var label=labels[s]||s;
   if(s==='in_trial'&&exp){
@@ -1544,13 +1558,13 @@ function loadUsers(){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
     /* update stat counts */
-    var counts={all:profiles.length,in_trial:0,no_card:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
+    var counts={all:profiles.length,in_trial:0,no_card:0,beta:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
     profiles.forEach(function(u){
       var s=userStatus(u);
       if(counts[s]!==undefined) counts[s]++;
       else counts[s]=1;
     });
-    ['all','in_trial','no_card','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
+    ['all','in_trial','no_card','beta','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
       var el=document.getElementById('usr-cnt-'+k);
       if(el) el.textContent=counts[k]||0;
     });
