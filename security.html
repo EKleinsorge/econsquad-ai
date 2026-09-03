@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security &amp; Data Handling — EconSquad AI</title>
+<meta name="description" content="How EconSquad AI handles your data: what is sent to which AI provider, what is stored, who can access it, and what certifications we do not yet hold.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2304050d'/><circle cx='16' cy='16' r='13' fill='%2304050d'/><circle cx='16' cy='16' r='11' fill='%23aaff3e' opacity='0.25'/><circle cx='16' cy='16' r='8' fill='%23aaff3e' opacity='0.5'/><circle cx='16' cy='16' r='6' fill='%23aaff3e'/><path d='M16 11 L17.2 14.8 L21 16 L17.2 17.2 L16 21 L14.8 17.2 L11 16 L14.8 14.8 Z' fill='white'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#06080f;--navy2:#0d1220;
+  --lime:#aaff3e;--lime2:#8fe620;--lime3:#ccff7a;
+  --limedim:rgba(170,255,62,0.1);--limeborder:rgba(170,255,62,0.22);
+  --gold:#f5c542;--text:#eef1f7;--text2:#8a97b5;
+  --border:rgba(255,255,255,0.07);--r:12px;
+}
+html,body{background:#04050d;color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow-y:auto;}
+a{color:var(--lime);text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* NAV */
+.nav-bar{position:sticky;top:0;z-index:1000;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 40px;height:66px;display:flex;align-items:center;justify-content:space-between;}
+.logo-mark{display:flex;align-items:center;gap:10px;text-decoration:none;}
+/* Logo orb - same geometry, glow and colour cycle as the homepage.
+   28px sphere inside a 42px field; glow radii 11/20/36 at .55/.26/.12,
+   derived from LSPH=28 and the g1/g2/g3 formula in index.html. Eight colours
+   at ~75s each (HOLD=4500 frames) = a ten-minute cycle, matching the canvas
+   version without carrying its particle engine onto every page. */
+.logo-icon{width:42px;height:42px;border-radius:50%;background:none;box-shadow:none;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon::before{content:"";position:absolute;top:7px;left:7px;width:28px;height:28px;border-radius:50%;animation:esqOrbCycle 600s linear infinite}
+.logo-icon svg{position:relative;z-index:2;width:16px;height:16px}
+@keyframes esqOrbCycle{
+  0.0%,10.9%{background:radial-gradient(circle at 36% 32%,#ffe47a,#f5c542 48%,#a06800);box-shadow:0 0 11px rgba(255,210,60,.55),0 0 20px rgba(255,210,60,.26),0 0 36px rgba(255,210,60,.12)}
+  12.5%,23.4%{background:radial-gradient(circle at 36% 32%,#93c5fd,#3b82f6 48%,#1e3a8a);box-shadow:0 0 11px rgba(100,175,255,.55),0 0 20px rgba(100,175,255,.26),0 0 36px rgba(100,175,255,.12)}
+  25.0%,35.9%{background:radial-gradient(circle at 36% 32%,#99f6e4,#14b8a6 48%,#064e3b);box-shadow:0 0 11px rgba(50,225,200,.55),0 0 20px rgba(50,225,200,.26),0 0 36px rgba(50,225,200,.12)}
+  37.5%,48.4%{background:radial-gradient(circle at 36% 32%,#e9d5ff,#9333ea 48%,#3b0764);box-shadow:0 0 11px rgba(200,140,255,.55),0 0 20px rgba(200,140,255,.26),0 0 36px rgba(200,140,255,.12)}
+  50.0%,60.9%{background:radial-gradient(circle at 36% 32%,#d4ff70,#aaff3e 48%,#3a6600);box-shadow:0 0 11px rgba(175,255,65,.55),0 0 20px rgba(175,255,65,.26),0 0 36px rgba(175,255,65,.12)}
+  62.5%,73.4%{background:radial-gradient(circle at 36% 32%,#fed7aa,#ea580c 48%,#7c2d12);box-shadow:0 0 11px rgba(255,155,65,.55),0 0 20px rgba(255,155,65,.26),0 0 36px rgba(255,155,65,.12)}
+  75.0%,85.9%{background:radial-gradient(circle at 36% 32%,#e2e8f0,#64748b 48%,#1e293b);box-shadow:0 0 11px rgba(165,185,210,.55),0 0 20px rgba(165,185,210,.26),0 0 36px rgba(165,185,210,.12)}
+  87.5%,98.4%{background:radial-gradient(circle at 36% 32%,#bae6fd,#0284c7 48%,#082f49);box-shadow:0 0 11px rgba(130,220,255,.55),0 0 20px rgba(130,220,255,.26),0 0 36px rgba(130,220,255,.12)}
+  100%{background:radial-gradient(circle at 36% 32%,#ffe47a,#f5c542 48%,#a06800);box-shadow:0 0 11px rgba(255,210,60,.55),0 0 20px rgba(255,210,60,.26),0 0 36px rgba(255,210,60,.12)}
+}
+@media(prefers-reduced-motion:reduce){.logo-icon::before{animation:none;background:radial-gradient(circle at 36% 32%,#d4ff70,#aaff3e 48%,#3a6600);box-shadow:0 0 11px rgba(175,255,65,.55),0 0 20px rgba(175,255,65,.26),0 0 36px rgba(175,255,65,.12)}}
+.logo-icon svg{width:22px;height:22px;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:800;letter-spacing:.02em;line-height:1;}
+.logo-text .econ{color:#fff;}
+.logo-text .squad{color:var(--lime);}
+.logo-text .ai{color:#ffffff;font-size:14px;font-weight:700;margin-left:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-links{display:flex;gap:24px;list-style:none;align-items:center;}
+.nav-links a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--lime);}
+.nav-ctas{display:flex;gap:10px;align-items:center;}
+.btn-ghost-sm{background:transparent;border:1px solid var(--border);color:var(--text2);font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-ghost-sm:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+.btn-lime{background:var(--lime);color:#1a3300;border:none;font-size:13px;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .15s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-lime:hover{opacity:.88;transform:translateY(-1px);text-decoration:none;}
+
+/* HERO */
+.page-hero{padding:72px 40px 52px;text-align:center;}
+.page-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--lime);margin-bottom:14px;}
+.page-hero h1{font-family:'Barlow Condensed',sans-serif;font-size:58px;font-weight:900;line-height:1.0;margin-bottom:18px;}
+.page-hero p{font-size:16px;color:var(--text2);max-width:520px;margin:0 auto;}
+
+/* CONTACT CARDS */
+.contact-section{max-width:860px;margin:0 auto;padding:0 40px 64px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.contact-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:28px 28px 24px;transition:border-color .2s;}
+.contact-card:hover{border-color:var(--limeborder);}
+.cc-icon{width:44px;height:44px;background:var(--limedim);border:1px solid var(--limeborder);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:20px;}
+.contact-card h3{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;}
+.contact-card .cc-email{font-size:15px;font-weight:600;color:var(--lime);margin-bottom:8px;}
+.contact-card .cc-email a{color:var(--lime);}
+.contact-card p{font-size:14px;color:var(--text2);}
+
+/* FAQ */
+.faq-section{max-width:860px;margin:0 auto;padding:0 40px 80px;}
+.faq-section-title{font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;margin-bottom:8px;}
+.faq-section-sub{font-size:14px;color:var(--text2);margin-bottom:40px;}
+.faq-category{margin-bottom:48px;}
+.faq-category-label{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--lime);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.faq-category-label::after{content:'';flex:1;height:1px;background:rgba(170,255,62,0.15);}
+.faq-item{border:1px solid rgba(255,255,255,0.07);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:border-color .2s;}
+.faq-item.open{border-color:rgba(170,255,62,0.2);}
+.faq-q{padding:16px 20px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;user-select:none;transition:color .2s;}
+.faq-q:hover{color:var(--lime);}
+.faq-item.open .faq-q{color:var(--lime);}
+.faq-arrow{font-size:14px;color:var(--text2);transition:transform .25s,color .2s;flex-shrink:0;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--lime);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
+.faq-item.open .faq-a{max-height:300px;}
+.faq-a-inner{padding:0 20px 18px;font-size:14px;color:var(--text2);line-height:1.75;border-top:1px solid rgba(255,255,255,0.05);}
+.faq-a-inner a{color:var(--lime);}
+.faq-a-inner strong{color:var(--text);}
+
+/* QUICK LINKS */
+.quick-section{max-width:860px;margin:0 auto;padding:0 40px 80px;}
+.quick-inner{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);padding:36px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;}
+.quick-text h3{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;margin-bottom:6px;}
+.quick-text p{font-size:14px;color:var(--text2);}
+.quick-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text);font-size:13px;font-weight:600;padding:9px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;}
+.btn-outline:hover{border-color:var(--limeborder);color:var(--lime);text-decoration:none;}
+
+/* FOOTER */
+footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);padding:32px 40px;}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.footer-copy{font-size:13px;color:var(--text2);text-align:center;}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:13px;color:var(--text2);text-decoration:none;transition:color .2s;}
+.footer-links a:hover{color:var(--lime);}
+
+.section-divider{border-top:1px solid rgba(255,255,255,0.06);max-width:860px;margin:0 auto 60px;padding:0 40px;}
+
+@media(max-width:700px){
+  .nav-bar{padding:0 20px;}
+  .nav-links{display:none;}
+  .page-hero{padding:48px 20px 40px;}
+  .page-hero h1{font-size:40px;}
+  .contact-section{grid-template-columns:1fr;padding:0 20px 48px;}
+  .faq-section,.quick-section{padding:0 20px 60px;}
+  .quick-inner{padding:24px 20px;}
+  footer{padding:24px 20px;}
+  .footer-inner{flex-direction:column;text-align:center;}
+}
+
+/* --- security page --- */
+.sec{margin-bottom:44px;}
+.sec h2{font-family:'Barlow Condensed',sans-serif;font-size:27px;font-weight:800;color:var(--text);margin:0 0 14px;letter-spacing:.01em;}
+.sec p{color:var(--text2);font-size:15px;line-height:1.8;margin-bottom:14px;}
+.sec p strong,.sec li strong{color:var(--text);}
+.sec-card{border:1px solid var(--border);border-radius:var(--r);padding:26px 28px;background:rgba(255,255,255,0.02);}
+.sec-list{list-style:none;padding:0;margin:0 0 14px;}
+.sec-list li{position:relative;padding-left:22px;color:var(--text2);font-size:15px;line-height:1.8;margin-bottom:12px;}
+.sec-list li::before{content:"";position:absolute;left:4px;top:12px;width:6px;height:6px;border-radius:50%;background:var(--lime);}
+.tbl-wrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--border);border-radius:var(--r);}
+.sec-table{width:100%;border-collapse:collapse;min-width:520px;}
+.sec-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
+.sec-table td{padding:14px 16px;font-size:14px;color:var(--text2);line-height:1.7;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:top;}
+.sec-table tr:last-child td{border-bottom:none;}
+.sec-table td strong{color:var(--text);}
+.muted{color:#4a5568;font-size:12px;}
+.callout{border-left:2px solid var(--lime);padding:2px 0 2px 16px;color:var(--text2);}
+.wrap{max-width:860px;margin:0 auto;padding:44px 24px 80px;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo-mark">
+    <div class="logo-icon"><svg viewBox="0 0 22 22" fill="none" style="width:17px;height:17px;"><circle cx="11" cy="7" r="3.2" fill="rgba(15,30,0,0.88)"/><circle cx="5.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/><circle cx="16.5" cy="16" r="2.6" fill="rgba(15,30,0,0.82)"/><line x1="11" y1="7" x2="5.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/><line x1="11" y1="7" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/><line x1="5.5" y1="16" x2="16.5" y2="16" stroke="rgba(15,30,0,0.5)" stroke-width="1.1"/></svg></div>
+    <div>
+      <div class="logo-text"><span class="econ">Econ</span><span class="squad">Squad</span> <span class="ai">AI</span></div>
+      <div class="logo-sub">Less Work. More Impact.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+        <li><a href="index.html#sec-how">How it works</a></li>
+        <li><a href="index.html#sec-squad">Specialists</a></li>
+        <li><a href="index.html#sec-pricing">Pricing</a></li>
+        <li><a href="index.html#sec-aria">About ARIA</a></li>
+        <li><a href="support.html">Support</a></li>
+      </ul>
+  <div class="nav-ctas">
+    <a href="index.html" class="btn-ghost-sm">Sign in</a>
+    <a href="index.html" class="btn-lime">Start free trial</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-eyebrow">Security &amp; Data Handling</div>
+    <h1>Your work stays yours.</h1>
+    <p>Written for the IT director, not the marketing brochure. What we send where, what we keep, who can see it, and what we don't yet have.</p>
+    <p style="font-size:12px;color:var(--text2);margin-top:14px;">Last reviewed 1 September 2026</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- THE SHORT ANSWER -->
+  <section class="sec">
+    <div class="sec-card" style="border-color:rgba(170,255,62,0.22);background:rgba(170,255,62,0.04);">
+      <h2 style="margin-top:0;">The short answer</h2>
+      <p><strong>No. Nothing you put into a specialist is used to train an AI model, and nothing you put in is reachable by another customer.</strong></p>
+      <p>Those are two separate guarantees with two separate mechanisms behind them, and they are worth understanding separately, because most vendors answer only the first.</p>
+    </div>
+  </section>
+
+  <!-- TRAINING -->
+  <section class="sec">
+    <h2>Is our data used to train AI models?</h2>
+    <p>No. This is the specific risk your IT provider is warning you about with free consumer AI tools, and it is a real one — consumer tiers of most AI products operate under materially different terms from their business APIs.</p>
+
+    <p>EconSquad AI does not run on consumer AI accounts. Your work is processed through commercial APIs whose terms prohibit training on customer data by default:</p>
+
+    <div class="tbl-wrap">
+      <table class="sec-table">
+        <thead>
+          <tr><th>What it powers</th><th>Provider</th><th>Their stated policy</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>The 22 specialists — every draft, grant narrative, RFI response and BRE survey</td>
+            <td><strong>OpenAI</strong><br><span class="muted">API platform</span></td>
+            <td>&ldquo;By default, we do not use your business data for training our models.&rdquo;</td>
+          </tr>
+          <tr>
+            <td>ARIA's performance and ROI analysis</td>
+            <td><strong>Anthropic</strong><br><span class="muted">commercial API</span></td>
+            <td>&ldquo;By default, we will not use your inputs or outputs from our commercial products to train our models.&rdquo;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Both providers retain API traffic briefly for abuse monitoring — OpenAI states up to 30 days, after which it is deleted — and neither feeds it back into model training. Zero-retention arrangements are available from OpenAI for qualifying use cases; if your organisation requires one, tell us and we will pursue it for your account rather than tell you it already exists.</p>
+
+    <p class="callout">If your team already uses a paid business tier of ChatGPT or Claude, your IT department has almost certainly already reviewed these same terms. EconSquad AI sits on the same commercial footing — not the consumer one.</p>
+  </section>
+
+  <!-- ISOLATION -->
+  <section class="sec">
+    <h2>Can another customer's query reach our information?</h2>
+    <p>No, and the reason is worth being precise about.</p>
+
+    <p>Your work is stored in your own account in our database. Access is enforced by <strong>row-level security in PostgreSQL</strong> — a rule evaluated by the database itself on every single query, not a filter applied by our web application. A different customer's session is not permitted to read your rows at all. There is nothing for a query to reach.</p>
+
+    <p>This matters because the two are often confused. An application filter is code that decides what to show you; a bug in it leaks data. Row-level security is the database refusing to return rows that are not yours, regardless of what the application asks for.</p>
+
+    <p>Concretely:</p>
+    <ul class="sec-list">
+      <li><strong>There is no shared knowledge base.</strong> Your documents are not indexed into a pool that other customers' specialists draw from. Each specialist starts from its own instructions and the text of your request, and nothing else.</li>
+      <li><strong>One conversation does not inform another</strong> — not another customer's, and not another user's inside your own organisation.</li>
+      <li><strong>Google credentials are write-only from the browser.</strong> If you connect Gmail, the stored token cannot be read back by any signed-in user, including you. Only our server can use it, and only to serve your own mailbox back to you.</li>
+    </ul>
+  </section>
+
+  <!-- WHAT WE KEEP -->
+  <section class="sec">
+    <h2>What do you actually store?</h2>
+    <p>We would rather you learn this here than discover it later.</p>
+
+    <div class="tbl-wrap">
+      <table class="sec-table">
+        <thead><tr><th>What</th><th>Why</th><th>How long</th></tr></thead>
+        <tbody>
+          <tr><td>The task you describe to a specialist, and the draft it returns</td><td>Your task history, saved work, and the hours-saved and ROI figures on your dashboard</td><td>Until you delete it or close your account</td></tr>
+          <tr><td>Account details — name, email, organisation, plan</td><td>Signing you in and billing you correctly</td><td>Life of the account</td></tr>
+          <tr><td>Gmail and Calendar content, if you connect them</td><td>Displayed to you in the app</td><td><strong>Not stored.</strong> Fetched from Google when you look at it, and passed straight through</td></tr>
+          <tr><td>Payment details</td><td>Billing</td><td><strong>Never touches our systems.</strong> Card data is handled entirely by Stripe</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Ask us and we will tell you everything we hold on your account. Ask us to delete it and we delete the account and every row attached to it, permanently — not a flag marking it hidden.</p>
+  </section>
+
+  <!-- ACCESS -->
+  <section class="sec">
+    <h2>Who at EconSquad AI can see our work?</h2>
+    <p>Administrative staff can access task history for support purposes. Today that is a very small team. We are telling you this plainly because a vendor who claims <em>nobody</em> can see your data is either mistaken or has no way to help you when something breaks.</p>
+    <p>If your organisation needs that access restricted, logged, or contractually limited for your account, raise it with us before you buy and we will put it in writing.</p>
+  </section>
+
+  <!-- GOOGLE -->
+  <section class="sec">
+    <h2>What does connecting Gmail actually grant?</h2>
+    <p>Gmail and Calendar are optional and off until you turn them on. Connecting goes through Google's own consent screen, which lists exactly what is being granted, and you approve it yourself — we never ask for your Google password and could not accept it if offered.</p>
+    <p>You can revoke access at any time, either from inside EconSquad AI or from your Google Account permissions page directly, without our involvement. Your mail is read to display it to you and is not copied into our database.</p>
+  </section>
+
+  <!-- HONEST GAPS -->
+  <section class="sec">
+    <div class="sec-card" style="border-color:rgba(245,197,66,0.25);background:rgba(245,197,66,0.04);">
+      <h2 style="margin-top:0;">What we don't have yet</h2>
+      <p>Any vendor can write a reassuring security page. Here is what we would be overclaiming if we left it out:</p>
+      <ul class="sec-list">
+        <li><strong>No SOC 2 report.</strong> We are a new product and have not completed a third-party audit. If your procurement process requires one, tell us and we will give you an honest answer about timing rather than a vague one.</li>
+        <li><strong>No signed DPA or BAA as standard.</strong> If your organisation requires a data processing agreement, we will negotiate one — just ask.</li>
+        <li><strong>No HIPAA, CJIS or FedRAMP authorisation.</strong> EconSquad AI is not built for protected health information, criminal justice data, or federal systems requiring FedRAMP. Do not put that class of data into it.</li>
+        <li><strong>Public records.</strong> If you are a public agency, your own retention and disclosure obligations still apply to work created here, exactly as they would in a word processor. We are a tool, not a records system.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="sec">
+    <div class="sec-card" style="text-align:center;">
+      <h2 style="margin-top:0;">Put us in front of your IT provider</h2>
+      <p style="max-width:56ch;margin:0 auto 20px;">If your IT team or legal counsel has questions this page doesn't answer, we would rather talk to them directly than have you relay it. That conversation is usually short.</p>
+      <a href="contact.html" class="btn-lime" style="font-size:15px;padding:12px 28px;">Get in touch &rarr;</a>
+    </div>
+  </section>
+
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="index.html" class="footer-logo">
+      <div class="logo-icon" style="width:30px;height:30px;">
+        <svg viewBox="0 0 22 22" fill="none" style="width:16px;height:16px;"><circle cx="11" cy="11" r="9" fill="#04050d"/><circle cx="11" cy="11" r="5" fill="#aaff3e"/><path d="M11 7.5 L11.9 10.2 L14.5 11 L11.9 11.8 L11 14.5 L10.1 11.8 L7.5 11 L10.1 10.2 Z" fill="white"/></svg>
+      </div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;"><span style="color:#fff;">Econ</span><span style="color:var(--lime);">Squad</span><sup style="font-size:11px;color:#fff;vertical-align:super;">AI</sup></span>
+    </a>
+    <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="security.html">Security</a>
+      <a href="terms.html">Terms</a>
+      <a href="support.html">Support</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleFAQ(el) {
+  const item = el.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  // Open clicked if it was closed
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth-nav.js?v=3"></script>
+</body>
+</html>

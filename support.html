@@ -90,7 +90,7 @@ a:hover{text-decoration:underline;}
 .faq-arrow{font-size:14px;color:var(--text2);transition:transform .25s,color .2s;flex-shrink:0;}
 .faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--lime);}
 .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;}
-.faq-item.open .faq-a{max-height:300px;}
+.faq-item.open .faq-a{max-height:900px;}
 .faq-a-inner{padding:0 20px 18px;font-size:14px;color:var(--text2);line-height:1.75;border-top:1px solid rgba(255,255,255,0.05);}
 .faq-a-inner a{color:var(--lime);}
 .faq-a-inner strong{color:var(--text);}
@@ -344,7 +344,62 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
           <strong>Payments:</strong> Processed by Stripe (PCI DSS Level 1 compliant). We never see your card number.<br>
           <strong>Your work and mission history:</strong> Stored in your account on Supabase so it follows you between devices. Private calendar notes you type are kept in your browser only.<br>
           <strong>Transit encryption:</strong> All connections use HTTPS/TLS.<br><br>
-          For full details, see our <a href="privacy.html">Privacy Policy</a>.
+          For full details, see our <a href="security.html">Security &amp; Data Handling</a> page and our <a href="privacy.html">Privacy Policy</a>.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Is anything we type used to train AI models?
+        <span class="faq-arrow">&#9660;</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          <strong>No.</strong> This is the specific risk IT departments warn about with free consumer AI tools, and it is a real one &mdash; consumer tiers usually operate under different terms from business APIs.<br><br>
+          EconSquad AI does not run on consumer AI accounts. The 22 specialists run on <strong>OpenAI's commercial API</strong>, whose policy states &ldquo;by default, we do not use your business data for training our models.&rdquo; ARIA's performance analysis runs on <strong>Anthropic's commercial API</strong>, whose policy states &ldquo;by default, we will not use your inputs or outputs from our commercial products to train our models.&rdquo;<br><br>
+          Both retain API traffic briefly for abuse monitoring &mdash; OpenAI states up to 30 days &mdash; and neither feeds it into training. Full detail on our <a href="security.html">Security &amp; Data Handling</a> page.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Can another customer's queries reach our information?
+        <span class="faq-arrow">&#9660;</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          <strong>No.</strong> Your work is stored in your own account, and access is enforced by <strong>row-level security in the database</strong> &mdash; a rule the database itself evaluates on every query, not a filter applied by our web app. Another customer's session is not permitted to read your rows at all.<br><br>
+          The distinction matters: an application filter is code deciding what to show you, and a bug in it leaks data. Row-level security is the database refusing to return rows that aren't yours no matter what is asked.<br><br>
+          There is no shared knowledge base. Your documents are never indexed into a pool other customers' specialists draw from, and one conversation never informs another.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Can we put confidential or personally identifiable information in?
+        <span class="faq-arrow">&#9660;</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          For ordinary economic development work &mdash; prospect details, incentive modelling, draft agreements, BRE responses &mdash; yes. That is what the specialists are built for, and it is covered by the isolation and no-training protections above.<br><br>
+          <strong>Two honest limits.</strong> We do not yet hold a SOC 2 report or offer a signed data processing agreement as standard, though we will negotiate one on request. And EconSquad AI is <strong>not</strong> authorised for protected health information (HIPAA), criminal justice data (CJIS), or federal systems requiring FedRAMP &mdash; please don't put that class of data in.<br><br>
+          If you are a public agency, your own records retention and disclosure obligations apply to work created here exactly as they would in a word processor.
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFAQ(this)">
+        Who at EconSquad AI can see our work?
+        <span class="faq-arrow">&#9660;</span>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">
+          Administrative staff can access task history for support purposes &mdash; today a very small team. We say so plainly because a vendor claiming <em>nobody</em> can see your data either is mistaken or has no way to help when something breaks.<br><br>
+          If your organisation needs that access restricted, logged or contractually limited, raise it before you buy and we will put it in writing. Ask us and we will tell you everything we hold on your account; ask us to delete it and the account and every row attached to it are permanently removed.
         </div>
       </div>
     </div>
@@ -495,6 +550,7 @@ footer{border-top:1px solid rgba(255,255,255,0.06);background:var(--navy);paddin
     <p class="footer-copy">&copy; 2026 EconSquad AI &nbsp;&middot;&nbsp; All rights reserved.</p>
     <div class="footer-links">
       <a href="privacy.html">Privacy</a>
+      <a href="security.html">Security</a>
       <a href="terms.html">Terms</a>
       <a href="support.html">Support</a>
       <a href="blog.html">Blog</a>

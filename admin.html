@@ -53,6 +53,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
    customers out of the list at a glance. */
 .badge-cancelled{background:rgba(200,140,255,0.15);color:#c88cff;}
 .badge-past_due{background:rgba(255,155,65,0.15);color:#ff9b41;}
+.badge-no_card{background:rgba(138,151,181,0.14);color:#8a97b5;}
 .badge-rejected{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
@@ -306,6 +307,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="stats-row" style="grid-template-columns:repeat(auto-fit,minmax(118px,1fr));margin-bottom:20px;">
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-all">—</div><div class="stat-box-lbl">Total</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-in_trial" style="color:#f5c542;">—</div><div class="stat-box-lbl">In Trial</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-no_card" style="color:#8a97b5;">—</div><div class="stat-box-lbl">No Card</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-starter" style="color:#64afff;">—</div><div class="stat-box-lbl">Starter</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-pro" style="color:#aaff3e;">—</div><div class="stat-box-lbl">Pro</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-expired" style="color:#ff8080;">—</div><div class="stat-box-lbl">Trial Expired</div></div>
@@ -318,6 +320,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="user-filter-tabs">
         <div class="user-filter-tab active" onclick="filterUsers('all',this)">All</div>
         <div class="user-filter-tab" onclick="filterUsers('in_trial',this)">In Trial</div>
+        <div class="user-filter-tab" onclick="filterUsers('no_card',this)">No Card</div>
         <div class="user-filter-tab" onclick="filterUsers('starter',this)">Starter</div>
         <div class="user-filter-tab" onclick="filterUsers('pro',this)">Pro</div>
         <div class="user-filter-tab" onclick="filterUsers('expired',this)">Trial Expired</div>
@@ -326,9 +329,15 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="user-filter-tab" onclick="filterUsers('suspended',this)">Suspended</div>
       </div>
 
+      <div id="usr-selbar" style="display:none;align-items:center;gap:12px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);border-radius:10px;padding:10px 16px;margin-bottom:12px;">
+        <span style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#aaff3e;" id="usr-selcount">0 selected</span>
+        <button class="btn-lime btn-sm" onclick="messageSelected()">Message selected \u2192</button>
+        <button class="btn-ghost btn-sm" onclick="clearUserSelection()">Clear</button>
+      </div>
+
       <div class="admin-card" style="padding:0;overflow:hidden;">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Organization</th><th>Status</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
+          <thead><tr><th style="width:34px;"><input type="checkbox" id="usr-selall" onclick="toggleSelectAllUsers(this)" title="Select all in this filter"></th><th>Name</th><th>Email</th><th>Organization</th><th>Status</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody id="users-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
@@ -445,15 +454,31 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="form-field"><label>Body</label><textarea id="msg-body" rows="4" placeholder="Message body..."></textarea></div>
         <div class="form-grid">
           <div class="form-field">
-            <label>Type</label>
+            <label>Send to</label>
             <select id="msg-type" onchange="toggleMsgTarget()">
-              <option value="broadcast">Broadcast All</option>
-              <option value="individual">Individual</option>
+              <option value="broadcast">Broadcast All (in-app banner)</option>
+              <option value="individual">One person</option>
+              <option value="segment">A segment&hellip;</option>
+              <option value="selected">Hand-picked from All Users</option>
             </select>
           </div>
           <div class="form-field" id="msg-target-field" style="display:none;">
             <label>Target Email</label>
-            <input id="msg-target" type="email" placeholder="user@example.com">
+            <input id="msg-target" type="email" placeholder="user@example.com" oninput="msgPreview()">
+          </div>
+          <div class="form-field" id="msg-segment-field" style="display:none;">
+            <label>Segment</label>
+            <select id="msg-segment" onchange="msgPreview()">
+              <option value="no_card">No Card &mdash; never checked out</option>
+              <option value="in_trial">In Trial</option>
+              <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
+              <option value="expired">Trial Expired</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="past_due">Payment Failed</option>
+              <option value="suspended">Suspended</option>
+              <option value="__all">Everyone</option>
+            </select>
           </div>
           <div class="form-field">
             <label>Expires In</label>
@@ -464,7 +489,20 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
             </select>
           </div>
         </div>
-        <button class="btn-lime" onclick="sendMessage()">Send Message →</button>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin-top:6px;cursor:pointer;">
+          <input type="checkbox" id="msg-email" checked style="margin-top:3px;flex-shrink:0;">
+          <span style="font-size:12px;color:#8a97b5;line-height:1.6;">
+            <strong style="color:#eef3fc;">Also email them.</strong>
+            Unticked, this only writes the in-app banner &mdash; which they see next time
+            they sign in, and never if they don't. Anyone who has unsubscribed is
+            skipped automatically on segment and hand-picked sends.
+          </span>
+        </label>
+
+        <div id="msg-preview" style="margin-top:14px;font-size:12px;color:#6b7a96;line-height:1.7;"></div>
+        <div id="msg-progress" style="margin-top:8px;font-size:12px;min-height:16px;"></div>
+
+        <button class="btn-lime" id="msg-send-btn" onclick="sendMessage()" style="margin-top:14px;">Send Message →</button>
       </div>
 
       <div class="admin-card" style="padding:0;overflow:hidden;">
@@ -1098,8 +1136,17 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
     <div class="form-field"><label>To</label><input id="qmsg-to" type="email" readonly style="opacity:.7;"></div>
     <div class="form-field"><label>Title</label><input id="qmsg-title" type="text" placeholder="Message title..."></div>
     <div class="form-field"><label>Body</label><textarea id="qmsg-body" rows="4" placeholder="Message body..."></textarea></div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="btn-lime" onclick="sendQuickMsg()">Send Message →</button>
+    <label style="display:flex;align-items:flex-start;gap:9px;margin-top:4px;cursor:pointer;">
+      <input type="checkbox" id="qmsg-email" checked style="margin-top:3px;flex-shrink:0;">
+      <span style="font-size:12px;color:#8a97b5;line-height:1.6;">
+        <strong style="color:#eef3fc;">Also email it.</strong>
+        Unticked, this only writes the in-app banner \u2014 which they see the next
+        time they sign in, and never if they don't.
+      </span>
+    </label>
+    <div id="qmsg-status" style="font-size:12px;margin-top:10px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn-lime" id="qmsg-send-btn" onclick="sendQuickMsg()">Send Message →</button>
       <button class="btn-ghost" onclick="closeQuickMsgModal()">Cancel</button>
     </div>
   </div>
@@ -1445,6 +1492,14 @@ function userStatus(u){
   if(sub==='past_due') return 'past_due';
   if(plan==='pro') return 'pro';
   if(plan==='starter') return 'starter';
+  /* Signed up but never completed Stripe checkout. stripe_customer_id is
+     written by checkout.session.completed, so its absence means no card was
+     ever entered. These accounts looked identical to real trials — same
+     "TRIAL — 14D LEFT" badge — which made the subscriber count unreadable
+     and hid the single most useful follow-up list there is: people who
+     created an account at the launch party and stopped at the payment page.
+     Added 2026-09-01 after the launch. */
+  if(plan==='trial' && !u.stripe_customer_id && !u.subscription_status) return 'no_card';
   /* trial — check expiry */
   var exp=u.trial_end||u.trial_expires_at||null;
   if(exp){
@@ -1459,7 +1514,8 @@ function userStatus(u){
 function userStatusBadge(u){
   var s=userStatus(u);
   var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',
-              suspended:'Suspended',cancelled:'Cancelled',past_due:'Payment Failed'};
+              suspended:'Suspended',cancelled:'Cancelled',past_due:'Payment Failed',
+              no_card:'No Card — Never Checked Out'};
   var exp=u.trial_end||u.trial_expires_at||null;
   var label=labels[s]||s;
   if(s==='in_trial'&&exp){
@@ -1488,18 +1544,58 @@ function loadUsers(){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
     /* update stat counts */
-    var counts={all:profiles.length,in_trial:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
+    var counts={all:profiles.length,in_trial:0,no_card:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
     profiles.forEach(function(u){
       var s=userStatus(u);
       if(counts[s]!==undefined) counts[s]++;
       else counts[s]=1;
     });
-    ['all','in_trial','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
+    ['all','in_trial','no_card','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
       var el=document.getElementById('usr-cnt-'+k);
       if(el) el.textContent=counts[k]||0;
     });
     renderUsersTable(activeUserFilter);
   });
+}
+
+/* Hand-picking. Kept as a list of emails rather than row indexes so a
+   selection survives changing filter, re-sorting, or a reload of the table. */
+var usrSelected = [];
+
+function onUserPick(cb){
+  var e=cb.value;
+  var i=usrSelected.indexOf(e);
+  if(cb.checked){ if(i===-1) usrSelected.push(e); }
+  else if(i!==-1) usrSelected.splice(i,1);
+  renderUserSelBar();
+}
+function toggleSelectAllUsers(cb){
+  document.querySelectorAll('.usr-pick').forEach(function(x){
+    x.checked=cb.checked;
+    onUserPick(x);
+  });
+}
+function clearUserSelection(){
+  usrSelected=[];
+  document.querySelectorAll('.usr-pick').forEach(function(x){x.checked=false;});
+  var all=document.getElementById('usr-selall'); if(all) all.checked=false;
+  renderUserSelBar();
+}
+function renderUserSelBar(){
+  var bar=document.getElementById('usr-selbar');
+  var cnt=document.getElementById('usr-selcount');
+  if(!bar||!cnt) return;
+  bar.style.display=usrSelected.length?'flex':'none';
+  cnt.textContent=usrSelected.length+' selected';
+}
+/* Hand the picked list to the Messages composer and go there. */
+function messageSelected(){
+  if(!usrSelected.length) return;
+  msgSelectedEmails=usrSelected.slice();
+  showAdminSection('messages',null);
+  var t=document.getElementById('msg-type');
+  if(t){ t.value='selected'; toggleMsgTarget(); }
+  var ttl=document.getElementById('msg-title'); if(ttl) ttl.focus();
 }
 
 function filterUsers(status, tabEl){
@@ -1513,12 +1609,14 @@ function renderUsersTable(filter){
   var tbody=document.getElementById('users-table');
   var filtered=filter==='all'?allUsersData:allUsersData.filter(function(u){return userStatus(u)===filter;});
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="7" style="color:#4a5568;padding:20px;">No users in this category</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:20px;">No users in this category</td></tr>';
     return;
   }
   tbody.innerHTML=filtered.map(function(u){
     var taskCount=allUsersTaskMap[u.email]||0;
+    var checked=usrSelected.indexOf(u.email)!==-1?' checked':'';
     return '<tr>'+
+      '<td><input type="checkbox" class="usr-pick" value="'+escHtml(u.email)+'"'+checked+' onclick="onUserPick(this)"></td>'+
       '<td>'+(u.full_name||'—')+'</td>'+
       '<td>'+u.email+'</td>'+
       '<td>'+(u.organization||'—')+'</td>'+
@@ -1528,6 +1626,14 @@ function renderUsersTable(filter){
       '<td><div class="action-group">'+buildUserActions(u)+'</div></td>'+
     '</tr>';
   }).join('');
+  /* The table just re-rendered; make the selection bar agree with it. */
+  var all=document.getElementById('usr-selall');
+  if(all){
+    var boxes=document.querySelectorAll('.usr-pick');
+    var ticked=document.querySelectorAll('.usr-pick:checked');
+    all.checked = boxes.length>0 && boxes.length===ticked.length;
+  }
+  renderUserSelBar();
 }
 
 function buildUserActions(u){
@@ -1932,6 +2038,9 @@ function openQuickMsg(email){
   document.getElementById('qmsg-to').value=email;
   document.getElementById('qmsg-title').value='';
   document.getElementById('qmsg-body').value='';
+  var st=document.getElementById('qmsg-status'); if(st) st.textContent='';
+  var em=document.getElementById('qmsg-email'); if(em) em.checked=true;
+  var b=document.getElementById('qmsg-send-btn'); if(b){b.disabled=false;b.textContent='Send Message →';}
   document.getElementById('quick-msg-modal').classList.add('show');
 }
 
@@ -1939,33 +2048,133 @@ function closeQuickMsgModal(){
   document.getElementById('quick-msg-modal').classList.remove('show');
 }
 
+/* This used to insert an admin_messages row and then toast "Message sent to
+   <email>". Nothing was ever emailed — that row is only the in-app banner
+   checkAdminMessages() renders the next time the person signs in. Someone
+   who never comes back never sees it, and the toast gave no hint of that.
+   Now it writes the banner AND (by default) emails them via the
+   send-admin-message edge function, and reports honestly which happened.
+   Fixed 2026-09-01, after a message to a launch subscriber never arrived. */
 function sendQuickMsg(){
   var to=document.getElementById('qmsg-to').value;
   var title=document.getElementById('qmsg-title').value.trim();
   var body=document.getElementById('qmsg-body').value.trim();
+  var alsoEmail=document.getElementById('qmsg-email');
+  var wantEmail=alsoEmail?alsoEmail.checked:false;
+  var btn=document.getElementById('qmsg-send-btn');
+  var st=document.getElementById('qmsg-status');
+  var say=function(txt,ok){ if(st){ st.textContent=txt; st.style.color=ok?'#aaff3e':'#ff8080'; } };
+
   if(!title||!body){showToast('Please fill in title and body','error');return;}
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  say('','');
+
   var expires=new Date();
   expires.setDate(expires.getDate()+30);
+
   supa.from('admin_messages').insert({
     title:title,body:body,type:'individual',target_email:to,
     expires_at:expires.toISOString(),is_active:true
   }).then(function(res){
-    closeQuickMsgModal();
-    if(res.error){showToast('Error: '+res.error.message,'error');return;}
-    showToast('Message sent to '+to,'success');
-    loadMessages();
+    if(res.error){
+      if(btn){btn.disabled=false;btn.textContent='Send Message →';}
+      say('In-app message failed: '+res.error.message,false);
+      return;
+    }
+    if(!wantEmail){
+      if(btn){btn.disabled=false;btn.textContent='Send Message →';}
+      closeQuickMsgModal();
+      showToast('In-app message queued for '+to,'success');
+      loadMessages();
+      return;
+    }
+    supa.functions.invoke('send-admin-message',{body:{to:to,title:title,body:body}})
+      .then(function(r){
+        if(btn){btn.disabled=false;btn.textContent='Send Message →';}
+        var d=r&&r.data;
+        if((r&&r.error)||!d||d.ok===false){
+          var msg=(d&&(d.detail||d.error))||(r&&r.error&&r.error.message)||'unknown error';
+          /* The banner IS saved — say so, so nobody re-sends it three times. */
+          say('Saved in-app, but the email failed: '+msg, false);
+          loadMessages();
+          return;
+        }
+        closeQuickMsgModal();
+        showToast('Emailed and shown in-app to '+to,'success');
+        loadMessages();
+      }, function(err){
+        if(btn){btn.disabled=false;btn.textContent='Send Message →';}
+        say('Saved in-app, but the email failed: '+String(err&&err.message||err), false);
+        loadMessages();
+      });
   });
 }
 
 /* ═══════════════════════════════════════
    MESSAGES
 ═══════════════════════════════════════ */
+/* ── Message audiences ────────────────────────────────────────────────
+   Added 2026-09-01. Before this the only choices were "everyone" and "one
+   person typed by hand", which meant reaching the four people who signed up
+   at the launch party and never entered a card was 4 separate sends, and
+   knowing who they were meant reading the table by eye.
+
+   Segments reuse userStatus() — the same function that colours the badges on
+   All Users — so the segment you pick here is exactly the group that filter
+   shows there. One definition, not two that drift apart. */
+var msgSelectedEmails = [];   /* set by "Message selected" on All Users */
+
 function toggleMsgTarget(){
   var type=document.getElementById('msg-type').value;
-  document.getElementById('msg-target-field').style.display=type==='individual'?'block':'none';
+  var show=function(id,on){ var el=document.getElementById(id); if(el) el.style.display=on?'block':'none'; };
+  show('msg-target-field',  type==='individual');
+  show('msg-segment-field', type==='segment');
+  msgPreview();
+}
+
+/* Who will this actually reach? Resolved from the same data the users table
+   renders, so the preview cannot disagree with the list. */
+function msgAudience(){
+  var type=document.getElementById('msg-type').value;
+  if(type==='individual'){
+    var t=(document.getElementById('msg-target').value||'').trim();
+    return t?[t]:[];
+  }
+  if(type==='selected') return msgSelectedEmails.slice();
+  if(type==='segment'){
+    var seg=document.getElementById('msg-segment').value;
+    return (allUsersData||[])
+      .filter(function(u){ return seg==='__all' ? true : userStatus(u)===seg; })
+      .map(function(u){ return u.email; })
+      .filter(Boolean);
+  }
+  return [];   /* broadcast — one row, no per-person email */
+}
+
+function msgPreview(){
+  var el=document.getElementById('msg-preview');
+  if(!el) return;
+  var type=document.getElementById('msg-type').value;
+  if(type==='broadcast'){
+    el.innerHTML='Writes one in-app banner every signed-in user sees. '+
+      '<span style="color:#8a97b5;">No email is sent for a broadcast \u2014 use a segment for that.</span>';
+    return;
+  }
+  var list=msgAudience();
+  if(!list.length){
+    el.innerHTML=(type==='selected')
+      ? 'Nobody picked yet. Go to <strong>All Users</strong>, tick some rows, then click <strong>Message selected</strong>.'
+      : 'No recipients yet.';
+    return;
+  }
+  var shown=list.slice(0,8).map(function(e){return '<span style="color:#8a97b5;">'+escHtml(e)+'</span>';}).join(', ');
+  el.innerHTML='Will reach <strong style="color:#aaff3e;">'+list.length+'</strong> '+
+    (list.length===1?'person':'people')+': '+shown+
+    (list.length>8?' <span style="color:#4a5568;">and '+(list.length-8)+' more</span>':'');
 }
 
 function loadMessages(){
+  try{ msgPreview(); }catch(e){}   /* show the audience line straight away */
   supa.from('admin_messages').select('*').order('created_at',{ascending:false}).then(function(res){
     if(res.error){
       /* Table might not exist */
@@ -1996,23 +2205,80 @@ function sendMessage(){
   var title=document.getElementById('msg-title').value.trim();
   var body=document.getElementById('msg-body').value.trim();
   var type=document.getElementById('msg-type').value;
-  var target=document.getElementById('msg-target').value.trim();
   var days=parseInt(document.getElementById('msg-expires').value)||30;
+  var wantEmail=(document.getElementById('msg-email')||{}).checked;
+  var btn=document.getElementById('msg-send-btn');
+  var prog=document.getElementById('msg-progress');
+  var say=function(t,ok){ if(prog){ prog.textContent=t; prog.style.color=ok?'#aaff3e':'#ff8080'; } };
+  var reset=function(){ if(btn){btn.disabled=false;btn.textContent='Send Message \u2192';} };
+
   if(!title||!body){showToast('Please fill in title and body','error');return;}
-  if(type==='individual'&&!target){showToast('Please enter a target email','error');return;}
+
+  var list=msgAudience();
+  if(type!=='broadcast' && !list.length){
+    showToast('No recipients — pick a segment or some users first','error');return;
+  }
+  /* Sending to a lot of people is not the sort of thing to do by accident. */
+  if(list.length>1 && !window.confirm(
+      'Send "'+title+'" to '+list.length+' people'+(wantEmail?', by email and in-app':', in-app only')+'?')){
+    return;
+  }
+
+  if(btn){btn.disabled=true;btn.textContent='Sending\u2026';}
+  say('','');
+
   var expires=new Date();
   expires.setDate(expires.getDate()+days);
-  supa.from('admin_messages').insert({
-    title:title,body:body,type:type,
-    target_email:type==='individual'?target:null,
-    expires_at:expires.toISOString(),is_active:true
-  }).then(function(res){
-    if(res.error){showToast('Error: '+res.error.message,'error');return;}
-    document.getElementById('msg-title').value='';
-    document.getElementById('msg-body').value='';
-    document.getElementById('msg-target').value='';
-    loadMessages();
-    showToast('Message sent successfully','success');
+
+  /* One admin_messages row per person for targeted sends, one row for a
+     broadcast — that is what checkAdminMessages() in index.html expects. */
+  var rows = (type==='broadcast')
+    ? [{title:title,body:body,type:'broadcast',target_email:null,
+        expires_at:expires.toISOString(),is_active:true}]
+    : list.map(function(e){
+        return {title:title,body:body,type:'individual',target_email:e,
+                expires_at:expires.toISOString(),is_active:true};
+      });
+
+  supa.from('admin_messages').insert(rows).then(function(res){
+    if(res.error){ reset(); say('In-app message failed: '+res.error.message,false); return; }
+
+    if(type==='broadcast' || !wantEmail){
+      reset();
+      document.getElementById('msg-title').value='';
+      document.getElementById('msg-body').value='';
+      say('In-app banner saved for '+(type==='broadcast'?'everyone':list.length+' '+(list.length===1?'person':'people'))+'.',true);
+      loadMessages();
+      return;
+    }
+
+    say('Emailing '+list.length+'\u2026 this can take a moment.',true);
+    supa.functions.invoke('send-admin-message',{
+      body:{ recipients:list, title:title, body:body,
+             /* A one-to-one reply is transactional; anything wider is not. */
+             respectOptOut: (type!=='individual') }
+    }).then(function(r){
+      reset();
+      var d=r&&r.data;
+      if((r&&r.error)||!d){
+        say('Saved in-app, but the email failed: '+((r&&r.error&&r.error.message)||'unknown error'),false);
+        loadMessages(); return;
+      }
+      var parts=['Emailed '+(d.sent||0)];
+      if(d.skipped&&d.skipped.length) parts.push(d.skipped.length+' skipped (unsubscribed)');
+      if(d.failed&&d.failed.length)   parts.push(d.failed.length+' failed');
+      say(parts.join(' \u00b7 '), !(d.failed&&d.failed.length));
+      if(d.failed&&d.failed.length) console.warn('[admin] email failures:', d.failed);
+      if(!(d.failed&&d.failed.length)){
+        document.getElementById('msg-title').value='';
+        document.getElementById('msg-body').value='';
+      }
+      loadMessages();
+    }, function(err){
+      reset();
+      say('Saved in-app, but the email failed: '+String(err&&err.message||err),false);
+      loadMessages();
+    });
   });
 }
 

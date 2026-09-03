@@ -8,3 +8,6 @@ supabase/.temp/
 # deploy-log.txt is rewritten by deploy-webhook.bat on every run.
 deploy-log.txt
 index-backup-*.html
+
+# One-off scratch: the body fragment security.html was assembled from.
+_security_body.html
