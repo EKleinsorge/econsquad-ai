@@ -133,19 +133,30 @@ Deno.serve(async (req: Request) => {
       if (e) nameFor[e] = f;
     });
 
-    const sent: string[] = [];
+    const sent: { email: string; id: string | null }[] = [];
     const failed: { email: string; error: string }[] = [];
 
     for (const addr of list) {
-      const ok = await sendOne(addr, nameFor[addr] || '', String(title), String(body));
-      if (ok === true) sent.push(addr);
-      else failed.push({ email: addr, error: String(ok) });
+      const r = await sendOne(addr, nameFor[addr] || '', String(title), String(body));
+      if (r.ok) sent.push({ email: addr, id: r.id ?? null });
+      else failed.push({ email: addr, error: r.error ?? 'unknown' });
       // Stay inside Resend's rate limit, same as send-reengagement.
       if (list.length > 1) await new Promise(r => setTimeout(r, SEND_DELAY_MS));
     }
 
+    // Log the Resend id per recipient. "Did it arrive?" is otherwise a hunt
+    // through the Resend dashboard by address and guessed timestamp; with the
+    // id it is one lookup. Costs nothing to carry.
+    sent.forEach(x => console.log(`send-admin-message: ${x.email} -> resend ${x.id ?? 'no-id'}`));
     console.log(`send-admin-message: ${sent.length} sent, ${failed.length} failed, ${skipped.length} skipped, by ${caller.email}`);
-    return json({ ok: failed.length === 0, sent: sent.length, failed, skipped });
+
+    return json({
+      ok: failed.length === 0,
+      sent: sent.length,
+      ids: sent,            // [{email, id}] — paste an id into Resend to see its status
+      failed,
+      skipped,
+    });
 
   } catch (e) {
     console.error('send-admin-message threw:', e instanceof Error ? e.message : String(e));
@@ -153,8 +164,10 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-/** Build and send one email. Returns true, or an error string. */
-async function sendOne(to: string, first: string, title: string, body: string): Promise<true | string> {
+type SendResult = { ok: boolean; id?: string | null; error?: string };
+
+/** Build and send one email. Returns Resend's message id on success. */
+async function sendOne(to: string, first: string, title: string, body: string): Promise<SendResult> {
   try {
     const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -193,10 +206,11 @@ async function sendOne(to: string, first: string, title: string, body: string): 
     if (!r.ok) {
       const detail = await r.text();
       console.error(`send-admin-message: Resend ${r.status} for ${to}: ${detail}`);
-      return `Resend ${r.status}: ${detail.slice(0, 160)}`;
+      return { ok: false, error: `Resend ${r.status}: ${detail.slice(0, 160)}` };
     }
-    return true;
+    const out = await r.json().catch(() => ({} as any));
+    return { ok: true, id: out?.id ?? null };
   } catch (e) {
-    return e instanceof Error ? e.message : String(e);
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
