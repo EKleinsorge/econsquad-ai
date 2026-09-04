@@ -338,6 +338,13 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="user-filter-tab" onclick="filterUsers('suspended',this)">Suspended</div>
       </div>
 
+      <div style="margin-bottom:14px;">
+        <input id="usr-search" type="search" placeholder="Search name, email or organisation\u2026"
+               oninput="renderUsersTable(activeUserFilter)"
+               style="width:100%;max-width:420px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:10px 14px;color:#eef3fc;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box;">
+        <span id="usr-search-count" style="margin-left:12px;font-size:12px;color:#6b7a96;"></span>
+      </div>
+
       <div id="usr-selbar" style="display:none;align-items:center;gap:12px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);border-radius:10px;padding:10px 16px;margin-bottom:12px;">
         <span style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;color:#aaff3e;" id="usr-selcount">0 selected</span>
         <button class="btn-lime btn-sm" onclick="messageSelected()">Message selected \u2192</button>
@@ -1093,6 +1100,14 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
     <div class="form-field"><label>Short description (shown on card)</label><textarea id="spec-desc" rows="2"></textarea></div>
     <div class="form-field"><label>What I do (shown in hover tooltip)</label><textarea id="spec-whatido" rows="3"></textarea></div>
     <div class="form-field"><label>Sample output preview</label><textarea id="spec-sample" rows="2"></textarea></div>
+    <div class="form-field" style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">
+      <label>System prompt &mdash; what this specialist is actually told</label>
+      <textarea id="spec-prompt" rows="12" spellcheck="false" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.55;"></textarea>
+      <div style="font-size:11px;color:#6b7a96;margin-top:6px;line-height:1.6;">
+        This is the live instruction sent to the AI on every single deployment. It saves separately from the card details above and takes effect on the very next message &mdash; no code change, no deploy.
+        Leave it blank to fall back to the built-in prompt.
+      </div>
+    </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
         <input type="checkbox" id="spec-isnew" style="width:auto;"> Mark as New
@@ -1315,12 +1330,34 @@ function loadOverview(){
   supa.from('profiles').select('*',{count:'exact'}).then(function(res){
     document.getElementById('ov-total-users').textContent=res.count||0;
     if(res.data){
-      var trials=res.data.filter(function(u){return u.plan==='trial'||u.plan==='starter';});
+      /* Three things were wrong here, and they compounded on the first screen
+         you see. Fixed 2026-09-01.
+
+         1. "Active trials" counted plan==='trial' OR 'starter'. That folded in
+            Starter *subscribers*, expired trials, comped beta accounts, people
+            who never entered a card, and — because the Stripe webhook resets
+            plan to 'trial' on cancel — churned customers too. Hence 20 of 20
+            users showing as active trials. It now counts the same thing the
+            All Users page calls In Trial.
+
+         2. The badge printed the raw `plan` column, so Morse Haynes read
+            TRIAL here and BETA / COMPED one screen over. Both pages now go
+            through userStatus().
+
+         3. "Recent signups" did slice(-10).reverse() on an UNORDERED query,
+            so it was the last ten rows the database happened to return, in
+            reverse. That is why the dates ran 7/8, 4/26, 7/21, 7/8, 6/15.
+            Now actually sorted by signup date. */
+      var trials=res.data.filter(function(u){return userStatus(u)==='in_trial';});
       document.getElementById('ov-active-trials').textContent=trials.length;
       var tbody=document.getElementById('recent-users-table');
-      var recent=res.data.slice(-10).reverse();
+      var recent=res.data.slice().sort(function(a,b){
+        return new Date(b.created_at||0)-new Date(a.created_at||0);
+      }).slice(0,10);
       tbody.innerHTML=recent.map(function(u){
-        return '<tr><td>'+(u.full_name||'—')+'</td><td>'+u.email+'</td><td><span class="badge badge-'+(u.plan||'trial')+'">'+(u.plan||'trial')+'</span></td><td>'+new Date(u.created_at).toLocaleDateString()+'</td></tr>';
+        return '<tr><td>'+(u.full_name||'—')+'</td><td>'+u.email+'</td><td>'+
+          userStatusBadge(u)+'</td><td>'+
+          (u.created_at?new Date(u.created_at).toLocaleDateString():'—')+'</td></tr>';
       }).join('');
     }
   });
@@ -1336,11 +1373,29 @@ function loadOverview(){
    SPECIALISTS
 ═══════════════════════════════════════ */
 var allSpecs=[];
+/* Prompts live in their own table, not on specialists. specialists has a public
+   SELECT policy so the dashboard can draw the cards with the anon key - putting
+   the prompts there would publish them to anyone who opens devtools. RLS is
+   row-level, not column-level, so there is no way to hide one column of a
+   publicly readable table. specialist_prompts is admin-only and read
+   server-side by the edge function with the service role. */
+var specPrompts={};
 function loadSpecialists(){
   supa.from('specialists').select('*').order('sort_order').then(function(res){
     allSpecs=res.data||[];
     renderSpecialistsTable(allSpecs);
     renderStarterSettings(allSpecs);
+  });
+  supa.from('specialist_prompts').select('specialist_id,system_prompt').then(function(res){
+    specPrompts={};
+    if(res.error){
+      /* Not fatal: the card fields still save. Say so rather than showing an
+         empty prompt box that would overwrite a live prompt with nothing. */
+      console.warn('[admin] prompts unavailable:',res.error.message);
+      specPrompts=null;
+      return;
+    }
+    (res.data||[]).forEach(function(r){ specPrompts[r.specialist_id]=r.system_prompt||''; });
   });
 }
 
@@ -1377,6 +1432,14 @@ function editSpecialist(id){
   document.getElementById('spec-desc').value=s.description||'';
   document.getElementById('spec-whatido').value=s.what_i_do||'';
   document.getElementById('spec-sample').value=s.sample_output||'';
+  var pf=document.getElementById('spec-prompt');
+  if(specPrompts===null){
+    pf.value='';pf.disabled=true;
+    pf.placeholder='Prompts could not be loaded, so this field is disabled rather than risking saving a blank over a live prompt. Reload the page.';
+  } else {
+    pf.disabled=false;pf.placeholder='';
+    pf.value=specPrompts[s.id]||'';
+  }
   document.getElementById('spec-isnew').checked=s.is_new||false;
   document.getElementById('spec-islocked').checked=s.is_locked||false;
   document.getElementById('spec-modal-msg').style.display='none';
@@ -1386,7 +1449,7 @@ function editSpecialist(id){
 function openAddSpecialist(){
   document.getElementById('spec-modal-title').textContent='Add New Specialist';
   document.getElementById('spec-edit-id').value='';
-  ['spec-name','spec-role','spec-save','spec-desc','spec-whatido','spec-sample'].forEach(function(id){
+  ['spec-name','spec-role','spec-save','spec-desc','spec-whatido','spec-sample','spec-prompt'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
   document.getElementById('spec-hours').value='2';
@@ -1433,18 +1496,51 @@ function saveSpecialist(){
     promise=supa.from('specialists').insert(data);
   }
 
+  function specError(text){
+    var msg=document.getElementById('spec-modal-msg');
+    msg.style.display='block';msg.style.background='rgba(255,80,80,0.12)';
+    msg.style.border='1px solid rgba(255,80,80,0.3)';msg.style.color='#ff8080';
+    msg.textContent=text;
+  }
+
   promise.then(function(res){
-    btn.textContent='Save specialist →';btn.disabled=false;
     if(res.error){
-      var msg=document.getElementById('spec-modal-msg');
-      msg.style.display='block';msg.style.background='rgba(255,80,80,0.12)';
-      msg.style.border='1px solid rgba(255,80,80,0.3)';msg.style.color='#ff8080';
-      msg.textContent=res.error.message;
+      btn.textContent='Save specialist →';btn.disabled=false;
+      specError(res.error.message);
       return;
     }
-    closeSpecModal();
-    loadSpecialists();
-    showToast('Specialist saved successfully!','success');
+
+    var specId=id?parseInt(id):data.id;
+    var pf=document.getElementById('spec-prompt');
+    if(specPrompts===null||!pf||pf.disabled){
+      btn.textContent='Save specialist →';btn.disabled=false;
+      closeSpecModal();loadSpecialists();
+      showToast('Specialist saved successfully!','success');
+      return;
+    }
+
+    var text=pf.value.trim();
+    /* Blank means "use the built-in prompt", so remove the row rather than
+       storing an empty string the function would have to treat as a prompt. */
+    var p = text
+      ? supa.from('specialist_prompts').upsert({
+          specialist_id:specId, system_prompt:text, updated_at:new Date().toISOString()
+        },{onConflict:'specialist_id'})
+      : supa.from('specialist_prompts').delete().eq('specialist_id',specId);
+
+    p.then(function(pres){
+      btn.textContent='Save specialist →';btn.disabled=false;
+      if(pres&&pres.error){
+        /* The card details DID save. Say exactly that - a bare error here
+           would read as though nothing was saved. */
+        specError('Card details saved, but the prompt did not: '+pres.error.message);
+        loadSpecialists();
+        return;
+      }
+      closeSpecModal();
+      loadSpecialists();
+      showToast(text?'Specialist and prompt saved — live on the next message.':'Specialist saved. Prompt cleared, back to the built-in one.','success');
+    });
   });
 }
 
@@ -1622,8 +1718,22 @@ function filterUsers(status, tabEl){
 function renderUsersTable(filter){
   var tbody=document.getElementById('users-table');
   var filtered=filter==='all'?allUsersData:allUsersData.filter(function(u){return userStatus(u)===filter;});
+
+  /* Search narrows whatever the active filter already selected, so
+     "No Card" + "paris" works. Matches name, email and organisation. */
+  var q=(document.getElementById('usr-search')||{}).value||'';
+  q=q.trim().toLowerCase();
+  if(q){
+    filtered=filtered.filter(function(u){
+      return ((u.full_name||'')+' '+(u.email||'')+' '+(u.organization||''))
+               .toLowerCase().indexOf(q)!==-1;
+    });
+  }
+  var cntEl=document.getElementById('usr-search-count');
+  if(cntEl) cntEl.textContent = q ? (filtered.length+' match'+(filtered.length===1?'':'es')) : '';
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:20px;">No users in this category</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:20px;">'+
+      (q?'Nobody matches \u201c'+escHtml(q)+'\u201d in this filter':'No users in this category')+'</td></tr>';
     return;
   }
   tbody.innerHTML=filtered.map(function(u){

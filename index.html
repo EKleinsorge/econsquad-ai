@@ -6144,21 +6144,59 @@ function callSpecialist(userMessage){
       specialistId:Number(chatState.specialistId),
       messages:chatState.messages.map(function(m){
         return {role:String(m.role),content:String(m.content||'')};
-      }),
-      userId:currentUser?String(currentUser.id):''
+      })
     };
-    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
-      body:JSON.stringify(payload)
+    /* userId used to be sent in the body, and the function believed it - so it
+       was whatever the caller typed. Worse, the only credential on this request
+       was SUPA_KEY, the anon key, which is printed in this page's source: any
+       visitor could POST here forever with no account and spend OpenAI credits.
+       The function now derives the caller from this JWT and ignores the body
+       entirely, the same way google-token does.
+
+       getSession() is called per request rather than cached because it is what
+       refreshes an access token that has aged out during a long drafting
+       session - and these sessions are long. */
+    return supa.auth.getSession().then(function(res){
+      var session=res&&res.data&&res.data.session;
+      if(!session||!session.access_token){
+        return Promise.reject(new Error('esq_signed_out'));
+      }
+      return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey':SUPA_KEY,
+          'Authorization':'Bearer '+session.access_token
+        },
+        body:JSON.stringify(payload)
+      });
     });
-  })().then(function(r){return r.json();}).then(function(data){
+  })().then(function(r){
+    /* A 401 can also come from the Supabase gateway rather than from our
+       function - an access token that expired in the moment between
+       getSession() and the request landing. The gateway answers {code,message},
+       not our {error}, so that used to fall through to "No response - please
+       try again", which sends someone to retry a page that is not the problem. */
+    if(r.status===401){
+      return r.json().catch(function(){return {};}).then(function(d){
+        return {error:(d&&d.error)||'Your session has ended. Open a new tab, sign in again, and come back \u2014 everything on this screen is still here.'};
+      });
+    }
+    return r.json();
+  }).then(function(data){
     if(animDone){ applyReply(data); } else { pendingData = data; }
   }).catch(function(err){
     if(watchdog){ clearTimeout(watchdog); watchdog = null; }
     console.error('[specialist-chat] request failed', err);
     if(showedTyping) hideTyping();
     unlockInput();
+    if(err&&err.message==='esq_signed_out'){
+      /* Distinguished from a network failure on purpose: "try again" is useless
+         advice to someone whose session has expired, and their draft is still
+         on screen - say so before they close the tab. */
+      addChatMessage('specialist','Your session has ended. Open a new tab, sign in again, and come back — everything on this screen is still here.');
+      return;
+    }
     addChatMessage('specialist','Connection error — please try again.');
   });
 }
