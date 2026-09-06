@@ -33,16 +33,26 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { problem, version, url, user, userName, userAgent, timestamp } = body;
+    const { problem, version, url, user, userName, userAgent, timestamp, to } = body;
     console.log('[notify-problem-report] received from:', user);
 
     if (!problem) {
       return new Response(JSON.stringify({ ok: false, error: 'Missing problem text' }), { status: 400, headers: CORS });
     }
 
-    // Fetch report recipients from app_settings
+    // Recipients. dispatch-alerts passes `to` explicitly, because the Alerts
+    // page in admin now decides who hears about what and on which channel.
+    // The app_settings lookup below stays as the fallback for any older caller
+    // and for a direct invoke from the dashboard.
     let recipients: string[] = [FALLBACK_TO];
-    try {
+    const given = Array.isArray(to)
+      ? to.map((e: unknown) => String(e).trim()).filter(Boolean)
+      : [];
+
+    if (given.length) {
+      recipients = given;
+      console.log('[notify-problem-report] recipients supplied by caller:', given.length);
+    } else try {
       const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/app_settings?key=eq.report_recipients&select=value`, {
         headers: {
           'apikey':        SERVICE_ROLE,

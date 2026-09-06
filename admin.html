@@ -190,6 +190,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
     <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
     <div class="sidebar-section">Support</div>
+    <div class="sidebar-item" onclick="showAdminSection('alerts',this);loadAlerts()">🔔 Alerts</div>
     <div class="sidebar-item" onclick="showAdminSection('reports',this)">🚨 Problem Reports</div>
     <div class="sidebar-item" onclick="showAdminSection('refunds',this)">↩️ Refunds</div>
     <div class="sidebar-section">Store</div>
@@ -289,6 +290,67 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <table>
           <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Plan</th><th>Status</th><th>Hrs saved</th><th>Actions</th></tr></thead>
           <tbody id="specialists-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- ALERTS -->
+    <div id="section-alerts" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">Alerts</div>
+          <div class="page-sub">Who hears about what, and how. Alerts fire from the database the moment something happens, so nothing depends on a browser tab being open.</div>
+        </div>
+        <button class="btn-lime" onclick="openAlertRecipient()">+ Add person</button>
+      </div>
+
+      <div id="alerts-paused-banner" style="display:none;background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.32);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#f5c542;">
+        <strong>Alerts are paused.</strong> Everything is still being recorded, nothing is being sent.
+        <button class="btn-ghost btn-sm" style="margin-left:12px;" onclick="setAlertsPaused(false)">Resume sending</button>
+      </div>
+
+      <!-- PEOPLE -->
+      <div class="admin-card" style="padding:0;overflow:hidden;margin-bottom:22px;">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Cell</th><th>No texts between</th><th>Texts/day</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="alert-recipients-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- THE GRID -->
+      <div class="admin-card" style="margin-bottom:22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">What gets sent to whom</div>
+          <button class="btn-lime btn-sm" onclick="saveAlertGrid()" id="alert-grid-save">Save changes</button>
+        </div>
+        <div style="font-size:12px;color:#6b7a96;margin-bottom:16px;line-height:1.6;">
+          Two boxes per person: the left one is email, the right one is a text. Switching an event off in the left column stops it for everybody and stops it being recorded at all.
+          Events marked <span style="color:#ff8080;font-weight:700;">urgent</span> ignore quiet hours &mdash; those are the ones worth being woken for.
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="alert-grid" style="min-width:520px;">
+            <thead><tr id="alert-grid-head"></tr></thead>
+            <tbody id="alert-grid-body"><tr><td style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <div id="alert-grid-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:14px;"></div>
+      </div>
+
+      <!-- LOG -->
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 20px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+            <div>
+              <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">Recently sent</div>
+              <div style="font-size:12px;color:#6b7a96;margin:4px 0 14px;">The last 40 alerts and exactly what each provider said back. This is where a text that never arrived explains itself.</div>
+            </div>
+            <button class="btn-ghost btn-sm" onclick="drainAlerts()" id="alert-drain-btn" title="Anything showing as queued gets another attempt">Send anything queued</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>When</th><th>Event</th><th>What happened</th></tr></thead>
+          <tbody id="alert-log-table"><tr><td colspan="3" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1058,6 +1120,61 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
 </div>
 
 <!-- EDIT/ADD SPECIALIST MODAL -->
+
+<div class="modal-overlay" id="alert-recipient-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;" id="alert-rec-title">Add person</div>
+      <button onclick="closeAlertRecipient()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="alert-rec-id">
+    <div class="form-field"><label>Name</label><input id="alert-rec-name" type="text" placeholder="Eric Sanderson"></div>
+    <div class="form-grid">
+      <div class="form-field"><label>Email</label><input id="alert-rec-email" type="email" placeholder="eric@gslisolutions.com"></div>
+      <div class="form-field"><label>Cell number</label><input id="alert-rec-phone" type="tel" placeholder="(620) 555-0142"></div>
+    </div>
+    <div style="font-size:11px;color:#6b7a96;margin:-6px 0 16px;line-height:1.6;">
+      One of the two is enough. A person with neither cannot be reached, so that will not save.
+    </div>
+
+    <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">
+      <div style="font-family:'Barlow',sans-serif;font-size:13px;font-weight:900;color:#eef3fc;margin-bottom:4px;">Texts only</div>
+      <div style="font-size:11px;color:#6b7a96;margin-bottom:14px;line-height:1.6;">
+        Email always goes. These two limits exist so a quiet feature does not become one you switch off in week two.
+      </div>
+      <div class="form-grid">
+        <div class="form-field"><label>No texts from</label><input id="alert-rec-qs" type="time"></div>
+        <div class="form-field"><label>Until</label><input id="alert-rec-qe" type="time"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-field"><label>Time zone</label>
+          <select id="alert-rec-tz">
+            <option value="America/Chicago">Central</option>
+            <option value="America/New_York">Eastern</option>
+            <option value="America/Denver">Mountain</option>
+            <option value="America/Phoenix">Arizona</option>
+            <option value="America/Los_Angeles">Pacific</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Most texts per day</label><input id="alert-rec-cap" type="number" min="1" max="200" value="20"></div>
+      </div>
+      <div style="font-size:11px;color:#6b7a96;margin-top:-4px;line-height:1.6;">
+        Leave the times blank for no quiet hours. Urgent events &mdash; a failed payment, a cancellation, a problem report &mdash; come through regardless.
+      </div>
+    </div>
+
+    <div class="opt-row" style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:#8a97b5;cursor:pointer;" onclick="var c=document.getElementById('alert-rec-active');c.checked=!c.checked;">
+      <input type="checkbox" id="alert-rec-active" checked style="width:auto;" onclick="event.stopPropagation();"> Active &mdash; untick to stop all alerts to this person without deleting them
+    </div>
+
+    <div id="alert-rec-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-lime" onclick="saveAlertRecipient()" id="alert-rec-save">Save →</button>
+      <button class="btn-ghost" onclick="closeAlertRecipient()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="specialist-modal">
   <div class="modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -1321,6 +1438,7 @@ function loadAllData(){
   loadReports();
   loadRefunds();
   loadAdmins();
+  loadAlerts();
 }
 
 /* ═══════════════════════════════════════
@@ -1366,6 +1484,371 @@ function loadOverview(){
   });
   supa.from('specialist_requests').select('*',{count:'exact'}).then(function(res){
     document.getElementById('ov-custom-requests').textContent=res.count||0;
+  });
+}
+
+
+/* ═══════════════════════════════════════
+   ALERTS
+   ---------------------------------------
+   The page is three things: who can be reached, what each of them wants,
+   and what actually happened. The third one matters most - the old setup
+   was a single comma-separated string in app_settings and there was no way
+   to tell whether anything had ever been delivered.
+═══════════════════════════════════════ */
+var alertRecipients=[], alertTypes=[], alertSubs={}, alertsPaused=false;
+
+function loadAlerts(){
+  supa.from('alert_config').select('is_paused').maybeSingle().then(function(res){
+    alertsPaused=!!(res.data&&res.data.is_paused);
+    var b=document.getElementById('alerts-paused-banner');
+    if(b)b.style.display=alertsPaused?'block':'none';
+  });
+
+  Promise.all([
+    supa.from('alert_recipients').select('*').order('created_at'),
+    supa.from('alert_types').select('*').order('sort_order'),
+    supa.from('alert_subscriptions').select('*')
+  ]).then(function(r){
+    var recErr=r[0].error||r[1].error||r[2].error;
+    if(recErr){
+      var t=document.getElementById('alert-recipients-table');
+      if(t)t.innerHTML='<tr><td colspan="7" style="color:#ff8080;padding:20px;">'+
+        'Could not load alerts: '+esqEsc(recErr.message)+
+        '<br><small style="color:#6b7a96;">If this says the table does not exist, the alerts SQL has not been run yet.</small></td></tr>';
+      return;
+    }
+    alertRecipients=r[0].data||[];
+    alertTypes=r[1].data||[];
+    alertSubs={};
+    (r[2].data||[]).forEach(function(s){ alertSubs[s.recipient_id+'|'+s.type_key]=s; });
+    renderAlertRecipients();
+    renderAlertGrid();
+  });
+
+  loadAlertLog();
+}
+
+/* Named esqEsc rather than esc: admin.html is one 200KB script block and a
+   bare `esc` is exactly the kind of name a future addition collides with. */
+function esqEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function alertQuietLabel(r){
+  if(!r.quiet_start||!r.quiet_end)return '<span style="color:#4a5568;">always on</span>';
+  return esqEsc(r.quiet_start.slice(0,5))+' – '+esqEsc(r.quiet_end.slice(0,5))+
+         '<br><span style="color:#4a5568;font-size:10px;">'+esqEsc((r.timezone||'').split('/')[1]||r.timezone)+'</span>';
+}
+
+function renderAlertRecipients(){
+  var tbody=document.getElementById('alert-recipients-table');
+  if(!tbody)return;
+  if(!alertRecipients.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:#6b7a96;padding:24px;line-height:1.7;">'+
+      'Nobody is set up to receive alerts yet, so nothing is being sent.<br>'+
+      '<span style="color:#4a5568;">Add yourself first — it takes about fifteen seconds.</span></td></tr>';
+    return;
+  }
+  tbody.innerHTML=alertRecipients.map(function(r){
+    return '<tr>'+
+      '<td><strong style="color:#eef3fc;">'+esqEsc(r.name)+'</strong></td>'+
+      '<td style="color:'+(r.email?'#8a97b5':'#4a5568')+';">'+esqEsc(r.email||'—')+'</td>'+
+      '<td style="color:'+(r.phone?'#8a97b5':'#4a5568')+';">'+esqEsc(r.phone||'—')+'</td>'+
+      '<td style="font-size:12px;color:#8a97b5;">'+alertQuietLabel(r)+'</td>'+
+      '<td style="color:#8a97b5;">'+esqEsc(r.sms_daily_cap)+'</td>'+
+      '<td>'+(r.is_active?'<span style="color:#4ade80;">Active</span>':'<span style="color:#6b7a96;">Paused</span>')+'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="btn-ghost btn-sm" style="margin-right:6px;" onclick="testAlert(\''+r.id+'\')">Test</button>'+
+        '<button class="btn-ghost btn-sm" style="margin-right:6px;" onclick="openAlertRecipient(\''+r.id+'\')">Edit</button>'+
+        '<button class="btn-ghost btn-sm" onclick="deleteAlertRecipient(\''+r.id+'\')">Remove</button>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+}
+
+function renderAlertGrid(){
+  var head=document.getElementById('alert-grid-head');
+  var body=document.getElementById('alert-grid-body');
+  if(!head||!body)return;
+
+  if(!alertRecipients.length){
+    head.innerHTML='<th>Event</th>';
+    body.innerHTML='<tr><td style="color:#6b7a96;padding:24px;">Add somebody above and this grid fills in.</td></tr>';
+    return;
+  }
+
+  head.innerHTML='<th style="min-width:220px;">Event</th>'+
+    alertRecipients.map(function(r){
+      /* Words, not icons. An envelope glyph renders as an empty box on some
+         systems, and a column header you cannot read makes the whole grid a
+         guess. */
+      return '<th style="text-align:center;white-space:nowrap;">'+esqEsc(r.name.split(' ')[0])+
+             '<div style="font-weight:400;color:#4a5568;font-size:10px;letter-spacing:.04em;text-transform:none;">mail&nbsp;&nbsp;text</div></th>';
+    }).join('');
+
+  body.innerHTML=alertTypes.map(function(t){
+    var cells=alertRecipients.map(function(r){
+      var s=alertSubs[r.id+'|'+t.key]||{};
+      var dis=t.is_enabled?'':' disabled';
+      return '<td style="text-align:center;white-space:nowrap;">'+
+        '<input type="checkbox" style="width:auto;margin:0 5px;" title="Email '+esqEsc(r.name)+'"'+
+          ' data-alert-rec="'+r.id+'" data-alert-type="'+esqEsc(t.key)+'" data-alert-ch="email"'+
+          (s.send_email?' checked':'')+dis+'>'+
+        '<input type="checkbox" style="width:auto;margin:0 5px;" title="Text '+esqEsc(r.name)+'"'+
+          ' data-alert-rec="'+r.id+'" data-alert-type="'+esqEsc(t.key)+'" data-alert-ch="sms"'+
+          (s.send_sms?' checked':'')+dis+'>'+
+      '</td>';
+    }).join('');
+
+    return '<tr'+(t.is_enabled?'':' style="opacity:.45;"')+'>'+
+      '<td>'+
+        '<label style="display:flex;align-items:flex-start;gap:9px;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer;">'+
+          '<input type="checkbox" style="width:auto;margin-top:3px;" data-alert-typeon="'+esqEsc(t.key)+'"'+(t.is_enabled?' checked':'')+'>'+
+          '<span>'+
+            '<strong style="color:#eef3fc;">'+esqEsc(t.label)+'</strong>'+
+            (t.is_urgent?' <span style="color:#ff8080;font-size:10px;font-weight:700;letter-spacing:.06em;">URGENT</span>':'')+
+            '<div style="color:#6b7a96;font-size:11px;line-height:1.55;margin-top:3px;font-weight:400;">'+esqEsc(t.description||'')+'</div>'+
+          '</span>'+
+        '</label>'+
+      '</td>'+cells+'</tr>';
+  }).join('');
+
+  /* Ticking an event back on should re-enable its row immediately rather than
+     waiting for a save - otherwise the checkboxes look broken. */
+  body.querySelectorAll('[data-alert-typeon]').forEach(function(cb){
+    cb.addEventListener('change',function(){
+      var key=cb.getAttribute('data-alert-typeon');
+      var row=cb.closest('tr');
+      row.style.opacity=cb.checked?'':'.45';
+      row.querySelectorAll('[data-alert-ch]').forEach(function(x){ x.disabled=!cb.checked; });
+      var t=alertTypes.find(function(x){return x.key===key;});
+      if(t)t.is_enabled=cb.checked;
+    });
+  });
+}
+
+function alertGridMsg(text,ok){
+  var m=document.getElementById('alert-grid-msg');
+  if(!m)return;
+  m.style.display='block';
+  m.style.background=ok?'rgba(74,222,128,0.10)':'rgba(255,80,80,0.12)';
+  m.style.border='1px solid '+(ok?'rgba(74,222,128,0.3)':'rgba(255,80,80,0.3)');
+  m.style.color=ok?'#4ade80':'#ff8080';
+  m.textContent=text;
+}
+
+function saveAlertGrid(){
+  var btn=document.getElementById('alert-grid-save');
+  btn.textContent='Saving...';btn.disabled=true;
+
+  var rows=[];
+  document.querySelectorAll('#alert-grid-body [data-alert-ch="email"]').forEach(function(cb){
+    var rec=cb.getAttribute('data-alert-rec'), key=cb.getAttribute('data-alert-type');
+    var sms=document.querySelector('#alert-grid-body [data-alert-rec="'+rec+'"][data-alert-type="'+CSS.escape(key)+'"][data-alert-ch="sms"]');
+    rows.push({recipient_id:rec, type_key:key, send_email:cb.checked, send_sms:!!(sms&&sms.checked)});
+  });
+
+  var typeUpdates=[];
+  document.querySelectorAll('#alert-grid-body [data-alert-typeon]').forEach(function(cb){
+    typeUpdates.push(supa.from('alert_types').update({is_enabled:cb.checked})
+      .eq('key',cb.getAttribute('data-alert-typeon')));
+  });
+
+  Promise.all(typeUpdates.concat([
+    supa.from('alert_subscriptions').upsert(rows,{onConflict:'recipient_id,type_key'})
+  ])).then(function(results){
+    btn.textContent='Save changes';btn.disabled=false;
+    var bad=results.find(function(r){return r&&r.error;});
+    if(bad){ alertGridMsg('Not saved: '+bad.error.message,false); return; }
+    alertGridMsg('Saved. This takes effect on the very next thing that happens — nothing to deploy.',true);
+    setTimeout(function(){var m=document.getElementById('alert-grid-msg');if(m)m.style.display='none';},6000);
+    loadAlerts();
+  });
+}
+
+/* ── Add / edit a person ─────────────────────────────────── */
+function openAlertRecipient(id){
+  var r=id?alertRecipients.find(function(x){return x.id===id;}):null;
+  document.getElementById('alert-rec-title').textContent=r?'Edit person':'Add person';
+  document.getElementById('alert-rec-id').value=r?r.id:'';
+  document.getElementById('alert-rec-name').value=r?r.name:'';
+  document.getElementById('alert-rec-email').value=r&&r.email?r.email:'';
+  document.getElementById('alert-rec-phone').value=r&&r.phone?r.phone:'';
+  document.getElementById('alert-rec-qs').value=r&&r.quiet_start?r.quiet_start.slice(0,5):'';
+  document.getElementById('alert-rec-qe').value=r&&r.quiet_end?r.quiet_end.slice(0,5):'';
+  document.getElementById('alert-rec-tz').value=(r&&r.timezone)||'America/Chicago';
+  document.getElementById('alert-rec-cap').value=(r&&r.sms_daily_cap)||20;
+  document.getElementById('alert-rec-active').checked=r?!!r.is_active:true;
+  document.getElementById('alert-rec-msg').style.display='none';
+  document.getElementById('alert-recipient-modal').classList.add('show');
+}
+
+function closeAlertRecipient(){
+  document.getElementById('alert-recipient-modal').classList.remove('show');
+}
+
+function alertRecMsg(text,ok){
+  var m=document.getElementById('alert-rec-msg');
+  m.style.display='block';
+  m.style.background=ok?'rgba(74,222,128,0.10)':'rgba(255,80,80,0.12)';
+  m.style.border='1px solid '+(ok?'rgba(74,222,128,0.3)':'rgba(255,80,80,0.3)');
+  m.style.color=ok?'#4ade80':'#ff8080';
+  m.textContent=text;
+}
+
+function saveAlertRecipient(){
+  var id=document.getElementById('alert-rec-id').value;
+  var name=document.getElementById('alert-rec-name').value.trim();
+  var email=document.getElementById('alert-rec-email').value.trim();
+  var phone=document.getElementById('alert-rec-phone').value.trim();
+  var qs=document.getElementById('alert-rec-qs').value;
+  var qe=document.getElementById('alert-rec-qe').value;
+
+  if(!name){ alertRecMsg('Give them a name so the grid is readable.',false); return; }
+  if(!email&&!phone){ alertRecMsg('An email or a cell number — otherwise there is no way to reach them.',false); return; }
+  /* One without the other is a window that never opens or never closes. */
+  if((qs&&!qe)||(qe&&!qs)){ alertRecMsg('Quiet hours need both a start and an end, or neither.',false); return; }
+
+  var data={
+    name:name, email:email||null, phone:phone||null,
+    quiet_start:qs||null, quiet_end:qe||null,
+    timezone:document.getElementById('alert-rec-tz').value,
+    sms_daily_cap:parseInt(document.getElementById('alert-rec-cap').value,10)||20,
+    is_active:document.getElementById('alert-rec-active').checked
+  };
+
+  var btn=document.getElementById('alert-rec-save');
+  btn.textContent='Saving...';btn.disabled=true;
+
+  var p=id ? supa.from('alert_recipients').update(data).eq('id',id)
+           : supa.from('alert_recipients').insert(data).select().single();
+
+  p.then(function(res){
+    btn.textContent='Save →';btn.disabled=false;
+    if(res.error){ alertRecMsg(res.error.message,false); return; }
+
+    /* A new person with no subscriptions is a row that does nothing and looks
+       broken. Start them on email for everything, texts for nothing - the
+       useful default, and both are one click away in the grid. */
+    if(!id&&res.data&&res.data.id){
+      var seed=alertTypes.map(function(t){
+        return {recipient_id:res.data.id, type_key:t.key, send_email:true, send_sms:false};
+      });
+      supa.from('alert_subscriptions').upsert(seed,{onConflict:'recipient_id,type_key'}).then(function(){
+        closeAlertRecipient(); loadAlerts();
+        showToast('Added. They will get every alert by email — narrow it down in the grid.','success');
+      });
+      return;
+    }
+    closeAlertRecipient(); loadAlerts();
+    showToast('Saved.','success');
+  });
+}
+
+function deleteAlertRecipient(id){
+  var r=alertRecipients.find(function(x){return x.id===id;});
+  if(!r)return;
+  if(!confirm('Remove '+r.name+' from alerts?\n\nThey stop receiving everything immediately. Past delivery history is kept.'))return;
+  supa.from('alert_recipients').delete().eq('id',id).then(function(res){
+    if(res.error){ showToast('Could not remove: '+res.error.message,'error'); return; }
+    loadAlerts();
+    showToast(r.name+' removed.','success');
+  });
+}
+
+/* ── Test ────────────────────────────────────────────────────
+   Deliberately reports the raw provider answer. A test that says "sent!"
+   when Twilio rejected it is worse than no test at all. */
+function testAlert(id){
+  var r=alertRecipients.find(function(x){return x.id===id;});
+  if(!r)return;
+  showToast('Sending a test to '+r.name+'...','success');
+  supa.functions.invoke('dispatch-alerts',{body:{test:true, recipient_id:id}}).then(function(res){
+    var d=res&&res.data;
+    if(res&&res.error){ alert('The test could not be sent.\n\n'+(res.error.message||res.error)); return; }
+    if(d&&d.error){ alert('The test could not be sent.\n\n'+d.error); return; }
+    var out=(d&&d.result)||{};
+    function line(label,o){
+      if(!o)return label+': —';
+      if(o.status==='sent')   return '✅ '+label+': sent'+(o.id?'  ('+o.id+')':'');
+      if(o.status==='skipped')return '➖ '+label+': '+(o.detail||'skipped');
+      return '❌ '+label+': '+(o.detail||'failed');
+    }
+    alert('Test to '+r.name+'\n\n'+line('Email',out.email)+'\n'+line('Text ',out.sms)+
+          '\n\nAnything marked ❌ is the provider\'s own wording — that is the thing to fix.');
+    loadAlertLog();
+  });
+}
+
+/* Belt and braces. Alerts normally send themselves the instant they happen,
+   but if pg_net was down, or sending was paused, or the function was mid-deploy,
+   rows sit in the queue marked "queued" with nothing left to nudge them. This
+   is the nudge, by hand. It is safe to press at any time: the dispatcher claims
+   each event exactly once, so pressing it twice cannot double-send. */
+function drainAlerts(){
+  var b=document.getElementById('alert-drain-btn');
+  b.textContent='Sending...';b.disabled=true;
+  supa.functions.invoke('dispatch-alerts',{body:{}}).then(function(res){
+    b.textContent='Send anything queued';b.disabled=false;
+    if(res&&res.error){ showToast('Could not reach the alert sender: '+(res.error.message||res.error),'error'); return; }
+    var n=(res&&res.data&&res.data.drained)||0;
+    showToast(n?('Sent '+n+' queued alert'+(n===1?'':'s')+'.'):'Nothing was waiting.','success');
+    loadAlertLog();
+  });
+}
+
+function setAlertsPaused(paused){
+  supa.from('alert_config').update({is_paused:paused}).eq('id',true).then(function(res){
+    if(res.error){ showToast('Could not change that: '+res.error.message,'error'); return; }
+    loadAlerts();
+    showToast(paused?'Alerts paused.':'Alerts are sending again.','success');
+  });
+}
+
+/* ── What actually happened ─────────────────────────────── */
+function loadAlertLog(){
+  var tbody=document.getElementById('alert-log-table');
+  if(!tbody)return;
+  supa.from('alert_events').select('*').order('created_at',{ascending:false}).limit(40).then(function(res){
+    if(res.error){
+      tbody.innerHTML='<tr><td colspan="3" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+'</td></tr>';
+      return;
+    }
+    var rows=res.data||[];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="3" style="color:#6b7a96;padding:24px;">Nothing yet. The next signup or problem report will appear here.</td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(function(e){
+      var r=e.result||{};
+      var what;
+      if(!e.dispatched_at){
+        what='<span style="color:#f5c542;">queued</span>'+
+             '<div style="color:#4a5568;font-size:11px;">not sent yet</div>';
+      } else if(r.skipped&&!r.sent&&!r.failed&&typeof r.skipped==='string'){
+        what='<span style="color:#6b7a96;">'+esqEsc(r.skipped)+'</span>';
+      } else if(r.error){
+        what='<span style="color:#ff8080;">error</span><div style="color:#6b7a96;font-size:11px;">'+esqEsc(r.error)+'</div>';
+      } else {
+        var bits=[];
+        if(r.sent)   bits.push('<span style="color:#4ade80;">'+r.sent+' sent</span>');
+        if(r.failed) bits.push('<span style="color:#ff8080;">'+r.failed+' failed</span>');
+        if(r.skipped)bits.push('<span style="color:#6b7a96;">'+r.skipped+' skipped</span>');
+        if(!bits.length)bits.push('<span style="color:#6b7a96;">nobody subscribed</span>');
+        what=bits.join(' · ');
+        var why=(r.detail||[]).filter(function(d){return d.why;})
+          .map(function(d){return esqEsc(d.ch)+' → '+esqEsc(d.to||'')+': '+esqEsc(d.why);});
+        if(why.length)what+='<div style="color:#6b7a96;font-size:11px;line-height:1.5;margin-top:3px;">'+why.join('<br>')+'</div>';
+      }
+      return '<tr>'+
+        '<td style="white-space:nowrap;color:#8a97b5;font-size:12px;">'+
+          new Date(e.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
+        '<td><strong style="color:#eef3fc;">'+esqEsc(e.title)+'</strong>'+
+          '<div style="color:#4a5568;font-size:11px;">'+esqEsc(e.type_key)+'</div></td>'+
+        '<td style="font-size:12px;">'+what+'</td>'+
+      '</tr>';
+    }).join('');
   });
 }
 

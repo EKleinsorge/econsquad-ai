@@ -138,25 +138,43 @@
     var ta = eid('esq-rta');
     var text = ta ? ta.value.trim() : '';
     if (!text) { alert('Please describe the problem first.'); return; }
+    /* These key names used to be url / userAgent / user, which are not
+       columns on problem_reports. PostgREST rejected every insert with 400,
+       and because supabase-js RESOLVES on a database error rather than
+       rejecting, the .then branch ran anyway: the user saw "Report Sent!",
+       an email went out, and no row was ever saved. Nothing from this button
+       has ever appeared on the admin Problem Reports page.
+       Column names now match the table, and the insert result is checked. */
     var payload = {
-      problem: text,
-      version: 'v05.04.1720',
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString(),
-      user: (window.currentUser && window.currentUser.email) || 'anonymous'
+      user_id:    (window.currentUser && window.currentUser.id) || null,
+      user_email: (window.currentUser && window.currentUser.email) || 'anonymous',
+      user_name:  (window.currentUser && window.currentUser.user_metadata &&
+                   window.currentUser.user_metadata.full_name) || '',
+      problem:    text,
+      page:       window.location.href,
+      version:    'v05.04.1720',
+      user_agent: navigator.userAgent,
+      timestamp:  new Date().toISOString(),
+      resolved:   false
     };
     console.log('Problem report:', payload);
     if (window.supabase) {
+      /* No invoke here any more. An AFTER INSERT trigger on problem_reports
+         raises the alert, so saving the row IS the notification. */
       window.supabase.from('problem_reports').insert([payload])
-        .then(function() {
-          /* Send email notification via edge function */
-          window.supabase.functions.invoke('notify-problem-report', { body: payload })
-            .then(function(r) { console.log('[report] notify result:', JSON.stringify(r)); })
-            .catch(function(e) { console.warn('[report] notify failed:', e); });
+        .then(function(res) {
+          if (res && res.error) {
+            console.error('[report] insert failed:', res.error.message);
+            alert('That did not save: ' + res.error.message +
+                  '\nPlease email eric@gslisolutions.com so it is not lost.');
+            return;
+          }
           showReportOK();
         })
-        .catch(function() { showReportOK(); });
+        .catch(function(e) {
+          console.error('[report] insert threw:', e);
+          alert('That did not save. Please email eric@gslisolutions.com so it is not lost.');
+        });
     } else {
       setTimeout(showReportOK, 600);
     }

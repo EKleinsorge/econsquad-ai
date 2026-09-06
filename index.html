@@ -6815,13 +6815,16 @@ function _doReportSubmit(){
         }
       },460);
     },2000);
-    try{
-      supa.functions.invoke('notify-problem-report',{body:{
-        problem:payload.problem,user:payload.user_email,userName:payload.user_name,version:payload.version,
-        url:payload.page,userAgent:payload.user_agent,timestamp:payload.timestamp
-      }}).then(function(r){console.log('[report] notify result:',r);})
-         .catch(function(e){console.warn('[report] notify failed:',e);});
-    }catch(e){console.warn('[report] notify threw:',e);}
+    /* The email is no longer sent from here. An AFTER INSERT trigger on
+       problem_reports raises a problem.reported alert, and dispatch-alerts
+       sends it to whoever is listed on the Alerts page - by email, by text,
+       or both. It still uses this same notify-problem-report function for the
+       email body, so the repo map and the Claude fix prompt are unchanged.
+
+       Moving it into the database means a report filed any other way - by
+       hand in the dashboard, by a future mobile app - notifies too, and a
+       report can no longer be saved with nobody told because a browser tab
+       was closed a second too early. */
   }).catch(function(err){
     clearTimeout(timer);
     _reportSubmitting=false;
