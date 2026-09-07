@@ -188,6 +188,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Communication</div>
     <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
+    <div class="sidebar-item" onclick="showAdminSection('greetings',this);loadGreetings()">🎂 Greetings</div>
     <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
     <div class="sidebar-section">Support</div>
     <div class="sidebar-item" onclick="showAdminSection('alerts',this);loadAlerts()">🔔 Alerts</div>
@@ -351,6 +352,39 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <table>
           <thead><tr><th>When</th><th>Event</th><th>What happened</th></tr></thead>
           <tbody id="alert-log-table"><tr><td colspan="3" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- GREETINGS -->
+    <div id="section-greetings" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">Greetings</div>
+          <div class="page-sub">Holiday and birthday notes, sent for you. A job checks every morning whether anything is due — you never trigger it, and it works out floating dates like Thanksgiving each year on its own.</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-ghost" onclick="greetDryRun()" id="greet-dry-btn">What would send today?</button>
+          <button class="btn-lime" onclick="openGreetModal(null)">+ Add occasion</button>
+        </div>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;margin-bottom:22px;">
+        <table>
+          <thead><tr><th>Occasion</th><th>When it sends</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="greet-occasions-table"><tr><td colspan="4" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 20px 0;">
+          <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">Recently sent</div>
+          <div style="font-size:12px;color:#6b7a96;margin:4px 0 14px;">The last 50. Each person can only receive a given greeting once per year — the database enforces that, so a repeated job run cannot send twice.</div>
+        </div>
+        <table>
+          <thead><tr><th>When</th><th>Occasion</th><th>To</th><th>Result</th></tr></thead>
+          <tbody id="greet-log-table"><tr><td colspan="4" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1175,6 +1209,88 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
   </div>
 </div>
 
+
+<div class="modal-overlay" id="greet-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;" id="greet-modal-title">Edit greeting</div>
+      <button onclick="closeGreetModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="greet-modal-when" style="font-size:12px;color:#6b7a96;margin-bottom:20px;"></div>
+    <input type="hidden" id="greet-edit-key">
+
+    <!-- Only shown when adding. Editing an existing occasion leaves the date rule
+         alone: changing when Thanksgiving is would be a mistake, not a feature. -->
+    <div id="greet-new-fields" style="display:none;">
+      <div class="form-field"><label>Name of the occasion</label><input id="greet-label" type="text" placeholder="Small Business Saturday"></div>
+
+      <div class="form-field">
+        <label>When does it fall?</label>
+        <div class="opt-row" style="display:flex;gap:18px;margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+            <input type="radio" name="greet-rule" value="fixed" checked style="width:auto;" onchange="greetRuleChanged()"> The same date every year
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:#8a97b5;text-transform:none;letter-spacing:0;cursor:pointer;">
+            <input type="radio" name="greet-rule" value="floating" style="width:auto;" onchange="greetRuleChanged()"> A particular weekday
+          </label>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field"><label>Month</label><select id="greet-month-sel"></select></div>
+        <div class="form-field" id="greet-fixed-day"><label>Day of the month</label><select id="greet-day-sel"></select></div>
+      </div>
+
+      <div class="form-grid" id="greet-floating-fields" style="display:none;">
+        <div class="form-field"><label>Which one</label>
+          <select id="greet-nth">
+            <option value="1">First</option><option value="2">Second</option>
+            <option value="3">Third</option><option value="4">Fourth</option>
+            <option value="-1">Last</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Weekday</label>
+          <select id="greet-weekday">
+            <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+            <option value="4">Thursday</option><option value="5">Friday</option>
+            <option value="6">Saturday</option><option value="0">Sunday</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="greet-rule-preview" style="font-size:12px;color:#aaff3e;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:8px;padding:10px 12px;margin-bottom:16px;"></div>
+    </div>
+
+    <div class="form-field"><label>Subject line</label><input id="greet-subject" type="text"></div>
+    <div class="form-field">
+      <label>Message</label>
+      <textarea id="greet-body" rows="14" style="font-size:13px;line-height:1.7;"></textarea>
+      <div style="font-size:11px;color:#6b7a96;margin-top:6px;line-height:1.7;">
+        <strong>{{name}}</strong> becomes their first name, or &ldquo;there&rdquo; when we have no name.
+        <strong>{{org}}</strong> becomes their organisation &mdash; and if we do not have one, the surrounding words are tidied away rather than left as a hole in the sentence.
+        <br>Blank lines separate paragraphs. Every message carries an unsubscribe link automatically.
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field"><label>Send this many days early</label><input id="greet-days" type="number" min="0" max="14"></div>
+      <div class="form-field"><label>&nbsp;</label>
+        <div class="opt-row" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#8a97b5;cursor:pointer;padding-top:10px;" onclick="var c=document.getElementById('greet-enabled');c.checked=!c.checked;">
+          <input type="checkbox" id="greet-enabled" style="width:auto;" onclick="event.stopPropagation();"> Switched on
+        </div>
+      </div>
+    </div>
+
+    <div id="greet-modal-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:14px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-lime" onclick="saveGreetOccasion()" id="greet-modal-save">Save →</button>
+      <button class="btn-ghost" onclick="sendGreetTest()" id="greet-test-btn">Send a test to me</button>
+      <button class="btn-ghost" onclick="closeGreetModal()">Cancel</button>
+      <button class="btn-ghost" onclick="deleteGreetOccasion()" id="greet-delete-btn" style="margin-left:auto;color:#ff8080;">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="specialist-modal">
   <div class="modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -1450,6 +1566,7 @@ function loadAllData(){
   loadRefunds();
   loadAdmins();
   loadAlerts();
+  loadGreetings();
 }
 
 /* ═══════════════════════════════════════
@@ -1860,6 +1977,302 @@ function loadAlertLog(){
         '<td style="font-size:12px;">'+what+'</td>'+
       '</tr>';
     }).join('');
+  });
+}
+
+
+/* ═══════════════════════════════════════
+   GREETINGS
+   ---------------------------------------
+   The schedule is the feature. Almost every daily run sends nothing, which is
+   correct and is why the "What would send today?" button exists — otherwise
+   there is no way to tell a working job from a broken one.
+═══════════════════════════════════════ */
+var greetOccasions=[];
+var GREET_MONTHS=['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+var GREET_DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var GREET_NTH={1:'first','2:':'second',2:'second',3:'third',4:'fourth',5:'fifth','-1':'last'};
+
+function greetWhen(o){
+  if(o.key==='birthday') return 'On each member’s birthday';
+  var base;
+  if(o.day!=null){
+    base=GREET_MONTHS[o.month-1]+' '+o.day;
+  } else {
+    base=(GREET_NTH[String(o.floating_nth)]||o.floating_nth+'th')+' '+
+         GREET_DOW[o.floating_weekday]+' of '+GREET_MONTHS[o.month-1];
+  }
+  if(o.send_days_before>0) base+=' — sent '+o.send_days_before+' day'+(o.send_days_before>1?'s':'')+' early';
+  return base;
+}
+
+function loadGreetings(){
+  supa.from('greeting_occasions').select('*').order('sort_order').then(function(res){
+    var tbody=document.getElementById('greet-occasions-table');
+    if(!tbody)return;
+    if(res.error){
+      tbody.innerHTML='<tr><td colspan="4" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+
+        '<br><small style="color:#6b7a96;">If this says the table does not exist, the greetings SQL has not been run yet.</small></td></tr>';
+      return;
+    }
+    greetOccasions=res.data||[];
+    tbody.innerHTML=greetOccasions.map(function(o){
+      var warn='';
+      if(o.key==='birthday'&&o.is_enabled) warn='<div style="color:#f5c542;font-size:11px;margin-top:3px;">Only fires for members who have entered a birthday.</div>';
+      return '<tr>'+
+        '<td><strong style="color:#eef3fc;">'+esqEsc(o.label)+'</strong>'+warn+'</td>'+
+        '<td style="color:#8a97b5;font-size:13px;">'+esqEsc(greetWhen(o))+'</td>'+
+        '<td>'+(o.is_enabled?'<span style="color:#4ade80;">On</span>':'<span style="color:#6b7a96;">Off</span>')+'</td>'+
+        '<td style="white-space:nowrap;">'+
+          '<button class="btn-ghost btn-sm" style="margin-right:6px;" onclick="openGreetModal(\''+esqEsc(o.key)+'\')">Edit</button>'+
+          '<button class="btn-ghost btn-sm" onclick="toggleGreetOccasion(\''+esqEsc(o.key)+'\')">'+(o.is_enabled?'Turn off':'Turn on')+'</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+  });
+  loadGreetLog();
+}
+
+function loadGreetLog(){
+  var tbody=document.getElementById('greet-log-table');
+  if(!tbody)return;
+  supa.from('greeting_sends').select('*').order('sent_at',{ascending:false}).limit(50).then(function(res){
+    if(res.error){ tbody.innerHTML='<tr><td colspan="4" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+'</td></tr>'; return; }
+    var rows=res.data||[];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="4" style="color:#6b7a96;padding:24px;">Nothing sent yet. The next occasion that comes round will appear here.</td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(function(r){
+      return '<tr>'+
+        '<td style="white-space:nowrap;color:#8a97b5;font-size:12px;">'+
+          new Date(r.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
+        '<td style="font-size:13px;color:#eef3fc;">'+esqEsc(r.occasion_key)+'</td>'+
+        '<td style="font-size:13px;color:#8a97b5;">'+esqEsc(r.email)+'</td>'+
+        '<td style="font-size:12px;">'+(r.status==='sent'
+            ?'<span style="color:#4ade80;">sent</span>'
+            :'<span style="color:#ff8080;">failed</span><div style="color:#6b7a96;font-size:11px;">'+esqEsc(r.detail||'')+'</div>')+'</td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+function _greetFillDateSelects(){
+  var m=document.getElementById('greet-month-sel'), d=document.getElementById('greet-day-sel');
+  if(!m||m.options.length)return;
+  GREET_MONTHS.forEach(function(name,i){
+    var o=document.createElement('option');o.value=String(i+1);o.textContent=name;m.appendChild(o);
+  });
+  for(var i=1;i<=31;i++){
+    var o=document.createElement('option');o.value=String(i);o.textContent=String(i);d.appendChild(o);
+  }
+  ['greet-month-sel','greet-day-sel','greet-nth','greet-weekday'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.addEventListener('change',greetRuleChanged);
+  });
+}
+
+function _greetRuleType(){
+  var r=document.querySelector('input[name="greet-rule"]:checked');
+  return r?r.value:'fixed';
+}
+
+function greetRuleChanged(){
+  var floating=_greetRuleType()==='floating';
+  document.getElementById('greet-floating-fields').style.display=floating?'':'none';
+  document.getElementById('greet-fixed-day').style.display=floating?'none':'';
+
+  var month=parseInt(document.getElementById('greet-month-sel').value,10)||1;
+  var o={key:'preview', month:month, send_days_before:parseInt(document.getElementById('greet-days').value,10)||0};
+  if(floating){
+    o.day=null;
+    o.floating_nth=parseInt(document.getElementById('greet-nth').value,10);
+    o.floating_weekday=parseInt(document.getElementById('greet-weekday').value,10);
+  } else {
+    o.day=parseInt(document.getElementById('greet-day-sel').value,10)||1;
+    o.floating_nth=null;o.floating_weekday=null;
+  }
+  /* Show the actual next few dates. "Fourth Thursday of November" is easy to
+     get wrong in your head; three real dates are not. */
+  var years=[];
+  var now=new Date().getUTCFullYear();
+  for(var y=now;y<now+3;y++){
+    var day=o.day!=null?o.day:_greetNthDay(y,o.month,o.floating_nth,o.floating_weekday);
+    var dt=new Date(Date.UTC(y,o.month-1,day));
+    dt.setUTCDate(dt.getUTCDate()-(o.send_days_before||0));
+    years.push(dt.toLocaleDateString('en-US',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric',year:'numeric'}));
+  }
+  document.getElementById('greet-rule-preview').textContent='Sends on: '+years.join('  ·  ');
+}
+
+/* Same maths as the edge function, so the preview cannot disagree with reality. */
+function _greetNthDay(year,month,nth,weekday){
+  if(nth===-1){
+    var last=new Date(Date.UTC(year,month,0)).getUTCDate();
+    for(var d=last;d>=1;d--){
+      if(new Date(Date.UTC(year,month-1,d)).getUTCDay()===weekday)return d;
+    }
+    return last;
+  }
+  var firstDow=new Date(Date.UTC(year,month-1,1)).getUTCDay();
+  return 1+((weekday-firstDow+7)%7)+(nth-1)*7;
+}
+
+function openGreetModal(key){
+  _greetFillDateSelects();
+  var isNew=!key;
+  var o=isNew?null:greetOccasions.find(function(x){return x.key===key;});
+  if(!isNew&&!o)return;
+
+  document.getElementById('greet-new-fields').style.display=isNew?'':'none';
+  document.getElementById('greet-delete-btn').style.display=(isNew||_greetIsSeeded(key))?'none':'';
+  document.getElementById('greet-modal-title').textContent=isNew?'Add an occasion':o.label;
+  document.getElementById('greet-modal-when').textContent=isNew?'It will send every year from now on — the date is worked out each time, so nothing needs resetting in January.':greetWhen(o);
+  document.getElementById('greet-edit-key').value=isNew?'':o.key;
+  document.getElementById('greet-label').value='';
+  document.getElementById('greet-subject').value=isNew?'':(o.subject||'');
+  document.getElementById('greet-body').value=isNew?'':(o.body||'');
+  document.getElementById('greet-days').value=isNew?0:(o.send_days_before||0);
+  document.getElementById('greet-enabled').checked=isNew?true:!!o.is_enabled;
+  document.getElementById('greet-modal-msg').style.display='none';
+  if(isNew){
+    document.querySelector('input[name="greet-rule"][value="fixed"]').checked=true;
+    document.getElementById('greet-month-sel').value=String(new Date().getUTCMonth()+1);
+    document.getElementById('greet-day-sel').value='1';
+    greetRuleChanged();
+  }
+  document.getElementById('greet-modal').classList.add('show');
+}
+
+/* The nine that shipped are editable but not deletable — deleting one loses the
+   wording and the send history with it, and turning it off does everything
+   deleting would. Occasions you add yourself can be removed. */
+var GREET_SEEDED=['birthday','new_year','mlk_day','memorial_day','independence_day',
+                  'labor_day','veterans_day','thanksgiving','season_greetings'];
+function _greetIsSeeded(key){ return GREET_SEEDED.indexOf(key)!==-1; }
+
+function deleteGreetOccasion(){
+  var key=document.getElementById('greet-edit-key').value;
+  if(!key||_greetIsSeeded(key))return;
+  var o=greetOccasions.find(function(x){return x.key===key;});
+  if(!confirm('Delete "'+(o?o.label:key)+'"?\n\nThe wording and its send history go with it. Turning it off keeps both.'))return;
+  supa.from('greeting_occasions').delete().eq('key',key).then(function(res){
+    if(res.error){ greetMsg(res.error.message,false); return; }
+    closeGreetModal(); loadGreetings();
+    showToast('Occasion deleted.','success');
+  });
+}
+
+function closeGreetModal(){ document.getElementById('greet-modal').classList.remove('show'); }
+
+function greetMsg(text,ok){
+  var m=document.getElementById('greet-modal-msg');
+  m.style.display='block';
+  m.style.background=ok?'rgba(74,222,128,0.10)':'rgba(255,80,80,0.12)';
+  m.style.border='1px solid '+(ok?'rgba(74,222,128,0.3)':'rgba(255,80,80,0.3)');
+  m.style.color=ok?'#4ade80':'#ff8080';
+  m.textContent=text;
+}
+
+function saveGreetOccasion(){
+  var key=document.getElementById('greet-edit-key').value;
+  var isNew=!key;
+  var btn=document.getElementById('greet-modal-save');
+  var subject=document.getElementById('greet-subject').value.trim();
+  var body=document.getElementById('greet-body').value.trim();
+  if(!subject||!body){ greetMsg('A greeting needs both a subject and a message.',false); return; }
+
+  var data={
+    subject:subject, body:body,
+    send_days_before:parseInt(document.getElementById('greet-days').value,10)||0,
+    is_enabled:document.getElementById('greet-enabled').checked
+  };
+
+  if(isNew){
+    var label=document.getElementById('greet-label').value.trim();
+    if(!label){ greetMsg('Give the occasion a name.',false); return; }
+
+    /* A slug from the label, because the key is the primary key and a human
+       typing one is a chance to collide with an existing row. */
+    var slug=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40);
+    if(!slug){ greetMsg('That name has no letters or numbers in it.',false); return; }
+    if(greetOccasions.some(function(x){return x.key===slug;})){
+      greetMsg('There is already an occasion called that.',false); return;
+    }
+
+    data.key=slug;
+    data.label=label;
+    data.month=parseInt(document.getElementById('greet-month-sel').value,10)||1;
+    if(_greetRuleType()==='floating'){
+      data.day=null;
+      data.floating_nth=parseInt(document.getElementById('greet-nth').value,10);
+      data.floating_weekday=parseInt(document.getElementById('greet-weekday').value,10);
+    } else {
+      data.day=parseInt(document.getElementById('greet-day-sel').value,10)||1;
+      data.floating_nth=null; data.floating_weekday=null;
+      /* 31 February is a date that never arrives, so the greeting would never
+         send and nothing would say why. */
+      var maxDay=new Date(Date.UTC(2028,data.month,0)).getUTCDate();
+      if(data.day>maxDay){
+        greetMsg(GREET_MONTHS[data.month-1]+' only has '+maxDay+' days.',false); return;
+      }
+    }
+    data.sort_order=100+greetOccasions.length;
+  }
+
+  btn.textContent='Saving...';btn.disabled=true;
+  var p=isNew ? supa.from('greeting_occasions').insert(data)
+              : supa.from('greeting_occasions').update(data).eq('key',key);
+  p.then(function(res){
+    btn.textContent='Save →';btn.disabled=false;
+    if(res.error){ greetMsg(res.error.message,false); return; }
+    closeGreetModal(); loadGreetings();
+    showToast(isNew?'Added. It will send every year from now on.':'Saved. It will use this wording next time it comes round.','success');
+  });
+}
+
+function toggleGreetOccasion(key){
+  var o=greetOccasions.find(function(x){return x.key===key;});
+  if(!o)return;
+  supa.from('greeting_occasions').update({is_enabled:!o.is_enabled}).eq('key',key).then(function(res){
+    if(res.error){ showToast('Could not change that: '+res.error.message,'error'); return; }
+    loadGreetings();
+    showToast(o.label+(o.is_enabled?' switched off.':' switched on.'),'success');
+  });
+}
+
+/* Almost every day sends nothing, so without this there is no way to tell a
+   working schedule from a silently broken one. */
+function greetDryRun(){
+  var b=document.getElementById('greet-dry-btn');
+  b.textContent='Checking...';b.disabled=true;
+  supa.functions.invoke('send-greetings',{body:{dry_run:true}}).then(function(res){
+    b.textContent='What would send today?';b.disabled=false;
+    var d=(res&&res.data)||{};
+    if(res&&res.error){ alert('Could not reach the greetings job.\n\n'+(res.error.message||res.error)); return; }
+    if(d.error){ alert('The greetings job reported: '+d.error+(d.detail?'\n\n'+d.detail:'')); return; }
+    var due=(d.due||[]).length?d.due.join(', '):'nothing';
+    alert('Today: '+(d.date?(d.date.y+'-'+d.date.m+'-'+d.date.d):'—')+
+          '\n\nOccasions due: '+due+
+          '\nBirthdays today: '+(d.birthdays_today||0)+
+          '\nEmails it would send: '+(d.would_send||0)+
+          '\n\nNothing was sent — this was a check.');
+  });
+}
+
+/* A real send, using the real template, to your own address. Not recorded in
+   greeting_sends, so testing cannot use up somebody's once-a-year slot. */
+function sendGreetTest(){
+  var key=document.getElementById('greet-edit-key').value;
+  var b=document.getElementById('greet-test-btn');
+  b.textContent='Sending...';b.disabled=true;
+  supa.functions.invoke('send-greetings',{body:{test:true, occasion_key:key}}).then(function(res){
+    b.textContent='Send a test to me';b.disabled=false;
+    var d=(res&&res.data)||{};
+    if(res&&res.error){ greetMsg('Could not reach the greetings job: '+(res.error.message||res.error),false); return; }
+    if(d.ok){ greetMsg('Sent to '+d.to+' — subject "'+d.subject+'". Check your inbox.',true); return; }
+    greetMsg(d.error||'The test did not send.',false);
   });
 }
 

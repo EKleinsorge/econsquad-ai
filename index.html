@@ -1587,6 +1587,20 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                 <span style="font-size:12px;color:#eef3fc;">SMS Alerts</span>
               </div>
               -->
+              <div onclick="openGreetingsModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">&#127874;</span>
+                <span style="font-size:12px;color:#eef3fc;">Birthday &amp; greetings</span>
+              </div>
+              <!-- Text alerts are registered with the carriers and awaiting approval
+                   (2026-09-07). Shown greyed rather than hidden so members know it is
+                   coming instead of wondering where it went - but NOT clickable, because
+                   a phone number entered today would sit waiting for a text that cannot
+                   be sent yet. Restore the onclick when the A2P campaign is approved. -->
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:default;opacity:.45;">
+                <span style="font-size:14px;">&#128241;</span>
+                <span style="font-size:12px;color:#eef3fc;">Text alerts</span>
+                <span style="margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#f5c542;border:1px solid rgba(245,197,66,0.35);border-radius:4px;padding:2px 6px;">Soon</span>
+              </div>
               <div onclick="openAffiliateModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">🤝</span>
                 <div>
@@ -15274,6 +15288,90 @@ function sendTestSms(){
   });
 }
 
+
+/* ═══════════════════════════════════════
+   BIRTHDAY & GREETINGS
+   ---------------------------------------
+   Month and day only. A birth year is not needed to send a card and asking
+   for one turns a nice gesture into a data-collection exercise people
+   reasonably resent.
+═══════════════════════════════════════ */
+var GREET_MONTHS=['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+function _greetFillSelects(){
+  var m=document.getElementById('greet-month'), d=document.getElementById('greet-day');
+  if(!m||!d||m.options.length>1)return;
+  GREET_MONTHS.forEach(function(name,i){
+    var o=document.createElement('option');o.value=String(i+1);o.textContent=name;m.appendChild(o);
+  });
+  for(var i=1;i<=31;i++){
+    var o=document.createElement('option');o.value=String(i);o.textContent=String(i);d.appendChild(o);
+  }
+}
+
+function openGreetingsModal(){
+  _greetFillSelects();
+  var el=document.getElementById('greetings-modal');
+  if(el)el.style.display='flex';
+  var st=document.getElementById('greet-status'); if(st)st.textContent='';
+  if(!currentUser)return;
+  supa.from('profiles').select('birth_month,birth_day,greetings_opt_out')
+    .eq('id',currentUser.id).single().then(function(res){
+      var p=res.data||{};
+      document.getElementById('greet-month').value=p.birth_month?String(p.birth_month):'';
+      document.getElementById('greet-day').value  =p.birth_day?String(p.birth_day):'';
+      document.getElementById('greet-optin').checked=!p.greetings_opt_out;
+    });
+}
+
+function closeGreetingsModal(){
+  var el=document.getElementById('greetings-modal');
+  if(el)el.style.display='none';
+}
+
+function saveGreetingPrefs(){
+  if(!currentUser)return;
+  var m=parseInt(document.getElementById('greet-month').value,10)||null;
+  var d=parseInt(document.getElementById('greet-day').value,10)||null;
+  var st=document.getElementById('greet-status');
+  var btn=document.getElementById('greet-save');
+
+  /* One without the other is a birthday that can never fire, so say so rather
+     than saving something that silently does nothing. */
+  if((m&&!d)||(d&&!m)){
+    st.style.color='#f5c542';
+    st.textContent='Pick both a month and a day, or leave both blank.';
+    return;
+  }
+  /* 31 February is a date nobody has. Cap the day to the month's real length,
+     using a leap year so 29 February is allowed. */
+  if(m&&d){
+    var maxDay=new Date(Date.UTC(2028,m,0)).getUTCDate();
+    if(d>maxDay){
+      st.style.color='#f5c542';
+      st.textContent=GREET_MONTHS[m-1]+' only has '+maxDay+' days.';
+      return;
+    }
+  }
+
+  btn.disabled=true;btn.textContent='Saving...';
+  supa.from('profiles').update({
+    birth_month:m, birth_day:d,
+    greetings_opt_out:!document.getElementById('greet-optin').checked
+  }).eq('id',currentUser.id).then(function(res){
+    btn.disabled=false;btn.textContent='Save';
+    if(res.error){
+      st.style.color='#ff8080';
+      st.textContent=res.error.message;
+      return;
+    }
+    st.style.color='#aaff3e';
+    st.textContent='Saved.';
+    setTimeout(closeGreetingsModal,900);
+  });
+}
+
 /* ── Core send function (called from triggers throughout the app) ─────── */
 function sendSmsAlert(alertType, message){
   if(!currentUser) return;
@@ -15964,5 +16062,46 @@ function _renderAff_login(){
   window.addEventListener('hashchange', jump);
 })();
 </script>
+
+<!-- BIRTHDAY & GREETINGS -->
+<div class="modal-overlay" id="greetings-modal" style="display:none;position:fixed;inset:0;background:rgba(4,5,13,0.82);backdrop-filter:blur(6px);z-index:100000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:rgba(10,15,28,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px 30px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;">&#127874; Birthday &amp; greetings</div>
+      <button onclick="closeGreetingsModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:13px;color:#8a97b5;line-height:1.65;margin-bottom:20px;">
+      We send a short note at a few points in the year, and on your birthday if you tell us when it is. No product news, no pitch.
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:6px;">
+      <div style="flex:1;">
+        <label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Birthday month</label>
+        <select id="greet-month" style="width:100%;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;color:#eef3fc;font-size:14px;">
+          <option value="">&mdash;</option>
+        </select>
+      </div>
+      <div style="width:110px;">
+        <label style="display:block;font-size:11px;font-weight:700;color:#6b7a96;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Day</label>
+        <select id="greet-day" style="width:100%;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;color:#eef3fc;font-size:14px;">
+          <option value="">&mdash;</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#4a5568;margin-bottom:18px;">No year &mdash; we do not ask and do not want it.</div>
+
+    <div onclick="var c=document.getElementById('greet-optin');c.checked=!c.checked;" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;">
+      <input type="checkbox" id="greet-optin" checked style="width:auto;margin-top:2px;" onclick="event.stopPropagation();">
+      <span style="font-size:13px;color:#8a97b5;line-height:1.6;">Send me these occasional notes. Untick and we will not &mdash; your receipts, alerts and anything you actually asked for are unaffected.</span>
+    </div>
+
+    <div id="greet-status" style="font-size:12px;margin-top:14px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn-lime" onclick="saveGreetingPrefs()" id="greet-save" style="flex:1;">Save</button>
+      <button onclick="closeGreetingsModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;border-radius:10px;padding:11px 18px;cursor:pointer;font-size:14px;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

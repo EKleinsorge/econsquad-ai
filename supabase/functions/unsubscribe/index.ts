@@ -20,6 +20,26 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Greetings carry ?k=greetings and a token from profiles.greetings_token.
+    // Opting out of seasonal notes must NOT unsubscribe anyone from the Monday
+    // Drop, and it must never touch anything transactional - receipts, resets
+    // and alerts are not marketing and are not opt-out-able from a card.
+    if (url.searchParams.get('k') === 'greetings') {
+      const { data: g, error: gErr } = await supa
+        .from('profiles')
+        .update({ greetings_opt_out: true })
+        .eq('greetings_token', token)
+        .eq('greetings_opt_out', false)   // only once
+        .select('email')
+        .single();
+
+      if (gErr || !g) {
+        return Response.redirect(`${SITE_URL}/unsubscribe.html?status=already`, 302);
+      }
+      console.log(`Greetings opt-out: ${g.email}`);
+      return Response.redirect(`${SITE_URL}/unsubscribe.html?status=ok`, 302);
+    }
+
     const { data, error } = await supa
       .from('monday_drop_subscribers')
       .update({ unsubscribed_at: new Date().toISOString() })

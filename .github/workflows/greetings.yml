@@ -1,0 +1,51 @@
+name: Greetings — daily check
+
+# Runs every morning and asks one question: is anything due today?
+# Almost every run sends nothing, which is the point — the schedule is the
+# feature, not the sending.
+#
+# 13:00 UTC is 08:00 Central in summer, 07:00 in winter. Actions cron is UTC
+# and ignores DST, so this drifts by an hour across the year. For a greeting
+# that does not matter; the function decides the DATE in America/Chicago, which
+# is the part that does.
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — report what would send, send nothing'
+        required: false
+        default: 'true'
+      date:
+        description: 'Pretend it is this date (YYYY-MM-DD). Blank = today.'
+        required: false
+        default: ''
+
+jobs:
+  send-greetings:
+    name: Send greetings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger send-greetings Edge Function
+        run: |
+          echo "Greetings check at $(date -u)"
+          PAYLOAD="{\"dry_run\": \"$DRY_RUN\""
+          if [ -n "$FAKE_DATE" ]; then PAYLOAD="$PAYLOAD, \"date\": \"$FAKE_DATE\""; fi
+          PAYLOAD="$PAYLOAD}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-greetings" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP=$(echo "$RESPONSE" | tail -n1)
+          echo "HTTP $HTTP"
+          echo "$BODY"
+          if [ "$HTTP" != "200" ]; then exit 1; fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
+          FAKE_DATE: ${{ github.event.inputs.date }}
