@@ -5423,15 +5423,26 @@
 
   /* ── Proactive check: Monday AI for ED Drop new posts ───────────────── */
   var BLOG_SEEN_KEY = 'esq_blog_seen_issue';
-  var BLOG_FEED_URL = 'https://ekleinsorge.github.io/econsquad-ai/blog-feed.json';
+  /* Was the ekleinsorge.github.io URL, which is a different origin from
+     econsquad.ai: the request 301s and is then blocked by CORS, so this check
+     has silently never run and no member has ever been told a new issue is
+     out. Same-origin, so it simply works. */
+  var BLOG_FEED_URL = '/blog-feed.json';
 
   function checkBlogFeed() {
     /* Only check once per session */
-    try { if (sessionStorage.getItem('esq_blog_checked')) return;
-          sessionStorage.setItem('esq_blog_checked', '1'); } catch(e) {}
+    /* The flag is set AFTER the feed is read, not before. Setting it first
+       meant one failed fetch marked the check as done for the whole session,
+       so a broken feed could never recover and looked exactly like no new
+       issue. */
+    try { if (sessionStorage.getItem('esq_blog_checked')) return; } catch(e) {}
 
     fetch(BLOG_FEED_URL + '?v=' + Date.now())
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error('blog feed ' + r.status);
+        try { sessionStorage.setItem('esq_blog_checked', '1'); } catch(e) {}
+        return r.json();
+      })
       .then(function(feed) {
         var drops = (feed && feed.monday_drops) || [];
         if (!drops.length) return;

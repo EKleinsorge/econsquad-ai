@@ -4722,8 +4722,13 @@ function doSignin(){
 function doForgotPassword(){
   var email=document.getElementById('si-email').value.trim();
   if(!email){showAuthMsg('Enter your email above first.','error');return;}
+  /* Was https://ekleinsorge.github.io/econsquad-ai — the GitHub Pages URL from
+     before the domain existed. Anyone resetting a password was returned to a
+     stale copy of the site rather than to econsquad.ai. location.origin keeps
+     it correct wherever this is served from.
+     Supabase must allow-list the URL: Authentication -> URL Configuration. */
   supa.auth.resetPasswordForEmail(email,{
-    redirectTo:'https://ekleinsorge.github.io/econsquad-ai'
+    redirectTo: location.origin
   }).then(function(res){
     if(res.error){showAuthMsg(res.error.message,'error');}
     else{showAuthMsg('Password reset email sent! Check your inbox.','success');}
