@@ -3886,14 +3886,30 @@ function esqTrackClick(){
   try{
     var k=(new URLSearchParams(location.search).get('k')||'').replace(/[^0-9a-fA-F]/g,'').toLowerCase();
     if(!k) return;
-    if(sessionStorage.getItem('esq_k_'+k)) return;
-    sessionStorage.setItem('esq_k_'+k,'1');
+
+    /* The guard is set AFTER a successful call, not before it.
+       The first version set it first and swallowed every error, so one failed
+       request marked the click as done for the whole browser session and no
+       reload would ever retry - and a failure looked exactly like a success.
+       That is the bug this whole system exists to avoid, written into the
+       thing that measures it. */
+    if(sessionStorage.getItem('esq_k_'+k)==='sent') return;
+
     fetch(SUPA_URL+'/functions/v1/track-click',{
       method:'POST', headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
       body:JSON.stringify({k:k, landing:location.pathname+location.search, referrer:document.referrer||null}),
       keepalive:true
-    }).catch(function(){});
-  }catch(e){}
+    }).then(function(r){
+      if(r && r.status>=200 && r.status<300){
+        try{ sessionStorage.setItem('esq_k_'+k,'sent'); }catch(e){}
+      }else{
+        /* Visible, so a broken tracker cannot masquerade as no clicks. */
+        console.warn('[track] refused, status', r && r.status);
+      }
+    }).catch(function(e){
+      console.warn('[track] could not reach track-click:', e && e.message);
+    });
+  }catch(e){ console.warn('[track]', e && e.message); }
 }
 
 /* Capture immediately — before any click can navigate away and lose the
