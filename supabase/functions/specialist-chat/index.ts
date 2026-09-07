@@ -216,6 +216,42 @@ function buildContext(profile: any, community: any): string {
   return block + '\n\n---\n\n';
 }
 
+/* ── Record what this call cost ───────────────────────────────
+   Both OpenAI and Anthropic return exact token counts in every response, and
+   until now all three functions threw them away. The only visibility Eric had
+   was a monthly total on two vendor dashboards: no per customer, no per
+   specialist, no margin, and no way to answer "is this subscriber profitable".
+
+   Deliberately fire-and-forget and wrapped: a failure to record what something
+   cost must never stop a customer getting their draft. Cost is computed HERE,
+   at write time, from the editable rate card, because prices change and a
+   mission run last March cost what it cost. */
+async function recordUsage(admin: any, row: {
+  user_id?: string | null; user_email?: string | null;
+  feature: string; specialist_id?: number | null;
+  provider: 'openai' | 'anthropic'; model: string;
+  input_tokens: number; output_tokens: number;
+}) {
+  try {
+    const { data: rate } = await admin
+      .from('model_rates').select('input_per_mtok,output_per_mtok')
+      .eq('model', row.model).maybeSingle();
+    // An unknown model records at zero rather than guessing — a zero that shows
+    // up in a margin report is a question; an invented price is a wrong answer.
+    const cost = rate
+      ? (row.input_tokens / 1e6) * Number(rate.input_per_mtok)
+        + (row.output_tokens / 1e6) * Number(rate.output_per_mtok)
+      : 0;
+    if (!rate) console.warn('model_usage: no rate card for', row.model);
+    const { error } = await admin.from('model_usage').insert({
+      ...row, cost_usd: Number(cost.toFixed(6)),
+    });
+    if (error) console.error('model_usage: insert failed', error.message);
+  } catch (e) {
+    console.error('model_usage: unhandled', e instanceof Error ? e.message : String(e));
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: cors });
@@ -367,6 +403,15 @@ Deno.serve(async (req: Request) => {
       console.error('specialist-chat: empty completion', JSON.stringify(data).slice(0, 400));
       return json({ error: 'The specialist returned nothing. Please try again.' }, 502);
     }
+
+    const u = data?.usage ?? {};
+    await recordUsage(admin, {
+      user_id: user.id, user_email: user.email ?? null,
+      feature: 'specialist-chat', specialist_id: id,
+      provider: 'openai', model: 'gpt-4o',
+      input_tokens: Number(u.prompt_tokens ?? 0),
+      output_tokens: Number(u.completion_tokens ?? 0),
+    });
 
     return json({ reply });
 
