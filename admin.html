@@ -1214,6 +1214,17 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
       <div class="form-field"><label>Hours saved per use</label><input id="spec-hours" type="number" step="0.1"></div>
     </div>
     <div class="form-field"><label>Save time label (e.g. "Saves 4.5 hrs/use")</label><input id="spec-save" type="text"></div>
+    <div class="form-grid">
+      <div class="form-field"><label>Persona name (Gary, Fiona, Parker)</label><input id="spec-persona" type="text" placeholder="Gary"></div>
+      <div class="form-field"><label>Avatar emoji</label><input id="spec-emoji" type="text" maxlength="4" placeholder="&#128221;"></div>
+    </div>
+    <div class="form-field">
+      <label>Opening greeting &mdash; the first thing they say</label>
+      <textarea id="spec-greeting" rows="3" placeholder="Hi, I'm Gary &mdash; your grant writer. What type of project are you working on?"></textarea>
+      <div style="font-size:11px;color:#6b7a96;margin-top:6px;line-height:1.6;">
+        Without a greeting the chat opens silent. Ask a question in it &mdash; the whole roster works by interviewing the user one question at a time.
+      </div>
+    </div>
     <div class="form-field"><label>Short description (shown on card)</label><textarea id="spec-desc" rows="2"></textarea></div>
     <div class="form-field"><label>What I do (shown in hover tooltip)</label><textarea id="spec-whatido" rows="3"></textarea></div>
     <div class="form-field"><label>Sample output preview</label><textarea id="spec-sample" rows="2"></textarea></div>
@@ -1915,6 +1926,9 @@ function editSpecialist(id){
   document.getElementById('spec-desc').value=s.description||'';
   document.getElementById('spec-whatido').value=s.what_i_do||'';
   document.getElementById('spec-sample').value=s.sample_output||'';
+  document.getElementById('spec-persona').value=s.persona_name||'';
+  document.getElementById('spec-emoji').value=s.emoji||'';
+  document.getElementById('spec-greeting').value=s.greeting||'';
   var pf=document.getElementById('spec-prompt');
   if(specPrompts===null){
     pf.value='';pf.disabled=true;
@@ -1932,7 +1946,8 @@ function editSpecialist(id){
 function openAddSpecialist(){
   document.getElementById('spec-modal-title').textContent='Add New Specialist';
   document.getElementById('spec-edit-id').value='';
-  ['spec-name','spec-role','spec-save','spec-desc','spec-whatido','spec-sample','spec-prompt'].forEach(function(id){
+  ['spec-name','spec-role','spec-save','spec-desc','spec-whatido','spec-sample','spec-prompt',
+   'spec-persona','spec-emoji','spec-greeting'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.value='';
   });
   document.getElementById('spec-hours').value='2';
@@ -1963,6 +1978,9 @@ function saveSpecialist(){
     description:document.getElementById('spec-desc').value.trim(),
     what_i_do:document.getElementById('spec-whatido').value.trim(),
     sample_output:document.getElementById('spec-sample').value.trim(),
+    persona_name:document.getElementById('spec-persona').value.trim()||null,
+    emoji:document.getElementById('spec-emoji').value.trim()||null,
+    greeting:document.getElementById('spec-greeting').value.trim()||null,
     is_new:document.getElementById('spec-isnew').checked,
     is_locked:document.getElementById('spec-islocked').checked,
     updated_at:new Date().toISOString(),

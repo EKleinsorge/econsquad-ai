@@ -5585,18 +5585,90 @@ function loadSpecialistData(){
   });
 }
 
+/* Merge the database over the hardcoded roster.
+   ------------------------------------------------------------
+   This used to be `if(idx>=0)` and nothing else, which meant it could only
+   patch specialists index.html already knew about. A specialist ADDED in the
+   admin panel was read from the database, found no match, and was silently
+   dropped — so "Add Specialist" appeared to work and changed nothing anybody
+   could see. That is how Emma, Clara, Riley and Nova came to be live for
+   customers and absent from admin for months.
+
+   It also never re-rendered. renderSquad() runs at page setup, and this fetch
+   returns after it, so even a corrected list arrived too late to be drawn.
+
+   Now: the database wins, the hardcoded array is the fallback for anything the
+   database does not mention, and the cards are redrawn once the merge is done.
+   Everything a specialist needs to exist — including the persona name, emoji
+   and opening greeting, which used to live in a separate hardcoded map — comes
+   from the row. Adding number 23 is a form, not a deploy. */
 function rebuildSquadFromDB(specs){
+  if(!specs || !specs.length) return;
+
+  var rank={};
+  specs.forEach(function(s,i){ rank[s.id]=(typeof s.sort_order==='number')?s.sort_order:(1000+i); });
+
   specs.forEach(function(s){
-    var idx=squad.findIndex(function(x){return x.id===s.id;});
-    if(idx>=0){
-      squad[idx].name=s.name;
-      squad[idx].role=s.role;
-      squad[idx].save=s.save_time;
-      squad[idx].desc=s.description;
-      squad[idx].plan=s.plan;
-      squad[idx].locked=s.plan==='pro'&&(!currentUser);
+    /* A specialist switched off in admin should leave the dashboard. This has
+       never worked before — is_active was written and never read. */
+    if(s.is_active===false){
+      var gone=squad.findIndex(function(x){return x.id===s.id;});
+      if(gone>=0) squad.splice(gone,1);
+      return;
     }
+
+    var idx=squad.findIndex(function(x){return x.id===s.id;});
+    if(idx<0){
+      /* Brand new, added in admin. This branch is the whole fix. */
+      squad.push({id:s.id, fav:false, recent:false});
+      idx=squad.length-1;
+    }
+    var e=squad[idx];
+    if(s.name)        e.name=s.name;
+    if(s.role)        e.role=s.role;
+    if(s.cat)         e.cat=s.cat;
+    if(s.color)       e.color=s.color;
+    if(s.save_time)   e.save=s.save_time;
+    if(s.description) e.desc=s.description;
+    if(s.plan)        e.plan=s.plan;
+    if(typeof s.is_new==='boolean')    e.isNew=s.is_new;
+    if(typeof s.is_locked==='boolean') e.comingSoon=s.is_locked;
+    e.locked=s.plan==='pro'&&(!currentUser);
+
+    /* The persona. ALWAYS write an entry, never only when the row happens to
+       carry one. openSpecialistChat() begins `var sp=SPECIALIST_NAMES[id]; if(!sp)return;`
+       — so a specialist with no entry is a card that does nothing when clicked,
+       with no error and no message. Somebody adding a specialist in admin and
+       leaving the persona blank must still get a working chat, not a dead card.
+       Every field falls back, so a half-finished row is usable and improvable
+       rather than broken. */
+    var cur=SPECIALIST_NAMES[s.id]||{};
+    var pname=s.persona_name||cur.name||s.name||'Specialist';
+    SPECIALIST_NAMES[s.id]={
+      name:     pname,
+      emoji:    s.emoji    || cur.emoji || '\u26a1',
+      greeting: s.greeting || cur.greeting ||
+                ('Hi, I am '+pname+'. Tell me what you are working on and I will help.')
+    };
   });
+
+  /* Keep the admin panel's ordering. Anything the database did not mention
+     keeps its original place rather than being shuffled to the end. */
+  squad.sort(function(a,b){
+    var ra=(rank[a.id]!==undefined)?rank[a.id]:a.id;
+    var rb=(rank[b.id]!==undefined)?rank[b.id]:b.id;
+    return ra-rb;
+  });
+
+  /* Favourites are stored per browser by id, so re-apply after the merge or a
+     newly added specialist loses its star on every reload. Reusing _loadFavs()
+     rather than re-reading localStorage here, so the key and the parsing live
+     in exactly one place. */
+  try{ if(typeof _loadFavs==='function') _loadFavs(); }catch(e){}
+
+  /* Draw it. renderSquad() ran before this fetch came back. */
+  try{ renderSquad(); }catch(e){ console.warn('[squad] re-render failed:',e); }
+
   /* attach tooltips — wait for mkt cards to be in DOM */
   setTimeout(attachTooltips,800);
 }
@@ -6970,8 +7042,12 @@ function escHtml(str){
 }
 
 function getSpecialistEmoji(id){
-  var emojis={1:'📝',2:'🔍',3:'📋',4:'📍',5:'📊',6:'🤝',7:'📄',8:'📈',9:'⭐',10:'🎯',11:'💰',12:'💵',13:'📰',14:'📱',15:'👷',16:'🎓',17:'🏆',18:'📌'};
-  return emojis[id]||'⚡';
+  /* This was a second, separate emoji map that stopped at 18 — so mission
+     history showed a generic bolt for Emma, Clara, Riley and Nova while the
+     chat header showed their real avatar. One source now: SPECIALIST_NAMES,
+     which the database fills in. */
+  var sp=(typeof SPECIALIST_NAMES!=='undefined')?SPECIALIST_NAMES[id]:null;
+  return (sp&&sp.emoji)||'\u26a1';
 }
 
 function copyHistoryItem(id){
