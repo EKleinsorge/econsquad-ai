@@ -26,3 +26,10 @@ verify_jwt = false
 
 [functions.unsubscribe]
 verify_jwt = false
+
+# Somebody reading a cold email is not signed in and never will be if this
+# fails. Pinned here rather than relying on --no-verify-jwt being remembered
+# on every future deploy: the failure is silent - clicks simply stop being
+# recorded and nothing says why.
+[functions.track-click]
+verify_jwt = false
