@@ -2627,10 +2627,14 @@ function trialDryRun(){
     var sample=(d.sample||[]).map(function(s){
       return '  '+s.to+'  ->  '+s.touchpoint+'   ('+s.missions+' missions, day '+s.day+
              (s.days_left!=null?(', '+s.days_left+' left'):'')+')'+
-             (s.held_back&&s.held_back.length?'\n      held back: '+s.held_back.join(', '):'');
+             (s.held_back&&s.held_back.length?'\n      held back until tomorrow: '+s.held_back.join(', '):'')+
+             /* Passed long before we wrote to them. Closed off, never sent -
+                worth showing, because it is mail somebody does NOT get. */
+             (s.superseded&&s.superseded.length?'\n      already passed, closed off: '+s.superseded.join(', '):'');
     });
     alert('People in a trial considered: '+(d.considered||0)+
           '\nEmails it would send: '+(d.would_send||0)+
+          (d.excluded_internal?'\nOur own staff accounts, skipped: '+d.excluded_internal:'')+
           (lines.length?'\n\nBy touchpoint:\n'+lines.join('\n'):'')+
           (sample.length?'\n\nWho:\n'+sample.join('\n'):'')+
           '\n\nNothing was sent — this was a check.');

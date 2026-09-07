@@ -42,6 +42,29 @@ const STOP_AFTER_TRIAL_END_DAYS = 14;
 // cold outreach to somebody who left last year.
 const STOP_AFTER_CANCEL_DAYS = 60;
 
+/* OUR OWN PEOPLE ARE NOT PROSPECTS.
+   Staff accounts sit in profiles on plan 'trial' like anybody else, so the
+   first dry run had the founder queued for "you just ran your first mission"
+   against a history of twenty, on day 134 of a trial. Excluded by domain
+   rather than by flag, so a new staff account is covered the day it is made
+   and nobody has to remember. The admin "send a test to me" path does not go
+   through this - testing on yourself still works. */
+const INTERNAL_DOMAINS = ['gslisolutions.com'];
+export function isInternal(email: string): boolean {
+  const d = String(email ?? '').toLowerCase().trim().split('@')[1] ?? '';
+  return INTERNAL_DOMAINS.some((x) => d === x || d.endsWith('.' + x));
+}
+
+/* A MILESTONE IS NOT A DATE, BUT IT IS NOT TIMELESS EITHER.
+   `missions_reached` asks `missions >= N`, which is right for somebody who
+   crosses the line while the job is running - and wrong for everybody on the
+   day the job is switched on, because the whole back catalogue qualifies at
+   once. Someone who ran a single mission in June would be congratulated on
+   their first one in September. So a milestone only counts if they crossed it
+   recently. Four days, so a Friday-evening crossing still catches the Monday
+   run on a weekdays-only schedule. */
+const MILESTONE_WINDOW_DAYS = 4;
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -69,6 +92,9 @@ export type Person = {
   canceled_at: string | null; audience: 'trial' | 'cancelled'; daysSinceCancel: number | null;
   greetings_token: string | null;
   missions: number; hours: number; topSpecialist: string | null;
+  // Every mission's timestamp, oldest first. This is what makes a milestone
+  // datable: the Nth entry is the moment they reached N.
+  missionDates: string[];
   daysSinceSignup: number; daysToTrialEnd: number | null;
 };
 
@@ -81,8 +107,15 @@ export function dayDiff(fromIso: string, toIso: string): number {
   return Math.round((db - da) / 86400000);
 }
 
+/** When did this person reach N missions? Null if they never did, or if we
+ *  cannot tell. Cannot-tell is deliberately not treated as just-now. */
+export function crossedAt(p: Person, n: number): string | null {
+  const d = p.missionDates ?? [];
+  return n >= 1 && d.length >= n ? d[n - 1] : null;
+}
+
 /** Does this touchpoint apply to this person today? */
-export function matches(t: Touchpoint, p: Person): boolean {
+export function matches(t: Touchpoint, p: Person, nowIso = new Date().toISOString()): boolean {
   // A churned customer must never receive "welcome, here is one thing to try".
   if (t.audience !== p.audience) return false;
   if (t.min_missions != null && p.missions < t.min_missions) return false;
@@ -100,20 +133,55 @@ export function matches(t: Touchpoint, p: Person): boolean {
     return p.daysSinceCancel === t.when_value;
   }
 
-  // A milestone is not a date. It fires the first run AFTER they get there,
-  // however long that takes - and the once-ever constraint stops it repeating.
-  if (t.when_kind === 'missions_reached') return p.missions >= t.when_value;
+  // A milestone fires the first run AFTER they get there - but only if getting
+  // there was recent. Without the window, switching this on emails everybody
+  // who ever crossed the line, however long ago, all on the same morning.
+  if (t.when_kind === 'missions_reached') {
+    if (p.missions < t.when_value) return false;
+    const at = crossedAt(p, t.when_value);
+    if (!at) return false;
+    const age = dayDiff(at, nowIso);
+    return age >= 0 && age <= MILESTONE_WINDOW_DAYS;
+  }
 
   return false;
 }
 
-/** Everything due today, best first. */
-export function dueFor(touchpoints: Touchpoint[], p: Person, alreadySent: Set<string>): Touchpoint[] {
-  return touchpoints
+/** Everything due today, best first, after collapsing passed milestones. */
+export function dueFor(
+  touchpoints: Touchpoint[], p: Person, alreadySent: Set<string>,
+  nowIso = new Date().toISOString(),
+): Touchpoint[] {
+  const due = touchpoints
     .filter((t) => t.is_enabled)
     .filter((t) => !alreadySent.has(t.key))
-    .filter((t) => matches(t, p))
+    .filter((t) => matches(t, p, nowIso))
     .sort((a, b) => a.sort_order - b.sort_order);
+
+  /* Somebody can reach five missions in their first week - before we have said
+     anything at all. Both milestones are then due at once, and sort_order
+     would send "nice, your first one" today and "five missions in" tomorrow.
+     That reads as software that has not been paying attention. Keep the
+     highest milestone reached; the ones it overtakes are recorded as done
+     without being sent, so they cannot surface later. */
+  const milestones = due.filter((t) => t.when_kind === 'missions_reached');
+  if (milestones.length < 2) return due;
+  const best = milestones.reduce((a, b) => (b.when_value > a.when_value ? b : a));
+  return due.filter((t) => t.when_kind !== 'missions_reached' || t.key === best.key);
+}
+
+/** The milestones dueFor dropped: passed, never sent, never to be sent. */
+export function supersededMilestones(
+  touchpoints: Touchpoint[], p: Person, alreadySent: Set<string>,
+  nowIso = new Date().toISOString(),
+): string[] {
+  const kept = new Set(dueFor(touchpoints, p, alreadySent, nowIso).map((t) => t.key));
+  return touchpoints
+    .filter((t) => t.is_enabled && t.when_kind === 'missions_reached')
+    .filter((t) => !alreadySent.has(t.key))
+    .filter((t) => matches(t, p, nowIso))
+    .filter((t) => !kept.has(t.key))
+    .map((t) => t.key);
 }
 
 export function fillTemplate(text: string, p: Person): string {
@@ -217,6 +285,8 @@ Deno.serve(async (req: Request) => {
         created_at: new Date().toISOString(), trial_end: null, greetings_token: null,
         canceled_at: null, audience: tp.audience, daysSinceCancel: 3,
         missions: 7, hours: 16.5, topSpecialist: 'Gary — Grant Writer Pro',
+        missionDates: Array.from({ length: 7 }, (_, i) =>
+          new Date(Date.now() - (7 - i) * 3600000).toISOString()),
         daysSinceSignup: 7, daysToTrialEnd: 3,
       };
       const out = await sendEmail(email, '[TEST] ' + fillTemplate(tp.subject, sample),
@@ -244,8 +314,14 @@ Deno.serve(async (req: Request) => {
       .eq('lifecycle_opt_out', false);
     if (profErr) return json({ error: 'profiles_unreadable', detail: profErr.message }, 500);
 
+    // Our own staff are not prospects. Counted rather than silently dropped,
+    // so the dry run can say so out loud.
+    const internal = (profRows ?? []).filter((r: any) => r.email && isInternal(r.email));
+    const excludedInternal = internal.length;
+
     const candidates = (profRows ?? []).filter((r: any) =>
       r.email && String(r.email).trim() &&
+      !isInternal(r.email) &&
       // Comped and focus-group accounts are neither trials nor churn, and must
       // never be sold to.
       !r.is_beta_tester &&
@@ -266,12 +342,18 @@ Deno.serve(async (req: Request) => {
 
     /* Activity, in two queries rather than one per person. */
     const { data: tasks } = await admin
-      .from('task_history').select('user_id,specialist_name,hours_saved').in('user_id', ids);
+      .from('task_history').select('user_id,specialist_name,hours_saved,created_at').in('user_id', ids);
 
     const missionsBy = new Map<string, number>();
     const hoursBy    = new Map<string, number>();
+    const datesBy    = new Map<string, string[]>();
     const specCount  = new Map<string, Map<string, number>>();
     for (const t of (tasks ?? []) as any[]) {
+      if (t.created_at) {
+        const a = datesBy.get(t.user_id) ?? [];
+        a.push(t.created_at);
+        datesBy.set(t.user_id, a);
+      }
       missionsBy.set(t.user_id, (missionsBy.get(t.user_id) ?? 0) + 1);
       hoursBy.set(t.user_id, (hoursBy.get(t.user_id) ?? 0) + (Number(t.hours_saved) || 0));
       if (t.specialist_name) {
@@ -280,6 +362,10 @@ Deno.serve(async (req: Request) => {
         specCount.set(t.user_id, m);
       }
     }
+    // Oldest first, so the Nth entry is the moment they reached N. Sorted by
+    // parsed time rather than by string, because a mixed offset would not sort
+    // lexicographically.
+    for (const a of datesBy.values()) a.sort((x, y) => Date.parse(x) - Date.parse(y));
 
     const { data: sentRows } = await admin
       .from('trial_sends').select('user_id,touchpoint_key').in('user_id', ids);
@@ -303,6 +389,7 @@ Deno.serve(async (req: Request) => {
         audience: cancelled ? 'cancelled' : 'trial',
         missions: missionsBy.get(r.id) ?? 0,
         hours: hoursBy.get(r.id) ?? 0,
+        missionDates: datesBy.get(r.id) ?? [],
         topSpecialist,
         daysSinceSignup: r.created_at ? dayDiff(r.created_at, nowIso) : 0,
         daysToTrialEnd: r.trial_end ? dayDiff(nowIso, r.trial_end) : null,
@@ -319,16 +406,24 @@ Deno.serve(async (req: Request) => {
     });
 
     /* At most one per person. The rest wait for tomorrow. */
-    const plan: Array<{ p: Person; t: Touchpoint; alsoDue: string[] }> = [];
+    const plan: Array<{ p: Person; t: Touchpoint; alsoDue: string[]; superseded: string[] }> = [];
     for (const p of people) {
-      const due = dueFor(touchpoints, p, sentBy.get(p.id) ?? new Set());
-      if (due.length) plan.push({ p, t: due[0], alsoDue: due.slice(1).map((x) => x.key) });
+      const seen = sentBy.get(p.id) ?? new Set<string>();
+      const due = dueFor(touchpoints, p, seen, nowIso);
+      if (due.length) {
+        plan.push({
+          p, t: due[0],
+          alsoDue: due.slice(1).map((x) => x.key),
+          superseded: supersededMilestones(touchpoints, p, seen, nowIso),
+        });
+      }
     }
 
     if (dryRun) {
       return json({
         ok: true, dry_run: true, now: nowIso,
         considered: people.length,
+        excluded_internal: excludedInternal,
         would_send: plan.length,
         breakdown: plan.reduce((acc: Record<string, number>, x) => {
           acc[x.t.key] = (acc[x.t.key] ?? 0) + 1; return acc;
@@ -337,6 +432,7 @@ Deno.serve(async (req: Request) => {
           to: x.p.email, touchpoint: x.t.key, audience: x.p.audience, from: x.t.sender,
           missions: x.p.missions, day: x.p.daysSinceSignup, days_left: x.p.daysToTrialEnd,
           held_back: x.alsoDue,
+          superseded: x.superseded,
         })),
       });
     }
@@ -344,7 +440,22 @@ Deno.serve(async (req: Request) => {
     let sent = 0, failed = 0, skipped = 0;
     const detail: unknown[] = [];
 
-    for (const { p, t } of plan) {
+    for (const { p, t, superseded } of plan) {
+      /* Close off the milestones this person sailed past before we ever wrote
+         to them. Recorded, not sent - the unique index then guarantees they
+         can never surface as a stale "nice, your first one" later. */
+      if (superseded.length) {
+        const { error: supErr } = await admin.from('trial_sends').upsert(
+          superseded.map((k) => ({
+            user_id: p.id, email: p.email, touchpoint_key: k,
+            missions_at_send: p.missions, status: 'superseded',
+            detail: 'Passed before we had written to them; ' + t.key + ' sent instead.',
+          })),
+          { onConflict: 'user_id,touchpoint_key', ignoreDuplicates: true },
+        );
+        if (supErr) console.error('trial-care: superseded write failed', p.email, supErr.message);
+      }
+
       // Claim first — the unique index is what makes a repeated run harmless.
       const { error: claimErr } = await admin.from('trial_sends').insert({
         user_id: p.id, email: p.email, touchpoint_key: t.key,

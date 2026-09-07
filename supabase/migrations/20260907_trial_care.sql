@@ -50,7 +50,12 @@ CREATE TABLE IF NOT EXISTS public.trial_touchpoints (
   -- days_before_trial_end: N days until profiles.trial_end. NEGATIVE means
   --                        after it, so -1 is the day after the trial lapsed.
   -- missions_reached     : the moment their task_history count reaches N.
-  --                        Not a date at all - it fires whenever they get there.
+  --                        Not a date at all - it fires whenever they get
+  --                        there, PROVIDED they got there in the last few
+  --                        days. Without that window, switching this on emails
+  --                        everyone who ever crossed the line on the same
+  --                        morning: a member who ran one mission in June would
+  --                        be congratulated on their first one in September.
   -- days_after_cancel    : N days since profiles.canceled_at. Win-back only.
   -- Who this is for. 'trial' = still deciding. 'cancelled' = they paid, then
   -- left. Keeping them in one table means one engine, one admin screen and one
@@ -84,7 +89,10 @@ CREATE TABLE IF NOT EXISTS public.trial_sends (
   email          text NOT NULL,
   touchpoint_key text NOT NULL,
   missions_at_send integer,
-  status         text NOT NULL DEFAULT 'sent' CHECK (status IN ('sent','failed')),
+  -- 'superseded' = they had already passed this milestone when a later one was
+  -- sent, so it was closed off rather than delivered. Recording it is what
+  -- stops "nice, your first one" arriving the day after "five missions in".
+  status         text NOT NULL DEFAULT 'sent' CHECK (status IN ('sent','failed','superseded')),
   detail         text,
   sent_at        timestamptz NOT NULL DEFAULT now()
 );
