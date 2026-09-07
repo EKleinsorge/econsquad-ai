@@ -188,6 +188,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Communication</div>
     <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
+    <div class="sidebar-item" onclick="showAdminSection('trialcare',this);loadTrialCare()">🌱 Trial Care</div>
     <div class="sidebar-item" onclick="showAdminSection('greetings',this);loadGreetings()">🎂 Greetings</div>
     <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
     <div class="sidebar-section">Support</div>
@@ -385,6 +386,39 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <table>
           <thead><tr><th>When</th><th>Occasion</th><th>To</th><th>Result</th></tr></thead>
           <tbody id="greet-log-table"><tr><td colspan="4" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- TRIAL CARE -->
+    <div id="section-trialcare" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">Trial Care</div>
+          <div class="page-sub">Works on the people in a trial: getting them started, congratulating them when they use it, asking what is missing, and reminding them before it ends. What each person gets depends on what they have actually done &mdash; nobody is nagged to start while they are already working.</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-ghost" onclick="trialDryRun()" id="trial-dry-btn">Who would get one today?</button>
+          <button class="btn-lime" onclick="openTrialModal(null)">+ Add touchpoint</button>
+        </div>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;margin-bottom:22px;">
+        <table>
+          <thead><tr><th>Priority</th><th>Touchpoint</th><th>Fires</th><th>Only for</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="trial-tp-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="admin-card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 20px 0;">
+          <div style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#eef3fc;">Recently sent</div>
+          <div style="font-size:12px;color:#6b7a96;margin:4px 0 14px;">At most one per person per day, and each touchpoint only ever once. The number in brackets is how many missions they had run at the time.</div>
+        </div>
+        <table>
+          <thead><tr><th>When</th><th>Touchpoint</th><th>To</th><th>Result</th></tr></thead>
+          <tbody id="trial-log-table"><tr><td colspan="4" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1291,6 +1325,88 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
   </div>
 </div>
 
+
+<div class="modal-overlay" id="trial-modal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-family:'Barlow',sans-serif;font-size:20px;font-weight:900;color:#eef3fc;" id="trial-modal-title">Edit touchpoint</div>
+      <button onclick="closeTrialModal()" style="background:none;border:none;color:#6b7a96;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div id="trial-modal-when" style="font-size:12px;color:#6b7a96;margin-bottom:20px;"></div>
+    <input type="hidden" id="trial-edit-key">
+
+    <div id="trial-new-fields" style="display:none;">
+      <div class="form-field"><label>Name it (for your reference only)</label><input id="trial-label" type="text" placeholder="Day 10 — nearly there"></div>
+      <div class="form-grid">
+        <div class="form-field"><label>Who is it for</label>
+          <select id="trial-audience" onchange="trialRuleChanged()">
+            <option value="trial">People still in a trial</option>
+            <option value="cancelled">People who cancelled a paid plan</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Fires when</label>
+          <select id="trial-kind" onchange="trialRuleChanged()">
+            <option value="days_after_signup">A number of days after they signed up</option>
+            <option value="days_before_trial_end">A number of days before the trial ends</option>
+            <option value="missions_reached">They reach a number of missions</option>
+            <option value="days_after_cancel">A number of days after they cancelled</option>
+          </select>
+        </div>
+        <div class="form-field"><label id="trial-value-label">Days</label><input id="trial-value" type="number" value="1"></div>
+      </div>
+      <div style="font-size:11px;color:#6b7a96;margin:-6px 0 16px;line-height:1.6;" id="trial-kind-hint"></div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field"><label>Only if they have run AT LEAST this many</label><input id="trial-min" type="number" min="0" placeholder="any"></div>
+      <div class="form-field"><label>Only if they have run AT MOST this many</label><input id="trial-max" type="number" min="0" placeholder="any"></div>
+    </div>
+    <div style="font-size:11px;color:#6b7a96;margin:-6px 0 16px;line-height:1.6;">
+      This is what stops the nagging. <strong>At most 0</strong> means only people who have never used it. <strong>At least 1</strong> means only people who have. Leave both blank for everyone.
+    </div>
+
+    <div class="form-field"><label>Subject line</label><input id="trial-subject" type="text"></div>
+    <div class="form-field">
+      <label>Message</label>
+      <textarea id="trial-body" rows="14" style="font-size:13px;line-height:1.7;"></textarea>
+      <div style="font-size:11px;color:#6b7a96;margin-top:6px;line-height:1.75;">
+        <strong>{{name}}</strong> first name &middot; <strong>{{org}}</strong> their organisation &middot;
+        <strong>{{missions}}</strong> missions run &middot; <strong>{{hours}}</strong> hours saved &middot;
+        <strong>{{days_left}}</strong> days left in the trial &middot; <strong>{{top_specialist}}</strong> the one they use most.
+        <br>Blank lines separate paragraphs. An unsubscribe link is added automatically.
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-field"><label>Comes from</label>
+        <select id="trial-sender">
+          <option value="eric">Eric — for anything asking a reply or asking for money</option>
+          <option value="aria">ARIA — for product coaching</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Priority (lower wins when two are due)</label><input id="trial-sort" type="number" min="1" max="999"></div>
+    </div>
+    <div style="font-size:11px;color:#6b7a96;margin:-6px 0 16px;line-height:1.6;">
+      Replies always reach Eric, whoever it is from. So ARIA can coach, but should never say &ldquo;I read every one&rdquo; &mdash; she cannot.
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>&nbsp;</label>
+        <div class="opt-row" style="display:flex;align-items:center;gap:8px;font-size:13px;color:#8a97b5;cursor:pointer;padding-top:10px;" onclick="var c=document.getElementById('trial-enabled');c.checked=!c.checked;">
+          <input type="checkbox" id="trial-enabled" style="width:auto;" onclick="event.stopPropagation();"> Switched on
+        </div>
+      </div>
+    </div>
+
+    <div id="trial-modal-msg" style="display:none;padding:10px;border-radius:8px;font-size:13px;margin-top:14px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn-lime" onclick="saveTrialTouchpoint()" id="trial-modal-save">Save →</button>
+      <button class="btn-ghost" onclick="sendTrialTest()" id="trial-test-btn">Send a test to me</button>
+      <button class="btn-ghost" onclick="closeTrialModal()">Cancel</button>
+      <button class="btn-ghost" onclick="deleteTrialTouchpoint()" id="trial-delete-btn" style="margin-left:auto;color:#ff8080;">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="specialist-modal">
   <div class="modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -1567,6 +1683,7 @@ function loadAllData(){
   loadAdmins();
   loadAlerts();
   loadGreetings();
+  loadTrialCare();
 }
 
 /* ═══════════════════════════════════════
@@ -2273,6 +2390,265 @@ function sendGreetTest(){
     if(res&&res.error){ greetMsg('Could not reach the greetings job: '+(res.error.message||res.error),false); return; }
     if(d.ok){ greetMsg('Sent to '+d.to+' — subject "'+d.subject+'". Check your inbox.',true); return; }
     greetMsg(d.error||'The test did not send.',false);
+  });
+}
+
+
+/* ═══════════════════════════════════════
+   TRIAL CARE
+   ---------------------------------------
+   The gates are the feature. A sequence that sends day 3 to everybody on day 3
+   congratulates somebody on their first draft and, the same morning, asks why
+   they have not tried it yet. min/max missions is what prevents that.
+═══════════════════════════════════════ */
+var trialTouchpoints=[];
+var TRIAL_SEEDED=['last_call','welcome','trial_ending','first_win','momentum',
+                  'nudge_day3','feedback_day7','stalled_day7','trial_ended',
+                  'winback_ask','winback_open','winback_news'];
+
+function trialFires(t){
+  if(t.when_kind==='days_after_cancel')     return t.when_value+' day'+(t.when_value===1?'':'s')+' after they cancelled';
+  if(t.when_kind==='days_after_signup')     return 'Day '+t.when_value+' after signing up';
+  if(t.when_kind==='missions_reached')      return 'On mission '+t.when_value;
+  if(t.when_value>=0)                       return t.when_value+' day'+(t.when_value===1?'':'s')+' before the trial ends';
+  return Math.abs(t.when_value)+' day'+(Math.abs(t.when_value)===1?'':'s')+' AFTER the trial ends';
+}
+
+function trialGate(t){
+  if(t.max_missions===0)                    return '<span style="color:#f5c542;">people who have never used it</span>';
+  if(t.min_missions!=null&&t.min_missions>0)return '<span style="color:#4ade80;">people who have used it</span>';
+  if(t.max_missions!=null)                  return 'at most '+t.max_missions+' missions';
+  return '<span style="color:#4a5568;">everyone in a trial</span>';
+}
+
+function loadTrialCare(){
+  supa.from('trial_touchpoints').select('*').order('sort_order').then(function(res){
+    var tbody=document.getElementById('trial-tp-table');
+    if(!tbody)return;
+    if(res.error){
+      tbody.innerHTML='<tr><td colspan="6" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+
+        '<br><small style="color:#6b7a96;">If this says the table does not exist, the Trial Care SQL has not been run yet.</small></td></tr>';
+      return;
+    }
+    trialTouchpoints=res.data||[];
+    tbody.innerHTML=trialTouchpoints.map(function(t){
+      return '<tr'+(t.is_enabled?'':' style="opacity:.5;"')+'>'+
+        '<td style="color:#4a5568;">'+t.sort_order+'</td>'+
+        '<td><strong style="color:#eef3fc;">'+esqEsc(t.label)+'</strong>'+
+          '<div style="color:#4a5568;font-size:11px;">'+esqEsc(t.key)+
+          (t.audience==='cancelled'?' <span style="color:#ff8080;">· win-back</span>':'')+
+          ' · from '+(t.sender==='aria'?'ARIA':'Eric')+'</div></td>'+
+        '<td style="color:#8a97b5;font-size:13px;">'+esqEsc(trialFires(t))+'</td>'+
+        '<td style="font-size:12px;">'+trialGate(t)+'</td>'+
+        '<td>'+(t.is_enabled?'<span style="color:#4ade80;">On</span>':'<span style="color:#6b7a96;">Off</span>')+'</td>'+
+        '<td style="white-space:nowrap;">'+
+          '<button class="btn-ghost btn-sm" style="margin-right:6px;" onclick="openTrialModal(\''+esqEsc(t.key)+'\')">Edit</button>'+
+          '<button class="btn-ghost btn-sm" onclick="toggleTrialTouchpoint(\''+esqEsc(t.key)+'\')">'+(t.is_enabled?'Turn off':'Turn on')+'</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+  });
+  loadTrialLog();
+}
+
+function loadTrialLog(){
+  var tbody=document.getElementById('trial-log-table');
+  if(!tbody)return;
+  supa.from('trial_sends').select('*').order('sent_at',{ascending:false}).limit(50).then(function(res){
+    if(res.error){ tbody.innerHTML='<tr><td colspan="4" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+'</td></tr>'; return; }
+    var rows=res.data||[];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="4" style="color:#6b7a96;padding:24px;">Nothing sent yet. The job runs each morning and only writes here when somebody is genuinely due one.</td></tr>';
+      return;
+    }
+    tbody.innerHTML=rows.map(function(r){
+      return '<tr>'+
+        '<td style="white-space:nowrap;color:#8a97b5;font-size:12px;">'+
+          new Date(r.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
+        '<td style="font-size:13px;color:#eef3fc;">'+esqEsc(r.touchpoint_key)+
+          '<span style="color:#4a5568;"> ('+(r.missions_at_send==null?'?':r.missions_at_send)+')</span></td>'+
+        '<td style="font-size:13px;color:#8a97b5;">'+esqEsc(r.email)+'</td>'+
+        '<td style="font-size:12px;">'+(r.status==='sent'
+            ?'<span style="color:#4ade80;">sent</span>'
+            :'<span style="color:#ff8080;">failed</span><div style="color:#6b7a96;font-size:11px;">'+esqEsc(r.detail||'')+'</div>')+'</td>'+
+      '</tr>';
+    }).join('');
+  });
+}
+
+function trialRuleChanged(){
+  var kind=document.getElementById('trial-kind').value;
+  var lbl=document.getElementById('trial-value-label');
+  var hint=document.getElementById('trial-kind-hint');
+  if(kind==='missions_reached'){
+    lbl.textContent='Number of missions';
+    hint.innerHTML='Fires the first morning after they reach this many &mdash; whenever that happens, not on a fixed day. Good for congratulating.';
+  } else if(kind==='days_before_trial_end'){
+    lbl.textContent='Days before the trial ends';
+    hint.innerHTML='Use a <strong>negative</strong> number for after it ended: -2 is two days later. Anyone with no trial end date is skipped.';
+  } else if(kind==='days_after_cancel'){
+    lbl.textContent='Days after they cancelled';
+    hint.innerHTML='Win-back only. Stops entirely 60 days after the cancellation &mdash; past that it is cold outreach, not a win-back.';
+  } else {
+    lbl.textContent='Days after signing up';
+    hint.innerHTML='Counted by calendar day, so somebody who signed up at 11pm is on day 1 the next morning.';
+  }
+}
+
+function openTrialModal(key){
+  var isNew=!key;
+  var t=isNew?null:trialTouchpoints.find(function(x){return x.key===key;});
+  if(!isNew&&!t)return;
+
+  document.getElementById('trial-new-fields').style.display=isNew?'':'none';
+  document.getElementById('trial-delete-btn').style.display=(isNew||TRIAL_SEEDED.indexOf(key)!==-1)?'none':'';
+  document.getElementById('trial-modal-title').textContent=isNew?'Add a touchpoint':t.label;
+  document.getElementById('trial-modal-when').textContent=isNew
+    ?'It applies to everyone in a trial from now on, and each person receives it at most once.'
+    :trialFires(t);
+  document.getElementById('trial-edit-key').value=isNew?'':t.key;
+  document.getElementById('trial-label').value='';
+  document.getElementById('trial-kind').value=isNew?'days_after_signup':t.when_kind;
+  document.getElementById('trial-audience').value=isNew?'trial':(t.audience||'trial');
+  document.getElementById('trial-sender').value=isNew?'eric':(t.sender||'eric');
+  document.getElementById('trial-value').value=isNew?1:t.when_value;
+  document.getElementById('trial-min').value=(!isNew&&t.min_missions!=null)?t.min_missions:'';
+  document.getElementById('trial-max').value=(!isNew&&t.max_missions!=null)?t.max_missions:'';
+  document.getElementById('trial-subject').value=isNew?'':(t.subject||'');
+  document.getElementById('trial-body').value=isNew?'':(t.body||'');
+  document.getElementById('trial-sort').value=isNew?(100+trialTouchpoints.length):t.sort_order;
+  document.getElementById('trial-enabled').checked=isNew?true:!!t.is_enabled;
+  document.getElementById('trial-modal-msg').style.display='none';
+  trialRuleChanged();
+  document.getElementById('trial-modal').classList.add('show');
+}
+
+function closeTrialModal(){ document.getElementById('trial-modal').classList.remove('show'); }
+
+function trialMsg(text,ok){
+  var m=document.getElementById('trial-modal-msg');
+  m.style.display='block';
+  m.style.background=ok?'rgba(74,222,128,0.10)':'rgba(255,80,80,0.12)';
+  m.style.border='1px solid '+(ok?'rgba(74,222,128,0.3)':'rgba(255,80,80,0.3)');
+  m.style.color=ok?'#4ade80':'#ff8080';
+  m.textContent=text;
+}
+
+function saveTrialTouchpoint(){
+  var key=document.getElementById('trial-edit-key').value;
+  var isNew=!key;
+  var btn=document.getElementById('trial-modal-save');
+  var subject=document.getElementById('trial-subject').value.trim();
+  var body=document.getElementById('trial-body').value.trim();
+  if(!subject||!body){ trialMsg('It needs a subject and a message.',false); return; }
+
+  var minV=document.getElementById('trial-min').value.trim();
+  var maxV=document.getElementById('trial-max').value.trim();
+  var min=minV===''?null:parseInt(minV,10);
+  var max=maxV===''?null:parseInt(maxV,10);
+  /* min 2 and max 1 can never both be true, so it would never send and nothing
+     would say why. */
+  if(min!=null&&max!=null&&min>max){
+    trialMsg('"At least '+min+'" and "at most '+max+'" cannot both be true — nobody would ever match.',false); return;
+  }
+
+  var data={ subject:subject, body:body, min_missions:min, max_missions:max,
+             sender:document.getElementById('trial-sender').value,
+             sort_order:parseInt(document.getElementById('trial-sort').value,10)||100,
+             is_enabled:document.getElementById('trial-enabled').checked };
+
+  if(isNew){
+    var label=document.getElementById('trial-label').value.trim();
+    if(!label){ trialMsg('Give it a name so the list is readable.',false); return; }
+    var slug=label.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40);
+    if(!slug){ trialMsg('That name has no letters or numbers in it.',false); return; }
+    if(trialTouchpoints.some(function(x){return x.key===slug;})){
+      trialMsg('There is already a touchpoint called that.',false); return;
+    }
+    data.key=slug;
+    data.label=label;
+    data.audience=document.getElementById('trial-audience').value;
+    data.when_kind=document.getElementById('trial-kind').value;
+    data.when_value=parseInt(document.getElementById('trial-value').value,10)||0;
+    /* A win-back keyed off signup date, or a trial email keyed off a cancel
+       date, is a rule that can never fire and nothing would say why. */
+    if(data.audience==='cancelled'&&data.when_kind!=='days_after_cancel'){
+      trialMsg('A win-back has to fire a number of days after they cancelled.',false); return;
+    }
+    if(data.audience==='trial'&&data.when_kind==='days_after_cancel'){
+      trialMsg('"Days after they cancelled" only applies to the win-back audience.',false); return;
+    }
+  }
+
+  btn.textContent='Saving...';btn.disabled=true;
+  var p=isNew ? supa.from('trial_touchpoints').insert(data)
+              : supa.from('trial_touchpoints').update(data).eq('key',key);
+  p.then(function(res){
+    btn.textContent='Save →';btn.disabled=false;
+    if(res.error){ trialMsg(res.error.message,false); return; }
+    closeTrialModal(); loadTrialCare();
+    showToast(isNew?'Added. It applies from the next run.':'Saved.','success');
+  });
+}
+
+function toggleTrialTouchpoint(key){
+  var t=trialTouchpoints.find(function(x){return x.key===key;});
+  if(!t)return;
+  supa.from('trial_touchpoints').update({is_enabled:!t.is_enabled}).eq('key',key).then(function(res){
+    if(res.error){ showToast('Could not change that: '+res.error.message,'error'); return; }
+    loadTrialCare();
+    showToast(t.label+(t.is_enabled?' switched off.':' switched on.'),'success');
+  });
+}
+
+function deleteTrialTouchpoint(){
+  var key=document.getElementById('trial-edit-key').value;
+  if(!key||TRIAL_SEEDED.indexOf(key)!==-1)return;
+  var t=trialTouchpoints.find(function(x){return x.key===key;});
+  if(!confirm('Delete "'+(t?t.label:key)+'"?\n\nIts send history goes with it. Turning it off keeps both.'))return;
+  supa.from('trial_touchpoints').delete().eq('key',key).then(function(res){
+    if(res.error){ trialMsg(res.error.message,false); return; }
+    closeTrialModal(); loadTrialCare();
+    showToast('Touchpoint deleted.','success');
+  });
+}
+
+/* Most mornings this sends to nobody, which is correct and is exactly why you
+   need a way to see the reasoning without sending anything. */
+function trialDryRun(){
+  var b=document.getElementById('trial-dry-btn');
+  b.textContent='Checking...';b.disabled=true;
+  supa.functions.invoke('send-trial-care',{body:{dry_run:true}}).then(function(res){
+    b.textContent='Who would get one today?';b.disabled=false;
+    var d=(res&&res.data)||{};
+    if(res&&res.error){ alert('Could not reach the trial care job.\n\n'+(res.error.message||res.error)); return; }
+    if(d.error){ alert('The job reported: '+d.error+(d.detail?'\n\n'+d.detail:'')); return; }
+    var lines=Object.keys(d.breakdown||{}).map(function(k){return '  '+k+': '+d.breakdown[k];});
+    var sample=(d.sample||[]).map(function(s){
+      return '  '+s.to+'  ->  '+s.touchpoint+'   ('+s.missions+' missions, day '+s.day+
+             (s.days_left!=null?(', '+s.days_left+' left'):'')+')'+
+             (s.held_back&&s.held_back.length?'\n      held back: '+s.held_back.join(', '):'');
+    });
+    alert('People in a trial considered: '+(d.considered||0)+
+          '\nEmails it would send: '+(d.would_send||0)+
+          (lines.length?'\n\nBy touchpoint:\n'+lines.join('\n'):'')+
+          (sample.length?'\n\nWho:\n'+sample.join('\n'):'')+
+          '\n\nNothing was sent — this was a check.');
+  });
+}
+
+/* The real template, to your own address, not recorded against anybody. */
+function sendTrialTest(){
+  var key=document.getElementById('trial-edit-key').value;
+  if(!key){ trialMsg('Save it first, then send a test.',false); return; }
+  var b=document.getElementById('trial-test-btn');
+  b.textContent='Sending...';b.disabled=true;
+  supa.functions.invoke('send-trial-care',{body:{test:true, touchpoint_key:key}}).then(function(res){
+    b.textContent='Send a test to me';b.disabled=false;
+    var d=(res&&res.data)||{};
+    if(res&&res.error){ trialMsg('Could not reach the job: '+(res.error.message||res.error),false); return; }
+    if(d.ok){ trialMsg('Sent to '+d.to+' — "'+d.subject+'". Merge fields used sample numbers.',true); return; }
+    trialMsg(d.error||'The test did not send.',false);
   });
 }
 

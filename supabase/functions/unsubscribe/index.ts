@@ -24,6 +24,25 @@ Deno.serve(async (req: Request) => {
     // Opting out of seasonal notes must NOT unsubscribe anyone from the Monday
     // Drop, and it must never touch anything transactional - receipts, resets
     // and alerts are not marketing and are not opt-out-able from a card.
+    // Trial-care mail is its own consent again: somebody who does not want
+    // coaching about their trial may still want a Christmas card, and must keep
+    // receiving receipts either way. Same token, different flag.
+    if (url.searchParams.get('k') === 'lifecycle') {
+      const { data: l, error: lErr } = await supa
+        .from('profiles')
+        .update({ lifecycle_opt_out: true })
+        .eq('greetings_token', token)
+        .eq('lifecycle_opt_out', false)
+        .select('email')
+        .single();
+
+      if (lErr || !l) {
+        return Response.redirect(`${SITE_URL}/unsubscribe.html?status=already`, 302);
+      }
+      console.log(`Lifecycle opt-out: ${l.email}`);
+      return Response.redirect(`${SITE_URL}/unsubscribe.html?status=ok`, 302);
+    }
+
     if (url.searchParams.get('k') === 'greetings') {
       const { data: g, error: gErr } = await supa
         .from('profiles')

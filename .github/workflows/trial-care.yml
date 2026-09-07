@@ -1,0 +1,41 @@
+name: Trial Care — daily
+
+# Runs each weekday morning. Most days it emails a handful of people and nobody
+# else; some days nobody at all. That is the design — what each person gets
+# depends on what they have actually done, not on the calendar.
+#
+# Weekdays only, deliberately. These are economic development professionals and
+# a "have you tried it yet?" on Sunday morning reads as pestering.
+on:
+  schedule:
+    - cron: '0 14 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — report who would get one, send nothing'
+        required: false
+        default: 'true'
+
+jobs:
+  trial-care:
+    name: Trial care
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger send-trial-care Edge Function
+        run: |
+          echo "Trial care run at $(date -u)"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/send-trial-care" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"dry_run\": \"$DRY_RUN\"}")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP=$(echo "$RESPONSE" | tail -n1)
+          echo "HTTP $HTTP"
+          echo "$BODY"
+          if [ "$HTTP" != "200" ]; then exit 1; fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
