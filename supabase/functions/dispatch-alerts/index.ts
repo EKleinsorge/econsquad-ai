@@ -123,6 +123,20 @@ async function sendSms(to: string, text: string) {
   }
   const e164 = toE164(to);
   if (!e164) return { ok: false, detail: `"${to}" is not a usable phone number` };
+
+  /* TWILIO_FROM_NUMBER accepts either a phone number or a Messaging Service SID
+     (starts MG). The SID is the better answer on an account that already has
+     registered A2P campaigns: Twilio picks a sender from the service's pool, so
+     the number in use is always one attached to an approved campaign. Putting a
+     bare number here is what produces error 30034 - "message from an
+     unregistered number" - when that particular number is not in a campaign. */
+  const params: Record<string, string> = { To: e164, Body: text };
+  if (/^MG[0-9a-f]{32}$/i.test(TWILIO_FROM.trim())) {
+    params.MessagingServiceSid = TWILIO_FROM.trim();
+  } else {
+    params.From = TWILIO_FROM;
+  }
+
   try {
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
@@ -132,7 +146,7 @@ async function sendSms(to: string, text: string) {
           'Authorization': 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`),
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({ To: e164, From: TWILIO_FROM, Body: text }).toString(),
+        body: new URLSearchParams(params).toString(),
       },
     );
     const data = await res.json().catch(() => ({}));
