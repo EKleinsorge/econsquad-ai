@@ -24,6 +24,13 @@ body{background:#06080f;color:#dde4f0;font-family:'DM Sans',sans-serif;min-heigh
 .page-title{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:#eef3fc;margin-bottom:4px;}
 .page-sub{font-size:13px;color:#6b7a96;margin-bottom:28px;}
 .admin-card{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:20px;margin-bottom:16px;}
+/* Tab chips for the Outreach section. admin.html had no tab pattern at all —
+   the first render showed Lists / Contacts / Import as three lines of plain
+   text, because .chip is defined in index.html and not here. */
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{background:rgba(14,20,36,0.7);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:7px 16px;font-size:13px;color:#8a97b5;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;user-select:none;}
+.chip:hover{border-color:rgba(170,255,62,0.25);color:#eef3fc;}
+.chip.active{background:rgba(170,255,62,0.08);border-color:rgba(170,255,62,0.35);color:#aaff3e;font-weight:700;}
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
 .stat-box{background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;}
 .stat-box-val{font-family:'Barlow',sans-serif;font-size:28px;font-weight:900;color:#aaff3e;}
@@ -189,6 +196,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
     <div class="sidebar-item" onclick="showAdminSection('trialcare',this);loadTrialCare()">🌱 Trial Care</div>
+    <div class="sidebar-item" onclick="showAdminSection('outreach',this);loadOutreach();loadOutreachStates()">📣 Outreach</div>
     <div class="sidebar-item" onclick="showAdminSection('greetings',this);loadGreetings()">🎂 Greetings</div>
     <div class="sidebar-item" onclick="showAdminSection('calendar',this)">📅 Calendar Invites</div>
     <div class="sidebar-section">Support</div>
@@ -392,6 +400,124 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 
 
     <!-- TRIAL CARE -->
+    <div id="section-outreach" class="admin-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="page-title">Outreach</div>
+          <div class="page-sub">The contact lists Emma works from. Every person belongs to one organisation, and only one person per organisation is ever approached at a time &mdash; three colleagues at the same EDC receiving near-identical notes on the same morning is the one impression that cannot be undone.</div>
+        </div>
+      </div>
+
+      <div class="chips" style="margin-bottom:18px;">
+        <div class="chip active" id="otab-lists"    onclick="outreachTab('lists')">Lists</div>
+        <div class="chip"        id="otab-contacts" onclick="outreachTab('contacts')">Contacts</div>
+        <div class="chip"        id="otab-import"   onclick="outreachTab('import')">Import a list</div>
+      </div>
+
+      <!-- ── LISTS ─────────────────────────────────────────────── -->
+      <div id="opane-lists">
+        <div class="admin-card" style="margin-bottom:18px;">
+          <div id="outreach-totals" style="display:flex;gap:28px;flex-wrap:wrap;padding:4px 2px;">
+            <div style="color:#6b7a96;font-size:13px;">Loading&hellip;</div>
+          </div>
+        </div>
+        <div class="admin-card">
+          <table>
+            <thead><tr>
+              <th>List</th><th>Where it came from</th><th>Consent</th>
+              <th>Imported</th><th>People</th><th>Still contactable</th>
+            </tr></thead>
+            <tbody id="outreach-lists-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── CONTACTS ──────────────────────────────────────────── -->
+      <div id="opane-contacts" style="display:none;">
+        <div class="admin-card" style="margin-bottom:16px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="form-field" style="margin:0;flex:1;min-width:220px;">
+              <label>Search</label>
+              <input id="oc-q" type="text" placeholder="name, email or organisation"
+                     onkeydown="if(event.key==='Enter')loadOutreachContacts(0)">
+            </div>
+            <div class="form-field" style="margin:0;">
+              <label>Status</label>
+              <select id="oc-status" onchange="loadOutreachContacts(0)">
+                <option value="">any</option><option value="new">not yet approached</option>
+                <option value="queued">queued</option><option value="in_sequence">in a sequence</option>
+                <option value="done">finished, no reply</option><option value="replied">replied</option>
+                <option value="converted">started a trial</option><option value="suppressed">suppressed</option>
+              </select>
+            </div>
+            <div class="form-field" style="margin:0;">
+              <label>Type</label>
+              <select id="oc-kind" onchange="loadOutreachContacts(0)">
+                <option value="">any</option><option value="government">government</option>
+                <option value="edc_nonprofit">EDC / chamber</option><option value="company">company</option>
+                <option value="university">university</option><option value="personal">personal address</option>
+              </select>
+            </div>
+            <div class="form-field" style="margin:0;">
+              <label>State</label>
+              <select id="oc-state" onchange="loadOutreachContacts(0)"><option value="">any</option></select>
+            </div>
+            <button class="btn-ghost" onclick="loadOutreachContacts(0)">Search</button>
+          </div>
+        </div>
+        <div class="admin-card">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Organisation</th><th>Type</th><th>State</th><th>Status</th></tr></thead>
+            <tbody id="outreach-contacts-table"></tbody>
+          </table>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;">
+            <div id="oc-count" style="font-size:12px;color:#6b7a96;"></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-ghost" onclick="pageOutreach(-1)">&larr; Back</button>
+              <button class="btn-ghost" onclick="pageOutreach(1)">Next &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IMPORT ────────────────────────────────────────────── -->
+      <div id="opane-import" style="display:none;">
+        <div class="admin-card" style="margin-bottom:16px;">
+          <div style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:6px;">Import a list</div>
+          <div style="font-size:12px;color:#6b7a96;line-height:1.7;margin-bottom:18px;">
+            A CSV with an email column. First and last name columns are found automatically if they are there.
+            <strong style="color:#8a97b5;">Nothing is written until you have seen the report and pressed Import.</strong>
+          </div>
+          <div class="form-grid">
+            <div class="form-field"><label>Name this list</label>
+              <input id="oi-name" type="text" placeholder="e.g. IEDC 2026 attendees"></div>
+            <div class="form-field"><label>Where it came from</label>
+              <input id="oi-source" type="text" placeholder="e.g. conference badge scan, Sept 2026"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-field"><label>What did these people agree to?</label>
+              <select id="oi-consent">
+                <option value="business_relationship">A business relationship with GSLI</option>
+                <option value="signup">They signed up to hear from us</option>
+                <option value="event">They gave us their card at an event</option>
+                <option value="other">Something else</option>
+              </select>
+            </div>
+            <div class="form-field"><label>CSV file</label>
+              <input id="oi-file" type="file" accept=".csv,text/csv" onchange="outreachPreview()"
+                     style="padding:8px;font-size:13px;"></div>
+          </div>
+        </div>
+
+        <div id="oi-report" style="display:none;"></div>
+
+        <div id="oi-actions" style="display:none;gap:10px;margin-top:16px;">
+          <button class="btn-lime" id="oi-go" onclick="outreachImport()">Import the new ones</button>
+          <button class="btn-ghost" onclick="outreachResetImport()">Start over</button>
+        </div>
+      </div>
+    </div>
+
     <div id="section-trialcare" class="admin-section">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
         <div>
@@ -2720,6 +2846,380 @@ function sendTrialTest(){
       return;
     }
     trialMsg(d.error||'The test did not send.',false);
+  });
+}
+
+/* ═══════════════════════════════════════
+   OUTREACH — lists, contacts, and importing
+   ═══════════════════════════════════════ */
+
+var OC_PAGE = 0, OC_SIZE = 50, OC_TOTAL = 0;
+
+function outreachTab(t){
+  ['lists','contacts','import'].forEach(function(n){
+    document.getElementById('opane-'+n).style.display = (n===t ? '' : 'none');
+    document.getElementById('otab-'+n).classList.toggle('active', n===t);
+  });
+  if(t==='contacts') loadOutreachContacts(0);
+  if(t==='lists')    loadOutreach();
+}
+
+/* Supabase returns at most 1000 rows per request, whatever you ask for. A
+   duplicate check that reads one page would quietly compare an incoming list
+   against the first thousand contacts and report everyone else as new — and it
+   would look like it worked. Everything that needs the WHOLE table pages. */
+function fetchAll(table, cols, tweak){
+  var out=[], step=1000;
+  function page(from){
+    var q = supa.from(table).select(cols).range(from, from+step-1);
+    if(tweak) q = tweak(q);
+    return q.then(function(res){
+      if(res.error) throw new Error(res.error.message);
+      var rows = res.data||[];
+      out = out.concat(rows);
+      return rows.length < step ? out : page(from+step);
+    });
+  }
+  return page(0);
+}
+
+function loadOutreach(){
+  var box=document.getElementById('outreach-totals');
+  Promise.all([
+    supa.from('outreach_contacts').select('id',{count:'exact',head:true}),
+    supa.from('outreach_orgs').select('domain',{count:'exact',head:true}),
+    supa.from('outreach_suppression').select('email',{count:'exact',head:true}),
+    supa.from('outreach_next_per_org').select('id',{count:'exact',head:true}),
+    supa.from('outreach_lists').select('*').order('imported_at',{ascending:false})
+  ]).then(function(r){
+    if(r[4].error){
+      box.innerHTML='<div style="color:#ff8080;font-size:13px;">'+esqEsc(r[4].error.message)+
+        '<br><small style="color:#6b7a96;">If this says the table does not exist, the Outreach SQL has not been run yet.</small></div>';
+      return;
+    }
+    var stat=function(n,v,c){return '<div><div style="font-family:\'Barlow\',sans-serif;font-size:26px;font-weight:900;color:'+(c||'#eef3fc')+';">'+v+'</div><div style="font-size:11px;color:#6b7a96;text-transform:uppercase;letter-spacing:.06em;">'+n+'</div></div>';};
+    box.innerHTML = stat('contacts', (r[0].count||0).toLocaleString())
+      + stat('organisations', (r[1].count||0).toLocaleString())
+      + stat('ready to write to', (r[3].count||0).toLocaleString(), '#aaff3e')
+      + stat('suppressed', (r[2].count||0).toLocaleString(), '#f5c542');
+
+    var lists=r[4].data||[];
+    var tb=document.getElementById('outreach-lists-table');
+    if(!lists.length){ tb.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:24px;">No lists imported yet.</td></tr>'; return; }
+    var CONSENT={business_relationship:'business relationship',signup:'signed up',event:'met at an event',other:'other'};
+    tb.innerHTML = lists.map(function(l){
+      return '<tr>'
+        + '<td><strong style="color:#eef3fc;">'+esqEsc(l.name)+'</strong>'
+          + (l.notes?'<div style="font-size:11px;color:#4a5568;max-width:420px;">'+esqEsc(l.notes)+'</div>':'')+'</td>'
+        + '<td style="color:#8a97b5;font-size:12px;">'+esqEsc(l.source||'—')+'</td>'
+        + '<td style="font-size:12px;">'+esqEsc(CONSENT[l.consent_basis]||l.consent_basis)+'</td>'
+        + '<td style="color:#8a97b5;font-size:12px;">'+new Date(l.imported_at).toLocaleDateString()+'</td>'
+        + '<td>'+(l.row_count||0).toLocaleString()+'</td>'
+        + '<td id="lcount-'+l.id+'" style="color:#4a5568;">…</td>'
+        + '</tr>';
+    }).join('');
+    /* How many of this list can still be written to today — the number that
+       actually matters, and not the same as how many were imported. */
+    lists.forEach(function(l){
+      supa.from('outreach_list_members').select('contact_id').eq('list_id',l.id)
+        .then(function(res){
+          var ids=(res.data||[]).map(function(x){return x.contact_id;});
+          if(!ids.length){ document.getElementById('lcount-'+l.id).textContent='0'; return; }
+          supa.from('outreach_next_per_org').select('id',{count:'exact',head:true}).in('id',ids.slice(0,1000))
+            .then(function(r2){
+              var el=document.getElementById('lcount-'+l.id);
+              if(el) el.innerHTML='<span style="color:#aaff3e;">'+(r2.count||0).toLocaleString()+'</span>';
+            });
+        });
+    });
+  });
+}
+
+/* ── Contacts ─────────────────────────────────────────────── */
+function loadOutreachContacts(page){
+  if(typeof page==='number') OC_PAGE=page;
+  var q=(document.getElementById('oc-q').value||'').trim();
+  var st=document.getElementById('oc-status').value;
+  var kd=document.getElementById('oc-kind').value;
+  var stt=document.getElementById('oc-state').value;
+  var tb=document.getElementById('outreach-contacts-table');
+  tb.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading…</td></tr>';
+
+  var sel = supa.from('outreach_contacts')
+    .select('id,email,first_name_clean,last_name,domain,status,outreach_orgs!inner(kind,state)',{count:'exact'});
+  if(st)  sel = sel.eq('status', st);
+  if(kd)  sel = sel.eq('outreach_orgs.kind', kd);
+  if(stt) sel = sel.eq('outreach_orgs.state', stt);
+  if(q)   sel = sel.or('email.ilike.%'+q+'%,first_name_clean.ilike.%'+q+'%,last_name.ilike.%'+q+'%,domain.ilike.%'+q+'%');
+
+  sel.order('domain').range(OC_PAGE*OC_SIZE, OC_PAGE*OC_SIZE+OC_SIZE-1).then(function(res){
+    if(res.error){ tb.innerHTML='<tr><td colspan="6" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+'</td></tr>'; return; }
+    OC_TOTAL=res.count||0;
+    var rows=res.data||[];
+    var KIND={government:'government',edc_nonprofit:'EDC / chamber',company:'company',university:'university',personal:'personal address'};
+    var SCOL={replied:'#4ade80',converted:'#aaff3e',suppressed:'#ff8080',new:'#6b7a96'};
+    tb.innerHTML = rows.length ? rows.map(function(c){
+      var o=c.outreach_orgs||{};
+      return '<tr>'
+        + '<td>'+esqEsc([c.first_name_clean,c.last_name].filter(Boolean).join(' ')||'—')+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;">'+esqEsc(c.email)+'</td>'
+        + '<td style="font-size:12px;">'+(o.website?'<a href="'+esqEsc(o.website)+'" target="_blank" rel="noopener" style="color:#8fbfff;">'+esqEsc(c.domain)+'</a>':esqEsc(c.domain))+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;">'+esqEsc(KIND[o.kind]||o.kind||'—')+'</td>'
+        + '<td style="font-size:12px;">'+esqEsc(o.state||'—')+'</td>'
+        + '<td style="font-size:12px;color:'+(SCOL[c.status]||'#8a97b5')+';">'+esqEsc(c.status)+'</td>'
+        + '</tr>';
+    }).join('') : '<tr><td colspan="6" style="color:#4a5568;padding:24px;">Nothing matches that.</td></tr>';
+    var from=OC_TOTAL?OC_PAGE*OC_SIZE+1:0;
+    document.getElementById('oc-count').textContent =
+      from+'–'+Math.min(OC_TOTAL,(OC_PAGE+1)*OC_SIZE)+' of '+OC_TOTAL.toLocaleString();
+  });
+}
+function pageOutreach(d){
+  var n=OC_PAGE+d;
+  if(n<0||n*OC_SIZE>=OC_TOTAL) return;
+  loadOutreachContacts(n);
+}
+
+/* ── Import ───────────────────────────────────────────────── */
+var OI = null;   /* the parsed + checked file, waiting for confirmation */
+
+var OI_FREE = ['gmail.com','yahoo.com','hotmail.com','aol.com','outlook.com','icloud.com',
+  'comcast.net','msn.com','me.com','live.com','sbcglobal.net','att.net','verizon.net',
+  'bellsouth.net','cox.net','earthlink.net','protonmail.com','ymail.com','mac.com',
+  'charter.net','roadrunner.com','windstream.net'];
+var OI_ROLE = ['info','contact','admin','office','mail','email','hello','team','staff',
+  'economicdevelopment','ecodevo','ecodev','edc','development','planning','chamber','clerk',
+  'mayor','manager','support','help','general','inquiries','enquiries','webmaster','postmaster',
+  'noreply','no-reply','director','frontdesk','reception','main','contactus','information'];
+
+/* "Dr. Jeff" -> Jeff.  "Cindy L." -> Cindy.  "R.T." -> nothing.
+   The initials test requires the DOTS: without them it also matches Ann, Bob,
+   Sue, Tim, Joe and Kim, which cost 423 people their name the first time. */
+function oiCleanFirst(n){
+  n=(n||'').trim();
+  if(!n) return '';
+  n=n.replace(/^(dr|mr|mrs|ms|miss|hon|honorable|rev|prof|sir|madam)\.?\s+/i,'');
+  n=n.replace(/\s+[A-Za-z]\.?$/,'').replace(/["'`]/g,'').replace(/\s{2,}/g,' ').replace(/^[\s.,]+|[\s.,]+$/g,'');
+  if(n.length<2) return '';
+  if(/^(?:[A-Za-z]\.){1,3}[A-Za-z]?\.?$/.test(n)) return '';
+  return n;
+}
+function oiKind(d){
+  d=d.toLowerCase();
+  if(OI_FREE.indexOf(d)!==-1) return 'personal';
+  if(/\.gov$|\.us$/.test(d)) return 'government';
+  if(/\.edu$/.test(d))       return 'university';
+  if(/\.org$/.test(d))       return 'edc_nonprofit';
+  return 'company';
+}
+
+/* A CSV parser that respects quotes. Splitting on commas mangles any row with
+   a comma inside a quoted field, and organisation names are full of them. */
+function oiParseCSV(text){
+  var rows=[], row=[], cur='', q=false, i=0;
+  text = text.replace(/^﻿/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  for(; i<text.length; i++){
+    var ch=text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; }
+      else cur+=ch;
+    } else if(ch==='"') q=true;
+    else if(ch===','){ row.push(cur); cur=''; }
+    else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+    else cur+=ch;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){return (c||'').trim()!=='';}); });
+}
+
+function outreachResetImport(){
+  OI=null;
+  document.getElementById('oi-file').value='';
+  document.getElementById('oi-report').style.display='none';
+  document.getElementById('oi-actions').style.display='none';
+}
+
+function outreachPreview(){
+  var f=document.getElementById('oi-file').files[0];
+  if(!f) return;
+  var rep=document.getElementById('oi-report');
+  rep.style.display=''; rep.innerHTML='<div class="admin-card" style="color:#8a97b5;">Reading the file…</div>';
+  document.getElementById('oi-actions').style.display='none';
+
+  var reader=new FileReader();
+  reader.onload=function(){
+    var rows=oiParseCSV(reader.result);
+    if(rows.length<2){ rep.innerHTML='<div class="admin-card" style="color:#ff8080;">That file has no rows in it.</div>'; return; }
+    var head=rows[0].map(function(h){return (h||'').trim().toLowerCase();});
+    var iE=head.findIndex(function(h){return h==='email'||h.indexOf('email')!==-1||h.indexOf('e-mail')!==-1;});
+    var iF=head.findIndex(function(h){return h.indexOf('first')!==-1||h==='fname'||h==='given';});
+    var iL=head.findIndex(function(h){return h.indexOf('last')!==-1||h==='lname'||h==='surname'||h==='family';});
+    if(iE===-1){
+      rep.innerHTML='<div class="admin-card" style="color:#ff8080;">No email column found. The header row was: '
+        +esqEsc(head.join(', '))+'</div>';
+      return;
+    }
+
+    var seen={}, parsed=[], bad=0, dupInFile=0;
+    for(var r=1;r<rows.length;r++){
+      var e=((rows[r][iE]||'').trim().toLowerCase());
+      if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(e)){ bad++; continue; }
+      if(seen[e]){ dupInFile++; continue; }
+      seen[e]=1;
+      var dom=e.split('@')[1];
+      parsed.push({ email:e, domain:dom, kind:oiKind(dom),
+        first_name:(iF>-1?(rows[r][iF]||'').trim():'')||null,
+        last_name:(iL>-1?(rows[r][iL]||'').trim():'')||null,
+        first_name_clean:oiCleanFirst(iF>-1?rows[r][iF]:'')||null });
+    }
+
+    rep.innerHTML='<div class="admin-card" style="color:#8a97b5;">Checking '+parsed.length.toLocaleString()+
+      ' addresses against everyone already in the system…</div>';
+
+    /* THE DUPLICATE CHECK. Every existing contact and every suppression, paged
+       in full — see fetchAll. Members come from profiles, so somebody who is
+       already paying can never be cold-pitched. */
+    Promise.all([
+      fetchAll('outreach_contacts','email,domain'),
+      fetchAll('outreach_suppression','email,reason'),
+      fetchAll('profiles','email'),
+      supa.from('outreach_lists').select('id,name'),
+      fetchAll('outreach_list_members','list_id,contact_id')
+    ]).then(function(res){
+      var haveByEmail={}, sup={}, mem={};
+      res[0].forEach(function(c){ haveByEmail[(c.email||'').toLowerCase()]=c; });
+      res[1].forEach(function(s){ sup[(s.email||'').toLowerCase()]=s.reason; });
+      res[2].forEach(function(p){ if(p.email) mem[p.email.toLowerCase()]=1; });
+
+      var fresh=[], already=[], suppressed=[], members=[], role=[], personal=[];
+      parsed.forEach(function(p){
+        var local=p.email.split('@')[0].replace(/[^a-z]/g,'');
+        if(mem[p.email])                 { members.push(p);    return; }
+        if(sup[p.email])                 { suppressed.push(p); return; }
+        if(haveByEmail[p.email])         { already.push(p);    return; }
+        if(OI_ROLE.indexOf(local)!==-1)  { role.push(p);       return; }
+        if(p.kind==='personal')          { personal.push(p);   return; }
+        fresh.push(p);
+      });
+
+      OI={ fresh:fresh, role:role, personal:personal, members:members };
+      var orgCount={}; fresh.forEach(function(p){ orgCount[p.domain]=1; });
+
+      var line=function(n,v,c,why){
+        return '<tr><td style="color:'+(c||'#b8c8e0')+';font-weight:700;width:90px;">'+v.toLocaleString()+'</td>'
+             + '<td style="color:#eef3fc;">'+n+'</td>'
+             + '<td style="color:#6b7a96;font-size:12px;">'+why+'</td></tr>';
+      };
+      rep.innerHTML =
+        '<div class="admin-card">'
+        + '<div style="font-family:\'Barlow\',sans-serif;font-size:16px;font-weight:800;color:#eef3fc;margin-bottom:4px;">'
+        + esqEsc(f.name)+'</div>'
+        + '<div style="font-size:12px;color:#6b7a96;margin-bottom:16px;">'
+        + rows.length.toLocaleString()+' rows read &middot; columns used: '
+        + esqEsc(head[iE])+(iF>-1?', '+esqEsc(head[iF]):'')+(iL>-1?', '+esqEsc(head[iL]):'')+'</div>'
+        + '<table>'
+        + line('New — will be imported', fresh.length, '#aaff3e', Object.keys(orgCount).length.toLocaleString()+' organisations')
+        + (already.length   ? line('Already in the system', already.length, '#f5c542', 'skipped, no duplicate created') : '')
+        + (members.length   ? line('Already EconSquad members', members.length, '#8fbfff', 'suppressed — they already pay you') : '')
+        + (suppressed.length? line('Previously suppressed', suppressed.length, '#ff8080', 'unsubscribed, bounced or excluded before') : '')
+        + (role.length      ? line('Shared inboxes', role.length, '#8a97b5', 'info@, contact@ — not a person to greet') : '')
+        + (personal.length  ? line('Personal addresses', personal.length, '#8a97b5', 'gmail, yahoo — no organisation to research') : '')
+        + (dupInFile        ? line('Repeated inside the file', dupInFile, '#8a97b5', 'counted once') : '')
+        + (bad              ? line('Not a valid address', bad, '#8a97b5', 'skipped') : '')
+        + '</table></div>';
+
+      var act=document.getElementById('oi-actions');
+      act.style.display='flex';
+      document.getElementById('oi-go').textContent =
+        fresh.length ? 'Import '+fresh.length.toLocaleString()+' new contacts' : 'Nothing new to import';
+      document.getElementById('oi-go').disabled = !fresh.length;
+    }).catch(function(e){
+      rep.innerHTML='<div class="admin-card" style="color:#ff8080;">Could not check against the existing contacts: '+esqEsc(e.message)+'</div>';
+    });
+  };
+  reader.readAsText(f);
+}
+
+function outreachImport(){
+  if(!OI||!OI.fresh.length) return;
+  var name=(document.getElementById('oi-name').value||'').trim();
+  if(!name){ showToast('Give the list a name first.','error'); return; }
+  var btn=document.getElementById('oi-go');
+  btn.disabled=true; btn.textContent='Importing…';
+
+  var orgs={}; OI.fresh.forEach(function(p){
+    orgs[p.domain]={domain:p.domain,kind:p.kind,website:p.kind==='personal'?null:'https://'+p.domain};
+  });
+  var orgRows=Object.keys(orgs).map(function(k){return orgs[k];});
+  var chunk=function(a,n){var o=[];for(var i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o;};
+  var seq=function(parts,fn){ return parts.reduce(function(p,c){ return p.then(function(){return fn(c);}); }, Promise.resolve()); };
+
+  /* Organisations first — contacts reference them. */
+  seq(chunk(orgRows,500), function(c){
+    return supa.from('outreach_orgs').upsert(c,{onConflict:'domain',ignoreDuplicates:true})
+      .then(function(r){ if(r.error) throw new Error('organisations: '+r.error.message); });
+  })
+  .then(function(){
+    return supa.from('outreach_lists').insert({
+      name:name, source:(document.getElementById('oi-source').value||'').trim()||null,
+      consent_basis:document.getElementById('oi-consent').value, row_count:OI.fresh.length
+    }).select('id').single();
+  })
+  .then(function(r){
+    if(r.error) throw new Error('list: '+r.error.message);
+    var listId=r.data.id;
+    return seq(chunk(OI.fresh,500), function(c){
+      return supa.from('outreach_contacts').upsert(c.map(function(p){
+        return {email:p.email,first_name:p.first_name,last_name:p.last_name,
+                first_name_clean:p.first_name_clean,domain:p.domain};
+      }),{onConflict:'email',ignoreDuplicates:true})
+        .then(function(r2){ if(r2.error) throw new Error('contacts: '+r2.error.message); });
+    }).then(function(){ return listId; });
+  })
+  .then(function(listId){
+    /* Link them to the list by looking the ids back up, so an address that
+       already existed still joins this list rather than being lost. */
+    var emails=OI.fresh.map(function(p){return p.email;});
+    return seq(chunk(emails,500), function(c){
+      return supa.from('outreach_contacts').select('id').in('email',c).then(function(r3){
+        if(r3.error) throw new Error('linking: '+r3.error.message);
+        var rows=(r3.data||[]).map(function(x){return {list_id:listId,contact_id:x.id};});
+        if(!rows.length) return;
+        return supa.from('outreach_list_members').upsert(rows,{ignoreDuplicates:true});
+      });
+    });
+  })
+  .then(function(){
+    /* Role inboxes are recorded as suppressed rather than silently dropped, so
+       the reason survives and nobody re-imports them next month. */
+    var sup=OI.role.map(function(p){return {email:p.email,reason:'role_address',detail:'a shared inbox, not a person'};});
+    if(!sup.length) return;
+    return seq(chunk(sup,500), function(c){
+      return supa.from('outreach_suppression').upsert(c,{onConflict:'email',ignoreDuplicates:true});
+    });
+  })
+  .then(function(){
+    showToast('Imported. '+OI.fresh.length.toLocaleString()+' contacts added.','success');
+    outreachResetImport();
+    outreachTab('lists');
+  })
+  .catch(function(e){
+    btn.disabled=false; btn.textContent='Import the new ones';
+    showToast('Import failed: '+e.message,'error');
+  });
+}
+
+/* Populate the state filter from what is actually in the data, so it never
+   offers a state with nobody in it. */
+function loadOutreachStates(){
+  var sel=document.getElementById('oc-state');
+  if(!sel) return;
+  supa.from('outreach_orgs').select('state').not('state','is',null).then(function(r){
+    if(r.error) return;
+    var st={}; (r.data||[]).forEach(function(x){ if(x.state) st[x.state]=1; });
+    Object.keys(st).sort().forEach(function(s){
+      var o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o);
+    });
   });
 }
 
