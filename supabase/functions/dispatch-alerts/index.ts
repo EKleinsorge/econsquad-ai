@@ -188,10 +188,53 @@ function renderEmail(ev: AlertEvent, category: string, label: string): string {
 </div></body></html>`;
 }
 
+/* A text message is GSM-7 encoded at 160 characters per segment - UNLESS it
+   contains one character outside that alphabet, at which point the whole
+   message becomes UCS-2 and the limit drops to 70. One em dash therefore
+   triples the cost of every alert.
+
+   This was not theoretical. The first live test showed "# Segments: 3" for a
+   145-character message, because this function joined lines with a real em
+   dash. Curly quotes, ellipses and arrows do the same thing, and they arrive
+   invisibly through copy-paste - an organisation name pasted out of Word is
+   enough. So everything is transliterated to plain ASCII rather than trusted. */
+const GSM7_SAFE: Record<string, string> = {
+  '—': '-',  '–': '-',  '−': '-',      // em dash, en dash, minus
+  '‘': "'",  '’': "'",  '‚': "'",      // curly single quotes
+  '“': '"',  '”': '"',  '„': '"',      // curly double quotes
+  '…': '...', '•': '*', '·': '.',      // ellipsis, bullets
+  '→': '->', '←': '<-', ' ': ' ',      // arrows, non-breaking space
+  '™': 'TM', '®': '(R)', '©': '(C)',
+};
+
+/* The GSM-7 basic alphabet. Anything outside this and the extension table
+   forces UCS-2, so it is replaced rather than sent. */
+const GSM7 =
+  '@£$¥èéùìòÇ\nØø\rÅå' +
+  'Δ_ΦΓΛΩΠΨΣΘΞÆæßÉ' +
+  ' !"#¤%&\'()*+,-./0123456789:;<=>?¡' +
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿' +
+  'abcdefghijklmnopqrstuvwxyzäöñüà';
+const GSM7_EXT = '^{}\\[~]|€';
+
+export function toGsm7(input: string): string {
+  let out = '';
+  for (const ch of String(input ?? '')) {
+    const mapped = GSM7_SAFE[ch] ?? ch;
+    for (const c of mapped) {
+      out += (GSM7.includes(c) || GSM7_EXT.includes(c)) ? c : '?';
+    }
+  }
+  return out;
+}
+
 export function renderSms(ev: AlertEvent): string {
-  const line = String(ev.body_text ?? '').split('\n').filter(Boolean).join(' — ');
-  const text = `EconSquad: ${ev.title}. ${line}`;
-  return text.length > 300 ? text.slice(0, 297) + '...' : text;
+  const line = String(ev.body_text ?? '').split('\n').filter(Boolean).join(' - ');
+  const text = toGsm7(`EconSquad: ${ev.title}. ${line}`);
+  /* 306 = two full GSM-7 segments. Past that a third is being paid for, and an
+     alert needing 300 characters is a notification that should have been an
+     email. */
+  return text.length > 306 ? text.slice(0, 303) + '...' : text;
 }
 
 /* ── Problem reports keep their own, better email ───────────── */

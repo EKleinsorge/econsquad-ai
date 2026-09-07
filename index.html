@@ -1572,10 +1572,21 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                 <span style="font-size:14px;">📊</span>
                 <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
               </div>
+              <!-- HIDDEN 2026-09-06. Text alerts to customers have never worked: TWILIO_ACCOUNT_SID,
+       TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER have never been set on this project, so
+       send-sms could not have sent a single message since it was written in May. This
+       UI invited people to enter a phone number and wait for texts that were never
+       coming.
+       Turning it back on needs more than the three secrets: texting customers is A2P
+       messaging, which requires 10DLC brand and campaign registration, and the campaign
+       must document how consent is collected. This screen has no consent checkbox and
+       no opt-out wording, so it is not yet compliant to launch even once Twilio is live.
+       Everything below is intact - delete this comment wrapper to restore it.
               <div onclick="openSmsModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-                <span style="font-size:14px;">📱</span>
+                <span style="font-size:14px;">&#128241;</span>
                 <span style="font-size:12px;color:#eef3fc;">SMS Alerts</span>
               </div>
+              -->
               <div onclick="openAffiliateModal();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">🤝</span>
                 <div>
@@ -9088,7 +9099,10 @@ var TOUR_STEPS = [
   /* ── TOP NAV ── */
   { target:'#esq-notif-bell',         tab:'home-tab',  icon:'🔔', title:'Notifications Bell',           desc:'ARIA Alerts surface badge unlocks, new Monday AI Drop issues, and squad activity right here. A yellow dot means alerts need your attention — click the bell to view and dismiss them.' },
   { target:'#user-avatar',            tab:null,        icon:'👤', title:'Your Profile',                 desc:'Click your avatar to manage your account: update your name, logo, and Anthropic API key, view your subscription plan, adjust text size for accessibility, and sign out. Everything about your account lives here.' },
-  { target:'#user-avatar',            tab:null,        icon:'📱', title:'Phone & SMS Alerts',           desc:'Want a text when a grant deadline or RFI drops into your inbox? Click your avatar → 📱 Text Alerts. Enter your phone number, toggle on the alert types you want, and ARIA will text you automatically.' },
+  /* Tour step removed 2026-09-06: it promised "ARIA will text you automatically",
+     which has never once happened - Twilio was never configured. Restore it with
+     the SMS panel, not before. A tour that teaches a feature that does not work
+     costs more trust than the feature would have earned. */
   /* ── INBOX ── */
   { target:'#aria-analyze-btn',       tab:'inbox-tab', icon:'📬', title:'ARIA Inbox — Your Unified Inbox',  desc:'Connect your email and ARIA becomes your inbox chief of staff. She sorts every message, surfaces what needs action today, and can draft replies on your behalf. Hit ✦ Refresh Briefing for an instant briefing of your current inbox.' },
   { target:'#aria-briefing-card',     tab:'inbox-tab', icon:'✦',  title:'ARIA Briefing',                desc:'Once Gmail is connected, ARIA delivers a briefing card right here — summarizing your priority messages, flagging deadlines, and surfacing action items. One read and you know exactly what your day needs.', action: function(){ var c=document.getElementById('aria-briefing-card'); if(c && c.style.display==='none') c.style.display='block'; } },
