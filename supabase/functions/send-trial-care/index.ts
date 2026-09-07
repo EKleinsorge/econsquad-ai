@@ -90,7 +90,10 @@ export type Person = {
   plan: string | null; subscription_status: string | null; is_beta_tester: boolean | null;
   lifecycle_opt_out: boolean; created_at: string; trial_end: string | null;
   canceled_at: string | null; audience: 'trial' | 'cancelled'; daysSinceCancel: number | null;
-  greetings_token: string | null;
+  greetings_token: string | null; stripe_customer_id: string | null;
+  // Is there a card on file that will be charged when the trial ends? See
+  // hasCardOnFile - this decides which half of the copy they are told.
+  hasCard: boolean;
   missions: number; hours: number; topSpecialist: string | null;
   // Every mission's timestamp, oldest first. This is what makes a milestone
   // datable: the Nth entry is the moment they reached N.
@@ -105,6 +108,60 @@ export function dayDiff(fromIso: string, toIso: string): number {
   const da = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
   const db = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
   return Math.round((db - da) / 86400000);
+}
+
+/* THERE ARE TWO KINDS OF TRIAL MEMBER AND THE DIFFERENCE IS MONEY.
+   --------------------------------------------------------------------------
+   doSignup() creates the Supabase account BEFORE the redirect to Stripe.
+   Somebody who closed the tab on the payment page keeps a working account with
+   NO card: plan defaults to 'trial', trial_end to now()+interval, and the trial
+   simply lapses. Nothing is ever charged and there is nothing to cancel.
+
+   Somebody who completed checkout is a Stripe customer on a 'trialing'
+   subscription: card on file, charged automatically at trial end, and a real
+   subscription to cancel.
+
+   BOTH SIT ON plan = 'trial'. stripe-webhook keeps a trialing customer there on
+   purpose ("While trialing, the profile stays on 'trial' regardless of which
+   price they picked" - the UI reads plan==='trial' to show the countdown). So
+   one body of copy cannot serve both, and the failure is not cosmetic: telling
+   a card-holder "no card, no charge, nothing to cancel" three days before
+   charging them is the worst thing this system could do.
+
+   stripe_customer_id is the discriminator index.html already uses
+   (esqAccessLapsed treats it as "already a Stripe customer"). The status test
+   is a second net. Both errors are not equal, so this fails SAFE: an
+   unrecognised state is treated as HAVING a card. Wrongly telling somebody to
+   check their billing page is a moment of confusion; wrongly telling somebody
+   they will not be charged is a chargeback and a lost customer. */
+export function hasCardOnFile(r: {
+  stripe_customer_id?: string | null; subscription_status?: string | null;
+}): boolean {
+  if (r.stripe_customer_id) return true;
+  const s = String(r.subscription_status ?? '').toLowerCase();
+  // Anything Stripe is actively tracking implies a payment method.
+  return s === 'trialing' || s === 'active' || s === 'past_due' || s === 'unpaid' || s === 'incomplete';
+}
+
+/* Copy that must differ between those two people, written in one template so
+   the rest of the message stays in one place:
+
+     [[card]]...only card-holders see this...[[/card]]
+     [[no_card]]...only lapse-quietly people see this...[[/no_card]]
+
+   A marker left stranded by an edit is stripped rather than shown, because the
+   failure mode of a half-typed tag must not be a customer reading "[[card]]". */
+export function applyConditionals(text: string, p: Person): string {
+  const keep = p.hasCard ? 'card' : 'no_card';
+  const drop = p.hasCard ? 'no_card' : 'card';
+  const block = (tag: string) => new RegExp('\\[\\[' + tag + '\\]\\]([\\s\\S]*?)\\[\\[\\/' + tag + '\\]\\]', 'g');
+  return String(text ?? '')
+    .replace(block(drop), '')
+    .replace(block(keep), '$1')
+    .replace(/\[\[\/?(?:card|no_card)\]\]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 /** When did this person reach N missions? Null if they never did, or if we
@@ -147,6 +204,26 @@ export function matches(t: Touchpoint, p: Person, nowIso = new Date().toISOStrin
   return false;
 }
 
+/* A DRAFT MUST NOT BE ABLE TO SEND ITSELF.
+   --------------------------------------------------------------------------
+   winback_news shipped disabled with a bracketed note addressed to Eric -
+   "[WRITE THIS BEFORE SWITCHING IT ON. Two or three lines on what has actually
+   changed...]" - because writing fake product news would spend the last of the
+   goodwill. He then switched it on to read it. Nothing stopped him, and the
+   next cancelled customer to reach day 45 would have been sent my instructions
+   to him.
+
+   "Remember not to enable that one" is not a safeguard, it is a hope. A body
+   still carrying a bracketed instruction is a draft, and a draft is never
+   sent - whatever the switch says. The [[card]] / [[no_card]] tags are real
+   syntax and are excluded; the threshold is length, because a genuine aside
+   in square brackets is short and an instruction to yourself is not. */
+const PLACEHOLDER = /\[(?!\[)[^\]]{30,}\]/;
+export function isDraft(t: { subject?: string; body?: string }): boolean {
+  const body = String(t.body ?? '').replace(/\[\[\/?(?:card|no_card)\]\]/g, '');
+  return PLACEHOLDER.test(body) || PLACEHOLDER.test(String(t.subject ?? ''));
+}
+
 /** Everything due today, best first, after collapsing passed milestones. */
 export function dueFor(
   touchpoints: Touchpoint[], p: Person, alreadySent: Set<string>,
@@ -154,6 +231,8 @@ export function dueFor(
 ): Touchpoint[] {
   const due = touchpoints
     .filter((t) => t.is_enabled)
+    // Enabled but unfinished. The switch is not the last word.
+    .filter((t) => !isDraft(t))
     .filter((t) => !alreadySent.has(t.key))
     .filter((t) => matches(t, p, nowIso))
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -177,7 +256,7 @@ export function supersededMilestones(
 ): string[] {
   const kept = new Set(dueFor(touchpoints, p, alreadySent, nowIso).map((t) => t.key));
   return touchpoints
-    .filter((t) => t.is_enabled && t.when_kind === 'missions_reached')
+    .filter((t) => t.is_enabled && !isDraft(t) && t.when_kind === 'missions_reached')
     .filter((t) => !alreadySent.has(t.key))
     .filter((t) => matches(t, p, nowIso))
     .filter((t) => !kept.has(t.key))
@@ -188,7 +267,9 @@ export function fillTemplate(text: string, p: Person): string {
   const first = (p.full_name ?? '').trim().split(/\s+/)[0] || 'there';
   const org = (p.organization ?? '').trim();
   const hours = p.hours >= 10 ? String(Math.round(p.hours)) : p.hours.toFixed(1).replace(/\.0$/, '');
-  return String(text ?? '')
+  // Branch on card status BEFORE merging fields, so a merge field inside a
+  // branch that was dropped never gets computed into the output.
+  return applyConditionals(String(text ?? ''), p)
     .replace(/\{\{name\}\}/g, first)
     .replace(/ (?:for|at|and) \{\{org\}\}/g, org ? ` $&`.trim().replace('{{org}}', org) : '')
     .replace(/\{\{org\}\}/g, org || 'your team')
@@ -283,12 +364,39 @@ Deno.serve(async (req: Request) => {
         id: 'test', email, full_name: me?.full_name ?? null, organization: me?.organization ?? null,
         plan: 'trial', subscription_status: null, is_beta_tester: false, lifecycle_opt_out: false,
         created_at: new Date().toISOString(), trial_end: null, greetings_token: null,
+        stripe_customer_id: null, hasCard: false,
         canceled_at: null, audience: tp.audience, daysSinceCancel: 3,
         missions: 7, hours: 16.5, topSpecialist: 'Gary — Grant Writer Pro',
         missionDates: Array.from({ length: 7 }, (_, i) =>
           new Date(Date.now() - (7 - i) * 3600000).toISOString()),
         daysSinceSignup: 7, daysToTrialEnd: 3,
       };
+
+      /* If the copy branches on card status, one test email cannot show you
+         what you are shipping. Send both, labelled, so the half you did not
+         think about is the one you are made to read. */
+      if (/\[\[(?:card|no_card)\]\]/.test(String(tp.body ?? ''))) {
+        const both = [
+          { label: 'no card on file', who: { ...sample, hasCard: false } },
+          { label: 'card on file',    who: { ...sample, hasCard: true, stripe_customer_id: 'cus_sample' } },
+        ];
+        const results: Array<{ variant: string; ok: boolean; detail?: string }> = [];
+        for (const v of both) {
+          const r = await sendEmail(
+            email,
+            '[TEST — ' + v.label + '] ' + fillTemplate(tp.subject, v.who),
+            renderHtml(fillTemplate(tp.body, v.who), `${SITE_URL}/unsubscribe.html?status=already`),
+            tp.sender,
+          );
+          results.push({ variant: v.label, ok: r.ok, detail: r.ok ? undefined : r.detail });
+          await new Promise((r2) => setTimeout(r2, SEND_DELAY_MS));
+        }
+        const bad = results.filter((r) => !r.ok);
+        return bad.length
+          ? json({ ok: false, test: true, variants: results, error: bad[0].detail }, 502)
+          : json({ ok: true, test: true, to: email, variants: 2,
+                   subject: 'both versions — with and without a card on file' });
+      }
       const out = await sendEmail(email, '[TEST] ' + fillTemplate(tp.subject, sample),
         renderHtml(fillTemplate(tp.body, sample), `${SITE_URL}/unsubscribe.html?status=already`), tp.sender);
       return out.ok
@@ -310,7 +418,7 @@ Deno.serve(async (req: Request) => {
        to try" days after leaving. canceled_at is what tells them apart. */
     const { data: profRows, error: profErr } = await admin
       .from('profiles')
-      .select('id,email,full_name,organization,plan,subscription_status,is_beta_tester,lifecycle_opt_out,created_at,trial_end,canceled_at,greetings_token')
+      .select('id,email,full_name,organization,plan,subscription_status,is_beta_tester,lifecycle_opt_out,created_at,trial_end,canceled_at,greetings_token,stripe_customer_id')
       .eq('lifecycle_opt_out', false);
     if (profErr) return json({ error: 'profiles_unreadable', detail: profErr.message }, 500);
 
@@ -387,6 +495,7 @@ Deno.serve(async (req: Request) => {
       return {
         ...r,
         audience: cancelled ? 'cancelled' : 'trial',
+        hasCard: hasCardOnFile(r),
         missions: missionsBy.get(r.id) ?? 0,
         hours: hoursBy.get(r.id) ?? 0,
         missionDates: datesBy.get(r.id) ?? [],
@@ -424,6 +533,11 @@ Deno.serve(async (req: Request) => {
         ok: true, dry_run: true, now: nowIso,
         considered: people.length,
         excluded_internal: excludedInternal,
+        // The number that decides which half of the copy most people read.
+        with_card_on_file: people.filter((p) => p.hasCard).length,
+        // Switched on, but still carrying a bracketed note to yourself. Named
+        // out loud, because a silent refusal is its own kind of bug.
+        drafts_held_back: touchpoints.filter((t) => t.is_enabled && isDraft(t)).map((t) => t.key),
         would_send: plan.length,
         breakdown: plan.reduce((acc: Record<string, number>, x) => {
           acc[x.t.key] = (acc[x.t.key] ?? 0) + 1; return acc;
@@ -431,6 +545,7 @@ Deno.serve(async (req: Request) => {
         sample: plan.slice(0, 8).map((x) => ({
           to: x.p.email, touchpoint: x.t.key, audience: x.p.audience, from: x.t.sender,
           missions: x.p.missions, day: x.p.daysSinceSignup, days_left: x.p.daysToTrialEnd,
+          card: x.p.hasCard,
           held_back: x.alsoDue,
           superseded: x.superseded,
         })),

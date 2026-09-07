@@ -1375,6 +1375,19 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
         <strong>{{days_left}}</strong> days left in the trial &middot; <strong>{{top_specialist}}</strong> the one they use most.
         <br>Blank lines separate paragraphs. An unsubscribe link is added automatically.
       </div>
+      <!-- Two kinds of trial member and the difference is money. Somebody who
+           closed the tab on the Stripe page has no card; somebody who finished
+           checkout is in a trialing subscription and gets charged. Both sit on
+           plan='trial', so any sentence about money has to be written twice. -->
+      <div style="font-size:11px;color:#c9a227;margin-top:8px;line-height:1.75;border-left:2px solid #c9a227;padding-left:10px;">
+        <strong>Anything you say about money must be written twice.</strong> Some trial members
+        closed the tab on the payment page and have no card — nothing is ever charged. The rest
+        finished checkout and <em>are</em> charged when the trial ends. Both show as a trial here.
+        <br>Wrap each version:
+        <code style="color:#8fd694;">[[no_card]]</code>nothing is charged<code style="color:#8fd694;">[[/no_card]]</code>
+        <code style="color:#8fd694;">[[card]]</code>you will be charged unless you cancel<code style="color:#8fd694;">[[/card]]</code>
+        <br>Test send delivers <strong>both</strong> versions so you read the half you did not think about.
+      </div>
     </div>
 
     <div class="form-grid">
@@ -2418,7 +2431,13 @@ function trialGate(t){
   if(t.max_missions===0)                    return '<span style="color:#f5c542;">people who have never used it</span>';
   if(t.min_missions!=null&&t.min_missions>0)return '<span style="color:#4ade80;">people who have used it</span>';
   if(t.max_missions!=null)                  return 'at most '+t.max_missions+' missions';
-  return '<span style="color:#4a5568;">everyone in a trial</span>';
+  /* The audience matters more than the gate here. This column used to say
+     "everyone in a trial" for the win-backs, which are for people who have
+     LEFT - the exact confusion the churn trap is about, printed on the screen
+     you would use to check for it. */
+  return t.audience==='cancelled'
+    ? '<span style="color:#ff8080;">everyone who cancelled</span>'
+    : '<span style="color:#4a5568;">everyone in a trial</span>';
 }
 
 function loadTrialCare(){
@@ -2440,7 +2459,14 @@ function loadTrialCare(){
           ' · from '+(t.sender==='aria'?'ARIA':'Eric')+'</div></td>'+
         '<td style="color:#8a97b5;font-size:13px;">'+esqEsc(trialFires(t))+'</td>'+
         '<td style="font-size:12px;">'+trialGate(t)+'</td>'+
-        '<td>'+(t.is_enabled?'<span style="color:#4ade80;">On</span>':'<span style="color:#6b7a96;">Off</span>')+'</td>'+
+        /* "On" is not the whole truth if the body is still a draft: the job
+           refuses to send it. Say so here rather than letting the column
+           promise something that will not happen. */
+        '<td>'+(t.is_enabled
+                 ? (trialIsDraft(t)
+                     ? '<span style="color:#f5c542;">On, but held<div style="font-size:10px;color:#6b7a96;">unfinished draft</div></span>'
+                     : '<span style="color:#4ade80;">On</span>')
+                 : '<span style="color:#6b7a96;">Off</span>')+'</td>'+
         '<td style="white-space:nowrap;">'+
           '<button class="btn-ghost btn-sm" style="margin-right:6px;" onclick="openTrialModal(\''+esqEsc(t.key)+'\')">Edit</button>'+
           '<button class="btn-ghost btn-sm" onclick="toggleTrialTouchpoint(\''+esqEsc(t.key)+'\')">'+(t.is_enabled?'Turn off':'Turn on')+'</button>'+
@@ -2552,6 +2578,22 @@ function saveTrialTouchpoint(){
     trialMsg('"At least '+min+'" and "at most '+max+'" cannot both be true — nobody would ever match.',false); return;
   }
 
+  /* A draft must not be able to send itself. winback_news shipped switched off
+     with a bracketed note addressed to Eric; he switched it on to read it, and
+     nothing objected. The next cancelled customer to reach day 45 would have
+     received those instructions. The job refuses to send a body still carrying
+     one, but being told here is better than a silent refusal later.
+     [[card]] and [[no_card]] are real syntax, so they are exempt. */
+  var draftMarker=/\[(?!\[)[^\]]{30,}\]/;
+  var bodyNoTags=body.replace(/\[\[\/?(card|no_card)\]\]/g,'');
+  if(document.getElementById('trial-enabled').checked&&
+     (draftMarker.test(bodyNoTags)||draftMarker.test(subject))){
+    trialMsg('This still has a note to yourself in square brackets, so it cannot be switched on — '+
+             'a customer would receive that note. Replace it with the real wording, or save it '+
+             'switched off and come back to it.',false);
+    return;
+  }
+
   var data={ subject:subject, body:body, min_missions:min, max_missions:max,
              sender:document.getElementById('trial-sender').value,
              sort_order:parseInt(document.getElementById('trial-sort').value,10)||100,
@@ -2591,9 +2633,23 @@ function saveTrialTouchpoint(){
   });
 }
 
+/* Shared with saveTrialTouchpoint. A body still carrying a bracketed note to
+   yourself is a draft, and the switch is not the last word on whether a draft
+   goes to a customer. */
+function trialIsDraft(t){
+  var m=/\[(?!\[)[^\]]{30,}\]/;
+  return m.test(String(t.body||'').replace(/\[\[\/?(card|no_card)\]\]/g,'')) || m.test(String(t.subject||''));
+}
+
 function toggleTrialTouchpoint(key){
   var t=trialTouchpoints.find(function(x){return x.key===key;});
   if(!t)return;
+  /* This is the switch that was actually used. Turning OFF is always allowed. */
+  if(!t.is_enabled&&trialIsDraft(t)){
+    showToast('"'+t.label+'" still has a note to yourself in square brackets — write the real '+
+              'wording first, or a customer receives the note.','error');
+    return;
+  }
   supa.from('trial_touchpoints').update({is_enabled:!t.is_enabled}).eq('key',key).then(function(res){
     if(res.error){ showToast('Could not change that: '+res.error.message,'error'); return; }
     loadTrialCare();
@@ -2626,7 +2682,11 @@ function trialDryRun(){
     var lines=Object.keys(d.breakdown||{}).map(function(k){return '  '+k+': '+d.breakdown[k];});
     var sample=(d.sample||[]).map(function(s){
       return '  '+s.to+'  ->  '+s.touchpoint+'   ('+s.missions+' missions, day '+s.day+
-             (s.days_left!=null?(', '+s.days_left+' left'):'')+')'+
+             (s.days_left!=null?(', '+s.days_left+' left'):'')+
+             /* The single most consequential fact about this person: will they
+                be charged if they do nothing? It decides which half of the
+                copy they read. */
+             (s.card?', CARD ON FILE':', no card')+')'+
              (s.held_back&&s.held_back.length?'\n      held back until tomorrow: '+s.held_back.join(', '):'')+
              /* Passed long before we wrote to them. Closed off, never sent -
                 worth showing, because it is mail somebody does NOT get. */
@@ -2635,6 +2695,7 @@ function trialDryRun(){
     alert('People in a trial considered: '+(d.considered||0)+
           '\nEmails it would send: '+(d.would_send||0)+
           (d.excluded_internal?'\nOur own staff accounts, skipped: '+d.excluded_internal:'')+
+          (d.with_card_on_file!=null?'\nOf those, card on file (will be charged): '+d.with_card_on_file:'')+
           (lines.length?'\n\nBy touchpoint:\n'+lines.join('\n'):'')+
           (sample.length?'\n\nWho:\n'+sample.join('\n'):'')+
           '\n\nNothing was sent — this was a check.');
@@ -2651,7 +2712,13 @@ function sendTrialTest(){
     b.textContent='Send a test to me';b.disabled=false;
     var d=(res&&res.data)||{};
     if(res&&res.error){ trialMsg('Could not reach the job: '+(res.error.message||res.error),false); return; }
-    if(d.ok){ trialMsg('Sent to '+d.to+' — "'+d.subject+'". Merge fields used sample numbers.',true); return; }
+    if(d.ok){
+      /* Both halves, or the copy does not branch and one is all there is. */
+      trialMsg(d.variants===2
+        ? 'Sent BOTH versions to '+d.to+' — one as somebody with a card on file, one without. Read both.'
+        : 'Sent to '+d.to+' — "'+d.subject+'". Merge fields used sample numbers.', true);
+      return;
+    }
     trialMsg(d.error||'The test did not send.',false);
   });
 }

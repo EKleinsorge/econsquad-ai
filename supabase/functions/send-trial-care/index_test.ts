@@ -33,6 +33,7 @@ function person(o: Record<string, unknown> = {}): any {
     created_at: daysAgo(6), trial_end: null, greetings_token: 'tok',
     canceled_at: null, audience: 'trial', daysSinceCancel: null,
     missions: 0, hours: 0, topSpecialist: null, missionDates: [],
+    stripe_customer_id: null, hasCard: false,
     daysSinceSignup: 6, daysToTrialEnd: 8,
     ...o,
   };
@@ -111,6 +112,51 @@ ok('one milestone alone is never superseded',        supersededMilestones(ROSTER
 ok('a churned person still gets no trial mail',      matches(FIRST_WIN, person({ audience: 'cancelled', missions: 1, missionDates: [daysAgo(1)] }), NOW) === false);
 ok('a disabled milestone stays disabled',            dueFor([{ ...FIRST_WIN, is_enabled: false }], isaac, NONE, NOW).length === 0);
 ok('an already-sent milestone does not repeat',      dueFor(ROSTER, isaac, new Set(['first_win']), NOW).length === 0);
+
+console.log('\nTWO KINDS OF TRIAL MEMBER — the difference is money');
+const { hasCardOnFile, applyConditionals, fillTemplate } = M as any;
+const TEMPLATE = 'Hello {{name}},\n\n[[no_card]]Nothing is charged and there is nothing to cancel.[[/no_card]][[card]]Your card is on file, so you will be charged unless you cancel.[[/card]]\n\nEric';
+const carded   = person({ hasCard: true,  stripe_customer_id: 'cus_1' });
+const uncarded = person({ hasCard: false, stripe_customer_id: null });
+
+ok('a stripe customer has a card',              hasCardOnFile({ stripe_customer_id: 'cus_1' }) === true);
+ok('a trialing subscription has a card',        hasCardOnFile({ subscription_status: 'trialing' }) === true);
+ok('past_due still means a card is on file',    hasCardOnFile({ subscription_status: 'past_due' }) === true);
+ok('no customer and no status means no card',   hasCardOnFile({ stripe_customer_id: null, subscription_status: null }) === false);
+ok('canceled alone is not a card',              hasCardOnFile({ subscription_status: 'canceled' }) === false);
+
+const withCard = fillTemplate(TEMPLATE, carded);
+const noCard   = fillTemplate(TEMPLATE, uncarded);
+ok('a card-holder is never told nothing is charged', withCard.indexOf('nothing to cancel') === -1);
+ok('a card-holder is told they will be charged',     withCard.indexOf('you will be charged') !== -1);
+ok('someone with no card is not told to cancel',     noCard.indexOf('unless you cancel') === -1);
+ok('no marker survives either render',               withCard.indexOf('[[') === -1 && noCard.indexOf('[[') === -1);
+ok('the two versions really differ',                 withCard !== noCard);
+ok('an unclosed tag never reaches a customer',       applyConditionals('a [[card]] b', carded).indexOf('[[') === -1);
+ok('a stray closing tag never reaches one either',   applyConditionals('a [[/no_card]] b', carded).indexOf('[[') === -1);
+ok('text with no tags is left alone',                applyConditionals('plain text', carded) === 'plain text');
+ok('a dropped branch leaves no blank-line scar',     applyConditionals('one\n\n[[no_card]]two[[/no_card]]\n\nthree', carded) === 'one\n\nthree');
+
+console.log('\nA DRAFT MUST NOT BE ABLE TO SEND ITSELF');
+const { isDraft } = M as any;
+const NEWS_BODY = 'Hello {{name}},\n\nIt has been a few weeks, so a short note rather than a campaign.\n\n[WRITE THIS BEFORE SWITCHING IT ON. Two or three lines on what has actually changed since they left.]\n\nEric';
+const WINBACK_NEWS = tp({ key: 'winback_news', when_kind: 'days_after_cancel', when_value: 45,
+                          audience: 'cancelled', body: NEWS_BODY, is_enabled: true, sort_order: 70 });
+const churned = person({ audience: 'cancelled', daysSinceCancel: 45, subscription_status: 'canceled',
+                         canceled_at: daysAgo(45) });
+
+ok('the real winback_news body is a draft',      isDraft(WINBACK_NEWS) === true);
+ok('finished copy is not',                       isDraft(tp({ body: 'Hello there.\n\nGmail now stays connected.\n\nEric' })) === false);
+ok('a card tag is syntax, not a placeholder',    isDraft(tp({ body: 'a [[no_card]]nothing is charged and there is nothing at all to cancel[[/no_card]] b' })) === false);
+ok('a short bracketed aside is allowed',         isDraft(tp({ body: 'the roster [22 of them] is complete' })) === false);
+ok('a placeholder in the subject counts too',    isDraft(tp({ subject: '[SUBJECT STILL TO BE WRITTEN BEFORE THIS GOES OUT]', body: 'ok' })) === true);
+
+ok('SWITCHED ON, it is still not sent',          dueFor([WINBACK_NEWS], churned, NONE, NOW).length === 0);
+ok('...and it does not silently vanish either',  isDraft(WINBACK_NEWS) && WINBACK_NEWS.is_enabled);
+ok('the same touchpoint finished DOES send',
+   dueFor([{ ...WINBACK_NEWS, body: 'Hello,\n\nGmail now stays connected.\n\nEric' }], churned, NONE, NOW).length === 1);
+ok('a draft is never recorded as superseded',
+   supersededMilestones([{ ...FIRST_WIN, body: NEWS_BODY }, MOMENTUM], fast, NONE, NOW).indexOf('first_win') === -1);
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 if (fail) Deno.exit(1);
