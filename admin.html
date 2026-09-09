@@ -192,6 +192,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-item" onclick="showAdminSection('requests',this)">✦ Custom Requests</div>
     <div class="sidebar-section">Users</div>
     <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users</div>
+    <div class="sidebar-item" onclick="showAdminSection('quotes',this);loadQuotes()">💼 Team Quotes<span id="quotes-dot" style="display:none;margin-left:7px;background:#aaff3e;color:#0a1a00;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
     <div class="sidebar-section">Communication</div>
     <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
@@ -398,6 +399,28 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
     </div>
 
+
+    <!-- TEAM QUOTES -->
+    <div id="section-quotes" class="admin-section">
+      <div class="page-title">Team Quotes</div>
+      <div class="page-sub">Requests from the Team card on the pricing page. Until 9 September that button was a mailto: link, which did nothing at all on a browser with no mail app registered &mdash; so anything before that date was never captured. Nobody here has given a card or account number: the form asks only how they would <em>like</em> to pay.</div>
+
+      <div class="chips" style="margin-bottom:18px;">
+        <div class="chip active" id="qtab-all"       onclick="quotesTab('')">All</div>
+        <div class="chip"        id="qtab-new"       onclick="quotesTab('new')">New</div>
+        <div class="chip"        id="qtab-contacted" onclick="quotesTab('contacted')">Contacted</div>
+        <div class="chip"        id="qtab-quoted"    onclick="quotesTab('quoted')">Quoted</div>
+        <div class="chip"        id="qtab-won"       onclick="quotesTab('won')">Won</div>
+        <div class="chip"        id="qtab-lost"      onclick="quotesTab('lost')">Lost</div>
+      </div>
+
+      <div class="admin-card">
+        <table>
+          <thead><tr><th>Organisation</th><th>Who</th><th>Seats</th><th>Wants to pay</th><th>Needed by</th><th>Came from</th><th>When</th><th>Status</th></tr></thead>
+          <tbody id="quotes-table"></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- TRIAL CARE -->
     <div id="section-outreach" class="admin-section">
@@ -1780,12 +1803,23 @@ function showToast(msg,type){
    admin.html#reports; without this the hash was ignored and every alert
    dumped you on the Overview to go hunting. Any section name works —
    #reports, #users, #revenue — and the sidebar highlight follows. */
+/* Sections that need to fetch something when they are opened by a #hash link
+   rather than by clicking the sidebar. The sidebar items call their loader
+   themselves in their onclick; a deep link has nobody to do that, so without
+   this a link to #quotes shows a section with an empty table and no
+   explanation. Only sections listed here are affected. */
+var ESQ_SECTION_LOADERS = {
+  quotes: function(){ if(typeof loadQuotes === 'function') loadQuotes(); }
+};
+
 function esqAdminHashRoute(){
   try{
     var name=(location.hash||'').replace(/^#/,'').split(/[/?]/)[0].trim();
     if(!name) return;
     if(!document.getElementById('section-'+name)) return;
     showAdminSection(name, null);
+    var load=ESQ_SECTION_LOADERS[name];
+    if(load) load();
   }catch(e){}
 }
 window.addEventListener('hashchange', esqAdminHashRoute);
@@ -2881,6 +2915,119 @@ function fetchAll(table, cols, tweak){
     });
   }
   return page(0);
+}
+
+/* ═══════════════════════════════════════
+   TEAM QUOTES
+   ───────────────────────────────────────
+   The Team card's button used to be a mailto:, which on a browser with no mail
+   handler registered did nothing whatsoever - no error, no tab, nothing. It is
+   now a form that writes here first and emails second, deliberately in that
+   order: if Resend is down, a request sitting in this table with email_error
+   set can still be answered, whereas a request that was only ever an email
+   attempt is simply gone. The amber "not emailed" line below is how that
+   becomes visible rather than silent.
+   ═══════════════════════════════════════ */
+var Q_FILTER = '';
+
+function quotesTab(st){
+  Q_FILTER = st;
+  ['all','new','contacted','quoted','won','lost'].forEach(function(k){
+    var el=document.getElementById('qtab-'+k);
+    if(el) el.classList.toggle('active', (k==='all'?'':k)===st);
+  });
+  loadQuotes();
+}
+
+var Q_PAY = {card:'Credit card', invoice:'PO / invoice', check:'Check or ACH', unsure:'Not sure yet'};
+var Q_STATUS = ['new','contacted','quoted','won','lost','spam'];
+var Q_SCOL = {new:'#aaff3e', contacted:'#8fbfff', quoted:'#f5c542', won:'#4ade80', lost:'#6b7a96', spam:'#ff8080'};
+
+function loadQuotes(){
+  var tb=document.getElementById('quotes-table');
+  if(!tb) return;
+  tb.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:20px;">Loading…</td></tr>';
+
+  var sel=supa.from('quote_requests').select('*');
+  if(Q_FILTER) sel=sel.eq('status', Q_FILTER);
+
+  sel.order('created_at',{ascending:false}).limit(500).then(function(res){
+    if(res.error){
+      tb.innerHTML='<tr><td colspan="8" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+
+        '<br><small style="color:#6b7a96;">If this says the table does not exist, 20260909_quote_requests.sql has not been run yet.</small></td></tr>';
+      return;
+    }
+    var rows=res.data||[];
+
+    /* A count on the sidebar, so a request does not wait for somebody to think
+       of looking at this page. */
+    supa.from('quote_requests').select('id',{count:'exact',head:true}).eq('status','new')
+      .then(function(c){
+        var dot=document.getElementById('quotes-dot');
+        if(!dot) return;
+        if(c.count){ dot.textContent=c.count; dot.style.display='inline-block'; }
+        else dot.style.display='none';
+      });
+
+    if(!rows.length){
+      tb.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:24px;">'+
+        (Q_FILTER?'Nothing with that status.':'No quote requests yet.')+'</td></tr>';
+      return;
+    }
+
+    tb.innerHTML = rows.map(function(r){
+      var when=new Date(r.created_at);
+      var who='<div style="color:#eef3fc;">'+esqEsc(r.full_name)+'</div>'
+        + (r.role_title?'<div style="font-size:11px;color:#6b7a96;">'+esqEsc(r.role_title)+'</div>':'')
+        + '<div style="font-size:12px;"><a href="mailto:'+esqEsc(r.email)+'" style="color:#8fbfff;">'+esqEsc(r.email)+'</a></div>'
+        + (r.phone?'<div style="font-size:12px;color:#8a97b5;">'+esqEsc(r.phone)+'</div>':'');
+
+      var opts=Q_STATUS.map(function(s){
+        return '<option value="'+s+'"'+(s===r.status?' selected':'')+'>'+s+'</option>';
+      }).join('');
+
+      var main='<tr style="vertical-align:top;">'
+        + '<td><div style="color:#eef3fc;font-weight:600;">'+esqEsc(r.organization)+'</div></td>'
+        + '<td>'+who+'</td>'
+        + '<td style="font-size:13px;">'+(r.seats||'—')+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;">'+esqEsc(Q_PAY[r.payment_pref]||'—')+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;">'+esqEsc(r.timeline||'—')+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;">'+esqEsc(r.acq_channel||'—')
+          + (r.acq_campaign?'<div style="font-size:11px;color:#4a5568;">'+esqEsc(r.acq_campaign)+'</div>':'')+'</td>'
+        + '<td style="font-size:12px;color:#8a97b5;white-space:nowrap;">'+when.toLocaleDateString()+
+          '<div style="font-size:11px;color:#4a5568;">'+when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</div></td>'
+        + '<td><select onchange="setQuoteStatus('+r.id+',this.value,this)" '
+          + 'style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;'
+          + 'padding:5px 8px;font-size:12px;color:'+(Q_SCOL[r.status]||'#eef3fc')+';font-family:\'DM Sans\',sans-serif;">'
+          + opts+'</select></td>'
+        + '</tr>';
+
+      /* The notes, and the one warning that matters. */
+      var extra='';
+      if(r.notes){
+        extra += '<div style="margin-bottom:8px;color:#c8d4e6;white-space:pre-wrap;">'+esqEsc(r.notes)+'</div>';
+      }
+      if(!r.emailed_at){
+        extra += '<div style="color:#f5c542;">⚠ This request was saved but the notification email did not go out'
+          + (r.email_error?' — '+esqEsc(r.email_error):'')
+          + '. Answer it from here; nothing reached your inbox.</div>';
+      }
+      if(extra){
+        main += '<tr><td colspan="8" style="padding:0 14px 14px;border-top:none;font-size:12.5px;line-height:1.6;">'+extra+'</td></tr>';
+      }
+      return main;
+    }).join('');
+  });
+}
+
+function setQuoteStatus(id, status, el){
+  if(el) el.disabled=true;
+  supa.from('quote_requests').update({status:status}).eq('id',id).then(function(res){
+    if(el) el.disabled=false;
+    if(res.error){ alert('Could not update: '+res.error.message); return; }
+    if(el) el.style.color = Q_SCOL[status] || '#eef3fc';
+    loadQuotes();
+  });
 }
 
 function loadOutreach(){

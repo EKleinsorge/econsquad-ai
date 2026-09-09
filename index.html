@@ -407,8 +407,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .modal-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
 .form-field{margin-bottom:14px;}
 .form-field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase;}
-.form-field input,.form-field select{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
-.form-field input:focus,.form-field select:focus{border-color:rgba(170,255,62,0.4);}
+.form-field input,.form-field select,.form-field textarea{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:rgba(170,255,62,0.4);}
 .form-field select option{background:#0d1220;color:var(--text);}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .modal-btn{width:100%;background:var(--lime);color:#1a3300;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;transition:opacity .2s;}
@@ -2106,7 +2106,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             <div class="price-amount" id="price-starter">
               <span class="sym">$</span><span id="starter-amt">49</span><span class="per" id="starter-per">/mo</span>
             </div>
-            <div id="starter-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $98/year</div>
+            <div id="starter-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:left;margin:6px 0 12px;font-weight:600;">Save $98/year</div>
             <div class="price-desc">The essential AI toolkit for economic developers ready to work smarter.</div>
             <hr class="price-divider">
             <ul class="price-features">
@@ -2130,7 +2130,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             <div class="price-amount" id="price-pro">
               <span class="sym">$</span><span id="pro-amt">99</span><span class="per" id="pro-per">/mo</span>
             </div>
-            <div id="pro-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:center;margin:-8px 0 8px;font-weight:600;">Save $198/year</div>
+            <div id="pro-savings" style="display:none;font-size:12px;color:#aaff3e;text-align:left;margin:6px 0 12px;font-weight:600;">Save $198/year</div>
             <div class="price-desc">The full EconSquad experience. AI-powered command center connected to everything on your plate.</div>
             <hr class="price-divider">
             <ul class="price-features">
@@ -2158,7 +2158,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             <div class="price-amount" style="padding-top:2px;">
               <span class="sym">$</span><span>4,950</span><span class="per">/yr</span>
             </div>
-            <div style="font-size:12px;color:#aaff3e;text-align:center;margin:6px 0 12px;font-weight:600;letter-spacing:.01em;">5 seats &middot; 6th seat included</div>
+            <div style="font-size:12px;color:#aaff3e;text-align:left;margin:6px 0 12px;font-weight:600;letter-spacing:.01em;">5 seats &middot; 6th seat included</div>
             <!-- "Level up" is not borrowed marketing language - it is what the
                  product already says to a member every day: Lvl 4, Squad
                  Leader, XP, badges. The pricing page and the dashboard should
@@ -5156,8 +5156,183 @@ function launchStripeCheckout(plan){
           function(){ go(false); });
 }
 
+/* ═══════════════════════════════════════
+   REQUEST A QUOTE
+   ───────────────────────────────────────
+   This used to be window.location.href='mailto:...'. On a browser with no mail
+   handler registered - Chrome on Windows with webmail, which describes most of
+   the public-sector buyers the Team card is written for - a mailto: does
+   NOTHING. No error, no new tab, no feedback of any kind. The button on the
+   $4,950 card was silently dead for a large share of the people most likely to
+   press it, and nothing recorded that they had tried. Eric found it by
+   clicking it.
+
+   ⚠️ THIS FORM NEVER ASKS HOW THEY WILL PAY, ONLY HOW THEY WOULD LIKE TO.
+   Card / PO / check is a word. No card number, expiry, CVC, routing or account
+   number is requested here, and the edge function refuses the submission
+   outright if one turns up in a free-text field rather than storing it.
+   ═══════════════════════════════════════ */
 function contactEnterprise(){
-  window.location.href='mailto:hello@econsquad.ai?subject=Team%20Plan%20-%20request%20a%20quote&body=Hi%2C%20I%27m%20interested%20in%20the%20Enterprise%20plan%20for%20EconSquad%20AI.';
+  if(document.getElementById('quote-overlay')) return;   /* already open */
+
+  var ov=document.createElement('div');
+  ov.id='quote-overlay';
+  ov.className='modal-overlay show';
+  ov.style.zIndex='999999';
+
+  ov.innerHTML=
+    '<div class="modal-box" style="width:560px;max-height:92vh;overflow:auto;">'+
+      '<button class="modal-close" type="button" id="q-x">&#10005;</button>'+
+      '<div id="q-form-wrap">'+
+        '<div class="modal-eyebrow">Team plan &middot; $4,950/yr</div>'+
+        '<h2 class="modal-h2">Level up your <span>entire staff</span></h2>'+
+        '<div class="modal-sub">Tell us a little about your office and we will send a written quote '+
+          'you can take to a board or drop into a purchase order. No card needed to ask.</div>'+
+
+        '<div class="form-row">'+
+          '<div class="form-field"><label>Your name *</label>'+
+            '<input id="q-name" type="text" placeholder="Dana Reyes" autocomplete="name"></div>'+
+          '<div class="form-field"><label>Phone</label>'+
+            '<input id="q-phone" type="tel" placeholder="315-555-0142" autocomplete="tel"></div>'+
+        '</div>'+
+        '<div class="form-field"><label>Organization *</label>'+
+          '<input id="q-org" type="text" placeholder="Ontario County IDA" autocomplete="organization"></div>'+
+        '<div class="form-row">'+
+          '<div class="form-field"><label>Work email *</label>'+
+            '<input id="q-email" type="email" placeholder="dana@ontariocountyida.org" autocomplete="email"></div>'+
+          '<div class="form-field"><label>Your role</label>'+
+            '<input id="q-role" type="text" placeholder="Executive Director" autocomplete="organization-title"></div>'+
+        '</div>'+
+        '<div class="form-row">'+
+          '<div class="form-field"><label>People to cover</label>'+
+            '<input id="q-seats" type="number" min="1" max="5000" value="5"></div>'+
+          '<div class="form-field"><label>How you would like to pay</label>'+
+            '<select id="q-pay">'+
+              '<option value="">Select&hellip;</option>'+
+              '<option value="invoice">Purchase order / invoice</option>'+
+              '<option value="check">Check or bank transfer (ACH)</option>'+
+              '<option value="card">Credit card</option>'+
+              '<option value="unsure">Not sure yet</option>'+
+            '</select></div>'+
+        '</div>'+
+        '<div class="form-field"><label>When do you need this by</label>'+
+          '<input id="q-when" type="text" placeholder="Board meets October 14"></div>'+
+        '<div class="form-field"><label>Anything else we should know</label>'+
+          '<textarea id="q-notes" rows="3" placeholder="Who the seats are for, what you are hoping to get out of it, questions about the contract."></textarea></div>'+
+
+        /* Hidden from people, irresistible to form bots. Anything that fills
+           this in is not a person, and the server drops it silently. */
+        '<div style="position:absolute;left:-9999px;" aria-hidden="true">'+
+          '<label>Website</label><input id="q-website" type="text" tabindex="-1" autocomplete="off"></div>'+
+
+        '<div id="q-err" style="display:none;background:rgba(255,90,90,0.09);border:1px solid rgba(255,90,90,0.35);'+
+          'color:#ff9b9b;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin:4px 0 10px;"></div>'+
+
+        '<button class="modal-btn" type="button" id="q-send">Send my quote request</button>'+
+        '<p class="modal-note">We reply the same business day. '+
+          'We will never ask for card or account numbers by email.</p>'+
+      '</div>'+
+
+      '<div id="q-done" style="display:none;text-align:center;padding:14px 0 6px;">'+
+        '<div style="font-size:42px;line-height:1;margin-bottom:14px;">&#9989;</div>'+
+        '<h2 class="modal-h2">That is <span>with us</span></h2>'+
+        '<div class="modal-sub" id="q-done-msg" style="margin-bottom:22px;"></div>'+
+        '<button class="modal-btn" type="button" id="q-done-x">Close</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  function close(){
+    if(ov.parentNode) ov.parentNode.removeChild(ov);
+    document.removeEventListener('keydown', onKey);
+  }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
+  document.getElementById('q-x').addEventListener('click', close);
+  document.getElementById('q-done-x').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', onKey);
+
+  var nameEl=document.getElementById('q-name');
+  if(nameEl) nameEl.focus();
+
+  /* Prefill for somebody already signed in who is asking about upgrading their
+     office. Retyping what the product already knows is a small insult. */
+  try{
+    if(typeof currentUser!=='undefined' && currentUser && currentUser.email){
+      document.getElementById('q-email').value=currentUser.email;
+      var mn=(currentUser.user_metadata||{}).full_name;
+      if(mn) nameEl.value=mn;
+    }
+  }catch(e){}
+
+  var errEl=document.getElementById('q-err');
+  function showErr(msg){
+    errEl.textContent=msg;
+    errEl.style.display='block';
+    errEl.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+
+  document.getElementById('q-send').addEventListener('click', function(){
+    var btn=this;
+    var val=function(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; };
+
+    var name=val('q-name'), org=val('q-org'), email=val('q-email');
+    /* Checked here as well as on the server so the common mistakes cost a
+       glance rather than a round trip. The server still checks everything. */
+    if(!name){ showErr('Please tell us your name.'); return; }
+    if(!org){  showErr('Please tell us which organization this is for.'); return; }
+    if(!/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)){ showErr('That email address does not look right.'); return; }
+    if(!val('q-pay')){ showErr('Let us know how you would like to pay - a purchase order and a credit card are handled quite differently.'); return; }
+
+    errEl.style.display='none';
+    btn.disabled=true;
+    btn.textContent='Sending…';
+
+    /* The first-touch record that profiles.acq_* uses. A Team lead arriving
+       with no channel is a hole in the CAC numbers, and this is the card where
+       the money is. */
+    var acq=null;
+    try{ acq=JSON.parse(localStorage.getItem('esq_acq')||'null'); }catch(e){}
+
+    var payload={
+      full_name:name, organization:org, email:email,
+      phone:val('q-phone'), role_title:val('q-role'),
+      seats:parseInt(val('q-seats'),10)||null,
+      payment_pref:val('q-pay'),
+      timeline:val('q-when'), notes:val('q-notes'),
+      website:val('q-website'),
+      acq:acq?{channel:acq.channel,campaign:acq.campaign,source:acq.source,
+               landing:acq.landing,referrer:acq.referrer}:null
+    };
+
+    fetch(SUPA_URL+'/functions/v1/request-quote',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify(payload)
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){ return {status:r.status,body:j}; });
+    }).then(function(res){
+      if(res.status>=200 && res.status<300 && res.body && res.body.ok){
+        document.getElementById('q-form-wrap').style.display='none';
+        document.getElementById('q-done-msg').innerHTML=
+          'We have your request for <strong style="color:#eef3fc;">'+
+          esqEscapeHtml(org)+'</strong>. A written quote is on its way to '+
+          '<strong style="color:#eef3fc;">'+esqEscapeHtml(email)+'</strong>, usually the same business day.';
+        document.getElementById('q-done').style.display='block';
+        return;
+      }
+      /* The server's own message is the useful one - it is what explains a
+         refused card number - so show it rather than a generic failure. */
+      showErr((res.body && res.body.error) ||
+        'We could not send that just now. Please email eric@econsquad.ai and we will pick it up.');
+      btn.disabled=false; btn.textContent='Send my quote request';
+    }).catch(function(e){
+      console.warn('[quote] request failed:', e && e.message);
+      showErr('We could not reach the server. Please check your connection, or email eric@econsquad.ai and we will pick it up.');
+      btn.disabled=false; btn.textContent='Send my quote request';
+    });
+  });
 }
 
 /* `signedIn` is passed in rather than read from currentUser, because the
