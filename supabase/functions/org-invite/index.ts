@@ -53,6 +53,45 @@ export function validEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(s);
 }
 
+/* ── ⚠️ Does that domain actually exist ────────────────────────────────
+   A mistyped address is a SILENT failure and always has been: the row saves,
+   the panel says INVITED, a seat is held, the mail provider accepts it, and
+   nobody ever finds out. Eric lost a test to exactly this - one extra letter
+   in the domain, gslobaltrademag.com instead of globaltrademag.com, which does
+   not resolve at all.
+
+   A spelling mistake is catchable at the only moment anybody can fix it: while
+   they are still looking at the box they typed it into.
+
+   Returns true / false / null, and NULL MEANS "could not tell". Fails open on
+   purpose: DNS being slow, or the runtime not offering resolveDns at all, must
+   never stop a real invitation going out. This only refuses when the answer
+   comes back clearly and says the domain is not there. */
+export async function domainResolves(email: string): Promise<boolean | null> {
+  const domain = (email.split('@')[1] || '').trim().toLowerCase();
+  if (!domain) return false;
+
+  const dns = (Deno as unknown as {
+    resolveDns?: (q: string, t: string, o?: unknown) => Promise<unknown[]>;
+  }).resolveDns;
+  if (typeof dns !== 'function') return null;
+
+  const look = (async (): Promise<boolean> => {
+    // MX first, because that is what actually carries the mail. A record as a
+    // fallback: plenty of small domains still accept mail without an MX.
+    try { const mx = await dns(domain, 'MX'); if (mx && mx.length) return true; } catch { /* keep going */ }
+    try { const a  = await dns(domain, 'A');  if (a  && a.length)  return true; } catch { /* keep going */ }
+    return false;
+  })();
+
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+  try {
+    return await Promise.race([look, timeout]);
+  } catch {
+    return null;
+  }
+}
+
 /* ── The invitation itself ──────────────────────────────────────────────
    Deliberately plain. It is going to a colleague who was told to expect it,
    often through a public-sector mail filter that dislikes heavy markup, and
@@ -74,8 +113,8 @@ export function inviteEmail(o: {
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:32px 34px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16202e;">
   <tr><td>
     <div style="font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:#5a6a80;margin-bottom:6px;">EconSquad AI</div>
-    <h1 style="font-size:22px;line-height:1.3;margin:0 0 16px;">${esc(o.firstName || 'Hello')}, you have a seat on ${esc(o.orgName)}'s team</h1>
-    <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${esc(o.inviterName)} has added you to ${esc(o.orgName)}'s EconSquad AI account &mdash; 22 AI specialists built for economic development work.</p>
+    <h1 style="font-size:22px;line-height:1.3;margin:0 0 16px;">${esc(o.firstName || 'Hello')}, you have a seat at ${esc(o.orgName)}</h1>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.6;">${esc(o.inviterName)} has added you to ${esc(o.orgName)} on EconSquad AI &mdash; 22 AI specialists built for economic development work.</p>
     ${extraLine}
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">Set your own password and you are in. It takes about a minute.</p>
     <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:9px;background:#12212f;">
@@ -163,6 +202,17 @@ Deno.serve(async (req: Request) => {
       const last  = clean(body.last_name, 80);
       if (!validEmail(email)) return json({ ok: false, error: 'That email address does not look right.' }, 400);
 
+      // Caught here rather than discovered a week later when nobody turns up.
+      const domain = email.split('@')[1] || '';
+      const resolves = await domainResolves(email);
+      if (resolves === false) {
+        console.warn('org-invite: refusing, domain does not resolve:', domain);
+        return json({
+          ok: false,
+          error: 'There is no mail server for "' + domain + '". Check the spelling — nothing was sent and no seat was used.',
+        }, 400);
+      }
+
       // ⚠️ THE ESCALATION RULE, RE-STATED. The database trigger is not
       // watching the service role, so it is enforced here instead: only the
       // owner may hand out permissions, whatever the body asks for.
@@ -236,7 +286,10 @@ Deno.serve(async (req: Request) => {
           from: FROM_EMAIL,
           to: [String(inv.email)],
           reply_to: REPLY_TO,
-          subject: `You have a seat on ${org.name}'s EconSquad AI team`,
+          // ⚠️ No possessive and no trailing "team". "GSLI Test Team's team"
+          // is what the first version produced, because the wording assumed
+          // the organisation was not already called one.
+          subject: `Your EconSquad AI seat at ${org.name}`,
           html: inviteEmail({
             orgName: String(org.name),
             inviterName,

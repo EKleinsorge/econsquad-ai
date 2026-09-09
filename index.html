@@ -1534,14 +1534,14 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             </div>
 
             <div style="padding:6px 4px;">
-              <label for="logo-upload" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+              <label for="logo-upload" id="pm-logo-label" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <div style="width:32px;height:32px;border-radius:50%;border:1.5px dashed rgba(170,255,62,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;" id="logo-preview-sm">
                   <img id="logo-preview-img" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="">
                   <span id="logo-preview-icon" style="font-size:14px;">🏙️</span>
                 </div>
                 <div>
-                  <div style="font-size:12px;font-weight:600;color:#eef3fc;">Upload community logo</div>
-                  <div style="font-size:10px;color:#6b7a96;">PNG, JPG — appears in nav</div>
+                  <div id="pm-logo-title" style="font-size:12px;font-weight:600;color:#eef3fc;">Upload community logo</div>
+                  <div id="pm-logo-sub" style="font-size:10px;color:#6b7a96;">PNG, JPG — appears in nav</div>
                 </div>
                 <input type="file" id="logo-upload" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
               </label>
@@ -16463,14 +16463,27 @@ function esqTeamLoad(){
           ESQ_TEAM = {
             orgId: o.id, orgName: o.name, status: o.status,
             role: m.role, canProfile: m.can_edit_profile, canSeats: m.can_manage_seats,
-            seatsTotal: (o.seats_paid||0) + (o.seats_free||0)
+            seatsTotal: (o.seats_paid||0) + (o.seats_free||0),
+            personalPaid: false
           };
           if(row){
             row.style.display = 'block';
             var sub = document.getElementById('pm-team-sub');
             if(sub) sub.textContent = o.name;
           }
-          return ESQ_TEAM;
+          /* Somebody may hold a seat AND pay for their own subscription. The
+             seat must never hide their own billing from them. */
+          return supa.from('profiles').select('subscription_status')
+            .eq('id', currentUser.id).limit(1)
+            .then(function(r3){
+              var pr = r3 && r3.data && r3.data.length ? r3.data[0] : null;
+              var st = String((pr && pr.subscription_status) || '');
+              ESQ_TEAM.personalPaid = (st === 'active' || st === 'past_due');
+              esqApplyCover();
+              esqLabelLogoRow();
+              esqLoadTeamLogo();
+              return ESQ_TEAM;
+            });
         });
     })
     .catch(function(e){
@@ -16549,13 +16562,17 @@ function openTeamPanel(){
   esqLoadRoster();
 }
 
-function esqMsg(kind, text){
+/* sticky: stays until something replaces it. Used for "invitation sent to
+   <address>", because that line is the only chance anybody has to spot a typo
+   in the address, and a message that fades after six seconds is a message the
+   person was probably not looking at. */
+function esqMsg(kind, text, sticky){
   var e = document.getElementById('t-err'), o = document.getElementById('t-ok');
   if(!e || !o) return;
   e.style.display = 'none'; o.style.display = 'none';
   var el = (kind === 'ok') ? o : e;
   el.textContent = text; el.style.display = 'block';
-  if(kind === 'ok') setTimeout(function(){ if(el) el.style.display='none'; }, 6000);
+  if(kind === 'ok' && !sticky) setTimeout(function(){ if(el) el.style.display='none'; }, 6000);
 }
 
 /* ── Who is on the team ────────────────────────────────────────────── */
@@ -16734,7 +16751,8 @@ function esqPostInvite(payload, done){
                    '). The invitation is listed below - try Resend in a minute.');
         return;
       }
-      done(true, 'Invitation sent to ' + j.email + '. It is good for 14 days.');
+      done(true, 'Invitation sent to ' + j.email + ' — check that address is right. ' +
+                 'It is good for 14 days, and you can withdraw it above.');
     })
     .catch(function(e){ done(false, 'Could not reach the server: ' + (e && e.message ? e.message : e)); });
 }
@@ -16758,7 +16776,7 @@ function esqSendInvite(){
   btn.disabled = true; btn.textContent = 'Sending…';
   esqPostInvite(payload, function(ok, msg){
     btn.disabled = false; btn.textContent = 'Send the invitation';
-    esqMsg(ok ? 'ok' : 'err', msg);
+    esqMsg(ok ? 'ok' : 'err', msg, true);
     if(ok){
       document.getElementById('t-email').value = '';
       document.getElementById('t-first').value = '';
@@ -16901,6 +16919,210 @@ function esqPostAccept(payload, done){
     .catch(function(){ done(null); });
 }
 
+
+/* ═══════════════════════════════════════
+   WHAT A SEAT ACTUALLY COVERS
+   ───────────────────────────────────────
+   Rick accepted a seat Eric had already paid for, and the app told him:
+   "TRIAL — 14 DAYS FREE", "14 DAYS LEFT IN TRIAL", and on the billing page
+   "you'll be billed $99/mo on 23 September. Choose your plan below."
+
+   ⚠️ THAT IS A CUSTOMER'S STAFF MEMBER BEING SOLD A SEAT HIS EMPLOYER
+      ALREADY BOUGHT. Not cosmetic - one click and he has paid twice.
+
+   Access itself was never at risk: specialist locking depends only on being
+   signed in, so the trial running out would not have shut him out. It would
+   just have turned the badge into "Upgrade →" and kept asking.
+
+   esq_user_entitlement was built for this and nothing read it. This does.
+
+   ⚠️ personalPaid IS THE EXCEPTION THAT MATTERS. Somebody can hold a seat and
+   also pay for their own subscription. Their own billing must never be hidden
+   from them, so an active or past_due personal subscription switches all of
+   this off, and even when it is on there is a way through to the real page.
+   ═══════════════════════════════════════ */
+function esqCovered(){
+  return !!(ESQ_TEAM && ESQ_TEAM.status === 'active' && ESQ_TEAM.personalPaid !== true);
+}
+
+function esqApplyCover(){
+  if(!esqCovered()) return;
+
+  var pb = document.getElementById('plan-badge');
+  var want = '⚡ Team seat';
+  if(pb && pb.textContent !== want){
+    pb.textContent = want;
+    pb.className = 'plan-badge pro';
+    pb.title = 'Covered by ' + ESQ_TEAM.orgName + ' — your organization pays for this seat.';
+    /* Assigning .onclick replaces the inline openBillingModal() attribute, so
+       the badge stops being a route to a checkout he does not need. */
+    pb.onclick = function(){ openTeamPanel(); };
+  }
+
+  var pm = document.getElementById('pm-plan');
+  var wantPm = '⚡ TEAM SEAT · ' + ESQ_TEAM.orgName;
+  if(pm && pm.textContent !== wantPm) pm.textContent = wantPm;
+}
+
+/* updatePlanBadge() writes the badge after its own async lookup finishes, so
+   there is no single moment to run after. Watching the two labels and putting
+   them back is self-healing and costs nothing; the text comparison above stops
+   it looping. */
+function esqWatchPlanLabels(){
+  if(!window.MutationObserver) return;
+  ['plan-badge','pm-plan'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    try{
+      new MutationObserver(function(){ esqApplyCover(); })
+        .observe(el, { childList:true, characterData:true, subtree:true });
+    }catch(e){}
+  });
+}
+
+function esqCoveredNotice(realBilling){
+  if(document.getElementById('cov-overlay')) return;
+  var ov = document.createElement('div');
+  ov.id = 'cov-overlay';
+  ov.className = 'modal-overlay show';
+  ov.style.zIndex = '1000001';
+  ov.innerHTML =
+    '<div class="modal-box" style="width:480px;max-width:94vw;">'+
+      '<button class="modal-close" type="button" id="cov-x">&#10005;</button>'+
+      '<div class="modal-eyebrow">'+esqEsc(ESQ_TEAM.orgName)+'</div>'+
+      '<h2 class="modal-h2">Your seat is <span>already paid for</span></h2>'+
+      '<div class="modal-sub">'+esqEsc(ESQ_TEAM.orgName)+' pays for your access to EconSquad AI. '+
+        'There is nothing to buy here and nothing to cancel, and no trial to run out. '+
+        'If you ever leave, you can start your own plan then.</div>'+
+      '<button class="modal-btn" type="button" id="cov-team">See my team</button>'+
+      '<p class="modal-note" style="margin-top:14px;">'+
+        'Wanted your own separate subscription as well? '+
+        '<a href="#" id="cov-anyway" style="color:#aaff3e;">Open billing anyway</a>.</p>'+
+    '</div>';
+  document.body.appendChild(ov);
+  function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+  document.getElementById('cov-x').onclick = close;
+  ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+  document.getElementById('cov-team').onclick = function(){ close(); openTeamPanel(); };
+  document.getElementById('cov-anyway').onclick = function(e){
+    e.preventDefault(); close();
+    if(typeof realBilling === 'function') realBilling();
+  };
+}
+
+(function(){
+  var orig = window.openBillingModal;
+  if(typeof orig !== 'function') return;
+  window.openBillingModal = function(){
+    if(!esqCovered()) return orig.apply(this, arguments);
+    esqCoveredNotice(function(){ orig.call(window); });
+  };
+})();
+
+/* ═══════════════════════════════════════
+   ONE LOGO PER ORGANISATION
+   ───────────────────────────────────────
+   Eric: "the person shows they can upload a logo vs. a View my Company".
+
+   Right, and worse than it looks: logo_url lives on profiles, one per user.
+   Six people at one EDO would each upload it, and any one of them could put up
+   a different one with nothing to stop them or even notice.
+
+   The team logo now lives on esq_org_profiles, one row per organisation, and
+   who may change it is the can_edit_profile tick and nothing else.
+   ═══════════════════════════════════════ */
+function esqCanEditProfile(){ return !!(ESQ_TEAM && (esqIsOwner() || ESQ_TEAM.canProfile)); }
+
+function esqLogoKey(){ return 'econsquad_logo:' + (currentUser ? currentUser.id : 'anon'); }
+
+function esqShowLogo(url){
+  try{ applyLogo(url); }catch(e){}
+  var img = document.getElementById('logo-preview-img');
+  var ic  = document.getElementById('logo-preview-icon');
+  if(img){ img.src = url; img.style.display = 'block'; }
+  if(ic) ic.style.display = 'none';
+  try{ localStorage.setItem(esqLogoKey(), url); }catch(e){}
+}
+
+function esqLoadTeamLogo(){
+  /* ⚠️ The old cache key was 'econsquad_logo' - the same for everybody using
+     this browser. Sign out, let a colleague sign in on the same machine, and
+     they were shown YOUR logo. That was wrong before teams existed and would
+     be embarrassing with them, so it goes on every load. */
+  try{ localStorage.removeItem('econsquad_logo'); }catch(e){}
+  if(!ESQ_TEAM) return;
+  supa.from('esq_org_profiles').select('logo_url').eq('org_id', ESQ_TEAM.orgId).limit(1)
+    .then(function(r){
+      var row = r && r.data && r.data.length ? r.data[0] : null;
+      if(row && row.logo_url) esqShowLogo(row.logo_url);
+    });
+}
+
+function esqLabelLogoRow(){
+  if(!ESQ_TEAM) return;                       /* on your own: exactly as before */
+  var t   = document.getElementById('pm-logo-title');
+  var sub = document.getElementById('pm-logo-sub');
+  var lab = document.getElementById('pm-logo-label');
+  var inp = document.getElementById('logo-upload');
+  if(!t || !sub) return;
+
+  t.textContent = 'Team logo';
+  if(esqCanEditProfile()){
+    sub.textContent = 'Shared with everyone at ' + ESQ_TEAM.orgName;
+  } else {
+    sub.textContent = 'Set by ' + ESQ_TEAM.orgName;
+    /* Not offered rather than offered-and-refused. Removing the "for" is what
+       actually stops the click opening a file picker. */
+    if(lab){ lab.removeAttribute('for'); lab.style.cursor = 'default'; }
+    if(inp) inp.disabled = true;
+  }
+}
+
+(function(){
+  var orig = window.handleLogoUpload;
+  if(typeof orig !== 'function') return;
+  window.handleLogoUpload = function(input){
+    if(!ESQ_TEAM) return orig.apply(this, arguments);   /* solo user, unchanged */
+
+    if(!esqCanEditProfile()){
+      /* Belt and braces. The row is not clickable for them, and the database
+         policy refuses it anyway. */
+      alert('The team logo is set by ' + ESQ_TEAM.orgName +
+            '. Ask whoever runs your team to change it.');
+      try{ input.value = ''; }catch(e){}
+      return;
+    }
+
+    var file = input.files && input.files[0];
+    if(!file) return;
+    if(file.size > 2 * 1024 * 1024){
+      alert('Image must be under 2MB. Everyone on the team downloads this one, ' +
+            'so a big file is slow for all of them.');
+      try{ input.value = ''; }catch(e){}
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var url = e.target.result;
+      esqShowLogo(url);
+      supa.from('esq_org_profiles')
+        .upsert({ org_id: ESQ_TEAM.orgId, logo_url: url }, { onConflict: 'org_id' })
+        .select('org_id')
+        .then(function(res){
+          /* Zero rows is a refusal, not a success. Say so rather than leaving a
+             logo on screen that nobody else will ever see. */
+          if(res.error || !res.data || !res.data.length){
+            alert('That logo was not saved for the team' +
+                  (res.error ? ': ' + res.error.message : '. Only somebody with permission can change it.') +
+                  ' Reload to see the one that is set.');
+          }
+        });
+    };
+    reader.readAsDataURL(file);
+  };
+})();
+
 /* ── Wiring ────────────────────────────────────────────────────────── */
 (function(){
   function boot(){
@@ -16912,6 +17134,7 @@ function esqPostAccept(payload, done){
         esqTeamLoad();
       }
     });
+    esqWatchPlanLabels();
     supa.auth.onAuthStateChange(function(event, session){
       if(event === 'SIGNED_IN' && session){ currentUser = session.user; esqTeamLoad(); }
       else if(event === 'SIGNED_OUT'){ ESQ_TEAM = null;
