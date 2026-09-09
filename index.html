@@ -16538,10 +16538,7 @@ function openTeamPanel(){
         '<p class="modal-note">They choose their own password. Nobody here ever sees it.</p>'+
       '</div>'+
 
-      '<p class="modal-note" style="margin-top:18px;">'+
-        'The shared organization profile &mdash; logo, boilerplate, region, target sectors &mdash; '+
-        'is the next thing being built. These permissions are recorded now so they are ready when it lands. '+
-        'Your own name, title, phone and email always stay yours.</p>'+
+      '<div id="t-profile"></div>'+
     '</div>';
 
   document.body.appendChild(ov);
@@ -16560,6 +16557,7 @@ function openTeamPanel(){
   document.getElementById('t-send').onclick = esqSendInvite;
 
   esqLoadRoster();
+  esqLoadProfile();
 }
 
 /* sticky: stays until something replaces it. Used for "invitation sent to
@@ -17126,6 +17124,175 @@ function esqLabelLogoRow(){
     reader.readAsDataURL(file);
   };
 })();
+
+
+/* ═══════════════════════════════════════
+   THE SHARED TEAM PROFILE
+   ───────────────────────────────────────
+   Eric approved the field list and said "simplicity is key". So: three
+   collapsed groups, native <details> rather than a toggle I have to write,
+   free text nearly everywhere, and one Save.
+
+   ⚠️ WHAT IS DELIBERATELY NOT HERE
+     - the signature block. contact_name/title/phone/email stay per person, or
+       every cover letter Clara writes for five people gets signed by the sixth
+     - population, labour force, unemployment, wages. Stale figures in a
+       proposal to a site selector are worse than none; those get fetched
+     - EIN, tax ID, bank details. Rare in documents, usually signed offline, and
+       exactly what turns a profile table into a breach
+
+   Who may change it is can_edit_profile and nothing else - the same tick as the
+   logo, enforced by the same policy. Somebody without it sees the profile
+   filled in and cannot type into it.
+   ═══════════════════════════════════════ */
+var ESQ_PROFILE_GROUPS = [
+  ['On every document', 'Without these, nothing can be letterheaded or addressed.', [
+    ['legal_name','Legal name','text','Whoville County Industrial Development Agency'],
+    ['short_name','Short name, as used in prose','text','Whoville IDA'],
+    ['entity_type','Entity type','text','Industrial Development Agency'],
+    ['address','Address, as it goes on a letterhead','area','12 Main Street\nWhoville, NY 14456'],
+    ['phone','Phone','text','315-555-0142'],
+    ['general_email','General email','text','info@whovilleida.org'],
+    ['website','Website','text','whovilleida.org'],
+    ['founded_year','Year established','number','1974'],
+    ['governing_body','Governing body','area','A nine-member board appointed by the County Legislature.']
+  ]],
+  ['What makes a document yours', 'This is where a cover letter stops sounding like it came from anywhere.', [
+    ['municipalities','Municipalities served','area','The towns of Canandaigua, Victor, Farmington and Geneva.'],
+    ['region_label','Region or labor shed, as you name it','text','Finger Lakes / Rochester MSA'],
+    ['access_notes','Highway, air, rail, port — with drive times','area','I-90 exit 44 (6 min). Rochester ROC (35 min). CSX mainline. Port of Rochester (50 min).'],
+    ['top_employers','Top employers','area','Constellation Brands, Thompson Health, Ontario County, ITT Goulds Pumps'],
+    ['incentive_programs','Incentive programs you administer','area','PILOT (up to 10 yr), sales-tax exemption on construction materials, mortgage recording tax exemption, revolving loan fund to $250k.'],
+    ['mission','Mission','area','To grow and retain good jobs in Ontario County.'],
+    ['tagline','Tagline','text','Where business works.'],
+    ['boilerplate','The “About us” paragraph you paste everywhere','area','The Whoville County IDA has supported capital investment in the county since 1974…']
+  ]],
+  ['Voice and small print', 'Cheap to fill in, and visible on every page you send out.', [
+    ['self_reference','How you refer to yourselves in the third person','text','the Agency'],
+    ['style_notes','Style notes','area','Plain English. US spelling. Never “synergy” or “world-class”.'],
+    ['footer_notice','Standard footer and notices','area','An equal opportunity provider. Records subject to FOIL.']
+  ]]
+];
+
+var ESQ_PROFILE = null;   /* the row as loaded, so Save can send only what changed */
+
+function esqProfileFieldIds(){
+  var out = [];
+  ESQ_PROFILE_GROUPS.forEach(function(g){ g[2].forEach(function(f){ out.push(f[0]); }); });
+  return out;
+}
+
+function esqRenderProfile(){
+  var wrap = document.getElementById('t-profile');
+  if(!wrap || !ESQ_TEAM) return;
+  var may = esqCanEditProfile();
+  var dis = may ? '' : ' disabled';
+  var p   = ESQ_PROFILE || {};
+
+  var filled = 0;
+  esqProfileFieldIds().forEach(function(k){
+    var v = p[k];
+    if(v !== null && v !== undefined && String(v).trim() !== '') filled++;
+  });
+
+  var groups = ESQ_PROFILE_GROUPS.map(function(g, gi){
+    var fields = g[2].map(function(f){
+      var key = f[0], label = f[1], kind = f[2], hint = f[3];
+      var v = (p[key] === null || p[key] === undefined) ? '' : String(p[key]);
+      var input = (kind === 'area')
+        ? '<textarea id="pf-'+key+'" rows="'+(v.split('\n').length > 3 ? 4 : 2)+'"'+dis+
+          ' placeholder="'+esqEsc(hint)+'">'+esqEsc(v)+'</textarea>'
+        : '<input id="pf-'+key+'" type="'+(kind === 'number' ? 'number' : 'text')+'"'+dis+
+          ' value="'+esqEsc(v)+'" placeholder="'+esqEsc(hint)+'">';
+      return '<div class="form-field" style="margin-bottom:10px;"><label>'+esqEsc(label)+'</label>'+input+'</div>';
+    }).join('');
+
+    return '<details'+(gi === 0 && may && filled === 0 ? ' open' : '')+
+        ' style="border:1px solid rgba(255,255,255,0.08);border-radius:9px;margin-bottom:9px;">'+
+        '<summary style="cursor:pointer;padding:10px 13px;font-size:12.5px;font-weight:700;color:#eef3fc;">'+
+          esqEsc(g[0])+
+          '<span style="display:block;font-weight:400;font-size:11px;color:#6b7a96;margin-top:2px;">'+
+            esqEsc(g[1])+'</span></summary>'+
+        '<div style="padding:4px 13px 12px;">'+fields+'</div>'+
+      '</details>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">'+
+      '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">'+
+        '<div style="font-size:13px;font-weight:700;color:#eef3fc;">Team profile</div>'+
+        '<div style="font-size:11.5px;color:#6b7a96;">'+filled+' of 20 filled</div>'+
+      '</div>'+
+      '<div style="font-size:11.5px;color:#6b7a96;line-height:1.55;margin-bottom:12px;">'+
+        (may
+          ? 'Everyone on the team writes from this. Nothing here has to be finished — your specialists will ask for what they are missing when they need it.'
+          : 'Everyone on the team writes from this. It is set by '+esqEsc(ESQ_TEAM.orgName)+'.')+
+        ' Your own name, title, phone and email are not here and are never shared.</div>'+
+      groups+
+      (may
+        ? '<button class="modal-btn" type="button" id="pf-save" style="margin-top:4px;">Save the team profile</button>'
+        : '')+
+    '</div>';
+
+  var b = document.getElementById('pf-save');
+  if(b) b.addEventListener('click', esqSaveProfile);
+}
+
+function esqLoadProfile(){
+  if(!ESQ_TEAM) return;
+  supa.from('esq_org_profiles').select('*').eq('org_id', ESQ_TEAM.orgId).limit(1)
+    .then(function(r){
+      if(r.error){
+        var wrap = document.getElementById('t-profile');
+        if(wrap) wrap.innerHTML =
+          '<div style="margin-top:18px;font-size:12px;color:#e8b84b;">The team profile could not be loaded ('+
+          esqEsc(r.error.message)+').</div>';
+        return;
+      }
+      ESQ_PROFILE = (r.data && r.data.length) ? r.data[0] : {};
+      esqRenderProfile();
+    });
+}
+
+function esqSaveProfile(){
+  if(!ESQ_TEAM || !esqCanEditProfile()) return;
+  var btn = document.getElementById('pf-save');
+  var patch = { org_id: ESQ_TEAM.orgId };
+  var changed = 0;
+
+  esqProfileFieldIds().forEach(function(k){
+    var el = document.getElementById('pf-'+k);
+    if(!el) return;
+    var raw = String(el.value == null ? '' : el.value).trim();
+    var was = (ESQ_PROFILE && ESQ_PROFILE[k] != null) ? String(ESQ_PROFILE[k]) : '';
+    if(raw === was) return;
+    /* Empty means cleared, not skipped - somebody deleting a wrong phone number
+       has to be able to leave it empty. founded_year is a number column, so an
+       empty string would be a type error rather than a null. */
+    patch[k] = (raw === '') ? null : (k === 'founded_year' ? Number(raw) : raw);
+    changed++;
+  });
+
+  if(!changed){ esqMsg('ok', 'Nothing had changed.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  supa.from('esq_org_profiles').upsert(patch, { onConflict: 'org_id' }).select('*')
+    .then(function(res){
+      btn.disabled = false; btn.textContent = 'Save the team profile';
+      /* ⚠️ A zero-row result is a refusal, not a success. Without asking for the
+         row back, a save the database declined looks exactly like one it took. */
+      if(res.error || !res.data || !res.data.length){
+        esqMsg('err', res.error
+          ? ('That did not save: ' + res.error.message)
+          : 'That did not save. Only somebody with permission can change the team profile.');
+        return;
+      }
+      ESQ_PROFILE = res.data[0];
+      esqRenderProfile();
+      esqMsg('ok', changed + (changed === 1 ? ' change' : ' changes') +
+                   ' saved. Everyone on the team writes from this now.', true);
+    });
+}
 
 /* ── Wiring ────────────────────────────────────────────────────────── */
 (function(){
