@@ -2962,6 +2962,7 @@ function loadQuotes(){
      is_paid and outstanding so nobody has to maintain them by hand. It is a
      security_invoker view, so the same admin-only RLS applies. Writes still go
      to the table. */
+  if(Q_BANDS===null) loadQuoteBands();
   var sel=supa.from('quote_pipeline').select('*');
   /* "Paid" is not a status - it is whether money arrived, which is a different
      question from where the deal stands. Filtering it as a status would query
@@ -3261,7 +3262,8 @@ function openQuote(id){
           '<div style="font-size:11px;color:#6b7a96;">Total</div>'+
           '<div id="qb-total" style="font-size:22px;font-weight:900;color:#aaff3e;font-family:\'Barlow Condensed\',sans-serif;">—</div></div>'+
       '</div>'+
-      '<div id="qb-users" style="font-size:12px;color:#6b7a96;margin-bottom:16px;"></div>'+
+      '<div id="qb-users" style="font-size:12px;color:#6b7a96;margin-bottom:6px;"></div>'+
+      '<div id="qb-pricenote" style="display:none;font-size:12px;line-height:1.55;margin-bottom:14px;"></div>'+
 
       '<div style="margin-bottom:14px;"><label style="font-size:11px;color:#6b7a96;">Opening paragraph</label>'+
         '<textarea id="qb-intro" rows="3">'+esqEsc(intro)+'</textarea></div>'+
@@ -3436,18 +3438,112 @@ function qbNum(id){
   return isFinite(n)?n:null;
 }
 
+/* The volume ladder, loaded from quote_price_bands. INTERNAL: the table is
+   admin-only, it is not on the pricing page, and nothing here is ever sent to a
+   customer - only the single figure Eric settles on reaches the quote.
+
+   Kept as data rather than constants so a price can change without a deploy,
+   the same reasoning as model_rates. */
+var Q_BANDS = null;
+
+function loadQuoteBands(){
+  return supa.from('quote_price_bands').select('*').order('min_users')
+    .then(function(res){
+      if(res.error){
+        /* Not fatal. Without the ladder the builder simply stops suggesting a
+           figure, which is where it was yesterday - it must never block a
+           quote from being written. */
+        console.warn('[bands] not loaded:', res.error.message);
+        Q_BANDS=[]; return;
+      }
+      Q_BANDS=res.data||[];
+    });
+}
+
+/* Mirrors quote_band_price() in SQL: the band whose range contains this user
+   count, applied to every user rather than marginally. Returns null when
+   nothing matches, because a made-up price is the failure this whole feature
+   exists to avoid. */
+function bandFor(users){
+  if(!Q_BANDS || users==null || users<1) return null;
+  var hit=null;
+  Q_BANDS.forEach(function(b){
+    if(users>=b.min_users && (b.max_users==null || users<=b.max_users)) hit=b;
+  });
+  return hit;
+}
+
+var ESQ_LIST_SEAT_PRICE = 990;   /* one Pro seat, annual - the published rate */
+var ESQ_OFFER_USERS     = 6;     /* 5 paid + 1 free: the whole published offer */
+
 function qbTotal(){
   var s=qbNum('qb-seats'), u=qbNum('qb-unit'), f=qbNum('qb-free')||0;
   var t=document.getElementById('qb-total');
   var users=document.getElementById('qb-users');
+  var note=document.getElementById('qb-pricenote');
+
   if(s==null||u==null){
     t.textContent='—';
     users.textContent='Set a seat count and a per-seat price to see the total.';
+  } else {
+    t.textContent=esqMoney(s*u);
+    users.textContent=(s+f)+' named user'+((s+f)===1?'':'s')+
+      (f>0?' ('+s+' paid, '+f+' at no charge)':'')+'. One invoice, one renewal date.';
+  }
+  if(!note) return;
+
+  /* ── The rule, now applied while you type ─────────────────────────
+     It used to run only when the quote opened, off what the prospect had
+     asked for. Editing your way past six seats slipped straight past it and
+     multiplied out at the list price without comment.
+
+     This never rewrites a figure you typed. It says what it sees. */
+  var total = (s!=null && f!=null) ? s+f : null;
+  var band  = bandFor(total);
+
+  /* Suggests, never overwrites. The figure on a quote is Eric's to set; this
+     only says what the ladder would charge for this many people, so he is not
+     doing arithmetic in his head while somebody is on the phone. */
+  if(band){
+    var want = Number(band.price_per_user);
+    var perUserNow = (u!=null && total) ? (s*u)/total : null;
+    var band_total = esqMoney(want*total);
+
+    if(u==null){
+      note.style.color='#6b7a96';
+      note.innerHTML=total+' users falls in the '+band.min_users+
+        (band.max_users?'&ndash;'+band.max_users:'+')+' band: <strong style="color:#eef3fc;">'+
+        esqMoney(want)+'</strong> a user, '+band_total+' in total. '+
+        '<a href="#" id="qb-useband" style="color:#aaff3e;">Use it</a>';
+    } else if(perUserNow!=null && Math.abs(perUserNow-want) > 0.005){
+      /* Compared per USER, not per paid seat, because the free sixth makes
+         those two different numbers and the customer only ever counts users. */
+      note.style.color='#f5c542';
+      note.innerHTML='&#9888; This works out at <strong>'+esqMoney(perUserNow)+
+        '</strong> a user. The '+band.min_users+(band.max_users?'&ndash;'+band.max_users:'+')+
+        ' band is '+esqMoney(want)+' ('+band_total+' in total). '+
+        '<a href="#" id="qb-useband" style="color:#aaff3e;">Use the band</a> '+
+        '<span style="color:#6b7a96;">&mdash; or leave it, if this is what you have agreed.</span>';
+    } else {
+      note.style.color='#6b7a96';
+      note.innerHTML='On the '+band.min_users+(band.max_users?'&ndash;'+band.max_users:'+')+
+        ' band at '+esqMoney(want)+' a user.'+
+        (band.is_published?' This is the rate the pricing page publishes.':'');
+    }
+    note.style.display='block';
+
+    var useLink=document.getElementById('qb-useband');
+    if(useLink) useLink.addEventListener('click', function(e){
+      e.preventDefault();
+      /* Set the PAID seats to carry the whole band total, so the arithmetic on
+         the quote adds up with the free seats shown as genuinely free. */
+      var paid=qbNum('qb-seats')||1;
+      document.getElementById('qb-unit').value=(want*total/paid).toFixed(2);
+      qbTotal();
+    });
     return;
   }
-  t.textContent=esqMoney(s*u);
-  users.textContent=(s+f)+' named user'+((s+f)===1?'':'s')+
-    (f>0?' ('+s+' paid, '+f+' at no charge)':'')+'. One invoice, one renewal date.';
+  note.style.display='none';
 }
 
 function qbMsg(kind, text){
