@@ -3454,7 +3454,11 @@ function qbProvision(){
     }
     qbMsg('ok', j.already
       ? 'That quote already had a team.'
-      : 'Team created: '+j.seats_paid+' paid seats plus '+j.seats_free+' included.');
+      : ('Team created: '+j.seats_paid+' paid seats plus '+j.seats_free+' included. '+
+         (j.owner_seated
+           ? (j.buyer_email||'The buyer')+' already had an account, so they are seated as owner '+
+             'straight away \u2014 there is no invitation to send.'
+           : 'Sending '+(j.buyer_email||'the buyer')+' their owner invitation\u2026')));
     /* The buyer may already have had an account, in which case they are seated
        and there is nothing to send. */
     if(j.next === 'invite_owner') qbInviteOwner(j.org_id);
@@ -3667,22 +3671,25 @@ function qbTotal(){
       note.style.color='#6b7a96';
       note.innerHTML=total+' users falls in the '+band.min_users+
         (band.max_users?'&ndash;'+band.max_users:'+')+' band: <strong style="color:#eef3fc;">'+
-        esqMoney(want)+'</strong> a user, '+band_total+' in total. '+
+        esqMoney(want)+'</strong> per named user, '+band_total+' in total. '+
         '<a href="#" id="qb-useband" style="color:#aaff3e;">Use it</a>';
     } else if(perUserNow!=null && Math.abs(perUserNow-want) > 0.005){
       /* Compared per USER, not per paid seat, because the free sixth makes
          those two different numbers and the customer only ever counts users. */
       note.style.color='#f5c542';
       note.innerHTML='&#9888; This works out at <strong>'+esqMoney(perUserNow)+
-        '</strong> a user. The '+band.min_users+(band.max_users?'&ndash;'+band.max_users:'+')+
+        '</strong> per named user. The '+band.min_users+(band.max_users?'&ndash;'+band.max_users:'+')+
         ' band is '+esqMoney(want)+' ('+band_total+' in total). '+
         '<a href="#" id="qb-useband" style="color:#aaff3e;">Use the band</a> '+
         '<span style="color:#6b7a96;">&mdash; or leave it, if this is what you have agreed.</span>';
     } else {
       note.style.color='#6b7a96';
       note.innerHTML='On the '+band.min_users+(band.max_users?'&ndash;'+band.max_users:'+')+
-        ' band at '+esqMoney(want)+' a user.'+
-        (band.is_published?' This is the rate the pricing page publishes.':'');
+        ' band at '+esqMoney(want)+' per <strong>named user</strong> &mdash; '+
+        band_total+' for '+total+'.'+
+        (band.is_published?' This is the rate the pricing page publishes.':'')+
+        (f>0 ? ' <span style="color:#6b7a96;">The box above is per <em>paid seat</em>, which is why it reads '+
+               esqMoney(u)+' &mdash; '+s+' paid seats carry all '+total+' users.</span>' : '');
     }
     note.style.display='block';
 
