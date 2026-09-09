@@ -409,8 +409,9 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         <div class="chip active" id="qtab-all"       onclick="quotesTab('')">All</div>
         <div class="chip"        id="qtab-new"       onclick="quotesTab('new')">New</div>
         <div class="chip"        id="qtab-contacted" onclick="quotesTab('contacted')">Contacted</div>
-        <div class="chip"        id="qtab-quoted"    onclick="quotesTab('quoted')">Quoted</div>
+        <div class="chip"        id="qtab-quoted"    onclick="quotesTab('quoted')">Quote sent</div>
         <div class="chip"        id="qtab-won"       onclick="quotesTab('won')">Won</div>
+        <div class="chip"        id="qtab-paid"      onclick="quotesTab('paid')">Paid</div>
         <div class="chip"        id="qtab-lost"      onclick="quotesTab('lost')">Lost</div>
       </div>
 
@@ -2936,7 +2937,7 @@ var QB_CLOSE = null;
 
 function quotesTab(st){
   Q_FILTER = st;
-  ['all','new','contacted','quoted','won','lost'].forEach(function(k){
+  ['all','new','contacted','quoted','won','lost','paid'].forEach(function(k){
     var el=document.getElementById('qtab-'+k);
     if(el) el.classList.toggle('active', (k==='all'?'':k)===st);
   });
@@ -2962,7 +2963,11 @@ function loadQuotes(){
      security_invoker view, so the same admin-only RLS applies. Writes still go
      to the table. */
   var sel=supa.from('quote_pipeline').select('*');
-  if(Q_FILTER) sel=sel.eq('status', Q_FILTER);
+  /* "Paid" is not a status - it is whether money arrived, which is a different
+     question from where the deal stands. Filtering it as a status would query
+     status='paid', match nothing, and look like there were no paid quotes. */
+  if(Q_FILTER==='paid')      sel=sel.not('paid_at','is',null);
+  else if(Q_FILTER)          sel=sel.eq('status', Q_FILTER);
 
   sel.order('created_at',{ascending:false}).limit(500).then(function(res){
     if(res.error){
@@ -3000,9 +3005,18 @@ function loadQuotes(){
          invites a status that claims a quote went out when none did - the list
          is only worth reading if it cannot lie. Both stay visible so you can
          see where a deal is; they are just not pickable. */
+      /* Only ONE status is locked, and only when it would be untrue: you
+         cannot mark a quote as sent if no quote was ever sent. Everything
+         else - including walking a mistaken 'lost' back to 'quote sent' -
+         stays available, because correcting a mistake is not the same act as
+         inventing a fact.
+
+         'won' is deliberately NOT locked. It means they accepted, which is a
+         judgement Eric makes when a purchase order lands, typically weeks
+         before the money arrives. Recording a payment sets it as a
+         convenience; that never made it the database's to own. */
       var opts=Q_STATUS.map(function(s){
-        var auto = (s==='quoted' || s==='won');
-        var dis  = auto && s!==r.status ? ' disabled' : '';
+        var dis = (s==='quoted' && !r.quote_sent_at) ? ' disabled' : '';
         return '<option value="'+s+'"'+(s===r.status?' selected':'')+dis+'>'+
                Q_SLABEL[s]+'</option>';
       }).join('');
