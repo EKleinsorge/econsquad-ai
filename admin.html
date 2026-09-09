@@ -3214,7 +3214,7 @@ function openQuote(id){
 
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'+
         '<button class="btn-ghost" id="qb-save">Save draft</button>'+
-        '<button class="btn-ghost" id="qb-print">Print / save as PDF</button>'+
+        '<button class="btn-ghost" id="qb-print">Preview the actual quote</button>'+
         '<div style="flex:1;"></div>'+
         '<button id="qb-send" style="background:#aaff3e;color:#0a1a00;border:none;border-radius:9px;'+
           'padding:11px 20px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif;">'+
@@ -3280,7 +3280,7 @@ function qbMsg(kind, text){
    save is not a convenience - it is how the quote gets to the server at all,
    and it means the thing that goes out is necessarily the thing that was
    saved and reviewed. */
-function qbSave(thenSend){
+function qbSave(thenSend, andThen){
   var id=QB_ID;
   if(!id) return;
   var seats=qbNum('qb-seats'), unit=qbNum('qb-unit'), free=qbNum('qb-free')||0;
@@ -3315,8 +3315,10 @@ function qbSave(thenSend){
     }
     if(!thenSend){
       btnS.disabled=false; btnX.disabled=false;
-      qbMsg('ok','Draft saved. Nothing has been sent.');
       loadQuotes();
+      /* Preview passes a continuation. Without one this is a plain Save. */
+      if(typeof andThen==='function'){ andThen(); return; }
+      qbMsg('ok','Draft saved. Nothing has been sent.');
       return;
     }
     qbMsg('ok','Sending…');
@@ -3338,85 +3340,130 @@ function qbSave(thenSend){
   });
 }
 
-/* A public buyer usually needs a file to attach to a purchase order. Printing
-   the rendered quote to PDF gives them exactly what was emailed, which a
-   separate Word template could not promise - the template's line items are
-   fixed at five seats and $4,950, so any edit made here would have silently
-   disagreed with it. */
-function qbPrint(){
-  var r=Q_ROWS[QB_ID];
-  if(!r) return;
-  var seats=qbNum('qb-seats')||0, unit=qbNum('qb-unit')||0, free=qbNum('qb-free')||0;
-  var total=seats*unit;
-  var fmtD=function(v){
-    if(!v) return '—';
-    var dt=new Date(String(v).length<=10?v+'T12:00:00Z':v);
-    return isNaN(dt.getTime())?'—':dt.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  };
-  var esc=esqEsc;
-  var para=function(s){
-    return String(s||'').split(/\n{2,}/).map(function(p){
-      return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>';
-    }).join('');
-  };
-  /* A hidden iframe, not window.open. See the note above qbPrint. */
-  var old=document.getElementById('qb-print-frame');
+/* ── Preview ──────────────────────────────────────────────────────────
+   Shows the document the customer will actually receive, by asking the server
+   to render it and displaying that.
+
+   This used to be a second copy of the quote layout, drawn here in the browser.
+   Two renderers of one document agree only until somebody edits one of them,
+   and the failure is silent: the preview looks right and the customer gets
+   something else. For a priced document attached to a purchase order that is
+   not a risk worth carrying to save a round trip. The server render is now the
+   only render.
+
+   It saves first, deliberately. send-quote reads the row rather than anything
+   the browser hands it, so previewing the saved row is the only way for the
+   preview and the send to be guaranteed identical. */
+function qbPrint(){ qbPreview(); }     /* the old name, kept so nothing dangles */
+
+function qbPreview(){
+  var id=QB_ID;
+  if(!id) return;
+  qbSave(false, function(){
+    qbMsg('ok','Rendering the quote…');
+    supa.functions.invoke('send-quote',{body:{id:id, preview:true}}).then(function(out){
+      var d=out&&out.data;
+      if(!(d&&d.ok&&d.html)){
+        qbMsg('err',(d&&d.error)||'Could not render the preview. The draft is saved.');
+        return;
+      }
+      qbMsg('ok','Saved. This is exactly what will be emailed.');
+      qbOpenPreview(d.html, d.to, d.pdf, d.pdf_name, d.pdf_error);
+    }).catch(function(){
+      qbMsg('err','Could not reach the server. The draft is saved.');
+    });
+  });
+}
+
+function qbOpenPreview(html, to, pdfB64, pdfName, pdfErr){
+  var old=document.getElementById('qb-preview-overlay');
   if(old && old.parentNode) old.parentNode.removeChild(old);
-  var fr=document.createElement('iframe');
-  fr.id='qb-print-frame';
-  fr.setAttribute('aria-hidden','true');
-  fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-  document.body.appendChild(fr);
-  var w=fr.contentWindow;
-  w.document.open();
-  w.document.write(
-    '<!doctype html><html><head><meta charset="utf-8"><title>Quote '+esc(document.getElementById('qb-no').value)+' — '+esc(r.organization)+'</title>'+
-    '<style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0d1220;line-height:1.6;max-width:680px;margin:40px auto;padding:0 24px;}'+
-    'h1{font-size:18px;letter-spacing:.04em;margin:20px 0;}table{width:100%;border-collapse:collapse;font-size:13px;}'+
-    'th{text-align:left;font-size:10px;color:#6b7a96;letter-spacing:.06em;border-bottom:2px solid #0d1220;padding-bottom:8px;}'+
-    'td{padding:10px 0;border-bottom:1px solid #e6eaf2;}.r{text-align:right;}.c{text-align:center;}'+
-    '.lbl{font-size:10px;font-weight:700;color:#6b7a96;letter-spacing:.08em;margin:24px 0 8px;}'+
-    '.hd{border-bottom:3px solid #aaff3e;padding-bottom:10px;font-size:22px;font-weight:800;}'+
-    '.sm{font-size:11px;color:#6b7a96;}@media print{body{margin:0;}}</style></head><body>'+
-    '<div class="hd">EconSquad <span style="color:#5a9c00;">AI</span></div>'+
-    '<div class="sm" style="margin-bottom:24px;">Global Site Location Industries, LLC &middot; econsquad.ai &middot; eric@econsquad.ai</div>'+
-    '<h1>QUOTATION — TEAM PLAN</h1>'+
-    '<table style="border:none;"><tr>'+
-      '<td style="border:none;vertical-align:top;width:55%;"><div class="lbl" style="margin-top:0;">PREPARED FOR</div>'+
-        '<strong>'+esc(r.organization)+'</strong><br>'+esc(r.full_name)+(r.role_title?', '+esc(r.role_title):'')+'</td>'+
-      '<td style="border:none;vertical-align:top;"><div class="lbl" style="margin-top:0;">QUOTE DETAILS</div>'+
-        '<span class="sm">Quote no.</span> <strong>'+esc(document.getElementById('qb-no').value)+'</strong><br>'+
-        '<span class="sm">Date</span> '+fmtD(new Date().toISOString())+'<br>'+
-        '<span class="sm">Valid until</span> '+fmtD(document.getElementById('qb-valid').value)+'<br>'+
-        '<span class="sm">Prepared by</span> Eric Kleinsorge</td>'+
-    '</tr></table>'+
-    para(document.getElementById('qb-intro').value)+
-    '<div class="lbl">WHAT IS BEING QUOTED</div>'+
-    '<table><tr><th>ITEM</th><th class="c">QTY</th><th class="r">AMOUNT</th></tr>'+
-      '<tr><td>EconSquad AI — Pro Squad, annual subscription<br><span class="sm">per named user, '+esqMoney(unit)+' each</span></td>'+
-        '<td class="c">'+seats+'</td><td class="r">'+esqMoney(total)+'</td></tr>'+
-      (free>0?'<tr><td class="sm">Additional seat — included at no charge</td><td class="c sm">'+free+'</td><td class="r sm">$0.00</td></tr>':'')+
-      '<tr><td class="sm">Onboarding session for the team (60 minutes, remote)</td><td class="c sm">1</td><td class="r sm">Included</td></tr>'+
-      '<tr><td style="border:none;padding-top:14px;"><strong>TOTAL — 12 months</strong></td><td style="border:none;"></td>'+
-        '<td style="border:none;padding-top:14px;" class="r"><strong style="font-size:17px;">'+esqMoney(total)+'</strong></td></tr>'+
-    '</table>'+
-    '<div class="sm" style="margin-top:8px;">'+(seats+free)+' named user'+((seats+free)===1?'':'s')+'. One invoice. One renewal date.</div>'+
-    '<div class="lbl">TERMS</div>'+para(document.getElementById('qb-terms').value)+
-    '<div style="margin-top:24px;padding:14px 18px;background:#f4f6fa;border-left:3px solid #aaff3e;font-size:13px;">'+
-      '<strong>To accept:</strong> reply to this quote, or issue a purchase order referencing '+
-      esc(document.getElementById('qb-no').value)+'.</div>'+
-    '<p style="margin-top:24px;font-size:13px;">Eric Kleinsorge<br><span class="sm">EconSquad AI &middot; '+
-      'Global Site Location Industries, LLC</span></p>'+
-    '<p class="sm" style="border-top:1px solid #e6eaf2;padding-top:12px;margin-top:20px;">'+
-      'We will never ask you for a card number, bank details or a password by email.</p>'+
-    '</body></html>');
-  w.document.close();
-  /* Give the iframe a moment to lay the document out - printing an
-     unstyled half-rendered page is worse than a short wait. */
-  setTimeout(function(){
-    try{ w.focus(); w.print(); }
-    catch(e){ qbMsg('err','Could not open the print dialog: '+(e && e.message)); }
-  }, 400);
+
+  var ov=document.createElement('div');
+  ov.id='qb-preview-overlay';
+  ov.className='modal-overlay show';
+  ov.style.zIndex='1000000';
+  ov.innerHTML=
+    '<div class="modal-box" style="width:840px;max-width:94vw;padding:18px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;">'+
+        '<div>'+
+          '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;">'+
+            'What they will receive</div>'+
+          '<div style="font-size:12px;color:#6b7a96;">Rendered by the same code that sends it &mdash; '+
+            'this is the email, not a mock-up of it.</div>'+
+        '</div>'+
+        '<button class="btn-ghost btn-sm" id="qp-x">Back to editing</button>'+
+      '</div>'+
+      '<iframe id="qp-frame" style="width:100%;height:60vh;border:1px solid rgba(255,255,255,0.12);'+
+        'border-radius:10px;background:#fff;"></iframe>'+
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap;">'+
+        '<button class="btn-ghost" id="qp-print">Print the email</button>'+
+        (pdfB64
+          ? '<button class="btn-ghost" id="qp-pdf">Open the attached PDF</button>'
+          : '<span style="font-size:12px;color:#f5c542;">No PDF attached'+
+            (pdfErr?' &mdash; '+esqEsc(pdfErr):'')+'</span>')+
+        '<div style="flex:1;"></div>'+
+        '<div style="font-size:12px;color:#6b7a96;">to '+esqEsc(to||'')+'</div>'+
+        '<button id="qp-send" style="background:#aaff3e;color:#0a1a00;border:none;border-radius:9px;'+
+          'padding:11px 20px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif;">'+
+          'Send it</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(ov);
+
+  /* srcdoc rather than document.write, so the quote's own markup cannot touch
+     the admin page around it. */
+  document.getElementById('qp-frame').srcdoc=html;
+
+  function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown',onKey); }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
+  document.getElementById('qp-x').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', onKey);
+
+  /* Prints the iframe already on screen - so what prints is what was
+     previewed, which is what will be sent. No popup, no third rendering. */
+  /* Opens the actual attachment - the same bytes Resend will send - rather than
+     a preview of what it is supposed to look like. */
+  var pdfBtn=document.getElementById('qp-pdf');
+  if(pdfBtn) pdfBtn.addEventListener('click', function(){
+    try{
+      var bin=atob(pdfB64);
+      var arr=new Uint8Array(bin.length);
+      for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([arr],{type:'application/pdf'}));
+      var a=document.createElement('a');
+      a.href=url; a.download=pdfName||'quote.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    }catch(e){ alert('Could not open the PDF: '+(e && e.message)); }
+  });
+
+  document.getElementById('qp-print').addEventListener('click', function(){
+    var fr=document.getElementById('qp-frame');
+    try{ fr.contentWindow.focus(); fr.contentWindow.print(); }
+    catch(e){ alert('Could not open the print dialog: '+(e && e.message)); }
+  });
+
+  document.getElementById('qp-send').addEventListener('click', function(){
+    var btn=this;
+    btn.disabled=true; btn.textContent='Sending…';
+    supa.functions.invoke('send-quote',{body:{id:QB_ID}}).then(function(out){
+      var d=out&&out.data;
+      if(d&&d.ok){
+        close();
+        qbMsg('ok','Sent to '+d.to+'. You have been copied, and this request is now marked quoted.');
+        loadQuotes();
+        setTimeout(function(){ if(QB_CLOSE) QB_CLOSE(); }, 1600);
+        return;
+      }
+      btn.disabled=false; btn.textContent='Send it';
+      alert((d&&d.error)||'The quote did not send. It is saved as a draft, so nothing is lost.');
+    }).catch(function(){
+      btn.disabled=false; btn.textContent='Send it';
+      alert('Could not reach the server. The draft is saved.');
+    });
+  });
 }
 
 function loadOutreach(){

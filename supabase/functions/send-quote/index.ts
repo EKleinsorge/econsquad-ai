@@ -26,6 +26,9 @@
 // Eric is BCC'd so he holds a copy of exactly what the prospect received.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import * as pdfLib from 'https://esm.sh/pdf-lib@1.17.1';
+import { buildQuotePdf } from './quotepdf.ts';
+import { logoBytes } from './logo.ts';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
 const SUPABASE_URL   = Deno.env.get('SUPABASE_URL') ?? '';
@@ -94,7 +97,8 @@ export function renderQuote(r: QuoteRow): string {
   return `<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:620px;color:#0d1220;line-height:1.6;">
 
   <div style="border-bottom:3px solid #aaff3e;padding-bottom:10px;margin-bottom:6px;">
-    <div style="font-size:22px;font-weight:800;letter-spacing:-.01em;">EconSquad <span style="color:#5a9c00;">AI</span></div>
+    <img src="https://econsquad.ai/econsquad-logo.png" width="200" height="50"
+         alt="EconSquad AI" style="display:block;border:0;outline:none;text-decoration:none;">
   </div>
   <div style="font-size:11px;color:#6b7a96;margin-bottom:26px;">
     Global Site Location Industries, LLC &nbsp;&middot;&nbsp; econsquad.ai &nbsp;&middot;&nbsp; eric@econsquad.ai
@@ -155,8 +159,11 @@ export function renderQuote(r: QuoteRow): string {
   <div style="font-size:13px;">${para(r.quote_terms)}</div>
 
   <div style="margin:28px 0 0;padding:16px 20px;background:#f4f6fa;border-left:3px solid #aaff3e;font-size:13px;">
-    <strong>To accept:</strong> reply to this email, or issue a purchase order referencing
-    ${esc(r.quote_no || 'this quote')}. We will invoice on receipt.
+    <strong>To accept:</strong> sign and return the attached PDF, reply to this email, or
+    issue a purchase order referencing ${esc(r.quote_no || 'this quote')}. We will invoice on receipt.
+    <div style="margin-top:8px;color:#6b7a96;font-size:12px;">
+      The attached copy has a signature block you can fill in on screen or print and sign by hand.
+    </div>
   </div>
 
   <p style="margin-top:24px;font-size:13px;">Eric Kleinsorge<br>
@@ -217,6 +224,53 @@ Deno.serve(async (req: Request) => {
 
     const html = renderQuote(r as QuoteRow);
 
+    /* ── The signable PDF ────────────────────────────────────────────
+       Eric: "I would also like to send a PDF of the quote for them to print and
+       turn in or ability to sign."
+
+       Built from the SAME ROW, in the same pass as the email above. It is a
+       second presentation of one set of figures, not a second drawing of the
+       document - which is exactly the distinction that made the old
+       browser-side print view worth deleting.
+
+       Wrapped, and failure is not fatal: a quote that arrives without its
+       attachment is recoverable, a quote that never sends because a PDF library
+       hiccupped is a customer left waiting. The error is recorded so it is
+       visible rather than silent. */
+    let pdfBase64: string | null = null;
+    let pdf_error: string | null = null;
+    try {
+      const bytes = await buildQuotePdf(pdfLib, r, logoBytes());
+      let bin = '';
+      const CHUNK = 0x8000;   // btoa on one huge string blows the stack
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+      }
+      pdfBase64 = btoa(bin);
+    } catch (e) {
+      pdf_error = e instanceof Error ? e.message : String(e);
+      console.error('send-quote: PDF build failed:', pdf_error);
+    }
+
+    const pdfName = `EconSquad-Quote-${String(r.quote_no || 'quote').replace(/[^A-Za-z0-9._-]/g, '-')}.pdf`;
+
+    /* ── Preview: render and stop ────────────────────────────────────
+       Returns the very bytes that would be emailed. Nothing is sent, and
+       NOTHING IS WRITTEN - quote_sent_at in particular, since that is what the
+       status trigger watches, and previewing a quote must not mark it as
+       having been quoted.
+
+       The admin check above has already run, so a preview is exactly as
+       restricted as a send. It has to be: the rendered quote contains the
+       prospect's name, employer and the price being offered them. */
+    if (body.preview === true) {
+      console.log(`send-quote: preview of ${r.quote_no} by ${caller.email}`);
+      // The PDF goes back with it, so Eric can open the very attachment the
+      // customer will get rather than take its existence on trust.
+      return json({ ok: true, preview: true, html, to,
+                    pdf: pdfBase64, pdf_name: pdfName, pdf_error });
+    }
+
     let sent_at: string | null = null;
     let send_error: string | null = null;
     try {
@@ -231,6 +285,9 @@ Deno.serve(async (req: Request) => {
           reply_to: REPLY_TO,
           subject: `EconSquad AI — Team plan quote ${r.quote_no} for ${r.organization}`,
           html,
+          // A public buyer needs a file to sign and attach to a requisition.
+          // Omitted rather than faked if the build failed above.
+          ...(pdfBase64 ? { attachments: [{ filename: pdfName, content: pdfBase64 }] } : {}),
         }),
       });
       if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -242,10 +299,14 @@ Deno.serve(async (req: Request) => {
 
     // quote_sent_at is what the status trigger watches, so it is only written
     // when the send actually succeeded.
+    // A quote that went out without its attachment is worth being able to see,
+    // because the email tells the customer a PDF is attached.
+    const noteErr = [send_error, pdf_error && `PDF not attached: ${pdf_error}`]
+      .filter(Boolean).join(' | ') || null;
     await admin.from('quote_requests').update(
       sent_at
-        ? { quote_sent_at: sent_at, quote_sent_to: to, quote_send_error: null }
-        : { quote_send_error: send_error },
+        ? { quote_sent_at: sent_at, quote_sent_to: to, quote_send_error: noteErr }
+        : { quote_send_error: noteErr },
     ).eq('id', id);
 
     if (!sent_at) return json({ ok: false, error: 'The quote could not be sent: ' + send_error }, 502);
