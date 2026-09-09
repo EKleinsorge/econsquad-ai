@@ -2158,10 +2158,7 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
             <div class="price-amount" style="padding-top:2px;">
               <span class="sym">$</span><span>4,950</span><span class="per">/yr</span>
             </div>
-            <div style="font-size:12px;color:#aaff3e;text-align:left;margin:6px 0 4px;font-weight:600;letter-spacing:.01em;">5 seats &middot; 6th seat included</div>
-            <div style="font-size:12px;text-align:left;margin:0 0 12px;">
-              <a onclick="contactEnterprise()" style="color:#8fa0bd;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">More than 6 people? Custom quote &rarr;</a>
-            </div>
+            <div style="font-size:12px;color:#aaff3e;text-align:left;margin:6px 0 12px;font-weight:600;letter-spacing:.01em;">5 seats &middot; 6th seat included</div>
             <!-- "Level up" is not borrowed marketing language - it is what the
                  product already says to a member every day: Lvl 4, Squad
                  Leader, XP, badges. The pricing page and the dashboard should
@@ -2184,10 +2181,21 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           </div>
         </div>
 
-        <div style="max-width:840px;margin:16px auto 0;text-align:center;font-size:13px;color:#8fa0bd;line-height:1.8;">
-          More than six people, a state-wide organisation, or a specialist built for the way
-          your office works? <a onclick="contactEnterprise()" style="color:#aaff3e;cursor:pointer;">Tell us what you need</a>
-          &mdash; that is a conversation, not a checkout.
+        <div style="max-width:840px;margin:14px auto 0;background:rgba(14,20,36,0.82);
+                    border:1px solid var(--limeborder);border-radius:14px;padding:16px 22px;
+                    display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+          <div style="flex:1 1 380px;min-width:0;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:900;
+                        color:#eef3fc;letter-spacing:.01em;line-height:1.2;">More than 6 people?</div>
+            <div style="font-size:13px;color:#8fa0bd;line-height:1.6;margin-top:3px;">
+              Larger offices, a state-wide organisation, or a specialist built for the way you work
+              &mdash; we will put a written quote together. That is a conversation, not a checkout.
+            </div>
+          </div>
+          <button class="price-btn" onclick="contactEnterprise()"
+                  style="width:auto;flex:0 0 auto;padding:11px 22px;white-space:nowrap;">
+            Get a custom quote &rarr;
+          </button>
         </div>
       </section>
 
