@@ -1639,6 +1639,17 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                   </div>
                 </div>
               </div>
+              <!-- Your Team — shown to anyone holding a seat on a Team plan -->
+              <div id="pm-team-row" style="display:none;">
+                <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 0;"></div>
+                <div onclick="openTeamPanel();toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(170,255,62,0.06)'" onmouseout="this.style.background='transparent'">
+                  <span style="font-size:14px;">&#128101;</span>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:#eef3fc;">Your Team</div>
+                    <div id="pm-team-sub" style="font-size:10px;color:#6b7a96;">Seats and invitations</div>
+                  </div>
+                </div>
+              </div>
               <!-- Admin panel link — only shown for is_admin users -->
               <div id="pm-admin-row" style="display:none;">
                 <div style="height:1px;background:rgba(170,255,62,0.12);margin:4px 0;"></div>
@@ -16398,6 +16409,517 @@ function _renderAff_login(){
     }catch(e){}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
+})();
+</script>
+
+<script id="esq-team">
+/* ═══════════════════════════════════════
+   YOUR TEAM
+   ───────────────────────────────────────
+   Eric: "I feel they would have a special Class like ADMIN does and the number
+   of seats allowed is opened based on their payment." And: "Can we keep it
+   front faced on their side menu and appears when they are that calss."
+
+   So the menu row appears for anybody holding a seat, and what the panel LETS
+   them do depends on two ticks the owner controls. It is not a rung on a
+   ladder: someone can be trusted with the logo without being trusted with the
+   seats, because a wrong logo is embarrassing and a revoked seat locks a
+   colleague out mid-week.
+
+   ⚠️ NOTHING HERE IS THE SECURITY BOUNDARY.
+   Every rule below is also enforced by esq_org_guard_privileges() in the
+   database. The disabled checkbox is a courtesy so people are not offered
+   something that will fail; a second browser tab walks straight past it, and
+   the trigger is what actually stops them.
+   ═══════════════════════════════════════ */
+var ESQ_TEAM = null;      /* {orgId, orgName, role, canProfile, canSeats, seatsTotal} */
+
+function esqIsOwner(){ return !!(ESQ_TEAM && ESQ_TEAM.role === 'owner'); }
+function esqCanSeats(){ return !!(ESQ_TEAM && (esqIsOwner() || ESQ_TEAM.canSeats)); }
+
+function esqEsc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Do I hold a seat, and what may I do with it ───────────────────── */
+function esqTeamLoad(){
+  var row = document.getElementById('pm-team-row');
+  if(!currentUser){ ESQ_TEAM = null; if(row) row.style.display='none'; return Promise.resolve(null); }
+
+  return supa.from('esq_org_members')
+    .select('org_id, role, can_edit_profile, can_manage_seats')
+    .eq('user_id', currentUser.id).is('revoked_at', null).limit(1)
+    .then(function(res){
+      var m = res && res.data && res.data.length ? res.data[0] : null;
+      if(!m){ ESQ_TEAM = null; if(row) row.style.display='none'; return null; }
+
+      return supa.from('esq_organizations')
+        .select('id, name, seats_paid, seats_free, status')
+        .eq('id', m.org_id).limit(1)
+        .then(function(r2){
+          var o = r2 && r2.data && r2.data.length ? r2.data[0] : null;
+          if(!o){ ESQ_TEAM = null; if(row) row.style.display='none'; return null; }
+          ESQ_TEAM = {
+            orgId: o.id, orgName: o.name, status: o.status,
+            role: m.role, canProfile: m.can_edit_profile, canSeats: m.can_manage_seats,
+            seatsTotal: (o.seats_paid||0) + (o.seats_free||0)
+          };
+          if(row){
+            row.style.display = 'block';
+            var sub = document.getElementById('pm-team-sub');
+            if(sub) sub.textContent = o.name;
+          }
+          return ESQ_TEAM;
+        });
+    })
+    .catch(function(e){
+      /* Before the org tables exist this simply finds nothing. That is not an
+         error worth showing anybody. */
+      console.warn('[esq] team lookup:', e && e.message ? e.message : e);
+      ESQ_TEAM = null; if(row) row.style.display='none'; return null;
+    });
+}
+
+/* ── The panel ─────────────────────────────────────────────────────── */
+function openTeamPanel(){
+  if(document.getElementById('team-overlay')) return;
+  if(!ESQ_TEAM){ esqTeamLoad().then(function(t){ if(t) openTeamPanel(); }); return; }
+
+  var ov = document.createElement('div');
+  ov.id = 'team-overlay';
+  ov.className = 'modal-overlay show';
+  ov.style.zIndex = '999999';
+
+  ov.innerHTML =
+    '<div class="modal-box" style="width:720px;max-width:94vw;max-height:92vh;overflow:auto;">'+
+      '<button class="modal-close" type="button" id="t-x">&#10005;</button>'+
+      '<div class="modal-eyebrow">Team plan</div>'+
+      '<h2 class="modal-h2">'+esqEsc(ESQ_TEAM.orgName)+'</h2>'+
+      '<div class="modal-sub" id="t-seats" style="margin-bottom:18px;">Loading seats&hellip;</div>'+
+
+      '<div id="t-err" style="display:none;background:rgba(255,90,90,0.09);border:1px solid rgba(255,90,90,0.35);'+
+        'color:#ff9b9b;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin:0 0 14px;"></div>'+
+      '<div id="t-ok" style="display:none;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.30);'+
+        'color:#cdefa0;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin:0 0 14px;"></div>'+
+
+      '<div id="t-list"></div>'+
+
+      '<div id="t-invite-wrap" style="display:none;margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">'+
+        '<div style="font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:12px;">Invite somebody</div>'+
+        '<div class="form-row">'+
+          '<div class="form-field"><label>First name</label><input id="t-first" type="text" placeholder="Dana"></div>'+
+          '<div class="form-field"><label>Last name</label><input id="t-last" type="text" placeholder="Reyes"></div>'+
+        '</div>'+
+        '<div class="form-field"><label>Work email *</label>'+
+          '<input id="t-email" type="email" placeholder="dana@ontariocountyida.org"></div>'+
+        '<div id="t-perm-wrap" style="display:none;margin:2px 0 14px;">'+
+          '<label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#b8c6dd;margin-bottom:7px;cursor:pointer;">'+
+            '<input type="checkbox" id="t-p-profile" style="width:15px;height:15px;accent-color:#aaff3e;">'+
+            'Can edit the shared organization profile</label>'+
+          '<label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#b8c6dd;cursor:pointer;">'+
+            '<input type="checkbox" id="t-p-seats" style="width:15px;height:15px;accent-color:#aaff3e;">'+
+            'Can invite and remove team members</label>'+
+        '</div>'+
+        '<button class="modal-btn" type="button" id="t-send">Send the invitation</button>'+
+        '<p class="modal-note">They choose their own password. Nobody here ever sees it.</p>'+
+      '</div>'+
+
+      '<p class="modal-note" style="margin-top:18px;">'+
+        'The shared organization profile &mdash; logo, boilerplate, region, target sectors &mdash; '+
+        'is the next thing being built. These permissions are recorded now so they are ready when it lands. '+
+        'Your own name, title, phone and email always stay yours.</p>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  function close(){
+    if(ov.parentNode) ov.parentNode.removeChild(ov);
+    document.removeEventListener('keydown', onKey);
+  }
+  function onKey(e){ if(e.key === 'Escape') close(); }
+  document.addEventListener('keydown', onKey);
+  document.getElementById('t-x').onclick = close;
+  ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+
+  if(esqCanSeats()) document.getElementById('t-invite-wrap').style.display = 'block';
+  if(esqIsOwner())  document.getElementById('t-perm-wrap').style.display   = 'block';
+  document.getElementById('t-send').onclick = esqSendInvite;
+
+  esqLoadRoster();
+}
+
+function esqMsg(kind, text){
+  var e = document.getElementById('t-err'), o = document.getElementById('t-ok');
+  if(!e || !o) return;
+  e.style.display = 'none'; o.style.display = 'none';
+  var el = (kind === 'ok') ? o : e;
+  el.textContent = text; el.style.display = 'block';
+  if(kind === 'ok') setTimeout(function(){ if(el) el.style.display='none'; }, 6000);
+}
+
+/* ── Who is on the team ────────────────────────────────────────────── */
+function esqLoadRoster(){
+  var list = document.getElementById('t-list');
+  if(!list) return;
+  list.innerHTML = '<div style="font-size:12.5px;color:#6b7a96;padding:10px 0;">Loading&hellip;</div>';
+
+  supa.from('esq_org_roster').select('*').eq('org_id', ESQ_TEAM.orgId)
+    .then(function(res){
+      if(res.error){ list.innerHTML=''; esqMsg('err', 'Could not load the team: ' + res.error.message); return; }
+      var rows = res.data || [];
+      rows.sort(function(a,b){
+        if(a.role === 'owner') return -1;
+        if(b.role === 'owner') return 1;
+        if(a.kind !== b.kind) return a.kind === 'member' ? -1 : 1;
+        return String(a.email||'').localeCompare(String(b.email||''));
+      });
+
+      var used = rows.length;
+      var seats = document.getElementById('t-seats');
+      if(seats){
+        var left = ESQ_TEAM.seatsTotal - used;
+        seats.textContent = used + ' of ' + ESQ_TEAM.seatsTotal + ' seats in use' +
+          (left > 0 ? ' · ' + left + ' free' : ' · full') +
+          '. A pending invitation holds a seat until it is accepted or withdrawn.';
+      }
+
+      list.innerHTML = rows.map(esqRosterRow).join('') ||
+        '<div style="font-size:12.5px;color:#6b7a96;">Nobody yet.</div>';
+
+      rows.forEach(function(r){ esqWireRow(r); });
+    });
+}
+
+function esqRosterRow(r){
+  var isInvite = r.kind === 'invite';
+  var name = [r.first_name, r.last_name].filter(Boolean).join(' ');
+  var who  = esqEsc(name || r.email || '');
+  var sub  = name ? esqEsc(r.email || '') : '';
+  var key  = r.kind + '-' + r.id;
+  var me   = (!isInvite && currentUser && r.user_id === currentUser.id);
+
+  var badge = r.role === 'owner'
+    ? '<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#aaff3e;'+
+      'border:1px solid rgba(170,255,62,0.35);border-radius:5px;padding:2px 6px;">Owner</span>'
+    : (isInvite
+      ? '<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#e8b84b;'+
+        'border:1px solid rgba(232,184,75,0.35);border-radius:5px;padding:2px 6px;">Invited</span>'
+      : '');
+
+  /* The owner's own ticks are shown but never editable - they are not a
+     setting, they are what being the owner means. */
+  var lock = (r.role === 'owner') || !esqIsOwner();
+  var dis  = lock ? ' disabled' : '';
+  var opacity = lock ? 'opacity:.55;' : '';
+
+  var ticks =
+    '<label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#93a4bd;'+opacity+'cursor:'+(lock?'default':'pointer')+';">'+
+      '<input type="checkbox" data-k="'+key+'" data-f="can_edit_profile" style="width:14px;height:14px;accent-color:#aaff3e;"'+
+        (r.can_edit_profile ? ' checked' : '') + dis + '> profile</label>'+
+    '<label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#93a4bd;'+opacity+'cursor:'+(lock?'default':'pointer')+';">'+
+      '<input type="checkbox" data-k="'+key+'" data-f="can_manage_seats" style="width:14px;height:14px;accent-color:#aaff3e;"'+
+        (r.can_manage_seats ? ' checked' : '') + dis + '> seats</label>';
+
+  var actions = '';
+  if(esqCanSeats() && r.role !== 'owner'){
+    if(isInvite){
+      actions =
+        '<button type="button" id="rs-'+key+'" style="background:none;border:1px solid rgba(255,255,255,0.18);'+
+          'color:#b8c6dd;font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;">Resend</button>'+
+        '<button type="button" id="rv-'+key+'" style="background:none;border:1px solid rgba(255,90,90,0.30);'+
+          'color:#ff9b9b;font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;">Withdraw</button>';
+    } else if(!me){
+      actions =
+        '<button type="button" id="rv-'+key+'" style="background:none;border:1px solid rgba(255,90,90,0.30);'+
+          'color:#ff9b9b;font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;">Remove</button>';
+    }
+  }
+
+  return '<div id="row-'+key+'" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;'+
+      'padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.06);">'+
+      '<div style="flex:1 1 190px;min-width:0;">'+
+        '<div style="font-size:13px;font-weight:600;color:#eef3fc;display:flex;align-items:center;gap:8px;">'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+who+'</span>'+badge+
+          (me ? '<span style="font-size:10.5px;color:#6b7a96;">you</span>' : '')+'</div>'+
+        (sub ? '<div style="font-size:11.5px;color:#6b7a96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+sub+'</div>' : '')+
+      '</div>'+
+      '<div style="display:flex;gap:14px;">'+ticks+'</div>'+
+      '<div style="display:flex;gap:7px;">'+actions+'</div>'+
+    '</div>';
+}
+
+function esqWireRow(r){
+  var key = r.kind + '-' + r.id;
+  var boxes = document.querySelectorAll('input[data-k="'+key+'"]');
+  Array.prototype.forEach.call(boxes, function(box){
+    box.onchange = function(){
+      var field = box.getAttribute('data-f');
+      var patch = {}; patch[field] = box.checked;
+      var table = (r.kind === 'invite') ? 'esq_org_invites' : 'esq_org_members';
+      box.disabled = true;
+      /* ⚠️ A zero-row update is a SUCCESS in PostgREST. Without asking for the
+         row back, a change the database quietly refused looks like it worked. */
+      supa.from(table).update(patch).eq('id', r.id).select('id')
+        .then(function(res){
+          box.disabled = false;
+          if(res.error || !res.data || !res.data.length){
+            box.checked = !box.checked;
+            esqMsg('err', res.error
+              ? 'Only the team owner can change what somebody may edit.'
+              : 'That change was not saved. Only the team owner can make it.');
+            return;
+          }
+          esqMsg('ok', 'Saved.');
+        });
+    };
+  });
+
+  var rv = document.getElementById('rv-' + key);
+  if(rv) rv.onclick = function(){
+    /* Two clicks, no dialog - the same pattern as deleting a quote request. */
+    if(rv.getAttribute('data-armed') !== '1'){
+      rv.setAttribute('data-armed','1');
+      rv.textContent = 'Sure?';
+      setTimeout(function(){
+        if(rv && rv.getAttribute('data-armed') === '1'){
+          rv.setAttribute('data-armed','0');
+          rv.textContent = (r.kind === 'invite') ? 'Withdraw' : 'Remove';
+        }
+      }, 4000);
+      return;
+    }
+    rv.disabled = true;
+    var table = (r.kind === 'invite') ? 'esq_org_invites' : 'esq_org_members';
+    var patch = { revoked_at: new Date().toISOString() };
+    if(r.kind === 'member' && currentUser) patch.revoked_by = currentUser.id;
+    supa.from(table).update(patch).eq('id', r.id).select('id')
+      .then(function(res){
+        if(res.error || !res.data || !res.data.length){
+          rv.disabled = false; rv.textContent = 'Remove';
+          esqMsg('err', res.error ? res.error.message : 'That could not be removed.');
+          return;
+        }
+        esqMsg('ok', (r.kind === 'invite' ? 'Invitation withdrawn.' : 'Seat freed.') +
+                     ' The seat is available again straight away.');
+        esqLoadRoster();
+      });
+  };
+
+  var rs = document.getElementById('rs-' + key);
+  if(rs) rs.onclick = function(){
+    rs.disabled = true; rs.textContent = 'Sending…';
+    esqPostInvite({ org_id: ESQ_TEAM.orgId, resend_id: r.id }, function(ok, msg){
+      rs.disabled = false; rs.textContent = 'Resend';
+      esqMsg(ok ? 'ok' : 'err', msg);
+      if(ok) esqLoadRoster();
+    });
+  };
+}
+
+/* ── Inviting ──────────────────────────────────────────────────────── */
+function esqPostInvite(payload, done){
+  supa.auth.getSession().then(function(s){
+    var tok = (s && s.data && s.data.session && s.data.session.access_token) || SUPA_KEY;
+    return fetch(SUPA_URL + '/functions/v1/org-invite', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify(payload)
+    });
+  }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(j){
+      if(!j || j.ok !== true){ done(false, (j && j.error) || 'That invitation could not be sent.'); return; }
+      if(j.emailed === false){
+        done(true, 'Saved, but the email did not go out (' + (j.send_error || 'unknown') +
+                   '). The invitation is listed below - try Resend in a minute.');
+        return;
+      }
+      done(true, 'Invitation sent to ' + j.email + '. It is good for 14 days.');
+    })
+    .catch(function(e){ done(false, 'Could not reach the server: ' + (e && e.message ? e.message : e)); });
+}
+
+function esqSendInvite(){
+  var btn = document.getElementById('t-send');
+  var email = (document.getElementById('t-email').value || '').trim();
+  if(!/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)){
+    esqMsg('err', 'Please put in a work email address.'); return;
+  }
+  var payload = {
+    org_id: ESQ_TEAM.orgId,
+    email: email,
+    first_name: (document.getElementById('t-first').value || '').trim(),
+    last_name:  (document.getElementById('t-last').value || '').trim()
+  };
+  if(esqIsOwner()){
+    payload.can_edit_profile = document.getElementById('t-p-profile').checked;
+    payload.can_manage_seats = document.getElementById('t-p-seats').checked;
+  }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  esqPostInvite(payload, function(ok, msg){
+    btn.disabled = false; btn.textContent = 'Send the invitation';
+    esqMsg(ok ? 'ok' : 'err', msg);
+    if(ok){
+      document.getElementById('t-email').value = '';
+      document.getElementById('t-first').value = '';
+      document.getElementById('t-last').value  = '';
+      if(esqIsOwner()){
+        document.getElementById('t-p-profile').checked = false;
+        document.getElementById('t-p-seats').checked   = false;
+      }
+      esqLoadRoster();
+    }
+  });
+}
+
+/* ═══════════════════════════════════════
+   ACCEPTING AN INVITATION
+   ───────────────────────────────────────
+   Reached as econsquad.ai/#invite=TOKEN from the email. Has to work for
+   somebody with no account and no session, so everything goes through the
+   org-accept function with the anon key.
+   ═══════════════════════════════════════ */
+function esqAcceptOpen(token){
+  if(document.getElementById('acc-overlay')) return;
+
+  var ov = document.createElement('div');
+  ov.id = 'acc-overlay';
+  ov.className = 'modal-overlay show';
+  ov.style.zIndex = '1000000';
+  ov.innerHTML =
+    '<div class="modal-box" style="width:520px;max-width:94vw;">'+
+      '<div id="acc-body"><div style="padding:26px 0;text-align:center;font-size:13px;color:#6b7a96;">'+
+        'Checking that invitation&hellip;</div></div>'+
+    '</div>';
+  document.body.appendChild(ov);
+
+  esqPostAccept({ token: token, peek: true }, function(j){
+    var body = document.getElementById('acc-body');
+    if(!body) return;
+
+    if(!j || j.ok !== true){
+      body.innerHTML =
+        '<h2 class="modal-h2">That link is <span>no longer good</span></h2>'+
+        '<div class="modal-sub">Invitations last 14 days, and each one can only be used once. '+
+          'Ask whoever invited you to send a fresh one &mdash; it takes them a couple of seconds.</div>'+
+        '<button class="modal-btn" type="button" id="acc-x">Close</button>';
+      document.getElementById('acc-x').onclick = function(){ esqAcceptClose(ov); };
+      return;
+    }
+
+    if(j.has_account){
+      body.innerHTML =
+        '<div class="modal-eyebrow">'+esqEsc(j.org_name)+'</div>'+
+        '<h2 class="modal-h2">You already have an <span>EconSquad account</span></h2>'+
+        '<div class="modal-sub">Sign in as '+esqEsc(j.email)+' and open this link again. '+
+          'We will not set a password on an account that already exists.</div>'+
+        '<button class="modal-btn" type="button" id="acc-signin">Sign in</button>'+
+        '<p class="modal-note">Signed in already? Open the link from your email once more.</p>';
+      document.getElementById('acc-signin').onclick = function(){
+        esqAcceptClose(ov);
+        try{ openAuth('signin'); }catch(e){ location.hash = ''; }
+      };
+      return;
+    }
+
+    body.innerHTML =
+      '<div class="modal-eyebrow">'+esqEsc(j.org_name)+'</div>'+
+      '<h2 class="modal-h2">'+(j.first_name ? esqEsc(j.first_name)+', you' : 'You')+
+        ' have a <span>seat</span></h2>'+
+      '<div class="modal-sub">Choose a password and you are in. '+
+        'Nobody at '+esqEsc(j.org_name)+' or at EconSquad can see it &mdash; not even whoever invited you.</div>'+
+      '<div class="form-field"><label>Your email</label>'+
+        '<input type="email" value="'+esqEsc(j.email)+'" disabled style="opacity:.6;"></div>'+
+      '<div class="form-row">'+
+        '<div class="form-field"><label>First name</label>'+
+          '<input id="acc-first" type="text" value="'+esqEsc(j.first_name||'')+'"></div>'+
+        '<div class="form-field"><label>Last name</label><input id="acc-last" type="text"></div>'+
+      '</div>'+
+      '<div class="form-field"><label>Choose a password *</label>'+
+        '<input id="acc-pw" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>'+
+      '<div id="acc-err" style="display:none;background:rgba(255,90,90,0.09);border:1px solid rgba(255,90,90,0.35);'+
+        'color:#ff9b9b;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin:4px 0 10px;"></div>'+
+      '<button class="modal-btn" type="button" id="acc-go">Set my password and join</button>'+
+      '<p class="modal-note">A passphrase beats a short complicated one. Three unrelated words is plenty.</p>';
+
+    document.getElementById('acc-go').onclick = function(){ esqAcceptSubmit(ov, token, j); };
+    document.getElementById('acc-pw').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') esqAcceptSubmit(ov, token, j);
+    });
+  });
+}
+
+function esqAcceptClose(ov){
+  if(ov && ov.parentNode) ov.parentNode.removeChild(ov);
+  if((location.hash||'').indexOf('#invite=') === 0){
+    try{ history.replaceState(null, '', location.pathname + location.search); }
+    catch(e){ location.hash = ''; }
+  }
+}
+
+function esqAcceptSubmit(ov, token, info){
+  var btn = document.getElementById('acc-go');
+  var err = document.getElementById('acc-err');
+  var pw  = document.getElementById('acc-pw').value || '';
+  function fail(m){ err.textContent = m; err.style.display='block'; btn.disabled=false; btn.textContent='Set my password and join'; }
+
+  if(pw.length < 10){ fail('Please use at least 10 characters.'); return; }
+  btn.disabled = true; btn.textContent = 'Setting up…';
+
+  esqPostAccept({
+    token: token, password: pw,
+    first_name: (document.getElementById('acc-first').value || '').trim(),
+    last_name:  (document.getElementById('acc-last').value  || '').trim()
+  }, function(j){
+    if(!j || j.ok !== true){
+      if(j && j.error === 'weak_password'){ fail(j.message || 'Please choose a stronger password.'); return; }
+      if(j && j.error === 'have_account'){ fail('There is already an account for that address. Sign in and open the link again.'); return; }
+      if(j && j.error === 'no_seats'){ fail('Every seat is taken right now. Ask whoever invited you to free one, then use this link again — it still works.'); return; }
+      if(j && j.error === 'wrong_account'){ fail('You are signed in as ' + (j.signed_in_as||'somebody else') + '. This invitation is for ' + (j.invited||'another address') + '.'); return; }
+      fail('That invitation could not be accepted. It may have expired.');
+      return;
+    }
+
+    /* Sign them in with the password they just chose, so they land inside the
+       product rather than at a login form having just proved who they are. */
+    supa.auth.signInWithPassword({ email: info.email, password: pw })
+      .then(function(){ esqAcceptClose(ov); location.reload(); })
+      .catch(function(){ esqAcceptClose(ov); location.reload(); });
+  });
+}
+
+function esqPostAccept(payload, done){
+  supa.auth.getSession().then(function(s){
+    var tok = (s && s.data && s.data.session && s.data.session.access_token) || SUPA_KEY;
+    return fetch(SUPA_URL + '/functions/v1/org-accept', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify(payload)
+    });
+  }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(j){ done(j); })
+    .catch(function(){ done(null); });
+}
+
+/* ── Wiring ────────────────────────────────────────────────────────── */
+(function(){
+  function boot(){
+    var m = (location.hash || '').match(/^#invite=(.+)$/);
+    if(m && m[1]) esqAcceptOpen(decodeURIComponent(m[1]));
+    supa.auth.getSession().then(function(res){
+      if(res && res.data && res.data.session && res.data.session.user){
+        currentUser = currentUser || res.data.session.user;
+        esqTeamLoad();
+      }
+    });
+    supa.auth.onAuthStateChange(function(event, session){
+      if(event === 'SIGNED_IN' && session){ currentUser = session.user; esqTeamLoad(); }
+      else if(event === 'SIGNED_OUT'){ ESQ_TEAM = null;
+        var row = document.getElementById('pm-team-row'); if(row) row.style.display = 'none'; }
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
 </script>
 
