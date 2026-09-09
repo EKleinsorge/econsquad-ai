@@ -3327,7 +3327,7 @@ function openQuote(id){
       '</div>'+
       '<div style="font-size:11px;color:#6b7a96;margin-top:10px;">'+
         'Sending emails the quote to them and copies you. It also moves this request to '+
-        '&ldquo;quoted&rdquo;. Nothing goes out until you press it.</div>'+
+        '&ldquo;quote sent&rdquo;. Nothing goes out until you press it.</div>'+
     '</div>';
 
   document.body.appendChild(ov);
@@ -3391,8 +3391,31 @@ function qbCreateInvoice(){
       btn.disabled=false; btn.textContent='Create a Stripe invoice';
       var d=out&&out.data;
       if(d&&d.ok){
-        qbMsg('ok','Invoice created'+(d.already?' (one already existed)':'')+
-              ' for '+esqMoney(d.amount||0)+'. Reopen this quote for the link.');
+        /* The function returns the hosted URL, so put it on screen rather than
+           asking for a close-and-reopen to see what was just made. */
+        var msg=document.getElementById('qb-msg');
+        msg.style.background='rgba(170,255,62,0.08)';
+        msg.style.border='1px solid rgba(170,255,62,0.35)';
+        msg.style.color='#aaff3e';
+        msg.innerHTML='Invoice created'+(d.already?' (one already existed)':'')+
+          ' for '+esqMoney(d.amount||0)+'.'+
+          (d.url?' <a href="'+esqEsc(d.url)+'" target="_blank" rel="noopener" '+
+                 'style="color:#eef3fc;text-decoration:underline;">Open it &rarr;</a>'+
+                 '<div style="color:#8a97b5;font-size:11.5px;margin-top:4px;">'+
+                 'Nobody has been emailed. Send them that link yourself when you are ready.</div>':'');
+        msg.style.display='block';
+        /* Replace the button, so a second press cannot look like it did
+           nothing - the server refuses a duplicate invoice, correctly, but the
+           button would sit there inviting the attempt. */
+        if(d.url){
+          var b=document.getElementById('qb-invoice');
+          if(b && b.parentNode){
+            var a=document.createElement('a');
+            a.className='btn-ghost'; a.href=d.url; a.target='_blank'; a.rel='noopener';
+            a.style.textDecoration='none'; a.textContent='Open the Stripe invoice';
+            b.parentNode.replaceChild(a,b);
+          }
+        }
         loadQuotes();
         return;
       }
