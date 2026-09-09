@@ -99,10 +99,14 @@ export async function domainResolves(email: string): Promise<boolean | null> {
 export function inviteEmail(o: {
   orgName: string; inviterName: string; firstName: string;
   link: string; canProfile: boolean; canSeats: boolean; expires: string;
+  isOwner?: boolean;
 }): string {
   const extras: string[] = [];
-  if (o.canProfile) extras.push('edit the shared organization profile');
-  if (o.canSeats)   extras.push('invite and remove team members');
+  if (o.isOwner) extras.push('run the account: add and remove people, and set what each of them may change');
+  else {
+    if (o.canProfile) extras.push('edit the shared organization profile');
+    if (o.canSeats)   extras.push('invite and remove team members');
+  }
   const extraLine = extras.length
     ? `<p style="margin:0 0 14px;">You have also been given permission to ${esc(extras.join(' and '))}.</p>`
     : '';
@@ -154,6 +158,21 @@ Deno.serve(async (req: Request) => {
     if (!Number.isFinite(orgId) || orgId <= 0) return json({ ok: false, error: 'Missing team.' }, 400);
 
     // ── Is this person allowed to add people to THIS team ────────────
+    // Two ways in, and they are not the same thing.
+    //
+    // A SITE ADMIN (public.admins - Eric) can invite on any team. That is not
+    // a convenience: provisioning a paid quote has to send the buyer their
+    // owner's invitation, and at that moment nobody holds a seat on that team
+    // at all, so there is no seat-based permission to check.
+    //
+    // A CUSTOMER needs a live, unrevoked seat on THAT team carrying
+    // can_manage_seats. Holding an EconSquad account is not permission to add
+    // people to somebody's team.
+    const { data: siteAdmin } = caller.email
+      ? await admin.from('admins').select('email').ilike('email', caller.email).maybeSingle()
+      : { data: null };
+    const isSiteAdmin = !!siteAdmin;
+
     const { data: me } = await admin
       .from('esq_org_members')
       .select('role, can_manage_seats')
@@ -161,10 +180,12 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     const isOwner = me?.role === 'owner';
-    if (!me || !(isOwner || me.can_manage_seats)) {
+    if (!isSiteAdmin && (!me || !(isOwner || me.can_manage_seats))) {
       console.warn('org-invite: refused, no seat permission on org', orgId);
       return json({ ok: false, error: 'You do not have permission to manage this team.' }, 403);
     }
+    // Who may hand out powers: the owner, or us.
+    const mayGrant = isOwner || isSiteAdmin;
 
     const { data: org } = await admin
       .from('esq_organizations').select('id, name, status, seats_paid, seats_free')
@@ -215,12 +236,21 @@ Deno.serve(async (req: Request) => {
 
       // ⚠️ THE ESCALATION RULE, RE-STATED. The database trigger is not
       // watching the service role, so it is enforced here instead: only the
-      // owner may hand out permissions, whatever the body asks for.
-      const canProfile = isOwner ? body.can_edit_profile === true : false;
-      const canSeats   = isOwner ? body.can_manage_seats === true : false;
-      if (!isOwner && (body.can_edit_profile === true || body.can_manage_seats === true)) {
+      // owner (or us) may hand out permissions, whatever the body asks for.
+      const canProfile = mayGrant ? body.can_edit_profile === true : false;
+      const canSeats   = mayGrant ? body.can_manage_seats === true : false;
+      if (!mayGrant && (body.can_edit_profile === true || body.can_manage_seats === true)) {
         console.warn('org-invite: non-owner tried to grant permissions on org', orgId);
         return json({ ok: false, error: 'Only the team owner can give somebody extra permissions.' }, 403);
+      }
+
+      // ⚠️ THE OWNER'S CHAIR IS OURS TO HAND OUT, NOBODY ELSE'S.
+      // Only provisioning seats an owner, and provisioning is us. A customer
+      // asking for role:'owner' - even the current owner - gets 'member',
+      // because a second owner is a support conversation, not a feature.
+      let role = 'member';
+      if (isSiteAdmin && (body.role === 'owner' || body.role === 'admin')) {
+        role = String(body.role);
       }
 
       // Already holding a seat? Then this is not an invitation.
@@ -240,7 +270,7 @@ Deno.serve(async (req: Request) => {
         .from('esq_org_invites')
         .insert({
           org_id: orgId, email, first_name: first || null, last_name: last || null,
-          role: 'member', can_edit_profile: canProfile, can_manage_seats: canSeats,
+          role, can_edit_profile: canProfile, can_manage_seats: canSeats,
           invited_by: caller.id,
         })
         .select('*').maybeSingle();
@@ -297,6 +327,7 @@ Deno.serve(async (req: Request) => {
             link,
             canProfile: inv.can_edit_profile === true,
             canSeats: inv.can_manage_seats === true,
+            isOwner: inv.role === 'owner',
             expires,
           }),
         }),

@@ -3319,6 +3319,15 @@ function openQuote(id){
               '</div>')+
         '</div>') : '')+
 
+      /* ── The team this quote buys ──────────────────────────────────
+         Only once somebody has decided the deal is real. A team is seats
+         that were actually bought, so the button is not offered on a quote
+         that has merely been sent. */
+      ((r.status==='won'||r.paid_at)
+        ? '<div id="qb-team" style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;'+
+            'padding:13px 15px;margin-bottom:14px;">'+
+            '<div style="font-size:12px;color:#6b7a96;">Checking for a team&hellip;</div></div>'
+        : '')+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'+
         '<button class="btn-ghost" id="qb-save">Save draft</button>'+
         '<button class="btn-ghost" id="qb-print">Preview the actual quote</button>'+
@@ -3335,6 +3344,7 @@ function openQuote(id){
   document.body.appendChild(ov);
   QB_ID=id;
   qbTotal();
+  qbLoadTeam(id);
 
   function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown',onKey); QB_ID=null; }
   function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
@@ -3351,6 +3361,150 @@ function openQuote(id){
   var invBtn=document.getElementById('qb-invoice');
   if(invBtn) invBtn.addEventListener('click', qbCreateInvoice);
   QB_CLOSE=close;
+}
+
+/* ═══════════════════════════════════════
+   TURNING A PAID QUOTE INTO A TEAM
+   ───────────────────────────────────────
+   Two steps, deliberately not one: create the team, then send the buyer their
+   owner's invitation. If the email fails the team still exists and the
+   invitation can go again, rather than the whole thing needing to be unpicked.
+
+   ⚠️ The seat count is NOT sent from here. org-provision reads it off the quote
+   row, so a team's seats are always the seats on the priced document the
+   customer was sent.
+   ═══════════════════════════════════════ */
+function qbTeamBox(){ return document.getElementById('qb-team'); }
+
+function qbLoadTeam(quoteId){
+  var box = qbTeamBox();
+  if(!box) return;
+  supa.from('esq_organizations')
+    .select('id, name, seats_paid, seats_free, term_start, term_end, status')
+    .eq('quote_request_id', quoteId).limit(1)
+    .then(function(res){
+      if(res.error){
+        /* Before the org tables exist this is the only thing that fails on the
+           page. Say what it is rather than showing a spinner for ever. */
+        box.innerHTML = '<div style="font-size:12px;color:#e8b84b;">Team tables are not there yet '+
+                        '('+esqEsc(res.error.message)+').</div>';
+        return;
+      }
+      var o = res.data && res.data.length ? res.data[0] : null;
+      if(!o){ qbRenderNoTeam(box); return; }
+      qbRenderTeam(box, o);
+    });
+}
+
+function qbRenderNoTeam(box){
+  box.innerHTML =
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">'+
+      '<button class="btn-ghost" id="qb-makeTeam">Create the team</button>'+
+      '<span style="font-size:11.5px;color:#6b7a96;">'+
+        'Creates the organisation with the seats on this quote and puts the buyer in the '+
+        'owner&rsquo;s chair. It does not email anybody yet.</span>'+
+    '</div>';
+  var b = document.getElementById('qb-makeTeam');
+  if(b) b.addEventListener('click', qbProvision);
+}
+
+function qbRenderTeam(box, o, note){
+  var total = (o.seats_paid||0) + (o.seats_free||0);
+  supa.from('esq_org_roster').select('kind, email, role').eq('org_id', o.id)
+    .then(function(res){
+      var rows = (res && res.data) || [];
+      var used = rows.length;
+      var owner = null;
+      for(var i=0;i<rows.length;i++){ if(rows[i].role==='owner'){ owner = rows[i]; break; } }
+
+      box.innerHTML =
+        '<div style="font-size:12.5px;color:#eef3fc;font-weight:700;margin-bottom:4px;">'+
+          esqEsc(o.name)+' &middot; team #'+o.id+'</div>'+
+        '<div style="font-size:11.5px;color:#6b7a96;margin-bottom:10px;">'+
+          used+' of '+total+' seats in use'+
+          (o.term_end ? ' &middot; term to '+esqEsc(o.term_end) : '')+
+          ' &middot; '+esqEsc(o.status)+
+          (owner
+            ? ' &middot; owner: '+esqEsc(owner.email||'?')+
+              (owner.kind==='invite' ? ' (invited, not accepted yet)' : '')
+            : ' &middot; NO OWNER YET')+
+        '</div>'+
+        (owner
+          ? ''
+          : '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">'+
+              '<button class="btn-ghost" id="qb-inviteOwner">Email the owner&rsquo;s invitation</button>'+
+              '<span style="font-size:11.5px;color:#6b7a96;">They set their own password. '+
+              'Nobody here ever sees it.</span></div>')+
+        (note ? '<div style="font-size:12px;color:#cdefa0;margin-top:9px;">'+esqEsc(note)+'</div>' : '');
+
+      var b = document.getElementById('qb-inviteOwner');
+      if(b) b.addEventListener('click', function(){ qbInviteOwner(o.id); });
+    });
+}
+
+function qbProvision(){
+  var btn = document.getElementById('qb-makeTeam');
+  if(!btn || !QB_ID) return;
+  btn.disabled = true; btn.textContent = 'Creating…';
+  qbPost('org-provision', { quote_id: QB_ID }, function(j){
+    btn.disabled = false; btn.textContent = 'Create the team';
+    if(!j || j.ok !== true){
+      qbMsg('err', (j && j.error) || 'That team could not be created.');
+      return;
+    }
+    qbMsg('ok', j.already
+      ? 'That quote already had a team.'
+      : 'Team created: '+j.seats_paid+' paid seats plus '+j.seats_free+' included.');
+    /* The buyer may already have had an account, in which case they are seated
+       and there is nothing to send. */
+    if(j.next === 'invite_owner') qbInviteOwner(j.org_id);
+    else qbLoadTeam(QB_ID);
+  });
+}
+
+function qbInviteOwner(orgId){
+  var btn = document.getElementById('qb-inviteOwner');
+  if(btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
+  supa.from('quote_requests').select('full_name, email, quote_sent_to').eq('id', QB_ID).limit(1)
+    .then(function(res){
+      var q = res && res.data && res.data.length ? res.data[0] : {};
+      var to = (q.quote_sent_to || q.email || '').trim();
+      var parts = String(q.full_name||'').trim().split(/\s+/);
+      qbPost('org-invite', {
+        org_id: orgId,
+        email: to,
+        first_name: parts[0] || '',
+        last_name: parts.slice(1).join(' '),
+        role: 'owner',
+        can_edit_profile: true,
+        can_manage_seats: true
+      }, function(j){
+        if(btn){ btn.disabled = false; btn.textContent = 'Email the owner’s invitation'; }
+        if(!j || j.ok !== true){
+          qbMsg('err', (j && j.error) || 'That invitation could not be sent.');
+          qbLoadTeam(QB_ID);
+          return;
+        }
+        qbMsg(j.emailed === false ? 'err' : 'ok',
+          j.emailed === false
+            ? 'The invitation was saved but the email did not go out ('+(j.send_error||'unknown')+').'
+            : 'Owner invitation sent to '+j.email+'. Good for 14 days.');
+        qbLoadTeam(QB_ID);
+      });
+    });
+}
+
+function qbPost(fn, body, done){
+  supa.auth.getSession().then(function(s){
+    var tok = (s && s.data && s.data.session && s.data.session.access_token) || SUPA_KEY;
+    return fetch(SUPA_URL + '/functions/v1/' + fn, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify(body)
+    });
+  }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(j){ done(j); })
+    .catch(function(e){ done({ ok:false, error:'Could not reach the server: '+(e&&e.message?e.message:e) }); });
 }
 
 /* Records money that arrived outside the product - a cheque, a wire, an ACH

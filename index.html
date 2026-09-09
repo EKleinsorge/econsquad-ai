@@ -16893,6 +16893,10 @@ function esqAcceptSubmit(ov, token, info){
       if(j && j.error === 'weak_password'){ fail(j.message || 'Please choose a stronger password.'); return; }
       if(j && j.error === 'have_account'){ fail('There is already an account for that address. Sign in and open the link again.'); return; }
       if(j && j.error === 'no_seats'){ fail('Every seat is taken right now. Ask whoever invited you to free one, then use this link again — it still works.'); return; }
+      /* Only reachable if a team somehow got two owner invitations. Ours to
+         fix, not theirs, so say that rather than blaming their link. */
+      if(j && j.error === 'already_has_owner'){ fail('That team already has an owner, so this link cannot be used. Get in touch and we will sort it out — nothing is wrong at your end.'); return; }
+      if(j && j.error === 'seat_conflict'){ fail('That seat is already taken. Try signing in — you may already be on the team.'); return; }
       if(j && j.error === 'wrong_account'){ fail('You are signed in as ' + (j.signed_in_as||'somebody else') + '. This invitation is for ' + (j.invited||'another address') + '.'); return; }
       fail('That invitation could not be accepted. It may have expired.');
       return;
