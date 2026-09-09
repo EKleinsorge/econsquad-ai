@@ -26,7 +26,6 @@
 // Eric is BCC'd so he holds a copy of exactly what the prospect received.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import * as pdfLib from 'https://esm.sh/pdf-lib@1.17.1';
 import { buildQuotePdf } from './quotepdf.ts';
 import { logoBytes } from './logo.ts';
 
@@ -240,7 +239,7 @@ Deno.serve(async (req: Request) => {
     let pdfBase64: string | null = null;
     let pdf_error: string | null = null;
     try {
-      const bytes = await buildQuotePdf(pdfLib, r, logoBytes());
+      const bytes = await buildQuotePdf(r, logoBytes());
       // No spread. The previous version pushed 32,768 elements into a single
       // call, which V8 permits when there is stack to spare and refuses when
       // there is not - fine in Node, RangeError in an edge function. A plain

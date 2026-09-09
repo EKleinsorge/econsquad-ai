@@ -1,5 +1,11 @@
-import * as pdfLib from 'https://esm.sh/pdf-lib@1.17.1';
-export { pdfLib };
+// THE ONLY PLACE THIS FUNCTION MENTIONS pdf-lib.
+//
+// It used to be imported here AND in index.ts, which passed it in as an
+// argument. Two import sites of a remote module can resolve to two separate
+// instances once esm.sh's redirects are involved, and pdf-lib interns objects
+// per instance - so a value made by one copy fails the other copy's instanceof
+// check and you get "Expected instance of t, but got instance of t".
+import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
 
 // The quote as a PDF: something a buyer can print, sign and hand in.
 //
@@ -50,8 +56,7 @@ export function wrap(text: unknown, font: any, size: number, maxWidth: number): 
   return out;
 }
 
-export async function buildQuotePdf(lib: any, r: any, logoBytes: Uint8Array | null): Promise<Uint8Array> {
-  const { PDFDocument, StandardFonts, rgb } = lib;
+export async function buildQuotePdf(r: any, logoBytes: Uint8Array | null): Promise<Uint8Array> {
 
   const doc = await PDFDocument.create();
   doc.setTitle(`EconSquad AI quote ${r.quote_no || ''} — ${r.organization || ''}`);
@@ -87,15 +92,26 @@ export async function buildQuotePdf(lib: any, r: any, logoBytes: Uint8Array | nu
   const label = (s: string) => { room(26); y -= 15; text(s, L, y, { size: 7.5, font: bold, color: GREY }); y -= 10; };
 
   // ── Letterhead ──────────────────────────────────────────────────────
+  let logoDrawn = false;
   if (logoBytes) {
-    const png = await doc.embedPng(logoBytes);
-    const w = 168;                                  // 600x150 source
-    const h = (png.height / png.width) * w;
-    page.drawImage(png, { x: L, y: y - h + 6, width: w, height: h });
-    // The logo carries its own tagline along the bottom edge, so the company
-    // line needs real clearance or the two sit on top of each other.
-    y -= h + 6;
-  } else {
+    try {
+      const png = await doc.embedPng(logoBytes);
+      const w = 168;                                  // 600x150 source
+      const h = (png.height / png.width) * w;
+      page.drawImage(png, { x: L, y: y - h + 6, width: w, height: h });
+      // The logo carries its own tagline along the bottom edge, so the company
+      // line needs real clearance or the two sit on top of each other.
+      y -= h + 6;
+      logoDrawn = true;
+    } catch (e) {
+      // Falls through to the text letterhead below. An attachment with a plain
+      // letterhead beats no attachment at all, which is what an unguarded
+      // embedPng would have cost.
+      console.error('quote pdf: logo embed failed, using text letterhead:',
+                    e instanceof Error ? e.message : String(e));
+    }
+  }
+  if (!logoDrawn) {
     // A missing logo must not produce a blank letterhead.
     text('EconSquad AI', L, y - 14, { size: 20, font: bold });
     y -= 22;
@@ -206,12 +222,28 @@ export async function buildQuotePdf(lib: any, r: any, logoBytes: Uint8Array | nu
     text(line, L + 14, y, { size: 9 }); y -= 12;
   }
 
-  const form = doc.getForm();
+  /* Fillable boxes are the nicety; a line to sign on is the requirement.
+     AcroForm construction is the most intricate thing this file does, so if it
+     fails the document still gets a printable acceptance block rather than
+     failing entirely and taking the attachment with it. */
+  let form: any = null;
+  try { form = doc.getForm(); } catch { form = null; }
+
   const field = (name: string, caption: string, x: number, w: number) => {
-    const f = form.createTextField(name);
-    f.setText('');
-    f.addToPage(page, { x, y: y - 20, width: w, height: 18,
-      borderWidth: 0, backgroundColor: rgb(1, 1, 1) });
+    if (form) {
+      try {
+        const f = form.createTextField(name);
+        f.setText('');
+        f.addToPage(page, { x, y: y - 20, width: w, height: 18,
+          borderWidth: 0, backgroundColor: rgb(1, 1, 1) });
+      } catch (e) {
+        // One failure means the rest will fail too; stop trying and let every
+        // remaining field fall through to a plain ruled line.
+        console.error('quote pdf: form field failed, falling back to ruled lines:',
+                      e instanceof Error ? e.message : String(e));
+        form = null;
+      }
+    }
     page.drawLine({ start: { x, y: y - 22 }, end: { x: x + w, y: y - 22 }, thickness: 0.8, color: GREY });
     page.drawText(caption, { x, y: y - 32, size: 7, font: reg, color: GREY });
   };
