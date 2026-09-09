@@ -157,8 +157,14 @@ Deno.serve(async (req: Request) => {
     else seats = Math.min(Math.round(seats), 5000);
 
     // See containsPaymentDetail. This runs before anything is written.
+    // Phone is checked with the same rule as everything else. It used to take a
+    // looser second argument, left over from the first version that counted
+    // digit runs; the rewrite dropped the parameter and this call site kept
+    // passing it. JavaScript ignored the extra argument so it behaved
+    // correctly, which is exactly why it survived a live deploy unnoticed -
+    // caught by a type check, not by anything going wrong.
     if (containsPaymentDetail(notes) || containsPaymentDetail(role_title) ||
-        containsPaymentDetail(organization) || containsPaymentDetail(phone, 15)) {
+        containsPaymentDetail(organization) || containsPaymentDetail(phone)) {
       return fail(
         'For your security, please remove any card or bank account numbers. ' +
         'Just choose how you would like to pay and we will send a secure payment link or an invoice.',
@@ -248,6 +254,54 @@ Deno.serve(async (req: Request) => {
   <p style="margin:22px 0 0;font-size:13px;color:#6b7a96;">Reply to this email to answer ${esc(full_name.split(' ')[0])} directly.</p>
 </div>`;
 
+    // ── Tell the person who asked, first ─────────────────────────────
+    // Until this existed they filled in the form, saw a green confirmation
+    // promising them a written quote by email, and then received nothing at
+    // all. Somebody who submits a form and hears nothing assumes it failed —
+    // and a public-sector buyer has no record of having asked. This is short on
+    // purpose: it is a receipt, not a pitch, and the real quote follows from
+    // Eric.
+    let ack_emailed_at: string | null = null;
+    let ack_error: string | null = null;
+    try {
+      if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+      const first = full_name.split(' ')[0] || 'there';
+      const ackHtml = `<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:540px;color:#0d1220;line-height:1.6;">
+  <p>Hi ${esc(first)},</p>
+  <p>Thanks for asking about the Team plan for <strong>${esc(organization)}</strong>. This is just to confirm it reached us${seats ? `, for ${seats} ${seats === 1 ? 'person' : 'people'}` : ''}.</p>
+  <p>Eric will send you a written quote within one business day — one you can take to a board or attach to a purchase order. ${payment_pref === 'invoice' || payment_pref === 'check' ? 'It will be set up for a purchase order, with net 30 terms, and a W-9 is available on request.' : ''}</p>
+  <p style="margin:20px 0;padding:14px 18px;background:#f4f6fa;border-left:3px solid #aaff3e;">
+    <strong>What the Team plan is:</strong> $4,950 a year for five people, with a sixth seat at no charge.
+    Every seat gets all 22 specialists, ARIA, and the Gmail and Calendar integration.
+    Seats belong to the organisation, so you reassign one when somebody joins or leaves.
+  </p>
+  <p>If anything has changed, or you would rather talk it through first, just reply to this email — it comes straight to Eric.</p>
+  <p style="margin-top:22px;">Eric Kleinsorge<br>
+  <span style="color:#6b7a96;font-size:13px;">EconSquad AI &middot; Global Site Location Industries, LLC<br>econsquad.ai</span></p>
+  <p style="margin-top:22px;font-size:12px;color:#8a94a8;">
+    We will never ask you for a card number, bank details or a password by email.
+  </p>
+</div>`;
+      const ar = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [email],
+          reply_to: 'eric@econsquad.ai',
+          subject: `Your EconSquad Team quote request — ${organization}`,
+          html: ackHtml,
+        }),
+      });
+      if (!ar.ok) throw new Error(`Resend ${ar.status}: ${(await ar.text()).slice(0, 200)}`);
+      ack_emailed_at = new Date().toISOString();
+    } catch (e) {
+      ack_error = e instanceof Error ? e.message : String(e);
+      // Not fatal. The request is saved and Eric is about to be told; the admin
+      // list shows that this person is still waiting to hear anything.
+      console.error('[request-quote] acknowledgement failed:', ack_error);
+    }
+
     let emailed_at: string | null = null;
     let email_error: string | null = null;
     try {
@@ -275,7 +329,7 @@ Deno.serve(async (req: Request) => {
     if (saved?.id) {
       await sb(`quote_requests?id=eq.${saved.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ emailed_at, email_error }),
+        body: JSON.stringify({ emailed_at, email_error, ack_emailed_at, ack_error }),
       }).catch(() => {});
     }
 

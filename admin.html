@@ -416,7 +416,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 
       <div class="admin-card">
         <table>
-          <thead><tr><th>Organisation</th><th>Who</th><th>Seats</th><th>Wants to pay</th><th>Needed by</th><th>Came from</th><th>When</th><th>Status</th></tr></thead>
+          <thead><tr><th>Organisation</th><th>Who</th><th>Seats</th><th>Wants to pay</th><th>Needed by</th><th>Came from</th><th>When</th><th>Status</th><th>Quote</th></tr></thead>
           <tbody id="quotes-table"></tbody>
         </table>
       </div>
@@ -2929,6 +2929,10 @@ function fetchAll(table, cols, tweak){
    becomes visible rather than silent.
    ═══════════════════════════════════════ */
 var Q_FILTER = '';
+var Q_ROWS   = {};    /* id -> the row, so the builder does not refetch */
+var Q_DEL_T  = {};    /* id -> the timer that puts a Delete button back */
+var QB_ID    = null;  /* the request the open builder belongs to */
+var QB_CLOSE = null;
 
 function quotesTab(st){
   Q_FILTER = st;
@@ -2946,21 +2950,21 @@ var Q_SCOL = {new:'#aaff3e', contacted:'#8fbfff', quoted:'#f5c542', won:'#4ade80
 function loadQuotes(){
   var tb=document.getElementById('quotes-table');
   if(!tb) return;
-  tb.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:20px;">Loading…</td></tr>';
+  tb.innerHTML='<tr><td colspan="9" style="color:#4a5568;padding:20px;">Loading…</td></tr>';
 
   var sel=supa.from('quote_requests').select('*');
   if(Q_FILTER) sel=sel.eq('status', Q_FILTER);
 
   sel.order('created_at',{ascending:false}).limit(500).then(function(res){
     if(res.error){
-      tb.innerHTML='<tr><td colspan="8" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+
-        '<br><small style="color:#6b7a96;">If this says the table does not exist, 20260909_quote_requests.sql has not been run yet.</small></td></tr>';
+      tb.innerHTML='<tr><td colspan="9" style="color:#ff8080;padding:20px;">'+esqEsc(res.error.message)+
+        '<br><small style="color:#6b7a96;">If this mentions a missing column, 20260909_quote_builder.sql has not been run yet.</small></td></tr>';
       return;
     }
     var rows=res.data||[];
+    Q_ROWS={};
+    rows.forEach(function(r){ Q_ROWS[r.id]=r; });
 
-    /* A count on the sidebar, so a request does not wait for somebody to think
-       of looking at this page. */
     supa.from('quote_requests').select('id',{count:'exact',head:true}).eq('status','new')
       .then(function(c){
         var dot=document.getElementById('quotes-dot');
@@ -2970,7 +2974,7 @@ function loadQuotes(){
       });
 
     if(!rows.length){
-      tb.innerHTML='<tr><td colspan="8" style="color:#4a5568;padding:24px;">'+
+      tb.innerHTML='<tr><td colspan="9" style="color:#4a5568;padding:24px;">'+
         (Q_FILTER?'Nothing with that status.':'No quote requests yet.')+'</td></tr>';
       return;
     }
@@ -2986,6 +2990,23 @@ function loadQuotes(){
         return '<option value="'+s+'"'+(s===r.status?' selected':'')+'>'+s+'</option>';
       }).join('');
 
+      /* The quote cell says where this one has got to, in one glance. */
+      var qcell;
+      if(r.quote_sent_at){
+        qcell='<div style="font-size:11px;color:#4ade80;">Sent '+new Date(r.quote_sent_at).toLocaleDateString()+'</div>'
+          + '<div style="font-size:11px;color:#6b7a96;">'+esqEsc(r.quote_no||'')+' &middot; '+esqMoney(r.quote_total)+'</div>'
+          + '<button class="btn-ghost btn-sm" style="margin-top:5px;" onclick="openQuote('+r.id+')">View / resend</button>';
+      } else if(r.quote_no){
+        qcell='<div style="font-size:11px;color:#f5c542;">Drafted, not sent</div>'
+          + '<div style="font-size:11px;color:#6b7a96;">'+esqEsc(r.quote_no)+' &middot; '+esqMoney(r.quote_total)+'</div>'
+          + '<button class="btn-ghost btn-sm" style="margin-top:5px;" onclick="openQuote('+r.id+')">Review &amp; send</button>';
+      } else {
+        qcell='<button class="btn-ghost btn-sm" onclick="openQuote('+r.id+')">Prepare quote</button>';
+      }
+      qcell += '<div style="margin-top:6px;"><span id="qdel-'+r.id+'">'
+        + '<button class="btn-ghost btn-sm" style="border-color:rgba(255,128,128,0.25);color:#ff8080;" '
+        + 'onclick="askDeleteQuote('+r.id+')">Delete</button></span></div>';
+
       var main='<tr style="vertical-align:top;">'
         + '<td><div style="color:#eef3fc;font-weight:600;">'+esqEsc(r.organization)+'</div></td>'
         + '<td>'+who+'</td>'
@@ -2997,23 +3018,30 @@ function loadQuotes(){
         + '<td style="font-size:12px;color:#8a97b5;white-space:nowrap;">'+when.toLocaleDateString()+
           '<div style="font-size:11px;color:#4a5568;">'+when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</div></td>'
         + '<td><select onchange="setQuoteStatus('+r.id+',this.value,this)" '
-          + 'style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:7px;'
-          + 'padding:5px 8px;font-size:12px;color:'+(Q_SCOL[r.status]||'#eef3fc')+';font-family:\'DM Sans\',sans-serif;">'
+          + 'style="width:auto;padding:5px 8px;font-size:12px;color:'+(Q_SCOL[r.status]||'#eef3fc')+';">'
           + opts+'</select></td>'
+        + '<td style="min-width:150px;">'+qcell+'</td>'
         + '</tr>';
 
-      /* The notes, and the one warning that matters. */
       var extra='';
       if(r.notes){
         extra += '<div style="margin-bottom:8px;color:#c8d4e6;white-space:pre-wrap;">'+esqEsc(r.notes)+'</div>';
       }
       if(!r.emailed_at){
-        extra += '<div style="color:#f5c542;">⚠ This request was saved but the notification email did not go out'
+        extra += '<div style="color:#f5c542;">⚠ Saved, but the notification email to you did not go out'
           + (r.email_error?' — '+esqEsc(r.email_error):'')
-          + '. Answer it from here; nothing reached your inbox.</div>';
+          + '. Nothing reached your inbox; answer it from here.</div>';
+      }
+      /* The one that matters more: THEY were promised an email by the pricing
+         page and did not get one, so they are sitting there assuming the form
+         was broken. */
+      if(!r.ack_emailed_at){
+        extra += '<div style="color:#ff8080;">⚠ '+esqEsc(r.full_name.split(' ')[0])+' never received an acknowledgement'
+          + (r.ack_error?' — '+esqEsc(r.ack_error):'')
+          + '. The pricing page told them one was coming, so they are waiting on silence.</div>';
       }
       if(extra){
-        main += '<tr><td colspan="8" style="padding:0 14px 14px;border-top:none;font-size:12.5px;line-height:1.6;">'+extra+'</td></tr>';
+        main += '<tr><td colspan="9" style="padding:0 14px 14px;border-top:none;font-size:12.5px;line-height:1.6;">'+extra+'</td></tr>';
       }
       return main;
     }).join('');
@@ -3028,6 +3056,367 @@ function setQuoteStatus(id, status, el){
     if(el) el.style.color = Q_SCOL[status] || '#eef3fc';
     loadQuotes();
   });
+}
+
+/* ── Deleting ─────────────────────────────────────────────────────────
+   Eric asked to be able to remove a request that is fake or unwanted.
+
+   Two clicks, in place, rather than a confirm() dialog: a browser modal is
+   easy to dismiss on reflex and reads as noise by the third time. Making the
+   button change into a red "Delete for good?" puts the consequence in the
+   place your eye already is.
+
+   Deliberately NOT the same thing as marking it spam. Spam hides a request and
+   keeps it; this destroys it and there is no undo. Both exist because they are
+   different decisions. */
+function askDeleteQuote(id){
+  var box=document.getElementById('qdel-'+id);
+  if(!box) return;
+  box.innerHTML='<button class="btn-ghost btn-sm" style="border-color:#ff8080;color:#ff8080;" '
+    + 'onclick="doDeleteQuote('+id+')">Delete for good?</button> '
+    + '<button class="btn-ghost btn-sm" onclick="cancelDeleteQuote('+id+')">No</button>'
+    + '<div style="font-size:10.5px;color:#6b7a96;margin-top:4px;line-height:1.4;">'
+    + 'Gone for good. To keep it but hide it, set the status to spam instead.</div>';
+  clearTimeout(Q_DEL_T[id]);
+  /* If it is left sitting there, put it back rather than leaving a live
+     destructive button on screen indefinitely. */
+  Q_DEL_T[id]=setTimeout(function(){ cancelDeleteQuote(id); }, 8000);
+}
+
+function cancelDeleteQuote(id){
+  clearTimeout(Q_DEL_T[id]);
+  var box=document.getElementById('qdel-'+id);
+  if(!box) return;
+  box.innerHTML='<button class="btn-ghost btn-sm" style="border-color:rgba(255,128,128,0.25);color:#ff8080;" '
+    + 'onclick="askDeleteQuote('+id+')">Delete</button>';
+}
+
+function doDeleteQuote(id){
+  clearTimeout(Q_DEL_T[id]);
+  var box=document.getElementById('qdel-'+id);
+  if(box) box.innerHTML='<span style="font-size:11px;color:#6b7a96;">Deleting…</span>';
+  supa.from('quote_requests').delete().eq('id',id).then(function(res){
+    if(res.error){
+      if(box) box.innerHTML='<span style="font-size:11px;color:#ff8080;">'+esqEsc(res.error.message)+'</span>';
+      return;
+    }
+    loadQuotes();
+  });
+}
+
+/* ── The quote itself ─────────────────────────────────────────────────
+   Prefilled from the request, every figure editable, and the total worked out
+   in front of you as you type rather than after you send.
+
+   ⚠️ ABOVE SIX SEATS THE PRICE IS LEFT BLANK ON PURPOSE. The published Team
+   offer is five seats at $990 with a sixth free. Somebody asking for twelve is
+   asking a question the price list does not answer, and prefilling $4,950 over
+   a request for twelve would put a wrong number on a document a public buyer
+   attaches to a purchase order. Blank is a question; a wrong price is a
+   commitment. */
+function esqMoney(n){
+  var v=Number(n||0);
+  return '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+var QUOTE_DEFAULT_TERMS =
+  'Term: 12 months from the date the first seat is activated.\n'+
+  'Billing: annual, in advance, by invoice. Net 30. Purchase orders accepted.\n'+
+  'Payment: check, ACH or card. A W-9 and a signed vendor form are available on request.\n'+
+  'Ownership of work: all work product created by your users belongs to your organisation, not to the individual. When a seat is reassigned or a user leaves, their work remains available to the organisation.\n'+
+  'Where data goes: prompts and the material your team supplies are processed by OpenAI and Anthropic to generate output. They are not used to train models.\n'+
+  'Cancellation: cancel at any time. Unused whole months are refunded on request.\n'+
+  'Guarantee: if the subscription has not paid for itself in time saved within the first 30 days, it is refunded in full.';
+
+function quoteDefaults(r){
+  var req = r.seats;
+  var d = { seats:null, unit:null, free:0, warn:'' };
+  if(req == null){
+    d.seats=5; d.free=1; d.unit=990;
+  } else if(req <= 6){
+    d.seats=Math.min(req,5);
+    d.free=(req>=5)?1:0;
+    d.unit=990;
+  } else {
+    d.seats=req; d.free=0; d.unit=null;
+    d.warn='They asked for '+req+' people. The published offer covers five seats plus a free sixth, '+
+           'so there is no list price for this — set the per-seat figure yourself. '+
+           'I have left it blank rather than carry $990 over into a number you have not agreed.';
+  }
+  return d;
+}
+
+function openQuote(id){
+  var r=Q_ROWS[id];
+  if(!r) return;
+  if(document.getElementById('quote-build-overlay')) return;
+
+  var d=quoteDefaults(r);
+  var today=new Date();
+  var valid=new Date(today.getTime()+30*86400000);
+  var iso=function(dt){ return dt.toISOString().slice(0,10); };
+
+  var qno   = r.quote_no || ('ESQ-'+today.getFullYear()+'-'+String(id).padStart(3,'0'));
+  var seats = (r.quote_seats!=null) ? r.quote_seats : d.seats;
+  var unit  = (r.quote_unit_price!=null) ? Number(r.quote_unit_price) : d.unit;
+  var free  = (r.quote_free_seats!=null) ? r.quote_free_seats : d.free;
+  var vu    = r.quote_valid_until || iso(valid);
+  var intro = r.quote_intro || ('Thank you for your interest in EconSquad AI for '+r.organization+
+              '. The quotation below covers your whole team for twelve months, on one invoice with one renewal date.');
+  var terms = r.quote_terms || QUOTE_DEFAULT_TERMS;
+  var sendTo= r.quote_sent_to || r.email;
+
+  var ov=document.createElement('div');
+  ov.id='quote-build-overlay';
+  ov.className='modal-overlay show';
+  ov.innerHTML=
+    '<div class="modal-box" style="width:720px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">'+
+        '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:24px;font-weight:900;color:#eef3fc;">'+
+          (r.quote_sent_at?'Quote already sent':'Prepare a quote')+'</div>'+
+        '<button class="btn-ghost btn-sm" id="qb-x">Close</button>'+
+      '</div>'+
+      '<div style="font-size:13px;color:#6b7a96;margin-bottom:18px;">'+
+        esqEsc(r.organization)+' &middot; '+esqEsc(r.full_name)+
+        (r.quote_sent_at?' &middot; sent '+new Date(r.quote_sent_at).toLocaleString():'')+'</div>'+
+
+      (d.warn?'<div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.35);color:#f5c542;'+
+        'font-size:12.5px;line-height:1.6;padding:11px 14px;border-radius:9px;margin-bottom:16px;">'+esqEsc(d.warn)+'</div>':'')+
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Quote number</label>'+
+          '<input id="qb-no" type="text" value="'+esqEsc(qno)+'"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Valid until</label>'+
+          '<input id="qb-valid" type="date" value="'+esqEsc(vu)+'"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Send to</label>'+
+          '<input id="qb-to" type="email" value="'+esqEsc(sendTo)+'"></div>'+
+      '</div>'+
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;align-items:end;margin-bottom:8px;">'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Paid seats</label>'+
+          '<input id="qb-seats" type="number" min="1" max="5000" value="'+(seats!=null?seats:'')+'" oninput="qbTotal()"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Price per seat</label>'+
+          '<input id="qb-unit" type="number" min="0" step="0.01" value="'+(unit!=null?unit:'')+'" oninput="qbTotal()"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Free seats</label>'+
+          '<input id="qb-free" type="number" min="0" max="100" value="'+free+'" oninput="qbTotal()"></div>'+
+        '<div style="text-align:right;">'+
+          '<div style="font-size:11px;color:#6b7a96;">Total</div>'+
+          '<div id="qb-total" style="font-size:22px;font-weight:900;color:#aaff3e;font-family:\'Barlow Condensed\',sans-serif;">—</div></div>'+
+      '</div>'+
+      '<div id="qb-users" style="font-size:12px;color:#6b7a96;margin-bottom:16px;"></div>'+
+
+      '<div style="margin-bottom:14px;"><label style="font-size:11px;color:#6b7a96;">Opening paragraph</label>'+
+        '<textarea id="qb-intro" rows="3">'+esqEsc(intro)+'</textarea></div>'+
+      '<div style="margin-bottom:18px;"><label style="font-size:11px;color:#6b7a96;">Terms</label>'+
+        '<textarea id="qb-terms" rows="7">'+esqEsc(terms)+'</textarea></div>'+
+
+      '<div id="qb-msg" style="display:none;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin-bottom:12px;"></div>'+
+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'+
+        '<button class="btn-ghost" id="qb-save">Save draft</button>'+
+        '<button class="btn-ghost" id="qb-print">Print / save as PDF</button>'+
+        '<div style="flex:1;"></div>'+
+        '<button id="qb-send" style="background:#aaff3e;color:#0a1a00;border:none;border-radius:9px;'+
+          'padding:11px 20px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:\'DM Sans\',sans-serif;">'+
+          (r.quote_sent_at?'Send again':'Save and send to '+esqEsc((sendTo||'').split('@')[0]))+'</button>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#6b7a96;margin-top:10px;">'+
+        'Sending emails the quote to them and copies you. It also moves this request to '+
+        '&ldquo;quoted&rdquo;. Nothing goes out until you press it.</div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+  QB_ID=id;
+  qbTotal();
+
+  function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown',onKey); QB_ID=null; }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Esc') close(); }
+  document.getElementById('qb-x').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+  document.addEventListener('keydown', onKey);
+
+  document.getElementById('qb-save').addEventListener('click', function(){ qbSave(false); });
+  document.getElementById('qb-send').addEventListener('click', function(){ qbSave(true); });
+  document.getElementById('qb-print').addEventListener('click', qbPrint);
+  QB_CLOSE=close;
+}
+
+function qbNum(id){
+  var el=document.getElementById(id);
+  if(!el) return null;
+  var v=el.value.trim();
+  if(v==='') return null;
+  var n=Number(v);
+  return isFinite(n)?n:null;
+}
+
+function qbTotal(){
+  var s=qbNum('qb-seats'), u=qbNum('qb-unit'), f=qbNum('qb-free')||0;
+  var t=document.getElementById('qb-total');
+  var users=document.getElementById('qb-users');
+  if(s==null||u==null){
+    t.textContent='—';
+    users.textContent='Set a seat count and a per-seat price to see the total.';
+    return;
+  }
+  t.textContent=esqMoney(s*u);
+  users.textContent=(s+f)+' named user'+((s+f)===1?'':'s')+
+    (f>0?' ('+s+' paid, '+f+' at no charge)':'')+'. One invoice, one renewal date.';
+}
+
+function qbMsg(kind, text){
+  var m=document.getElementById('qb-msg');
+  if(!m) return;
+  var ok = kind==='ok';
+  m.style.background = ok?'rgba(170,255,62,0.08)':'rgba(255,90,90,0.09)';
+  m.style.border     = '1px solid '+(ok?'rgba(170,255,62,0.35)':'rgba(255,90,90,0.35)');
+  m.style.color      = ok?'#aaff3e':'#ff9b9b';
+  m.textContent = text;
+  m.style.display='block';
+}
+
+/* Saves what is on screen, then optionally sends. The send function reads the
+   row from the database rather than anything the browser hands it, so this
+   save is not a convenience - it is how the quote gets to the server at all,
+   and it means the thing that goes out is necessarily the thing that was
+   saved and reviewed. */
+function qbSave(thenSend){
+  var id=QB_ID;
+  if(!id) return;
+  var seats=qbNum('qb-seats'), unit=qbNum('qb-unit'), free=qbNum('qb-free')||0;
+  var no=(document.getElementById('qb-no').value||'').trim();
+  var to=(document.getElementById('qb-to').value||'').trim();
+
+  if(!no){ qbMsg('err','Give the quote a number - a public buyer puts it on their purchase order.'); return; }
+  if(seats==null||seats<=0){ qbMsg('err','How many paid seats?'); return; }
+  if(unit==null){ qbMsg('err','Set a price per seat. For more than six people there is no list price, so this one is yours to decide.'); return; }
+  if(!/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(to)){ qbMsg('err','That recipient address does not look right.'); return; }
+
+  var btnS=document.getElementById('qb-save'), btnX=document.getElementById('qb-send');
+  btnS.disabled=true; btnX.disabled=true;
+
+  var patch={
+    quote_no:no, quote_seats:seats, quote_unit_price:unit, quote_free_seats:free,
+    quote_valid_until:(document.getElementById('qb-valid').value||null),
+    quote_intro:document.getElementById('qb-intro').value,
+    quote_terms:document.getElementById('qb-terms').value,
+    quote_sent_to:to,
+    quote_prepared_at:new Date().toISOString()
+  };
+  /* quote_total is deliberately absent. It is a generated column - the database
+     works it out from seats x unit price, so the figures on the document and
+     the figure in the record cannot drift apart. */
+
+  supa.from('quote_requests').update(patch).eq('id',id).then(function(res){
+    if(res.error){
+      btnS.disabled=false; btnX.disabled=false;
+      qbMsg('err','Could not save: '+res.error.message);
+      return;
+    }
+    if(!thenSend){
+      btnS.disabled=false; btnX.disabled=false;
+      qbMsg('ok','Draft saved. Nothing has been sent.');
+      loadQuotes();
+      return;
+    }
+    qbMsg('ok','Sending…');
+    supa.functions.invoke('send-quote',{body:{id:id}}).then(function(out){
+      btnS.disabled=false; btnX.disabled=false;
+      var d=out&&out.data;
+      if(d&&d.ok){
+        qbMsg('ok','Sent to '+d.to+'. You have been copied, and this request is now marked quoted.');
+        loadQuotes();
+        setTimeout(function(){ if(QB_CLOSE) QB_CLOSE(); }, 1600);
+        return;
+      }
+      qbMsg('err',(d&&d.error)||'The quote did not send. It is saved as a draft, so nothing is lost - try again in a moment.');
+      loadQuotes();
+    }).catch(function(e){
+      btnS.disabled=false; btnX.disabled=false;
+      qbMsg('err','Could not reach the server. The draft is saved.');
+    });
+  });
+}
+
+/* A public buyer usually needs a file to attach to a purchase order. Printing
+   the rendered quote to PDF gives them exactly what was emailed, which a
+   separate Word template could not promise - the template's line items are
+   fixed at five seats and $4,950, so any edit made here would have silently
+   disagreed with it. */
+function qbPrint(){
+  var r=Q_ROWS[QB_ID];
+  if(!r) return;
+  var seats=qbNum('qb-seats')||0, unit=qbNum('qb-unit')||0, free=qbNum('qb-free')||0;
+  var total=seats*unit;
+  var fmtD=function(v){
+    if(!v) return '—';
+    var dt=new Date(String(v).length<=10?v+'T12:00:00Z':v);
+    return isNaN(dt.getTime())?'—':dt.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  };
+  var esc=esqEsc;
+  var para=function(s){
+    return String(s||'').split(/\n{2,}/).map(function(p){
+      return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>';
+    }).join('');
+  };
+  /* A hidden iframe, not window.open. See the note above qbPrint. */
+  var old=document.getElementById('qb-print-frame');
+  if(old && old.parentNode) old.parentNode.removeChild(old);
+  var fr=document.createElement('iframe');
+  fr.id='qb-print-frame';
+  fr.setAttribute('aria-hidden','true');
+  fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(fr);
+  var w=fr.contentWindow;
+  w.document.open();
+  w.document.write(
+    '<!doctype html><html><head><meta charset="utf-8"><title>Quote '+esc(document.getElementById('qb-no').value)+' — '+esc(r.organization)+'</title>'+
+    '<style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0d1220;line-height:1.6;max-width:680px;margin:40px auto;padding:0 24px;}'+
+    'h1{font-size:18px;letter-spacing:.04em;margin:20px 0;}table{width:100%;border-collapse:collapse;font-size:13px;}'+
+    'th{text-align:left;font-size:10px;color:#6b7a96;letter-spacing:.06em;border-bottom:2px solid #0d1220;padding-bottom:8px;}'+
+    'td{padding:10px 0;border-bottom:1px solid #e6eaf2;}.r{text-align:right;}.c{text-align:center;}'+
+    '.lbl{font-size:10px;font-weight:700;color:#6b7a96;letter-spacing:.08em;margin:24px 0 8px;}'+
+    '.hd{border-bottom:3px solid #aaff3e;padding-bottom:10px;font-size:22px;font-weight:800;}'+
+    '.sm{font-size:11px;color:#6b7a96;}@media print{body{margin:0;}}</style></head><body>'+
+    '<div class="hd">EconSquad <span style="color:#5a9c00;">AI</span></div>'+
+    '<div class="sm" style="margin-bottom:24px;">Global Site Location Industries, LLC &middot; econsquad.ai &middot; eric@econsquad.ai</div>'+
+    '<h1>QUOTATION — TEAM PLAN</h1>'+
+    '<table style="border:none;"><tr>'+
+      '<td style="border:none;vertical-align:top;width:55%;"><div class="lbl" style="margin-top:0;">PREPARED FOR</div>'+
+        '<strong>'+esc(r.organization)+'</strong><br>'+esc(r.full_name)+(r.role_title?', '+esc(r.role_title):'')+'</td>'+
+      '<td style="border:none;vertical-align:top;"><div class="lbl" style="margin-top:0;">QUOTE DETAILS</div>'+
+        '<span class="sm">Quote no.</span> <strong>'+esc(document.getElementById('qb-no').value)+'</strong><br>'+
+        '<span class="sm">Date</span> '+fmtD(new Date().toISOString())+'<br>'+
+        '<span class="sm">Valid until</span> '+fmtD(document.getElementById('qb-valid').value)+'<br>'+
+        '<span class="sm">Prepared by</span> Eric Kleinsorge</td>'+
+    '</tr></table>'+
+    para(document.getElementById('qb-intro').value)+
+    '<div class="lbl">WHAT IS BEING QUOTED</div>'+
+    '<table><tr><th>ITEM</th><th class="c">QTY</th><th class="r">AMOUNT</th></tr>'+
+      '<tr><td>EconSquad AI — Pro Squad, annual subscription<br><span class="sm">per named user, '+esqMoney(unit)+' each</span></td>'+
+        '<td class="c">'+seats+'</td><td class="r">'+esqMoney(total)+'</td></tr>'+
+      (free>0?'<tr><td class="sm">Additional seat — included at no charge</td><td class="c sm">'+free+'</td><td class="r sm">$0.00</td></tr>':'')+
+      '<tr><td class="sm">Onboarding session for the team (60 minutes, remote)</td><td class="c sm">1</td><td class="r sm">Included</td></tr>'+
+      '<tr><td style="border:none;padding-top:14px;"><strong>TOTAL — 12 months</strong></td><td style="border:none;"></td>'+
+        '<td style="border:none;padding-top:14px;" class="r"><strong style="font-size:17px;">'+esqMoney(total)+'</strong></td></tr>'+
+    '</table>'+
+    '<div class="sm" style="margin-top:8px;">'+(seats+free)+' named user'+((seats+free)===1?'':'s')+'. One invoice. One renewal date.</div>'+
+    '<div class="lbl">TERMS</div>'+para(document.getElementById('qb-terms').value)+
+    '<div style="margin-top:24px;padding:14px 18px;background:#f4f6fa;border-left:3px solid #aaff3e;font-size:13px;">'+
+      '<strong>To accept:</strong> reply to this quote, or issue a purchase order referencing '+
+      esc(document.getElementById('qb-no').value)+'.</div>'+
+    '<p style="margin-top:24px;font-size:13px;">Eric Kleinsorge<br><span class="sm">EconSquad AI &middot; '+
+      'Global Site Location Industries, LLC</span></p>'+
+    '<p class="sm" style="border-top:1px solid #e6eaf2;padding-top:12px;margin-top:20px;">'+
+      'We will never ask you for a card number, bank details or a password by email.</p>'+
+    '</body></html>');
+  w.document.close();
+  /* Give the iframe a moment to lay the document out - printing an
+     unstyled half-rendered page is worse than a short wait. */
+  setTimeout(function(){
+    try{ w.focus(); w.print(); }
+    catch(e){ qbMsg('err','Could not open the print dialog: '+(e && e.message)); }
+  }, 400);
 }
 
 function loadOutreach(){
