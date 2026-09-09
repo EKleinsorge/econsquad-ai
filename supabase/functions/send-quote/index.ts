@@ -241,15 +241,20 @@ Deno.serve(async (req: Request) => {
     let pdf_error: string | null = null;
     try {
       const bytes = await buildQuotePdf(pdfLib, r, logoBytes());
+      // No spread. The previous version pushed 32,768 elements into a single
+      // call, which V8 permits when there is stack to spare and refuses when
+      // there is not - fine in Node, RangeError in an edge function. A plain
+      // loop is safe at any length and the document is only tens of kilobytes.
       let bin = '';
-      const CHUNK = 0x8000;   // btoa on one huge string blows the stack
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-      }
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
       pdfBase64 = btoa(bin);
+      console.log(`send-quote: PDF built, ${bytes.length} bytes`);
     } catch (e) {
-      pdf_error = e instanceof Error ? e.message : String(e);
-      console.error('send-quote: PDF build failed:', pdf_error);
+      // Name and message both: "Maximum call stack size exceeded" without
+      // "RangeError" in front of it sends you looking in the wrong place.
+      pdf_error = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      console.error('send-quote: PDF build failed:', pdf_error,
+                    e instanceof Error ? e.stack : '');
     }
 
     const pdfName = `EconSquad-Quote-${String(r.quote_no || 'quote').replace(/[^A-Za-z0-9._-]/g, '-')}.pdf`;

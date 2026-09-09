@@ -3035,6 +3035,12 @@ function loadQuotes(){
       /* The one that matters more: THEY were promised an email by the pricing
          page and did not get one, so they are sitting there assuming the form
          was broken. */
+      /* Whatever went wrong while sending the quote, including a PDF that
+         failed to build. The email tells the customer a PDF is attached, so a
+         silent failure here is a promise broken in writing. */
+      if(r.quote_send_error){
+        extra += '<div style="color:#f5c542;">⚠ Quote send problem: '+esqEsc(r.quote_send_error)+'</div>';
+      }
       if(!r.ack_emailed_at){
         extra += '<div style="color:#ff8080;">⚠ '+esqEsc(r.full_name.split(' ')[0])+' never received an acknowledgement'
           + (r.ack_error?' — '+esqEsc(r.ack_error):'')
