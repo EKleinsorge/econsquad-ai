@@ -3039,7 +3039,14 @@ function loadQuotes(){
          failed to build. The email tells the customer a PDF is attached, so a
          silent failure here is a promise broken in writing. */
       if(r.quote_send_error){
-        extra += '<div style="color:#f5c542;">⚠ Quote send problem: '+esqEsc(r.quote_send_error)+'</div>';
+        /* Dated, because this is a record of one past send and not a statement
+           about the state of things now. Undated it reads as "this is broken",
+           which is misleading the moment the cause has been fixed. */
+        var qwhen = r.quote_sent_at ? new Date(r.quote_sent_at).toLocaleString() : 'the last attempt';
+        extra += '<div style="color:#f5c542;">⚠ On '+esqEsc(qwhen)+': '+esqEsc(r.quote_send_error)+
+                 '<div style="color:#6b7a96;font-size:11.5px;margin-top:2px;">'+
+                 'This is what happened on that send. Preview the quote to test it now &mdash; '+
+                 'previewing sends nothing, and this line only changes when you send again.</div></div>';
       }
       if(!r.ack_emailed_at){
         extra += '<div style="color:#ff8080;">⚠ '+esqEsc(r.full_name.split(' ')[0])+' never received an acknowledgement'
