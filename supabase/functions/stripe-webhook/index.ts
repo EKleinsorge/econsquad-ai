@@ -40,6 +40,17 @@ serve(async (req) => {
       // Trial converted to paid  OR  subscription renewed
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object
+
+        // A Team quote invoice. Matched on metadata, never on price - see
+        // recordQuotePayment. This must sit ABOVE the subscription check
+        // below, because a quote invoice has no subscription and would
+        // otherwise fall straight out and record nothing.
+        const paidQuoteId = Number(invoice.metadata?.esq_quote_id ?? 0)
+        if (paidQuoteId > 0) {
+          await recordQuotePayment(supa, paidQuoteId, invoice)
+          break
+        }
+
         // Only act on subscription invoices (not one-time charges)
         if (!invoice.subscription) break
         // Stripe issues a $0.00 invoice at the START of a trial and marks it
@@ -98,6 +109,20 @@ serve(async (req) => {
 
       // Payment failed — notify user via SMS
       case 'invoice.payment_failed': {
+        // ⚠️ BEFORE the past_due write below, which matches on customer id with
+        // no ownership check. A Team quote and a personal subscription can share
+        // one Stripe customer - same person, same email - and a bounced quote
+        // invoice would otherwise mark that person's SUBSCRIPTION as failing.
+        const failedQuoteId = Number((event.data.object as any).metadata?.esq_quote_id ?? 0)
+        if (failedQuoteId > 0) {
+          const inv = event.data.object as any
+          await supa.from('quote_requests')
+            .update({ stripe_invoice_status: inv.status ?? 'payment_failed' })
+            .eq('id', failedQuoteId)
+          console.log(`Quote ${failedQuoteId}: invoice ${inv.id} payment failed`)
+          break
+        }
+
         // past_due was previously invisible: a failed card looked like nothing
         // at all in the admin panel.
         await supa.from('profiles')
@@ -421,6 +446,46 @@ async function linkCustomer(supa: any, customerId: string, uid: string | null, e
 function isOurSubscription(sub: any): boolean {
   const items = sub.items?.data ?? []
   return items.some((i: any) => !!PRICE_TO_PLAN[i.price?.id ?? ''])
+}
+
+/**
+ * A Team quote invoice was paid. Records it against quote_requests and stops.
+ *
+ * Deliberately touches NOTHING on profiles. A Team purchase is an
+ * organisation's, and the subscription columns describe one person's plan; the
+ * seats it buys are provisioned by the org-accounts flow, not here.
+ *
+ * paid_method is left null rather than guessed. Whether it arrived by card or
+ * by bank transfer is on the charge, which this payload does not carry
+ * expanded, and an invented value in a money column is worse than an empty one.
+ * The invoice number goes in paid_reference so it reconciles.
+ */
+async function recordQuotePayment(supa: any, quoteId: number, invoice: any) {
+  const cents = invoice.amount_paid ?? 0
+  if (cents <= 0) {
+    console.log(`Quote ${quoteId}: ignoring $0 invoice ${invoice.id}`)
+    return
+  }
+  const paidAtSec = invoice.status_transitions?.paid_at ?? Math.floor(Date.now() / 1000)
+  const { data, error } = await supa.from('quote_requests').update({
+    paid_at: new Date(paidAtSec * 1000).toISOString(),
+    paid_amount: cents / 100,
+    paid_reference: invoice.number ?? invoice.id,
+    paid_note: `Paid through Stripe invoice ${invoice.number ?? invoice.id}.`,
+    stripe_invoice_status: invoice.status,
+  }).eq('id', quoteId).select('id')
+
+  if (error) {
+    console.error(`Quote ${quoteId}: could not record payment —`, error.message)
+    return
+  }
+  // A zero-row update is a success in PostgREST. Saying so out loud, because
+  // that exact silence cost three days of trial dates never being written.
+  if (!data || data.length === 0) {
+    console.error(`Quote ${quoteId}: no such quote row — payment NOT recorded for invoice ${invoice.id}`)
+    return
+  }
+  console.log(`Quote ${quoteId}: recorded $${(cents / 100).toFixed(2)} from invoice ${invoice.id}`)
 }
 
 function isOurInvoice(invoice: any): boolean {

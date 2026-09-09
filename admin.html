@@ -2946,13 +2946,22 @@ function quotesTab(st){
 var Q_PAY = {card:'Credit card', invoice:'PO / invoice', check:'Check or ACH', unsure:'Not sure yet'};
 var Q_STATUS = ['new','contacted','quoted','won','lost','spam'];
 var Q_SCOL = {new:'#aaff3e', contacted:'#8fbfff', quoted:'#f5c542', won:'#4ade80', lost:'#6b7a96', spam:'#ff8080'};
+/* The label said "quoted", which reads as a decision somebody made rather than
+   a fact about whether an email left the building. It means sent. */
+var Q_SLABEL = {new:'new', contacted:'contacted', quoted:'quote sent',
+                won:'won — paid or accepted', lost:'lost', spam:'spam'};
+var Q_PAYM = {card:'Card', ach:'Bank transfer (ACH)', check:'Check', wire:'Wire', other:'Other'};
 
 function loadQuotes(){
   var tb=document.getElementById('quotes-table');
   if(!tb) return;
   tb.innerHTML='<tr><td colspan="9" style="color:#4a5568;padding:20px;">Loading…</td></tr>';
 
-  var sel=supa.from('quote_requests').select('*');
+  /* quote_pipeline, not quote_requests: the view computes is_expired,
+     is_paid and outstanding so nobody has to maintain them by hand. It is a
+     security_invoker view, so the same admin-only RLS applies. Writes still go
+     to the table. */
+  var sel=supa.from('quote_pipeline').select('*');
   if(Q_FILTER) sel=sel.eq('status', Q_FILTER);
 
   sel.order('created_at',{ascending:false}).limit(500).then(function(res){
@@ -2986,15 +2995,37 @@ function loadQuotes(){
         + '<div style="font-size:12px;"><a href="mailto:'+esqEsc(r.email)+'" style="color:#8fbfff;">'+esqEsc(r.email)+'</a></div>'
         + (r.phone?'<div style="font-size:12px;color:#8a97b5;">'+esqEsc(r.phone)+'</div>':'');
 
+      /* "quoted" is set by the database when a quote is actually sent, and
+         "won" when a payment is recorded. Offering them here as free choices
+         invites a status that claims a quote went out when none did - the list
+         is only worth reading if it cannot lie. Both stay visible so you can
+         see where a deal is; they are just not pickable. */
       var opts=Q_STATUS.map(function(s){
-        return '<option value="'+s+'"'+(s===r.status?' selected':'')+'>'+s+'</option>';
+        var auto = (s==='quoted' || s==='won');
+        var dis  = auto && s!==r.status ? ' disabled' : '';
+        return '<option value="'+s+'"'+(s===r.status?' selected':'')+dis+'>'+
+               Q_SLABEL[s]+'</option>';
       }).join('');
 
       /* The quote cell says where this one has got to, in one glance. */
       var qcell;
-      if(r.quote_sent_at){
-        qcell='<div style="font-size:11px;color:#4ade80;">Sent '+new Date(r.quote_sent_at).toLocaleDateString()+'</div>'
+      if(r.is_paid){
+        qcell='<div style="font-size:11px;color:#4ade80;font-weight:700;">PAID '+
+              new Date(r.paid_at).toLocaleDateString()+'</div>'
+          + '<div style="font-size:11px;color:#6b7a96;">'+esqEsc(r.quote_no||'')+' &middot; '+esqMoney(r.paid_amount)
+          + (r.paid_method?' &middot; '+esqEsc(Q_PAYM[r.paid_method]||r.paid_method):'')+'</div>'
+          + (r.paid_reference?'<div style="font-size:11px;color:#4a5568;">'+esqEsc(r.paid_reference)+'</div>':'')
+          + '<button class="btn-ghost btn-sm" style="margin-top:5px;" onclick="openQuote('+r.id+')">Open</button>';
+      } else if(r.quote_sent_at){
+        /* Expiry is computed by the view, never stored. A status somebody has
+           to remember to set is a status that is wrong within a month. */
+        qcell='<div style="font-size:11px;color:'+(r.is_expired?'#ff8080':'#4ade80')+';">'+
+              (r.is_expired?'EXPIRED ':'Sent ')+
+              new Date(r.is_expired?r.quote_valid_until+'T12:00:00Z':r.quote_sent_at).toLocaleDateString()+'</div>'
           + '<div style="font-size:11px;color:#6b7a96;">'+esqEsc(r.quote_no||'')+' &middot; '+esqMoney(r.quote_total)+'</div>'
+          + (r.stripe_invoice_url
+              ? '<div style="font-size:11px;"><a href="'+esqEsc(r.stripe_invoice_url)+'" target="_blank" rel="noopener" '
+                + 'style="color:#8fbfff;">Stripe invoice &rarr;</a></div>' : '')
           + '<button class="btn-ghost btn-sm" style="margin-top:5px;" onclick="openQuote('+r.id+')">View / resend</button>';
       } else if(r.quote_no){
         qcell='<div style="font-size:11px;color:#f5c542;">Drafted, not sent</div>'
@@ -3225,6 +3256,53 @@ function openQuote(id){
 
       '<div id="qb-msg" style="display:none;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin-bottom:12px;"></div>'+
 
+      /* ── Getting paid ──────────────────────────────────────────────
+         Only once a quote has actually gone out. Recording a payment against a
+         quote nobody has seen is a data-entry error waiting to happen.
+
+         Manual first, because it is the only route that works for a cheque in
+         the post - which is how a good share of public buyers pay, and which no
+         integration can ever observe. Stripe sits alongside for the ones who
+         want to pay online. */
+      (r.quote_sent_at ? (
+        '<div style="border-top:1px solid rgba(255,255,255,0.08);margin:18px 0 14px;padding-top:16px;">'+
+          '<div style="font-size:11px;color:#6b7a96;letter-spacing:.06em;margin-bottom:10px;">PAYMENT</div>'+
+          (r.paid_at
+            ? '<div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#4ade80;'+
+              'font-size:13px;padding:11px 14px;border-radius:9px;">Paid '+
+              new Date(r.paid_at).toLocaleDateString()+' &middot; '+esqMoney(r.paid_amount)+
+              (r.paid_method?' &middot; '+esqEsc(Q_PAYM[r.paid_method]||r.paid_method):'')+
+              (r.paid_reference?' &middot; '+esqEsc(r.paid_reference):'')+'</div>'
+            : '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">'+
+                '<div><label style="font-size:11px;color:#6b7a96;">Date received</label>'+
+                  '<input id="qp-date" type="date" value="'+iso(today)+'"></div>'+
+                '<div><label style="font-size:11px;color:#6b7a96;">Amount</label>'+
+                  '<input id="qp-amt" type="number" step="0.01" min="0" value="'+(r.quote_total!=null?Number(r.quote_total):'')+'"></div>'+
+                '<div><label style="font-size:11px;color:#6b7a96;">How</label>'+
+                  '<select id="qp-method">'+
+                    '<option value="check">Check</option>'+
+                    '<option value="ach">Bank transfer (ACH)</option>'+
+                    '<option value="card">Card</option>'+
+                    '<option value="wire">Wire</option>'+
+                    '<option value="other">Other</option>'+
+                  '</select></div>'+
+                '<div><label style="font-size:11px;color:#6b7a96;">Check or PO no.</label>'+
+                  '<input id="qp-ref" type="text" placeholder="1042"></div>'+
+              '</div>'+
+              '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'+
+                '<button class="btn-ghost" id="qb-paid">Record this payment</button>'+
+                (r.stripe_invoice_url
+                  ? '<a class="btn-ghost" href="'+esqEsc(r.stripe_invoice_url)+'" target="_blank" rel="noopener" '+
+                    'style="text-decoration:none;">Open the Stripe invoice</a>'
+                  : '<button class="btn-ghost" id="qb-invoice">Create a Stripe invoice</button>')+
+                '<span style="font-size:11.5px;color:#6b7a96;">'+
+                  (r.stripe_invoice_url
+                    ? 'Stripe records payment here by itself when they pay it.'
+                    : 'Card and bank transfer both. It creates the invoice and gives you the link &mdash; it does not email anyone.')+
+                '</span>'+
+              '</div>')+
+        '</div>') : '')+
+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">'+
         '<button class="btn-ghost" id="qb-save">Save draft</button>'+
         '<button class="btn-ghost" id="qb-print">Preview the actual quote</button>'+
@@ -3251,7 +3329,65 @@ function openQuote(id){
   document.getElementById('qb-save').addEventListener('click', function(){ qbSave(false); });
   document.getElementById('qb-send').addEventListener('click', function(){ qbSave(true); });
   document.getElementById('qb-print').addEventListener('click', qbPrint);
+
+  var paidBtn=document.getElementById('qb-paid');
+  if(paidBtn) paidBtn.addEventListener('click', qbRecordPayment);
+  var invBtn=document.getElementById('qb-invoice');
+  if(invBtn) invBtn.addEventListener('click', qbCreateInvoice);
   QB_CLOSE=close;
+}
+
+/* Records money that arrived outside the product - a cheque, a wire, an ACH
+   Eric saw on a bank statement. The database advances the deal to won by
+   itself, so there is no second thing to remember. */
+function qbRecordPayment(){
+  var id=QB_ID; if(!id) return;
+  var d=(document.getElementById('qp-date').value||'').trim();
+  var amt=qbNum('qp-amt');
+  var m=document.getElementById('qp-method').value;
+  var ref=(document.getElementById('qp-ref').value||'').trim();
+
+  if(!d){ qbMsg('err','When did the payment arrive?'); return; }
+  if(amt==null||amt<=0){ qbMsg('err','How much came in?'); return; }
+
+  var btn=document.getElementById('qb-paid');
+  btn.disabled=true; btn.textContent='Recording…';
+  /* Midday, not midnight: a bare date at midnight UTC lands on the previous
+     day for anybody west of Greenwich, and this is a money record. */
+  supa.from('quote_requests').update({
+    paid_at:new Date(d+'T12:00:00').toISOString(),
+    paid_amount:amt, paid_method:m, paid_reference:ref||null
+  }).eq('id',id).then(function(res){
+    btn.disabled=false; btn.textContent='Record this payment';
+    if(res.error){ qbMsg('err','Could not record that: '+res.error.message); return; }
+    qbMsg('ok','Payment recorded. This quote is now marked won.');
+    loadQuotes();
+    setTimeout(function(){ if(QB_CLOSE) QB_CLOSE(); }, 1400);
+  });
+}
+
+/* Creates the invoice in Stripe and hands back the link. It deliberately does
+   NOT email the customer - you send the link yourself, in your own words. */
+function qbCreateInvoice(){
+  var id=QB_ID; if(!id) return;
+  var btn=document.getElementById('qb-invoice');
+  btn.disabled=true; btn.textContent='Creating…';
+  qbSave(false, function(){
+    supa.functions.invoke('create-quote-invoice',{body:{id:id}}).then(function(out){
+      btn.disabled=false; btn.textContent='Create a Stripe invoice';
+      var d=out&&out.data;
+      if(d&&d.ok){
+        qbMsg('ok','Invoice created'+(d.already?' (one already existed)':'')+
+              ' for '+esqMoney(d.amount||0)+'. Reopen this quote for the link.');
+        loadQuotes();
+        return;
+      }
+      qbMsg('err',(d&&d.error)||'Could not create the invoice.');
+    }).catch(function(){
+      btn.disabled=false; btn.textContent='Create a Stripe invoice';
+      qbMsg('err','Could not reach the server.');
+    });
+  });
 }
 
 function qbNum(id){
