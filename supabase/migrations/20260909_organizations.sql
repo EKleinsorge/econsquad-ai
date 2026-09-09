@@ -1,0 +1,24 @@
+-- ⚠️ DO NOT RUN THIS FILE. SUPERSEDED BY 20260909_esq_organizations.sql
+--
+-- This version created tables named public.organizations, org_members and
+-- org_invites. public.organizations ALREADY EXISTS in this project and belongs
+-- to the other business sharing it: a live row, admin_roles_* policies, and
+-- foreign keys from more than a dozen tables.
+--
+-- CREATE TABLE IF NOT EXISTS skipped silently, and this file would then have run
+--
+--     REVOKE UPDATE ON public.organizations FROM authenticated;
+--     GRANT UPDATE (name, term_start, term_end, updated_at) ... TO authenticated;
+--
+-- against THEIR table, stripping their application's ability to update almost
+-- every column of its own core table. It stopped before that only because an
+-- index referenced a column their table does not have, and the whole thing was
+-- inside a transaction, so nothing was applied.
+--
+-- That was luck. The replacement prefixes every object with esq_ and opens with
+-- a guard that raises rather than proceeding if any of its names are already
+-- taken by something that is not ours.
+--
+-- Kept as a file rather than deleted so this note survives with the history.
+
+SELECT 'Do not run this file. Use 20260909_esq_organizations.sql instead.' AS superseded;
