@@ -5257,7 +5257,7 @@ function contactEnterprise(){
 
       '<div id="q-done" style="display:none;text-align:center;padding:14px 0 6px;">'+
         '<div style="font-size:42px;line-height:1;margin-bottom:14px;">&#9989;</div>'+
-        '<h2 class="modal-h2">That is <span>with us</span></h2>'+
+        '<h2 class="modal-h2">We are <span>on it</span></h2>'+
         '<div class="modal-sub" id="q-done-msg" style="margin-bottom:22px;"></div>'+
         '<button class="modal-btn" type="button" id="q-done-x">Close</button>'+
       '</div>'+
@@ -5337,10 +5337,30 @@ function contactEnterprise(){
     }).then(function(res){
       if(res.status>=200 && res.status<300 && res.body && res.body.ok){
         document.getElementById('q-form-wrap').style.display='none';
+        /* Say the seat count back to them. They typed it thirty seconds ago
+           and seeing it repeated is how you know a form was read by somebody
+           rather than swallowed by something. */
+        var seatsN = parseInt(payload.seats, 10);
+        var forSeats = (seatsN > 0)
+          ? ' for <strong style="color:#eef3fc;">' + seatsN + ' seat' +
+            (seatsN === 1 ? '' : 's') + '</strong>'
+          : '';
         document.getElementById('q-done-msg').innerHTML=
-          'We have your request for <strong style="color:#eef3fc;">'+
-          esqEscapeHtml(org)+'</strong>. A written quote is on its way to '+
-          '<strong style="color:#eef3fc;">'+esqEscapeHtml(email)+'</strong>, usually the same business day.';
+          'Your request for <strong style="color:#eef3fc;">'+
+          esqEscapeHtml(org)+'</strong> is in, and a written quote'+ forSeats +
+          ' is on its way to <strong style="color:#eef3fc;">'+
+          esqEscapeHtml(email)+'</strong> \u2014 usually the same business day.'+
+
+          '<span style="display:block;margin-top:13px;color:#eef3fc;font-weight:700;">'+
+          'You are one step closer to putting all 22 specialists to work for '+
+          'your whole team.</span>'+
+
+          /* \u26a0\ufe0f This is the exact moment somebody is primed to open an
+             email about money from us, which is the moment a convincing fake
+             would arrive. Naming the address here costs one line. */
+          '<span style="display:block;margin-top:14px;font-size:11.5px;color:#6b7a96;">'+
+          'It will come from eric@econsquad.ai. We will never ask for card or '+
+          'account numbers by email.</span>';
         document.getElementById('q-done').style.display='block';
         return;
       }
