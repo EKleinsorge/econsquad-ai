@@ -193,6 +193,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-section">Users</div>
     <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users</div>
     <div class="sidebar-item" onclick="showAdminSection('quotes',this);loadQuotes()">💼 Team Quotes<span id="quotes-dot" style="display:none;margin-left:7px;background:#aaff3e;color:#0a1a00;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
+    <div class="sidebar-item" onclick="showAdminSection('teams',this);loadTeams()">🏛️ Teams<span id="teams-dot" style="display:none;margin-left:7px;background:#f5c542;color:#2a1f00;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
     <div class="sidebar-section">Communication</div>
     <div class="sidebar-item" onclick="showAdminSection('mondaydrop',this);loadMondayDropStats()">📬 Monday Drop</div>
     <div class="sidebar-item" onclick="showAdminSection('messages',this)">📨 Messages</div>
@@ -401,6 +402,22 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 
 
     <!-- TEAM QUOTES -->
+    <div id="section-teams" class="admin-section">
+      <div class="page-title">Teams</div>
+      <div class="page-sub">Every organisation on a Team plan, and what is actually happening inside it &mdash; who holds a seat, who was invited and never turned up, and when the term ends. A team appears here when a won or paid quote is turned into one.</div>
+
+      <div class="chips" id="teams-filters" style="margin-bottom:18px;">
+        <div class="chip active" onclick="teamFilter('',this)">All</div>
+        <div class="chip"        onclick="teamFilter('active',this)">Active</div>
+        <div class="chip"        onclick="teamFilter('renewal',this)">Renewing soon</div>
+        <div class="chip"        onclick="teamFilter('suspended',this)">Suspended</div>
+      </div>
+
+      <div class="admin-card">
+        <div id="teams-list"></div>
+      </div>
+    </div>
+
     <div id="section-quotes" class="admin-section">
       <div class="page-title">Team Quotes</div>
       <div class="page-sub">Requests from the Team card on the pricing page. Until 9 September that button was a mailto: link, which did nothing at all on a browser with no mail app registered &mdash; so anything before that date was never captured. Nobody here has given a card or account number: the form asks only how they would <em>like</em> to pay.</div>
@@ -1810,7 +1827,8 @@ function showToast(msg,type){
    this a link to #quotes shows a section with an empty table and no
    explanation. Only sections listed here are affected. */
 var ESQ_SECTION_LOADERS = {
-  quotes: function(){ if(typeof loadQuotes === 'function') loadQuotes(); }
+  quotes: function(){ if(typeof loadQuotes === 'function') loadQuotes(); },
+  teams:  function(){ if(typeof loadTeams  === 'function') loadTeams();  }
 };
 
 function esqAdminHashRoute(){
@@ -3361,6 +3379,479 @@ function openQuote(id){
   var invBtn=document.getElementById('qb-invoice');
   if(invBtn) invBtn.addEventListener('click', qbCreateInvoice);
   QB_CLOSE=close;
+}
+
+/* ═══════════════════════════════════════
+   TEAMS
+   ───────────────────────────────────────
+   Eric: "How do I view the Whosville team and the GSLI Test Team?"
+
+   He could not. Every team sold became invisible the moment it existed - no
+   way to see who was on it, who never accepted, or whether the seats were
+   being used. For a $4,950/yr product with a renewal date that is the wrong
+   place to have no visibility.
+
+   ⚠️ TWO THINGS HERE CANNOT BE DONE FROM A BROWSER AND GO THROUGH RPCs.
+
+   Seats: UPDATE on esq_organizations was revoked and granted back on four
+   columns, so an owner could not open seats they had not paid for. Column
+   grants apply to the `authenticated` role - which Eric is too. The site-admin
+   RLS policy does not help, because grants are checked before policies.
+
+   Ownership: the privilege guard requires the caller to be the owner and the
+   one-owner index refuses a second, so demote-then-promote has no legal
+   ordering from outside a transaction.
+
+   Everything else - ticks, removals, invitations - the site-admin policy
+   already allows directly.
+   ═══════════════════════════════════════ */
+var T_ROWS = {};
+var T_FILTER = '';
+var T_OPEN = null;
+
+function loadTeams(){
+  var box = document.getElementById('teams-list');
+  if(!box) return;
+  box.innerHTML = '<div style="padding:18px;color:#6b7a96;font-size:13px;">Loading&hellip;</div>';
+
+  supa.from('esq_admin_teams').select('*').order('created_at', { ascending: false })
+    .then(function(res){
+      if(res.error){
+        box.innerHTML = '<div style="padding:18px;color:#ff9b9b;font-size:13px;">'+
+          'Could not load teams: '+esqEsc(res.error.message)+
+          '<div style="color:#6b7a96;margin-top:6px;">If this says the relation does not exist, '+
+          'the Teams migration has not been run yet.</div></div>';
+        return;
+      }
+      var rows = res.data || [];
+      T_ROWS = {};
+      rows.forEach(function(r){ T_ROWS[r.id] = r; });
+
+      var shown = rows.filter(function(r){
+        if(T_FILTER === 'active')   return r.status === 'active';
+        if(T_FILTER === 'renewal')  return r.renewal_soon && r.status === 'active';
+        if(T_FILTER === 'suspended')return r.status !== 'active';
+        return true;
+      });
+
+      var dot = document.getElementById('teams-dot');
+      if(dot){
+        var soon = rows.filter(function(r){ return r.renewal_soon && r.status === 'active'; }).length;
+        dot.textContent = soon ? String(soon) : '';
+        dot.style.display = soon ? 'inline-block' : 'none';
+        dot.title = soon + ' team(s) renewing within 60 days';
+      }
+
+      if(!shown.length){
+        box.innerHTML = '<div style="padding:18px;color:#6b7a96;font-size:13px;">'+
+          (rows.length ? 'No teams match that filter.'
+                       : 'No teams yet. A team appears here when you turn a won or paid quote into one.')+
+          '</div>';
+        return;
+      }
+      box.innerHTML = shown.map(teamCard).join('');
+      shown.forEach(function(r){
+        var el = document.getElementById('t-open-'+r.id);
+        if(el) el.addEventListener('click', function(){ openTeamAdmin(r.id); });
+      });
+    });
+}
+
+function teamFilter(v, el){
+  T_FILTER = v;
+  document.querySelectorAll('#teams-filters .chip').forEach(function(c){ c.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  loadTeams();
+}
+
+function teamCard(r){
+  var used = r.seats_used || 0, total = r.seats_total || 0;
+  var full = total > 0 && used >= total;
+  var pct  = total > 0 ? Math.min(100, Math.round(used * 100 / total)) : 0;
+
+  var statusPill = r.status === 'active'
+    ? '<span style="font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#aaff3e;border:1px solid rgba(170,255,62,0.35);border-radius:5px;padding:2px 7px;">active</span>'
+    : '<span style="font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#ff9b9b;border:1px solid rgba(255,90,90,0.35);border-radius:5px;padding:2px 7px;">'+esqEsc(r.status)+'</span>';
+
+  var renewal = r.renewal_soon && r.status === 'active'
+    ? '<span style="font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#f5c542;border:1px solid rgba(245,197,66,0.35);border-radius:5px;padding:2px 7px;">renews '+esqEsc(r.term_end)+'</span>'
+    : '';
+
+  return '<div style="border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:15px 17px;margin-bottom:11px;">'+
+    '<div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">'+
+      '<div style="flex:1 1 260px;min-width:0;">'+
+        '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">'+
+          '<span style="font-size:15px;font-weight:800;color:#eef3fc;font-family:\'Barlow Condensed\',sans-serif;">'+
+            esqEsc(r.name)+'</span>'+statusPill+renewal+
+        '</div>'+
+        '<div style="font-size:11.5px;color:#6b7a96;margin-top:3px;">'+
+          'owner: '+esqEsc(r.owner_email || 'nobody yet')+
+          (r.quote_request_id ? ' &middot; from quote #'+r.quote_request_id : ' &middot; made by hand')+
+          (r.term_end ? ' &middot; term to '+esqEsc(r.term_end) : '')+
+        '</div>'+
+      '</div>'+
+      '<div style="text-align:right;min-width:150px;">'+
+        '<div style="font-size:13px;color:'+(full ? '#f5c542' : '#eef3fc')+';font-weight:700;">'+
+          used+' of '+total+' seats</div>'+
+        '<div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.08);margin-top:5px;overflow:hidden;">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+(full ? '#f5c542' : '#aaff3e')+';"></div></div>'+
+        '<div style="font-size:11px;color:#6b7a96;margin-top:4px;">'+
+          r.members+' seated'+(r.invites_pending ? ' &middot; '+r.invites_pending+' invited' : '')+
+          ' &middot; profile '+r.profile_filled+'/20</div>'+
+      '</div>'+
+      '<div><button class="btn-ghost btn-sm" id="t-open-'+r.id+'">Open</button></div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ── One team ──────────────────────────────────────────────────────── */
+function openTeamAdmin(id){
+  var r = T_ROWS[id];
+  if(!r) return;
+  if(document.getElementById('team-admin-overlay')) return;
+  T_OPEN = id;
+
+  var ov = document.createElement('div');
+  ov.id = 'team-admin-overlay';
+  ov.className = 'modal-overlay show';
+  ov.innerHTML =
+    '<div class="modal-box" style="width:760px;max-width:95vw;max-height:92vh;overflow:auto;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">'+
+        '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:24px;font-weight:900;color:#eef3fc;">'+
+          esqEsc(r.name)+'</div>'+
+        '<button class="btn-ghost btn-sm" id="ta-x">Close</button>'+
+      '</div>'+
+      '<div style="font-size:13px;color:#6b7a96;margin-bottom:18px;">'+
+        'team #'+r.id+
+        (r.quote_request_id ? ' &middot; from quote #'+r.quote_request_id : ' &middot; created by hand')+
+        (r.quote_total != null ? ' &middot; '+esqMoney(r.quote_total) : '')+
+        (r.paid_at ? ' &middot; paid '+new Date(r.paid_at).toLocaleDateString() : '')+
+      '</div>'+
+
+      '<div id="ta-msg" style="display:none;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;margin-bottom:14px;"></div>'+
+
+      /* ── the plan ── */
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:8px;">'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Paid seats</label>'+
+          '<input id="ta-paid" type="number" min="0" max="5000" value="'+(r.seats_paid||0)+'"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Included free</label>'+
+          '<input id="ta-free" type="number" min="0" max="5000" value="'+(r.seats_free||0)+'"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Term ends</label>'+
+          '<input id="ta-term" type="date" value="'+esqEsc(r.term_end||'')+'"></div>'+
+        '<div><label style="font-size:11px;color:#6b7a96;">Status</label>'+
+          '<select id="ta-status">'+
+            ['active','suspended','cancelled'].map(function(s){
+              return '<option value="'+s+'"'+(s===r.status?' selected':'')+'>'+s+'</option>';
+            }).join('')+
+          '</select></div>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">'+
+        '<button class="btn-ghost" id="ta-save">Save the plan</button>'+
+        '<span style="font-size:11.5px;color:#6b7a96;">'+
+          'Seats cannot be cut below the people already on them &mdash; remove somebody first. '+
+          'Suspending does not remove anybody.</span>'+
+      '</div>'+
+
+      /* ── who is on it ── */
+      '<div style="font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:8px;">Who is on it</div>'+
+      '<div id="ta-roster"></div>'+
+
+      /* ── ownership ── */
+      '<div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">'+
+        '<div style="font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:8px;">Hand the team to somebody else</div>'+
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'+
+          '<select id="ta-newowner" style="min-width:230px;"></select>'+
+          '<button class="btn-ghost" id="ta-transfer">Transfer ownership</button>'+
+          '<span style="font-size:11.5px;color:#6b7a96;">'+
+            'The old owner stays on the team as an admin. They must already hold a seat.</span>'+
+        '</div>'+
+      '</div>'+
+
+      /* ── add somebody ── */
+      '<div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">'+
+        '<div style="font-size:13px;font-weight:700;color:#eef3fc;margin-bottom:10px;">Invite somebody on their behalf</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:10px;align-items:end;">'+
+          '<div><label style="font-size:11px;color:#6b7a96;">First name</label><input id="ta-first" type="text"></div>'+
+          '<div><label style="font-size:11px;color:#6b7a96;">Last name</label><input id="ta-last" type="text"></div>'+
+          '<div><label style="font-size:11px;color:#6b7a96;">Work email</label><input id="ta-email" type="email"></div>'+
+          '<button class="btn-ghost" id="ta-invite">Send</button>'+
+        '</div>'+
+        '<div style="font-size:11.5px;color:#6b7a96;margin-top:8px;">'+
+          'They choose their own password. Use this for support &mdash; normally the team does it themselves.</div>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(ov);
+
+  function close(){
+    if(ov.parentNode) ov.parentNode.removeChild(ov);
+    document.removeEventListener('keydown', onKey);
+    T_OPEN = null;
+    loadTeams();
+  }
+  function onKey(e){ if(e.key === 'Escape' || e.key === 'Esc') close(); }
+  document.getElementById('ta-x').addEventListener('click', close);
+  ov.addEventListener('click', function(e){ if(e.target === ov) close(); });
+  document.addEventListener('keydown', onKey);
+
+  document.getElementById('ta-save').addEventListener('click', taSavePlan);
+  document.getElementById('ta-transfer').addEventListener('click', taTransfer);
+  document.getElementById('ta-invite').addEventListener('click', taInvite);
+
+  taLoadRoster();
+}
+
+function taMsg(kind, text){
+  var m = document.getElementById('ta-msg');
+  if(!m) return;
+  var ok = kind === 'ok';
+  m.style.background = ok ? 'rgba(170,255,62,0.08)' : 'rgba(255,90,90,0.09)';
+  m.style.border     = '1px solid '+(ok ? 'rgba(170,255,62,0.35)' : 'rgba(255,90,90,0.35)');
+  m.style.color      = ok ? '#aaff3e' : '#ff9b9b';
+  m.textContent = text;
+  m.style.display = 'block';
+}
+
+function taLoadRoster(){
+  var box = document.getElementById('ta-roster');
+  if(!box || !T_OPEN) return;
+  box.innerHTML = '<div style="font-size:12.5px;color:#6b7a96;">Loading&hellip;</div>';
+
+  supa.from('esq_org_roster').select('*').eq('org_id', T_OPEN)
+    .then(function(res){
+      if(res.error){ box.innerHTML = '<div style="font-size:12.5px;color:#ff9b9b;">'+esqEsc(res.error.message)+'</div>'; return; }
+      var rows = res.data || [];
+      rows.sort(function(a,b){
+        if(a.role === 'owner') return -1;
+        if(b.role === 'owner') return 1;
+        if(a.kind !== b.kind) return a.kind === 'member' ? -1 : 1;
+        return String(a.email||'').localeCompare(String(b.email||''));
+      });
+
+      box.innerHTML = rows.length
+        ? rows.map(taRosterRow).join('')
+        : '<div style="font-size:12.5px;color:#6b7a96;">Nobody yet.</div>';
+      rows.forEach(taWireRosterRow);
+
+      /* the transfer list is live members who are not already the owner */
+      var sel = document.getElementById('ta-newowner');
+      if(sel){
+        var choices = rows.filter(function(r){ return r.kind === 'member' && r.role !== 'owner'; });
+        sel.innerHTML = choices.length
+          ? choices.map(function(r){ return '<option value="'+esqEsc(r.user_id)+'">'+esqEsc(r.email||r.user_id)+'</option>'; }).join('')
+          : '<option value="">nobody else holds a seat</option>';
+        sel.disabled = !choices.length;
+        var btn = document.getElementById('ta-transfer');
+        if(btn) btn.disabled = !choices.length;
+      }
+    });
+}
+
+function taRosterRow(r){
+  var key = r.kind+'-'+r.id;
+  var name = [r.first_name, r.last_name].filter(Boolean).join(' ');
+  var badge = r.role === 'owner'
+    ? '<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#aaff3e;border:1px solid rgba(170,255,62,0.35);border-radius:5px;padding:1px 6px;">owner</span>'
+    : (r.kind === 'invite'
+       ? '<span style="font-size:10px;font-weight:800;text-transform:uppercase;color:#e8b84b;border:1px solid rgba(232,184,75,0.35);border-radius:5px;padding:1px 6px;">invited</span>'
+       : '');
+
+  var lock = (r.role === 'owner') ? ' disabled' : '';
+  var ticks =
+    '<label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#93a4bd;'+
+      (lock?'opacity:.55;':'')+'"><input type="checkbox" data-tk="'+key+'" data-tf="can_edit_profile"'+
+      (r.can_edit_profile?' checked':'')+lock+' style="accent-color:#aaff3e;"> profile</label>'+
+    '<label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#93a4bd;'+
+      (lock?'opacity:.55;':'')+'"><input type="checkbox" data-tk="'+key+'" data-tf="can_manage_seats"'+
+      (r.can_manage_seats?' checked':'')+lock+' style="accent-color:#aaff3e;"> seats</label>';
+
+  var actions = '';
+  if(r.kind === 'invite'){
+    actions = '<button class="btn-ghost btn-sm" id="ta-rs-'+key+'">Resend</button>'+
+              '<button class="btn-ghost btn-sm" id="ta-rv-'+key+'" style="color:#ff9b9b;">Withdraw</button>';
+  } else if(r.role !== 'owner'){
+    actions = '<button class="btn-ghost btn-sm" id="ta-rv-'+key+'" style="color:#ff9b9b;">Remove</button>';
+  } else {
+    actions = '<span style="font-size:11px;color:#6b7a96;">transfer first</span>';
+  }
+
+  return '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 0;'+
+      'border-bottom:1px solid rgba(255,255,255,0.06);">'+
+      '<div style="flex:1 1 200px;min-width:0;">'+
+        '<div style="font-size:13px;color:#eef3fc;display:flex;align-items:center;gap:8px;">'+
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+
+            esqEsc(name || r.email || '?')+'</span>'+badge+'</div>'+
+        (name ? '<div style="font-size:11.5px;color:#6b7a96;">'+esqEsc(r.email||'')+'</div>' : '')+
+        (r.kind === 'invite' && r.expires_at
+          ? '<div style="font-size:11px;color:#6b7a96;">expires '+new Date(r.expires_at).toLocaleDateString()+'</div>' : '')+
+      '</div>'+
+      '<div style="display:flex;gap:13px;">'+ticks+'</div>'+
+      '<div style="display:flex;gap:7px;">'+actions+'</div>'+
+    '</div>';
+}
+
+function taWireRosterRow(r){
+  var key = r.kind+'-'+r.id;
+  var table = (r.kind === 'invite') ? 'esq_org_invites' : 'esq_org_members';
+
+  Array.prototype.forEach.call(document.querySelectorAll('input[data-tk="'+key+'"]'), function(box){
+    box.onchange = function(){
+      var patch = {}; patch[box.getAttribute('data-tf')] = box.checked;
+      box.disabled = true;
+      /* A zero-row update is a SUCCESS in PostgREST. Ask for the row back. */
+      supa.from(table).update(patch).eq('id', r.id).select('id').then(function(res){
+        box.disabled = false;
+        if(res.error || !res.data || !res.data.length){
+          box.checked = !box.checked;
+          taMsg('err', res.error ? res.error.message : 'That change was not saved.');
+          return;
+        }
+        taMsg('ok', 'Saved.');
+      });
+    };
+  });
+
+  var rv = document.getElementById('ta-rv-'+key);
+  if(rv) rv.onclick = function(){
+    /* Two clicks, no dialog - the same as everywhere else on this page. */
+    if(rv.getAttribute('data-armed') !== '1'){
+      rv.setAttribute('data-armed','1');
+      rv.textContent = 'Sure?';
+      setTimeout(function(){
+        if(rv && rv.getAttribute('data-armed') === '1'){
+          rv.setAttribute('data-armed','0');
+          rv.textContent = (r.kind === 'invite') ? 'Withdraw' : 'Remove';
+        }
+      }, 4000);
+      return;
+    }
+    rv.disabled = true;
+    supa.from(table).update({ revoked_at: new Date().toISOString() }).eq('id', r.id).select('id')
+      .then(function(res){
+        rv.disabled = false;
+        if(res.error || !res.data || !res.data.length){
+          taMsg('err', res.error ? res.error.message : 'That could not be removed.');
+          return;
+        }
+        taMsg('ok', (r.kind === 'invite' ? 'Invitation withdrawn.' : 'Seat freed.'));
+        taLoadRoster();
+      });
+  };
+
+  var rs = document.getElementById('ta-rs-'+key);
+  if(rs) rs.onclick = function(){
+    rs.disabled = true; rs.textContent = 'Sending…';
+    qbPost('org-invite', { org_id: T_OPEN, resend_id: r.id }, function(j){
+      rs.disabled = false; rs.textContent = 'Resend';
+      if(!j || j.ok !== true){ taMsg('err', (j && j.error) || 'That could not be resent.'); return; }
+      taMsg(j.emailed === false ? 'err' : 'ok',
+        j.emailed === false
+          ? 'Saved, but the email did not go out ('+(j.send_error||'unknown')+').'
+          : 'Invitation resent to '+j.email+'.');
+      taLoadRoster();
+    });
+  };
+}
+
+function taSavePlan(){
+  if(!T_OPEN) return;
+  var btn = document.getElementById('ta-save');
+  var paid = parseInt(document.getElementById('ta-paid').value, 10);
+  var free = parseInt(document.getElementById('ta-free').value, 10);
+  var term = document.getElementById('ta-term').value || null;
+  var status = document.getElementById('ta-status').value;
+
+  if(!isFinite(paid) || paid < 0 || !isFinite(free) || free < 0){
+    taMsg('err', 'Seats have to be whole numbers, zero or more.'); return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  supa.rpc('esq_admin_org_update', {
+    p_org: T_OPEN, p_name: null, p_seats_paid: paid, p_seats_free: free,
+    p_status: status, p_term_start: null, p_term_end: term
+  }).then(function(res){
+    btn.disabled = false; btn.textContent = 'Save the plan';
+    var j = res && res.data;
+    if(res.error){ taMsg('err', res.error.message); return; }
+    if(!j || j.ok !== true){
+      taMsg('err',
+        j && j.error === 'below_used' ? (j.message || 'That leaves people without seats.') :
+        j && j.error === 'not_admin'  ? 'That needs a site admin account.' :
+        j && j.error === 'bad_status' ? 'That is not a status.' :
+        'That could not be saved.');
+      return;
+    }
+    taMsg('ok', 'Saved: '+j.seats_paid+' paid + '+j.seats_free+' included, '+j.status+'.');
+    if(T_ROWS[T_OPEN]){
+      T_ROWS[T_OPEN].seats_paid = j.seats_paid;
+      T_ROWS[T_OPEN].seats_free = j.seats_free;
+      T_ROWS[T_OPEN].status = j.status;
+      T_ROWS[T_OPEN].term_end = j.term_end;
+    }
+  });
+}
+
+function taTransfer(){
+  if(!T_OPEN) return;
+  var sel = document.getElementById('ta-newowner');
+  var btn = document.getElementById('ta-transfer');
+  var to = sel && sel.value;
+  if(!to){ taMsg('err', 'Nobody else holds a seat on this team yet.'); return; }
+
+  if(btn.getAttribute('data-armed') !== '1'){
+    btn.setAttribute('data-armed','1');
+    btn.textContent = 'Sure? This hands over the account';
+    setTimeout(function(){
+      if(btn && btn.getAttribute('data-armed') === '1'){
+        btn.setAttribute('data-armed','0');
+        btn.textContent = 'Transfer ownership';
+      }
+    }, 5000);
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Transferring…';
+  supa.rpc('esq_admin_transfer_owner', { p_org: T_OPEN, p_new_user: to }).then(function(res){
+    btn.disabled = false; btn.setAttribute('data-armed','0'); btn.textContent = 'Transfer ownership';
+    var j = res && res.data;
+    if(res.error){ taMsg('err', res.error.message); return; }
+    if(!j || j.ok !== true){
+      taMsg('err',
+        j && j.error === 'not_a_member' ? 'That person does not hold a seat on this team.' :
+        j && j.error === 'not_admin'    ? 'That needs a site admin account.' :
+        'That transfer did not go through.');
+      return;
+    }
+    taMsg('ok', j.unchanged ? 'They already owned it.' : 'Done. The previous owner stays on as an admin.');
+    taLoadRoster();
+  });
+}
+
+function taInvite(){
+  if(!T_OPEN) return;
+  var btn = document.getElementById('ta-invite');
+  var email = (document.getElementById('ta-email').value || '').trim();
+  if(!/^[^\s@]+@[^\s@.]+\.[^\s@]{2,}$/.test(email)){
+    taMsg('err', 'That email address does not look right.'); return;
+  }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  qbPost('org-invite', {
+    org_id: T_OPEN,
+    email: email,
+    first_name: (document.getElementById('ta-first').value || '').trim(),
+    last_name:  (document.getElementById('ta-last').value  || '').trim()
+  }, function(j){
+    btn.disabled = false; btn.textContent = 'Send';
+    if(!j || j.ok !== true){ taMsg('err', (j && j.error) || 'That invitation could not be sent.'); return; }
+    taMsg(j.emailed === false ? 'err' : 'ok',
+      j.emailed === false
+        ? 'Saved, but the email did not go out ('+(j.send_error||'unknown')+'). Try Resend in a minute.'
+        : 'Invitation sent to '+j.email+'. Good for 14 days.');
+    document.getElementById('ta-email').value = '';
+    document.getElementById('ta-first').value = '';
+    document.getElementById('ta-last').value  = '';
+    taLoadRoster();
+  });
 }
 
 /* ═══════════════════════════════════════
