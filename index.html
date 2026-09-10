@@ -16467,9 +16467,24 @@ function esqTeamLoad(){
   var row = document.getElementById('pm-team-row');
   if(!currentUser){ ESQ_TEAM = null; if(row) row.style.display='none'; return Promise.resolve(null); }
 
+  /* ⚠️ THIS USED TO BE limit(1) WITH NO ORDER BY.
+     Postgres is entitled to return either row and a different one next time,
+     so for anybody holding two seats - Eric does, and a consultant working
+     for two EDCs is a real customer - "Your Team", the shared logo and the
+     profile being edited could silently switch organisations between page
+     loads. Nothing would look broken. It would just be wrong sometimes.
+
+     Oldest live seat wins, tie-broken by org id so the order is total.
+     public.esq_my_primary_org() in the database orders IDENTICALLY, because
+     that is what stamps task_history.esq_org_id. If you change one, change
+     both, or the app and its own records will disagree about who somebody
+     is working for. */
   return supa.from('esq_org_members')
     .select('org_id, role, can_edit_profile, can_manage_seats')
-    .eq('user_id', currentUser.id).is('revoked_at', null).limit(1)
+    .eq('user_id', currentUser.id).is('revoked_at', null)
+    .order('granted_at', { ascending: true })
+    .order('org_id', { ascending: true })
+    .limit(1)
     .then(function(res){
       var m = res && res.data && res.data.length ? res.data[0] : null;
       if(!m){ ESQ_TEAM = null; if(row) row.style.display='none'; return null; }
