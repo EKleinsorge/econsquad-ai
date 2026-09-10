@@ -1778,6 +1778,9 @@ function grantAdminAccess(user){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('admin-user-email').textContent=user.email;
   loadAllData();
+  /* The whole point of a badge is to be seen without going looking. */
+  refreshQuotesBadge();
+  if(typeof loadTeams === 'function') loadTeams();
 }
 
 function showLoginMsg(msg,type){
@@ -2998,13 +3001,7 @@ function loadQuotes(){
     Q_ROWS={};
     rows.forEach(function(r){ Q_ROWS[r.id]=r; });
 
-    supa.from('quote_requests').select('id',{count:'exact',head:true}).eq('status','new')
-      .then(function(c){
-        var dot=document.getElementById('quotes-dot');
-        if(!dot) return;
-        if(c.count){ dot.textContent=c.count; dot.style.display='inline-block'; }
-        else dot.style.display='none';
-      });
+    refreshQuotesBadge();
 
     if(!rows.length){
       tb.innerHTML='<tr><td colspan="9" style="color:#4a5568;padding:24px;">'+
@@ -3379,6 +3376,64 @@ function openQuote(id){
   var invBtn=document.getElementById('qb-invoice');
   if(invBtn) invBtn.addEventListener('click', qbCreateInvoice);
   QB_CLOSE=close;
+}
+
+/* ═══════════════════════════════════════
+   HOW MANY QUOTES ARE STILL UNSENT
+   ───────────────────────────────────────
+   Eric asked for a count on the Team Quotes menu item.
+
+   There WAS a badge, and it had two problems.
+
+   ⚠️ 1. IT ONLY UPDATED INSIDE loadQuotes(). So the number appeared after you
+   had already opened the page you were meant to be nudged towards. A badge you
+   have to go and look for is not a badge.
+
+   ⚠️ 2. IT COUNTED status='new'. But the one that actually needs doing is a
+   request you have SPOKEN to and not yet sent a quote to - which is
+   'contacted', and had no badge at all. Somebody you replied to on Monday and
+   forgot on Tuesday was invisible.
+
+   So: unsent means quote_sent_at IS NULL, minus the ones that are finished
+   with (lost, spam) or already agreed without a document (won).
+
+   It turns amber when the oldest has been sitting more than two days, because
+   "three waiting" and "three waiting, one since last week" are different
+   situations and a plain count cannot tell you which you are in.
+   ═══════════════════════════════════════ */
+function refreshQuotesBadge(){
+  var dot = document.getElementById('quotes-dot');
+  if(!dot || typeof supa === 'undefined') return;
+
+  supa.from('quote_requests')
+    .select('id, created_at, organization')
+    .is('quote_sent_at', null)
+    .not('status', 'in', '("lost","spam","won")')
+    .order('created_at', { ascending: true })
+    .limit(200)
+    .then(function(res){
+      if(res.error){
+        /* Before the quote columns exist this is the only thing on the page
+           that asks for them. Stay quiet rather than showing a broken badge. */
+        dot.style.display = 'none';
+        return;
+      }
+      var rows = res.data || [];
+      if(!rows.length){ dot.style.display = 'none'; dot.textContent = ''; return; }
+
+      var oldest = new Date(rows[0].created_at);
+      var days   = (Date.now() - oldest.getTime()) / 86400000;
+      var stale  = days >= 2;
+
+      dot.textContent = String(rows.length);
+      dot.style.display = 'inline-block';
+      dot.style.background = stale ? '#f5c542' : '#aaff3e';
+      dot.style.color      = stale ? '#2a1f00' : '#0a1a00';
+      dot.title = rows.length + ' quote request' + (rows.length === 1 ? '' : 's') +
+        ' with no quote sent yet. Oldest: ' +
+        (rows[0].organization || 'unnamed') + ', ' +
+        (days < 1 ? 'today' : Math.floor(days) + ' day' + (Math.floor(days) === 1 ? '' : 's') + ' ago') + '.';
+    });
 }
 
 /* ═══════════════════════════════════════
