@@ -1572,6 +1572,10 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                 <span style="font-size:14px;">📊</span>
                 <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
               </div>
+              <div id="dash-nav-history" onclick="showDashTab('history-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">📋</span>
+                <span style="font-size:12px;color:#eef3fc;">Mission History</span>
+              </div>
               <!-- HIDDEN 2026-09-06. Text alerts to customers have never worked: TWILIO_ACCOUNT_SID,
        TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER have never been set on this project, so
        send-sms could not have sent a single message since it was written in May. This
@@ -3438,7 +3442,10 @@ function showHistoryToast(){
     t=document.createElement('div');
     t.id='hist-toast';
     t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(10,14,26,.97);border:1px solid rgba(170,255,62,.2);color:#c8d4e8;font-size:13px;padding:12px 24px;border-radius:10px;z-index:9999;font-family:DM Sans,sans-serif;white-space:nowrap;';
-    t.textContent='📋 Mission history — coming soon';
+    /* It was not coming soon. It was already built and simply had no door.
+       Kept only so any caller still wired to it goes somewhere useful. */
+    t.textContent='📋 Opening your mission history…';
+    setTimeout(function(){ if(typeof showDashTab==='function') showDashTab('history-tab', null); }, 250);
     document.body.appendChild(t);
   }
   t.style.opacity='1';
@@ -7404,6 +7411,24 @@ function renderHistory(items){
     var dateDiv=document.createElement('div');dateDiv.className='hist-date';dateDiv.textContent=dateStr;
     header.appendChild(orb);header.appendChild(nameDiv);header.appendChild(dateDiv);
     card.appendChild(header);
+
+    /* ⚠️ WHOSE WORK IS THIS. The database has known since 2026-09-10
+       (task_history.esq_org_id, stamped by esq_task_stamp_org_trg) and the
+       screen did not say. Two reasons it has to:
+         - somebody on two teams can see, and challenge, which one got it;
+         - the Team card's promise that work stays with the organisation is
+           invisible if nothing ever mentions the organisation.
+       Only shown when it IS an org seat. An individual's own work says
+       nothing, because there is nothing to say. */
+    if(h.esq_org_id && typeof ESQ_TEAM!=='undefined' && ESQ_TEAM &&
+       String(ESQ_TEAM.orgId)===String(h.esq_org_id)){
+      var oDiv=document.createElement('div');
+      oDiv.style.cssText='font-size:10.5px;color:#6b7a96;margin:-2px 0 8px 46px;';
+      oDiv.textContent='⚡ on the '+ESQ_TEAM.orgName+' seat';
+      oDiv.title='This mission is recorded against '+ESQ_TEAM.orgName+
+        '. It stays with them if you leave.';
+      card.appendChild(oDiv);
+    }
 
     if(prompt){
       var pDiv=document.createElement('div');pDiv.className='hist-prompt';
