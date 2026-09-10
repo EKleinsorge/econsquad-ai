@@ -62,6 +62,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 .badge-past_due{background:rgba(255,155,65,0.15);color:#ff9b41;}
 .badge-no_card{background:rgba(138,151,181,0.14);color:#8a97b5;}
 .badge-beta{background:rgba(200,140,255,0.14);color:#c88cff;}
+.badge-team{background:rgba(170,255,62,0.14);color:#aaff3e;}
 .badge-rejected{background:rgba(255,80,80,0.15);color:#ff8080;}
 .badge-broadcast{background:rgba(100,175,255,0.15);color:#64afff;}
 .badge-individual{background:rgba(170,255,62,0.15);color:#aaff3e;}
@@ -610,6 +611,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <!-- Status stat boxes -->
       <div class="stats-row" style="grid-template-columns:repeat(auto-fit,minmax(118px,1fr));margin-bottom:20px;">
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-all">—</div><div class="stat-box-lbl">Total</div></div>
+        <div class="stat-box"><div class="stat-box-val" id="usr-cnt-team" style="color:#aaff3e;">—</div><div class="stat-box-lbl">On a Team</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-in_trial" style="color:#f5c542;">—</div><div class="stat-box-lbl">In Trial</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-no_card" style="color:#8a97b5;">—</div><div class="stat-box-lbl">No Card</div></div>
         <div class="stat-box"><div class="stat-box-val" id="usr-cnt-beta" style="color:#c88cff;">—</div><div class="stat-box-lbl">Beta / Comped</div></div>
@@ -624,6 +626,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <!-- Filter tabs -->
       <div class="user-filter-tabs">
         <div class="user-filter-tab active" onclick="filterUsers('all',this)">All</div>
+        <div class="user-filter-tab" onclick="filterUsers('team',this)">On a Team</div>
         <div class="user-filter-tab" onclick="filterUsers('in_trial',this)">In Trial</div>
         <div class="user-filter-tab" onclick="filterUsers('no_card',this)">No Card</div>
         <div class="user-filter-tab" onclick="filterUsers('beta',this)">Beta / Comped</div>
@@ -636,7 +639,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       </div>
 
       <div style="margin-bottom:14px;">
-        <input id="usr-search" type="search" placeholder="Search name, email or organisation\u2026"
+        <input id="usr-search" type="search" placeholder="Search name, email or organisation&hellip;"
                oninput="renderUsersTable(activeUserFilter)"
                style="width:100%;max-width:420px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:10px 14px;color:#eef3fc;font-size:14px;outline:none;font-family:inherit;box-sizing:border-box;">
         <span id="usr-search-count" style="margin-left:12px;font-size:12px;color:#6b7a96;"></span>
@@ -5021,6 +5024,92 @@ var activeUserFilter='all';
    customer under "Trial Expired", right beside people who never subscribed at
    all. The data was there the whole time; nothing read it.
    Fixed 2026-09-01. subscription_status is now checked before plan. */
+/* ═══════════════════════════════════════
+   WHO IS ON A TEAM, ON THE USERS SCREEN
+   ───────────────────────────────────────
+   Eric: "Is there a natural place on this screen to show the type of member...
+   team member... team leader.. individual?"
+
+   Yes: the ORGANIZATION column, which read profiles.organization - a field
+   nothing has ever written - and showed an em-dash on all twenty-one rows.
+
+   ⚠️ AND THE STATUS COLUMN WAS LYING.
+   A seat holder was shown "TRIAL — 5d left", the same wrongness fixed on the
+   customer side. Here it is dangerous a different way: the IN TRIAL tile
+   counted people whose seats had already been paid for, so the number Eric
+   reads to judge his own business was wrong.
+
+   ⚠️ IN TRIAL WILL DROP when this ships. That is the correction, not a
+   regression - those people were never trialling.
+
+   Somebody with their own active subscription is NOT reclassified: paying
+   customers who also hold a seat keep their real status, the same exception
+   the customer side makes.
+   ═══════════════════════════════════════ */
+var ESQ_SEATS    = {};   /* user_id -> {orgName, role, canSeats, canProfile, active} */
+var ESQ_OWN_ORGS = {};   /* user_id -> the org name on their own community profile */
+
+/* A query that resolves to nothing rather than throwing, so the Users page
+   still loads on a database where the team tables do not exist yet. */
+function esqSoft(q){
+  return q.then(function(r){ return (r && r.error) ? { data: [] } : r; },
+                function(){ return { data: [] }; });
+}
+
+function esqBuildSeatMap(members, orgs, profiles){
+  ESQ_SEATS = {};
+  var byId = {};
+  (orgs || []).forEach(function(o){ byId[o.id] = o; });
+  (members || []).forEach(function(m){
+    var o = byId[m.org_id];
+    if(!o) return;
+    ESQ_SEATS[m.user_id] = {
+      orgId: o.id, orgName: o.name, status: o.status,
+      active: o.status === 'active',
+      role: m.role, canSeats: m.can_manage_seats, canProfile: m.can_edit_profile
+    };
+  });
+  ESQ_OWN_ORGS = {};
+  (profiles || []).forEach(function(p){
+    if(p.user_id && p.org_name) ESQ_OWN_ORGS[p.user_id] = p.org_name;
+  });
+}
+
+/* ⚠️ Only an ACTIVE team counts as a seat. A suspended organisation must not
+   keep somebody out of the trial numbers - if it lapses they are back to
+   being an ordinary account, and the tiles should say so. */
+function esqHasSeat(u){
+  var s = u && ESQ_SEATS[u.id];
+  return !!(s && s.active);
+}
+
+function esqSeatLabel(u){
+  var s = ESQ_SEATS[u.id];
+  if(!s) return '';
+  if(s.role === 'owner') return 'Team leader';
+  if(s.canSeats)         return 'Team admin';
+  return 'Team member';
+}
+
+function userOrgCell(u){
+  var s = ESQ_SEATS[u.id];
+  if(s){
+    var tone = s.role === 'owner' ? '#aaff3e' : (s.canSeats ? '#64afff' : '#8a97b5');
+    return '<div style="color:#eef3fc;">'+escHtml(s.orgName || '—')+'</div>'+
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:'+tone+';">'+
+        escHtml(esqSeatLabel(u))+
+        (s.active ? '' : ' <span style="color:#ff9b9b;">&middot; team '+escHtml(s.status)+'</span>')+
+      '</div>';
+  }
+  /* Not on a team: their own community profile knows the name, and this
+     column was empty for everybody before today. */
+  var own = ESQ_OWN_ORGS[u.id] || u.organization;
+  return own
+    ? '<div style="color:#8a97b5;">'+escHtml(own)+'</div>'+
+      '<div style="font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#4a5568;">Individual</div>'
+    : '<span style="color:#4a5568;">&mdash;</span>';
+}
+
 function userStatus(u){
   var plan=u.plan||'trial';
   if(plan==='suspended') return 'suspended';
@@ -5029,6 +5118,11 @@ function userStatus(u){
   if(sub==='past_due') return 'past_due';
   if(plan==='pro') return 'pro';
   if(plan==='starter') return 'starter';
+  /* ⚠️ Placed AFTER the paid tiers on purpose. Somebody who pays for their own
+     subscription and also holds a seat is a paying customer first - the same
+     exception the customer-facing side makes. Before beta and no_card,
+     because a seat is a fact about money and those are guesses about intent. */
+  if(typeof esqHasSeat === 'function' && esqHasSeat(u)) return 'team';
   /* Comped focus-group and beta accounts were never going to enter a card,
      so counting them as "No Card" buried the four people who actually did
      abandon checkout among ten who were never asked to. Checked after the
@@ -5058,7 +5152,8 @@ function userStatusBadge(u){
   var s=userStatus(u);
   var labels={in_trial:'In Trial',expired:'Trial Expired',starter:'Starter',pro:'Pro',
               suspended:'Suspended',cancelled:'Cancelled',past_due:'Payment Failed',
-              no_card:'No Card — Never Checked Out',beta:'Beta / Comped'};
+              no_card:'No Card — Never Checked Out',beta:'Beta / Comped',
+              team:'Team seat'};
   var exp=u.trial_end||u.trial_expires_at||null;
   var label=labels[s]||s;
   if(s==='in_trial'&&exp){
@@ -5071,29 +5166,37 @@ function userStatusBadge(u){
     var d=Math.floor((Date.now()-new Date(u.canceled_at))/86400000);
     label='Cancelled — '+(d<=0?'today':(d===1?'1d ago':d+'d ago'));
   }
+  /* Say which kind of seat, so the status column answers "team leader or team
+     member" without going to the Teams page. */
+  if(s === 'team') label = esqSeatLabel(u) || 'Team seat';
   return '<span class="badge badge-'+s+'">'+label+'</span>';
 }
 
 function loadUsers(){
   Promise.all([
     supa.from('profiles').select('*').order('created_at',{ascending:false}),
-    supa.from('task_history').select('user_email')
+    supa.from('task_history').select('user_email'),
+    /* Soft, so the Users page still loads before the team migrations exist. */
+    esqSoft(supa.from('esq_org_members').select('user_id, org_id, role, can_manage_seats, can_edit_profile').is('revoked_at', null)),
+    esqSoft(supa.from('esq_organizations').select('id, name, status')),
+    esqSoft(supa.from('community_profiles').select('user_id, org_name'))
   ]).then(function(results){
     var profiles=results[0].data||[];
     var tasks=results[1].data||[];
+    esqBuildSeatMap(results[2].data, results[3].data, results[4].data);
     allUsersData=profiles;
     allUsersTaskMap={};
     tasks.forEach(function(t){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
     /* update stat counts */
-    var counts={all:profiles.length,in_trial:0,no_card:0,beta:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0};
+    var counts={all:profiles.length,in_trial:0,no_card:0,beta:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0,team:0};
     profiles.forEach(function(u){
       var s=userStatus(u);
       if(counts[s]!==undefined) counts[s]++;
       else counts[s]=1;
     });
-    ['all','in_trial','no_card','beta','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
+    ['all','team','in_trial','no_card','beta','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
       var el=document.getElementById('usr-cnt-'+k);
       if(el) el.textContent=counts[k]||0;
     });
@@ -5158,7 +5261,9 @@ function renderUsersTable(filter){
   q=q.trim().toLowerCase();
   if(q){
     filtered=filtered.filter(function(u){
-      return ((u.full_name||'')+' '+(u.email||'')+' '+(u.organization||''))
+      var seat = ESQ_SEATS[u.id];
+      return ((u.full_name||'')+' '+(u.email||'')+' '+(u.organization||'')+' '+
+              ((seat&&seat.orgName)||'')+' '+(ESQ_OWN_ORGS[u.id]||''))
                .toLowerCase().indexOf(q)!==-1;
     });
   }
@@ -5176,7 +5281,7 @@ function renderUsersTable(filter){
       '<td><input type="checkbox" class="usr-pick" value="'+escHtml(u.email)+'"'+checked+' onclick="onUserPick(this)"></td>'+
       '<td>'+(u.full_name||'—')+'</td>'+
       '<td>'+u.email+'</td>'+
-      '<td>'+(u.organization||'—')+'</td>'+
+      '<td>'+userOrgCell(u)+'</td>'+
       '<td>'+userStatusBadge(u)+'</td>'+
       '<td style="color:#aaff3e;">'+taskCount+'</td>'+
       '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
