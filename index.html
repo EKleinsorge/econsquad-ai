@@ -2728,6 +2728,21 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
           <button onclick="loadHistory()" style="background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">↻ Refresh</button>
         </div>
 
+        <!-- Search -->
+        <div style="position:relative;margin-bottom:14px;">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.5;">&#128269;</span>
+          <input id="hist-search" type="search" autocomplete="off"
+            placeholder="Search everything &mdash; what you asked, what came back, which specialist"
+            oninput="esqHistorySearch()" onsearch="esqHistorySearch()"
+            style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:#eef3fc;font-size:13px;font-family:'DM Sans',sans-serif;padding:11px 14px 11px 38px;border-radius:10px;outline:none;"
+            onfocus="this.style.borderColor='rgba(170,255,62,0.45)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.10)'">
+        </div>
+
+        <!-- ⚠️ Always says where you stand. An empty list and a broken list
+             look identical otherwise - the same fault as the sidebar badges. -->
+        <div id="hist-count" style="font-size:12px;color:#6b7a96;margin-bottom:14px;"></div>
+
         <!-- Filter bar -->
         <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
           <button class="hist-filter active" onclick="filterHistory('all',this)" style="background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;">All</button>
@@ -7333,6 +7348,72 @@ function _doReportSubmit(){
 /* ===== HISTORY TAB ===== */
 var allHistory=[];
 var historyFilter='all';
+/* ⚠️ The category chips and the search box must agree. Before this, clicking
+   a chip re-rendered from allHistory and silently threw away what you had
+   typed - so "Grants" + "water main" was impossible, and worse, it LOOKED
+   like the search had found nothing in Grants. One function owns the list. */
+var historyTerm='';
+var _histDebounce=null;
+
+function esqHistorySearch(){
+  var el=document.getElementById('hist-search');
+  historyTerm=el?String(el.value||'').trim():'';
+  clearTimeout(_histDebounce);
+  _histDebounce=setTimeout(esqHistoryApply,140);
+}
+
+function esqHistoryApply(){
+  var rows=allHistory;
+  if(historyFilter!=='all'){
+    rows=rows.filter(function(h){
+      return h.specialist_color===historyFilter||h.category===historyFilter;
+    });
+  }
+  if(historyTerm){
+    var q=historyTerm.toLowerCase();
+    rows=rows.filter(function(h){
+      return (String(h.prompt||'')+' '+String(h.result||'')+' '+
+              String(h.specialist_name||'')+' '+String(h.category||'')
+             ).toLowerCase().indexOf(q)!==-1;
+    });
+  }
+  renderHistory(rows);
+}
+
+/* Find the match and return a window around it, so a hit 3,000 characters
+   into a long report is actually visible. Returns {text, from, to} where
+   from/to locate the match inside text. */
+function esqHistorySnippet(body, term, plain){
+  body=String(body||'');
+  if(!term) return { text: body.slice(0,plain)+(body.length>plain?'…':''), from:-1, to:-1 };
+  var at=body.toLowerCase().indexOf(term.toLowerCase());
+  if(at===-1) return { text: body.slice(0,plain)+(body.length>plain?'…':''), from:-1, to:-1 };
+  var start=Math.max(0, at-70);
+  var end=Math.min(body.length, at+term.length+150);
+  var text=(start>0?'…':'')+body.slice(start,end)+(end<body.length?'…':'');
+  var off=at-start+(start>0?1:0);
+  return { text:text, from:off, to:off+term.length };
+}
+
+/* Built from text nodes, never innerHTML. The needle is user input and the
+   haystack is model output; neither is going anywhere near a markup parser. */
+function esqHistoryMark(el, snip){
+  el.textContent='';
+  if(snip.from<0){ el.textContent=snip.text; return; }
+  el.appendChild(document.createTextNode(snip.text.slice(0,snip.from)));
+  var m=document.createElement('mark');
+  m.style.cssText='background:rgba(170,255,62,0.22);color:#d8ffa8;border-radius:3px;padding:0 2px;';
+  m.textContent=snip.text.slice(snip.from,snip.to);
+  el.appendChild(m);
+  el.appendChild(document.createTextNode(snip.text.slice(snip.to)));
+}
+
+function esqHistoryClear(){
+  var el=document.getElementById('hist-search');
+  if(el) el.value='';
+  historyTerm='';
+  esqHistoryApply();
+}
 
 function loadHistory(){
   if(!currentUser){
@@ -7349,7 +7430,8 @@ function loadHistory(){
     .order('created_at',{ascending:false})
     .then(function(res){
       allHistory=res.data||[];
-      renderHistory(allHistory);
+      /* Not renderHistory(allHistory) - Refresh used to wipe the search. */
+      esqHistoryApply();
     });
 }
 
@@ -7363,16 +7445,57 @@ function filterHistory(cat,btn){
     b.style.color='#6b7a96';
   });
   btn.classList.add('active');
-  /* filter */
-  var filtered=cat==='all'?allHistory:allHistory.filter(function(h){return h.specialist_color===cat||h.category===cat;});
-  renderHistory(filtered);
+  /* Was: re-render from allHistory, which discarded whatever was typed. */
+  esqHistoryApply();
 }
 
 function renderHistory(items){
   var list=document.getElementById('history-list');
   if(!list)return;
 
+  var countEl=document.getElementById('hist-count');
+  var shown=items?items.length:0;
+  var total=allHistory.length;
+  if(countEl){
+    countEl.textContent = !total ? ''
+      : (shown===total ? total+' mission'+(total===1?'':'s')
+                       : shown+' of '+total+' missions');
+  }
+
   if(!items||!items.length){
+    /* ⚠️ TWO DIFFERENT NOTHINGS. Telling somebody with 200 saved missions to
+       "complete a task with any specialist" because they mistyped a search is
+       a lie, and it is how people conclude a feature is broken. */
+    if(total && (historyTerm||historyFilter!=='all')){
+      var what = historyTerm ? '\u201c'+historyTerm+'\u201d' : 'that filter';
+      list.innerHTML='';
+      var nf=document.createElement('div');
+      nf.style.cssText='text-align:center;padding:56px 20px;';
+      var t1=document.createElement('div');
+      t1.style.cssText='font-size:36px;margin-bottom:12px;';t1.textContent='\uD83D\uDD0D';
+      var t2=document.createElement('div');
+      t2.style.cssText='font-size:14px;font-weight:600;color:#6b7a96;';
+      t2.textContent='Nothing matches '+what;
+      var t3=document.createElement('div');
+      t3.style.cssText='font-size:12px;color:#4a5568;margin-top:6px;';
+      t3.textContent='You have '+total+' saved mission'+(total===1?'':'s')+'.';
+      var b=document.createElement('button');
+      b.textContent='Show all missions';
+      b.style.cssText='margin-top:16px;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;';
+      b.onclick=function(){
+        historyFilter='all';
+        document.querySelectorAll('.hist-filter').forEach(function(x,i){
+          x.classList.toggle('active', i===0);
+          x.style.background = i===0?'rgba(170,255,62,0.12)':'rgba(255,255,255,0.04)';
+          x.style.borderColor = i===0?'rgba(170,255,62,0.3)':'rgba(255,255,255,0.08)';
+          x.style.color = i===0?'#aaff3e':'#6b7a96';
+        });
+        esqHistoryClear();
+      };
+      nf.appendChild(t1);nf.appendChild(t2);nf.appendChild(t3);nf.appendChild(b);
+      list.appendChild(nf);
+      return;
+    }
     list.innerHTML='<div style="text-align:center;padding:60px 20px;"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-size:14px;font-weight:600;color:#6b7a96;">No missions yet</div><div style="font-size:12px;color:#4a5568;margin-top:6px;">Complete a task with any specialist to see it here</div></div>';
     return;
   }
@@ -7390,8 +7513,14 @@ function renderHistory(items){
 
         var specName=h.specialist_name||'Specialist';
     var hours=h.hours_saved?h.hours_saved+' hrs saved':'';
-    var prompt=h.prompt?h.prompt.slice(0,120)+(h.prompt.length>120?'...':''):'';
-    var result=h.result?h.result.slice(0,200)+(h.result.length>200?'...':''):'';
+    /* ⚠️ When searching, centre the preview ON THE MATCH. A card that says it
+       matched while showing 200 characters that plainly do not contain the
+       word reads as a bug, and the whole point of searching a long report is
+       to find the paragraph you half-remember. */
+    var pSnip=esqHistorySnippet(h.prompt,historyTerm,120);
+    var rSnip=esqHistorySnippet(h.result,historyTerm,200);
+    var prompt=h.prompt?pSnip.text:'';
+    var result=h.result?rSnip.text:'';
     var colHi=col?col.hi:'#ffd23c';
     var colMid=col?col.mid:'#f5c542';
 
@@ -7432,11 +7561,16 @@ function renderHistory(items){
 
     if(prompt){
       var pDiv=document.createElement('div');pDiv.className='hist-prompt';
-      pDiv.innerHTML='<strong style="color:#8a97b5;">You:</strong> '+escHtml(prompt);
+      var lbl=document.createElement('strong');
+      lbl.style.color='#8a97b5';lbl.textContent='You: ';
+      var pTxt=document.createElement('span');
+      esqHistoryMark(pTxt,pSnip);
+      pDiv.appendChild(lbl);pDiv.appendChild(pTxt);
       card.appendChild(pDiv);
     }
     if(result){
-      var rDiv=document.createElement('div');rDiv.className='hist-output';rDiv.textContent=result;
+      var rDiv=document.createElement('div');rDiv.className='hist-output';
+      esqHistoryMark(rDiv,rSnip);
       card.appendChild(rDiv);
     }
 
