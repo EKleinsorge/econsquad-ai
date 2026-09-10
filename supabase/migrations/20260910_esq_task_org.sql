@@ -193,3 +193,33 @@ COMMENT ON COLUMN public.task_history.esq_org_id IS
   'The EconSquad organisation whose seat this work was done on. Stamped by esq_task_stamp_org_trg from the caller''s own oldest live seat - never from anything the client sends - and refused on update, because keeping it after the seat is revoked is the whole point.';
 
 COMMIT;
+
+
+-- ── ⚠️ THE REPORT, AS ROWS ──────────────────────────────────────────
+-- The backfill above also says what it did through RAISE NOTICE, and the
+-- Supabase SQL editor has NO MESSAGES PANE to put that in - it just prints
+-- "Success. No rows returned", which reads the same whether it stamped four
+-- hundred rows or zero. So the migration ends by SELECTING its own result.
+--
+-- Read this table. It is the only honest account of what just happened.
+SELECT 'now tied to an organisation'                  AS what,
+       count(*) FILTER (WHERE esq_org_id IS NOT NULL) AS rows,
+       'work the organisation keeps if the person leaves' AS meaning
+  FROM public.task_history
+UNION ALL
+SELECT 'still unattributed',
+       count(*) FILTER (WHERE esq_org_id IS NULL),
+       'individuals, plus seat work done before today - not recoverable'
+  FROM public.task_history
+UNION ALL
+SELECT 'people holding more than one seat',
+       (SELECT count(*) FROM (SELECT user_id FROM public.esq_org_members
+          WHERE revoked_at IS NULL GROUP BY user_id HAVING count(*) > 1) x),
+       'for these the oldest seat is used, and that is a guess'
+UNION ALL
+SELECT 'the stamp is installed',
+       (SELECT count(*) FROM pg_trigger
+         WHERE tgrelid = 'public.task_history'::regclass
+           AND tgname IN ('esq_task_stamp_org_trg','esq_task_keep_org_trg')
+           AND NOT tgisinternal),
+       'wanted: 2. Anything less and this migration did not take.';
