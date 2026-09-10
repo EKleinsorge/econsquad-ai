@@ -192,7 +192,7 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div class="sidebar-item" onclick="showAdminSection('specialists',this)">⚡ Specialists</div>
     <div class="sidebar-item" onclick="showAdminSection('requests',this)">✦ Custom Requests</div>
     <div class="sidebar-section">Users</div>
-    <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users</div>
+    <div class="sidebar-item" onclick="showAdminSection('users',this)">👤 All Users<span id="users-dot" style="display:none;margin-left:7px;background:rgba(255,255,255,0.08);color:#8a97b5;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
     <div class="sidebar-item" onclick="showAdminSection('quotes',this);loadQuotes()">💼 Team Quotes<span id="quotes-dot" style="display:none;margin-left:7px;background:#aaff3e;color:#0a1a00;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
     <div class="sidebar-item" onclick="showAdminSection('teams',this);loadTeams()">🏛️ Teams<span id="teams-dot" style="display:none;margin-left:7px;background:#f5c542;color:#2a1f00;font-size:10px;font-weight:800;padding:1px 7px;border-radius:9px;"></span></div>
     <div class="sidebar-section">Communication</div>
@@ -407,6 +407,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
       <div class="page-title">Teams</div>
       <div class="page-sub">Every organisation on a Team plan, and what is actually happening inside it &mdash; who holds a seat, who was invited and never turned up, and when the term ends. A team appears here when a won or paid quote is turned into one.</div>
 
+      <div id="teams-state" style="display:none;font-size:12.5px;margin:-6px 0 14px;"></div>
+
       <div class="chips" id="teams-filters" style="margin-bottom:18px;">
         <div class="chip active" onclick="teamFilter('',this)">All</div>
         <div class="chip"        onclick="teamFilter('active',this)">Active</div>
@@ -422,6 +424,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
     <div id="section-quotes" class="admin-section">
       <div class="page-title">Team Quotes</div>
       <div class="page-sub">Requests from the Team card on the pricing page. Until 9 September that button was a mailto: link, which did nothing at all on a browser with no mail app registered &mdash; so anything before that date was never captured. Nobody here has given a card or account number: the form asks only how they would <em>like</em> to pay.</div>
+
+      <div id="quotes-state" style="display:none;font-size:12.5px;margin:-6px 0 14px;"></div>
 
       <div class="chips" style="margin-bottom:18px;">
         <div class="chip active" id="qtab-all"       onclick="quotesTab('')">All</div>
@@ -3382,6 +3386,50 @@ function openQuote(id){
 }
 
 /* ═══════════════════════════════════════
+   COUNTS AND ALERTS ARE NOT THE SAME THING
+   ───────────────────────────────────────
+   Eric: "I am not seeing the alert badges on the Team Quotes." They were
+   correct - nothing was waiting - but a badge hidden at zero looks exactly
+   like a badge that is broken, and he had no way to tell which he had.
+
+   Then: "What about the number of teams count? Maybe users also..."
+
+   ⚠️ SO THE TWO KINDS ARE DELIBERATELY DIFFERENT COLOURS.
+
+     muted grey   how many exist. True whether or not you need to do anything.
+     amber        something wants you. Rare, and therefore worth looking at.
+
+   Put both in the same coloured pill and the pill stops meaning anything -
+   you learn to ignore it, and the one time it matters you walk past it.
+
+   ⚠️ AND A BADGE STILL HIDES AT ZERO, but the PAGE now always says where it
+   stands. Silence keeps its meaning, and the explanation is one click away
+   instead of in the database. */
+function esqSidebarCount(id, n, opts){
+  var el = document.getElementById(id);
+  if(!el) return;
+  opts = opts || {};
+  if(!n && !opts.showZero){ el.style.display = 'none'; el.textContent = ''; return; }
+  el.textContent = String(n);
+  el.style.display = 'inline-block';
+  if(opts.alert){
+    el.style.background = '#f5c542'; el.style.color = '#2a1f00';
+  } else {
+    /* Informational: present, readable, and clearly not shouting. */
+    el.style.background = 'rgba(255,255,255,0.08)'; el.style.color = '#8a97b5';
+  }
+  if(opts.title) el.title = opts.title;
+}
+
+function esqPageState(id, text, tone){
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = tone === 'alert' ? '#f5c542' : (tone === 'good' ? '#8a97b5' : '#6b7a96');
+  el.style.display = 'block';
+}
+
+/* ═══════════════════════════════════════
    HOW MANY QUOTES ARE STILL UNSENT
    ───────────────────────────────────────
    Eric asked for a count on the Team Quotes menu item.
@@ -3422,11 +3470,20 @@ function refreshQuotesBadge(){
         return;
       }
       var rows = res.data || [];
-      if(!rows.length){ dot.style.display = 'none'; dot.textContent = ''; return; }
+      if(!rows.length){
+        dot.style.display = 'none'; dot.textContent = '';
+        /* ⚠️ The badge hiding is correct, and indistinguishable from broken.
+           So the page says so out loud. */
+        esqPageState('quotes-state',
+          'Nothing waiting \u2014 every request here has had a quote sent, or is closed.', 'good');
+        return;
+      }
 
       var oldest = new Date(rows[0].created_at);
       var days   = (Date.now() - oldest.getTime()) / 86400000;
       var stale  = days >= 2;
+      var ago = days < 1 ? 'today'
+              : Math.floor(days) + ' day' + (Math.floor(days) === 1 ? '' : 's') + ' ago';
 
       dot.textContent = String(rows.length);
       dot.style.display = 'inline-block';
@@ -3434,8 +3491,12 @@ function refreshQuotesBadge(){
       dot.style.color      = stale ? '#2a1f00' : '#0a1a00';
       dot.title = rows.length + ' quote request' + (rows.length === 1 ? '' : 's') +
         ' with no quote sent yet. Oldest: ' +
-        (rows[0].organization || 'unnamed') + ', ' +
-        (days < 1 ? 'today' : Math.floor(days) + ' day' + (Math.floor(days) === 1 ? '' : 's') + ' ago') + '.';
+        (rows[0].organization || 'unnamed') + ', ' + ago + '.';
+
+      esqPageState('quotes-state',
+        rows.length + ' waiting for a quote. Oldest: ' +
+        (rows[0].organization || 'unnamed') + ', ' + ago + '.',
+        stale ? 'alert' : 'good');
     });
 }
 
@@ -3492,12 +3553,28 @@ function loadTeams(){
         return true;
       });
 
-      var dot = document.getElementById('teams-dot');
-      if(dot){
-        var soon = rows.filter(function(r){ return r.renewal_soon && r.status === 'active'; }).length;
-        dot.textContent = soon ? String(soon) : '';
-        dot.style.display = soon ? 'inline-block' : 'none';
-        dot.title = soon + ' team(s) renewing within 60 days';
+      var soon = rows.filter(function(r){ return r.renewal_soon && r.status === 'active'; }).length;
+      /* Amber says "one of these wants you". Grey just says how many there are.
+         Same slot, different meaning, and the tooltip carries both numbers. */
+      esqSidebarCount('teams-dot', soon || rows.length, {
+        alert: soon > 0,
+        showZero: false,
+        title: soon
+          ? soon + ' of ' + rows.length + ' team' + (rows.length === 1 ? '' : 's') +
+            ' renews within 60 days'
+          : rows.length + ' team' + (rows.length === 1 ? '' : 's') + ', none renewing yet'
+      });
+
+      if(!rows.length){
+        esqPageState('teams-state', 'No teams yet.', 'good');
+      } else {
+        var seats = rows.reduce(function(a, r){ return a + (r.seats_total || 0); }, 0);
+        var used  = rows.reduce(function(a, r){ return a + (r.seats_used  || 0); }, 0);
+        esqPageState('teams-state',
+          rows.length + ' team' + (rows.length === 1 ? '' : 's') + ' \u00b7 ' +
+          used + ' of ' + seats + ' seats in use' +
+          (soon ? ' \u00b7 ' + soon + ' renewing within 60 days' : ' \u00b7 nothing renewing yet'),
+          soon ? 'alert' : 'good');
       }
 
       if(!shown.length){
@@ -5199,6 +5276,10 @@ function loadUsers(){
     ['all','team','in_trial','no_card','beta','starter','pro','expired','cancelled','past_due','suspended'].forEach(function(k){
       var el=document.getElementById('usr-cnt-'+k);
       if(el) el.textContent=counts[k]||0;
+    });
+    esqSidebarCount('users-dot', profiles.length, {
+      title: profiles.length + ' account' + (profiles.length === 1 ? '' : 's') +
+             ', ' + (counts.team || 0) + ' on a team'
     });
     renderUsersTable(activeUserFilter);
   });
