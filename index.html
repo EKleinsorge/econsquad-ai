@@ -6558,10 +6558,20 @@ function callSpecialist(userMessage){
   var btn=document.getElementById('chat-send-btn');
   if(btn){btn.disabled=true;btn.style.opacity='0.5';}
 
-  /* Show ARIA compute animation only on the first message of a session */
-  var isFirstMsg = chatState.messages.length === 1;
-  var animDone   = !isFirstMsg;   /* skip wait if follow-up message */
-  var pendingData = null;         /* holds API response until anim finishes */
+  /* ⚠️ THE COMPUTE ANIMATION USED TO RUN HERE AND IT HAS BEEN REMOVED.
+     It looked like it was covering the wait. It WAS the wait.
+
+     window.ariaCompute.show() runs for a hard-coded 7000ms, and the reply
+     was gated behind it: applyReply could not run until animDone flipped, so
+     a specialist that answered in two seconds still made you watch five more
+     seconds of matrix rain. On the FIRST message of every mission, which is
+     the one you are most impatient for. It did not hide latency, it added it.
+
+     Now the typing dots go up immediately and the reply lands the moment it
+     arrives. animDone stays in the code because the watchdog and applyReply
+     both read it, and it is simply always true. */
+  var animDone   = true;
+  var pendingData = null;         /* only the watchdog path uses this now */
   var showedTyping = false;       /* did we actually put the dots up? */
   var watchdog = null;
 
@@ -6570,29 +6580,20 @@ function callSpecialist(userMessage){
     if(btn){btn.disabled=false;btn.style.opacity='1';}
   }
 
-  if(isFirstMsg && window.ariaCompute){
-    var specInfo = squad && squad.find(function(x){return x.id===chatState.specialistId;});
-    var cat = specInfo ? (specInfo.cat||'grants') : 'grants';
-    window.ariaCompute.show(cat, function(){
-      animDone = true;
-      if(pendingData !== null) applyReply(pendingData);
-    });
-  } else {
-    /* No compute animation to wait on. window.ariaCompute lives in app.js,
-       which loads asynchronously from the CDN, so on a first message it may
-       not exist yet. animDone previously stayed false forever here: the reply
-       landed in pendingData, applyReply never ran, and since applyReply is the
-       only thing that re-enables the send button, the chat locked up until the
-       page was reloaded. */
-    animDone = true;
-    showTyping();
-    showedTyping = true;
-  }
+  /* One path now, for the first message and every message after it. This
+     also retires a whole class of bug: the old branch depended on app.js
+     having finished loading from the network, and when it had not,
+     window.ariaCompute was undefined, animDone never flipped, applyReply
+     never ran, and since applyReply is the only thing that re-enables the
+     send button, the chat locked up until the page was reloaded. */
+  showTyping();
+  showedTyping = true;
 
   function applyReply(data){
     if(watchdog){ clearTimeout(watchdog); watchdog = null; }
-    /* was: if(!isFirstMsg) hideTyping() — which missed the first-message
-       case above, leaving the dots on screen under the reply. */
+    /* Was once conditional on it not being the first message, which left
+       the dots on screen under the first reply. The dots always go up now,
+       so they always come down. */
     if(showedTyping) hideTyping();
     unlockInput();
     if(data.error){ addChatMessage('specialist','Error: ' + data.error); return; }
@@ -6605,8 +6606,8 @@ function callSpecialist(userMessage){
     }
   }
 
-  /* Never strand a reply or leave the input locked. The compute animation is
-     about 7s; this only fires if something upstream failed to report back. */
+  /* Never strand a reply or leave the input locked. Nothing gates the reply
+     any more, so this only fires if the request itself never comes back. */
   watchdog = setTimeout(function(){
     if(!chatState.isTyping) return;
     animDone = true;
