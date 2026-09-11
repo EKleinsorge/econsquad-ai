@@ -8014,7 +8014,7 @@ function esqLoadBriefingLog(){
   var host = document.getElementById('esq-brief-log');
   if (!host) return;
   supa.from('briefing_runs')
-      .select('id,ran_at,ran_by_email,emails_failed,charge_risk,new_signups,new_activated,open_reports,could_not_check')
+      .select('id,ran_at,ran_by_email,emails_sent,emails_failed,charge_risk,new_signups,new_activated,open_reports,lapsed_trials,could_not_check,findings')
       .order('ran_at', { ascending: false }).limit(10)
       .then(function(res){
     if (res.error) {
@@ -8027,6 +8027,12 @@ function esqLoadBriefingLog(){
       host.innerHTML = '<div style="font-size:12px;color:#6b7a96;">No briefing has been recorded yet.</div>';
       return;
     }
+    /* Same window-scoped cache as the sent-mail viewer, and for the same
+       reason: the modal's code runs from a script block further down the
+       page, and a bare `var x = {}` there would wipe whatever this had
+       already put in it. */
+    window.ESQ_BRIEF_LOG = {};
+    rows.forEach(function(r){ window.ESQ_BRIEF_LOG[r.id] = r; });
     host.innerHTML = rows.map(function(r){
       var when = new Date(r.ran_at).toLocaleString(undefined,
         { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
@@ -8041,16 +8047,136 @@ function esqLoadBriefingLog(){
         ? '<div style="color:#f5c542;font-size:11.5px;margin-top:2px;">incomplete &mdash; '
           + esqEsc(r.could_not_check.join('; ')) + '</div>'
         : '';
+      /* Clickable only when there is detail behind it. findings is empty on
+         a quiet day, and a row that opens an empty panel teaches people to
+         stop clicking. */
+      var hasDetail = (r.findings && Object.keys(r.findings).length > 0)
+                   || (r.could_not_check && r.could_not_check.length > 0);
+      var openable = hasDetail
+        ? ' cursor:pointer;" title="Click to see what it found" onclick="esqOpenBriefing(\''
+          + r.id + '\')'
+        : '"';
       return '<div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);'
-           + 'font-size:12.5px;flex-wrap:wrap;">'
+           + 'font-size:12.5px;flex-wrap:wrap;' + openable + '>'
            + '<span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:#6b7a96;min-width:150px;">'
            + when + '</span>'
            + '<span style="flex:1;min-width:220px;color:#8a97b5;">' + bits.join(' &middot; ') + warn + '</span>'
-           + '<span style="color:#4a5568;font-size:11.5px;">' + esqEsc(r.ran_by_email || '') + '</span>'
+           + '<span style="color:#4a5568;font-size:11.5px;">' + esqEsc(r.ran_by_email || '')
+           + (hasDetail ? ' <span style="color:#aaff3e;">&rsaquo;</span>' : '') + '</span>'
            + '</div>';
     }).join('');
   });
 }
+</script>
+
+<!-- ===== What one briefing found ================================= -->
+<div class="modal-overlay" id="esq-brief-modal" onclick="if(event.target===this)esqCloseBriefing()">
+  <div style="background:#121826;border:1px solid #24304a;border-radius:14px;max-width:680px;width:92%;max-height:86vh;overflow:auto;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;">
+      <div>
+        <div id="esq-brief-modal-title" style="font-family:'Barlow',sans-serif;font-size:17px;font-weight:900;color:#eef3fc;line-height:1.3;"></div>
+        <div id="esq-brief-modal-meta" style="color:#6b7a96;font-size:12px;margin-top:6px;"></div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="esqCloseBriefing()">Close</button>
+    </div>
+    <div id="esq-brief-modal-body" style="margin-top:16px;"></div>
+  </div>
+</div>
+<script>
+/* WHAT A PAST BRIEFING FOUND.
+   The question this answers is always retrospective: a charge is disputed
+   in October and you need to know whether it was flagged before it
+   happened, and on which morning. The counts in the list cannot answer
+   that - only the names can. */
+window.ESQ_BRIEF_LOG = window.ESQ_BRIEF_LOG || {};
+
+function esqBriefBlock(title, colour, lines){
+  if (!lines || !lines.length) return '';
+  return '<div style="margin-bottom:14px;">'
+       + '<div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;'
+       + 'color:' + colour + ';margin-bottom:5px;">' + title + '</div>'
+       + '<div style="font-size:13px;color:#c8d3e8;line-height:1.7;">' + lines.join('<br>') + '</div>'
+       + '</div>';
+}
+
+function esqOpenBriefing(id){
+  var r = window.ESQ_BRIEF_LOG[id];
+  var m = document.getElementById('esq-brief-modal');
+  if (!r || !m) return;
+  var f = r.findings || {};
+
+  document.getElementById('esq-brief-modal-title').textContent = 'Briefing #' + r.id;
+  document.getElementById('esq-brief-modal-meta').textContent =
+    new Date(r.ran_at).toLocaleString(undefined,
+      { weekday:'long', day:'numeric', month:'long', year:'numeric', hour:'numeric', minute:'2-digit' })
+    + (r.ran_by_email ? '  |  run by ' + r.ran_by_email : '');
+
+  var html = '';
+
+  /* The incomplete warning goes FIRST. Everything below it is only as
+     trustworthy as the reads that succeeded, and somebody reading this
+     months later has no other way to know a query failed that morning. */
+  if (r.could_not_check && r.could_not_check.length) {
+    html += '<div style="background:rgba(245,197,66,0.08);border:1px solid rgba(245,197,66,0.35);'
+         +  'border-radius:8px;padding:12px 14px;margin-bottom:16px;">'
+         +  '<div style="color:#f5c542;font-weight:800;font-size:13px;">This briefing was incomplete</div>'
+         +  '<div style="color:#8a97b5;font-size:12.5px;margin-top:4px;line-height:1.6;">'
+         +  'These reads failed, so the counts below are not an all-clear:<br>'
+         +  esqEsc(r.could_not_check.join('<br>')).replace(/&lt;br&gt;/g, '<br>')
+         +  '</div></div>';
+  }
+
+  html += esqBriefBlock('Emails that failed', '#ff8080',
+    (f.failed || []).map(function(x){
+      return esqEsc(x.to) + ' &mdash; ' + esqEsc(x.touchpoint)
+           + (x.detail ? ' &mdash; ' + esqEsc(x.detail) : '');
+    }));
+
+  html += esqBriefBlock('About to be charged, had run nothing', '#ff8080',
+    (f.charge_risk || []).map(function(x){
+      return esqEsc(x.email) + ' &mdash; trial ended '
+           + (x.trial_end ? new Date(x.trial_end).toLocaleDateString(undefined,
+               { day:'numeric', month:'short' }) : 'unknown');
+    }));
+
+  html += esqBriefBlock('New signups that morning', '#8a97b5',
+    (f.new_signups || []).map(function(x){
+      return esqEsc(x.email) + ' &mdash; ' + x.missions + ' mission(s) at the time';
+    }));
+
+  html += esqBriefBlock('Trials past their end date', '#f5c542',
+    (f.lapsed || []).map(function(x){ return esqEsc(x); }));
+
+  /* The counts, including the quiet ones, so the row is a complete record
+     of that morning rather than only its bad news. */
+  var counts = [];
+  var say = function(label, v){
+    counts.push('<span style="color:#6b7a96;">' + label + '</span> '
+      + (v === null || v === undefined
+          ? '<span style="color:#f5c542;">not checked</span>'
+          : '<b style="color:#eef3fc;">' + v + '</b>'));
+  };
+  say('emails sent', r.emails_sent);
+  say('failed', r.emails_failed);
+  say('at charge risk', r.charge_risk);
+  say('new signups', r.new_signups);
+  say('of those, active', r.new_activated);
+  say('open reports', r.open_reports);
+  say('lapsed trials', r.lapsed_trials);
+  html += '<div style="border-top:1px solid #24304a;padding-top:12px;margin-top:4px;'
+       +  'font-size:12.5px;line-height:2;">' + counts.join(' &middot; ') + '</div>';
+
+  document.getElementById('esq-brief-modal-body').innerHTML = html;
+  m.classList.add('show');
+}
+
+function esqCloseBriefing(){
+  var m = document.getElementById('esq-brief-modal');
+  if (m) m.classList.remove('show');
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') esqCloseBriefing();
+});
 </script>
 </body>
 </html>
