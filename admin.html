@@ -8037,12 +8037,23 @@ function esqLoadBriefingLog(){
       var when = new Date(r.ran_at).toLocaleString(undefined,
         { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
       var bits = [];
+      /* !! EVERY FINDING THE BRIEFING CAN PRODUCE HAS TO APPEAR HERE.
+         lapsed_trials was missing from this list, so a run whose only
+         finding was "3 trials ended but still show as TRIAL" summarised
+         itself as "nothing flagged" - an all-clear for a check that had
+         actually found something, with the names sitting in the very same
+         row. If a category is ever added to the briefing, add it here in
+         the same commit. */
       if (r.emails_failed)  bits.push('<span style="color:#ff8080;">' + r.emails_failed + ' failed email(s)</span>');
       if (r.charge_risk)    bits.push('<span style="color:#ff8080;">' + r.charge_risk + ' at charge risk</span>');
       if (r.open_reports)   bits.push('<span style="color:#ff8080;">' + r.open_reports + ' report(s)</span>');
+      if (r.lapsed_trials)  bits.push('<span style="color:#f5c542;">' + r.lapsed_trials + ' lapsed trial(s)</span>');
       if (r.new_signups)    bits.push(r.new_signups + ' new signup(s)'
                               + (r.new_activated != null ? ', ' + r.new_activated + ' active' : ''));
-      if (!bits.length)     bits.push('<span style="color:#4ade80;">nothing flagged</span>');
+      /* Muted, not the same green as a live status elsewhere on this page.
+         An all-clear is a state, and next to rows that open it was being
+         read as something to click. */
+      if (!bits.length)     bits.push('<span style="color:#6b7a96;">&#10003; nothing flagged</span>');
       var warn = (r.could_not_check && r.could_not_check.length)
         ? '<div style="color:#f5c542;font-size:11.5px;margin-top:2px;">incomplete &mdash; '
           + esqEsc(r.could_not_check.join('; ')) + '</div>'
@@ -8062,7 +8073,9 @@ function esqLoadBriefingLog(){
            + when + '</span>'
            + '<span style="flex:1;min-width:220px;color:#8a97b5;">' + bits.join(' &middot; ') + warn + '</span>'
            + '<span style="color:#4a5568;font-size:11.5px;">' + esqEsc(r.ran_by_email || '')
-           + (hasDetail ? ' <span style="color:#aaff3e;">&rsaquo;</span>' : '') + '</span>'
+           + (hasDetail
+               ? ' <span style="color:#aaff3e;text-decoration:underline;">open &rsaquo;</span>'
+               : '') + '</span>'
            + '</div>';
     }).join('');
   });
