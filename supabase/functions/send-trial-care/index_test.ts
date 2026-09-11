@@ -12,7 +12,8 @@ const realServe = (Deno as any).serve;
 const M = await import('./index.ts');
 (Deno as any).serve = realServe;
 
-const { isInternal, crossedAt, matches, dueFor, supersededMilestones } = M as any;
+const { isInternal, crossedAt, matches, dueFor, supersededMilestones,
+        supersededTouchpoints } = M as any;
 
 const NOW = '2026-09-07T14:00:00.000Z';
 const daysAgo = (n: number, h = 12) => {
@@ -157,6 +158,93 @@ ok('the same touchpoint finished DOES send',
    dueFor([{ ...WINBACK_NEWS, body: 'Hello,\n\nGmail now stays connected.\n\nEric' }], churned, NONE, NOW).length === 1);
 ok('a draft is never recorded as superseded',
    supersededMilestones([{ ...FIRST_WIN, body: NEWS_BODY }, MOMENTUM], fast, NONE, NOW).indexOf('first_win') === -1);
+
+/* ─────────────────────────────────────────────────────────────────────
+   THE WEEKEND HOLE
+   The job runs weekdays only, and every dated touchpoint used to compare
+   for equality, so a message due on a Saturday was never sent at all -
+   the once-ever index meant it could not come back. Measured 11 Sep 2026:
+   nine trials ending Tue 15 Sep lost their 3-day warning, one ending Mon
+   14 Sep lost its last call.
+
+   These tests fix both halves of the repair in place: that a late message
+   is still caught, and that catch-up is BOUNDED so it never becomes the
+   cold start in a new costume.
+   ───────────────────────────────────────────────────────────────────── */
+console.log('\nTHE WEEKEND HOLE — a late message is still sent');
+
+const WELCOME  = tp({ key: 'welcome', when_kind: 'days_after_signup', when_value: 1, sort_order: 10 });
+const ENDING   = tp({ key: 'trial_ending', when_kind: 'days_before_trial_end', when_value: 3, sort_order: 50, sender: 'eric' });
+const LASTCALL = tp({ key: 'last_call',    when_kind: 'days_before_trial_end', when_value: 1, sort_order: 55, sender: 'eric' });
+const ENDED    = tp({ key: 'trial_ended',  when_kind: 'days_before_trial_end', when_value: -2, sort_order: 60, sender: 'eric' });
+const WB_ASK   = tp({ key: 'winback_ask',  when_kind: 'days_after_cancel', when_value: 1, audience: 'cancelled', sort_order: 70, sender: 'eric' });
+
+const atEnd = (n: number) => person({ daysToTrialEnd: n });
+
+ok('3-day warning on the day it is due',        matches(ENDING, atEnd(3), NOW) === true);
+ok('...still sent one day late (Sunday run)',   matches(ENDING, atEnd(2), NOW) === true);
+ok('...still sent two days late (Mon after a Sat)', matches(ENDING, atEnd(1), NOW) === true);
+ok('...still sent three days late, the limit',  matches(ENDING, atEnd(0), NOW) === true);
+ok('...NOT four days late - the window is shut', matches(ENDING, atEnd(-1), NOW) === false);
+
+/* The counters run in opposite directions and getting it backwards would
+   send the last call days EARLY, which is worse than sending it late. */
+ok('never sent EARLY - one day before it is due', matches(ENDING, atEnd(4), NOW) === false);
+ok('never sent early - a week before',            matches(ENDING, atEnd(10), NOW) === false);
+ok('last call is not sent three days out',        matches(LASTCALL, atEnd(3), NOW) === false);
+ok('last call on the day',                        matches(LASTCALL, atEnd(1), NOW) === true);
+ok('last call caught up after the weekend',       matches(LASTCALL, atEnd(-1), NOW) === true);
+ok('trial_ended fires 2 days after, as a negative', matches(ENDED, atEnd(-2), NOW) === true);
+ok('...and not before the trial has ended',       matches(ENDED, atEnd(0), NOW) === false);
+ok('nobody without a trial_end is ever dated',    matches(ENDING, person({ daysToTrialEnd: null }), NOW) === false);
+
+console.log('\nCATCH-UP IS BOUNDED — the back catalogue stays where it is');
+ok('welcome on day 1',                          matches(WELCOME, person({ daysSinceSignup: 1 }), NOW) === true);
+ok('welcome caught up on day 4',                matches(WELCOME, person({ daysSinceSignup: 4 }), NOW) === true);
+ok('NOT on day 5',                              matches(WELCOME, person({ daysSinceSignup: 5 }), NOW) === false);
+ok('NOT on day 60 - this is the cold start',    matches(WELCOME, person({ daysSinceSignup: 60 }), NOW) === false);
+ok('not on day 0 either',                       matches(WELCOME, person({ daysSinceSignup: 0 }), NOW) === false);
+ok('stalled_day7 is caught up at day 10',       matches(STALLED, person({ missions: 0, daysSinceSignup: 10 }), NOW) === true);
+ok('...but not at day 11',                      matches(STALLED, person({ missions: 0, daysSinceSignup: 11 }), NOW) === false);
+
+const churned2 = (n: number) => person({ audience: 'cancelled', daysSinceCancel: n,
+                                         subscription_status: 'canceled', canceled_at: daysAgo(n) });
+ok('win-back ask caught up two days late',      matches(WB_ASK, churned2(3), NOW) === true);
+ok('...not five days late',                     matches(WB_ASK, churned2(5), NOW) === false);
+
+console.log('\nWHEN TWO TRIAL-END MESSAGES COLLIDE, THE URGENT ONE WINS');
+/* Their 3-day warning was lost to a Saturday. It is Monday, the trial ends
+   tomorrow, and both now match. Sending "your trial ends in three days"
+   today and the last call tomorrow - the day it ends - is the wrong way
+   round, and sort_order alone would do exactly that. */
+const monday = atEnd(1);
+const ROSTER2 = [ENDING, LASTCALL, ENDED];
+ok('both match on their own',
+   matches(ENDING, monday, NOW) && matches(LASTCALL, monday, NOW));
+ok('only one is planned',                       dueFor(ROSTER2, monday, NONE, NOW).length === 1);
+ok('...and it is the last call, not the stale warning',
+   (dueFor(ROSTER2, monday, NONE, NOW)[0] ?? {}).key === 'last_call');
+ok('the overtaken warning is recorded, so it cannot arrive tomorrow',
+   supersededTouchpoints(ROSTER2, monday, NONE, NOW).indexOf('trial_ending') !== -1);
+ok('...and the one being sent is NOT recorded as superseded',
+   supersededTouchpoints(ROSTER2, monday, NONE, NOW).indexOf('last_call') === -1);
+
+const lapsed = atEnd(-2);
+ok('once the trial has ended, trial_ended beats a late last call',
+   (dueFor(ROSTER2, lapsed, NONE, NOW)[0] ?? {}).key === 'trial_ended');
+ok('...and the late last call is retired, not queued',
+   supersededTouchpoints(ROSTER2, lapsed, NONE, NOW).indexOf('last_call') !== -1);
+
+ok('one trial-end message alone is untouched',
+   dueFor([ENDING], atEnd(3), NONE, NOW).length === 1 &&
+   supersededTouchpoints([ENDING], atEnd(3), NONE, NOW).length === 0);
+ok('a milestone is not collapsed by the trial-end rule',
+   dueFor([ENDING, FIRST_WIN], person({ daysToTrialEnd: 3, missions: 1, missionDates: [daysAgo(1)] }), NONE, NOW).length === 2);
+/* Indexing [0] of an empty array throws, and a test that throws takes the
+   whole suite down instead of reporting one red line - which is how the
+   reverted-window check first looked like a crash rather than a failure. */
+ok('an already-sent trial-end message is never resent',
+   (dueFor(ROSTER2, monday, new Set(['last_call']), NOW)[0] ?? {}).key === 'trial_ending');
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed\n');
 if (fail) Deno.exit(1);

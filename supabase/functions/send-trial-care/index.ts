@@ -65,6 +65,38 @@ export function isInternal(email: string): boolean {
    run on a weekdays-only schedule. */
 const MILESTONE_WINDOW_DAYS = 4;
 
+/* AND A DATE IS NOT A SINGLE MORNING EITHER.
+   ----------------------------------------------------------------------
+   !! THE WEEKEND HOLE. Every dated touchpoint used to compare for EQUALITY
+   - "is today exactly 3 days before their trial ends" - and this job runs
+   on WEEKDAYS ONLY. So when the day a message was due fell on a Saturday or
+   a Sunday there was no run, the next run was a day late, the equality no
+   longer held, and the touchpoint was skipped FOREVER: the once-ever unique
+   index means a missed message cannot come back.
+
+   Ten of the twelve touchpoints are dated. That quietly removed about two
+   days in seven from all of them, and the shape was not random:
+
+       trial ends Monday    -> last_call     was due Sunday   - lost
+       trial ends Tuesday   -> trial_ending  was due Saturday - lost
+       trial ends Wednesday -> trial_ending  was due Sunday   - lost
+
+   Measured on 11 September 2026: nine trials ending Tue 15 Sep lost their
+   3-day warning, and one ending Mon 14 Sep lost its last call. Every person
+   expiring that week lost one of their two conversion asks.
+
+   !! WHY THIS IS A WINDOW AND NOT `>=`. Relaxing equality to "on or after"
+   is the obvious repair and it re-creates the cold start documented above:
+   on the first run after deploy, every past-due touchpoint for the entire
+   back catalogue becomes eligible at once. Bounded catch-up is the only
+   shape that fixes the weekend without resurrecting the archive.
+
+   Three days: enough for a Saturday due date to be caught on Monday, with
+   one day of slack for a failed or skipped run, and short enough that the
+   message still arrives while it is true. A "your trial ends in 3 days"
+   that shows up five days late is worse than silence. */
+const CATCHUP_WINDOW_DAYS = 3;
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -178,16 +210,30 @@ export function matches(t: Touchpoint, p: Person, nowIso = new Date().toISOStrin
   if (t.min_missions != null && p.missions < t.min_missions) return false;
   if (t.max_missions != null && p.missions > t.max_missions) return false;
 
-  if (t.when_kind === 'days_after_signup') return p.daysSinceSignup === t.when_value;
+  /* Due on the day, and for CATCHUP_WINDOW_DAYS afterwards, so a due date
+     that landed on a weekend is picked up by the next run instead of being
+     lost. See the note on CATCHUP_WINDOW_DAYS for why this is bounded.
+
+     !! THE TWO COUNTERS RUN IN OPPOSITE DIRECTIONS. daysSinceSignup and
+     daysSinceCancel count UP, so late is larger. daysToTrialEnd counts
+     DOWN - 3, 2, 1, 0, -1 - so late is SMALLER, and the same comparison
+     written the same way would mean "up to three days EARLY", which would
+     send the last call four days before the trial ended. */
+  if (t.when_kind === 'days_after_signup') {
+    return p.daysSinceSignup >= t.when_value &&
+           p.daysSinceSignup <= t.when_value + CATCHUP_WINDOW_DAYS;
+  }
 
   if (t.when_kind === 'days_before_trial_end') {
     if (p.daysToTrialEnd === null) return false;
-    return p.daysToTrialEnd === t.when_value;
+    return p.daysToTrialEnd <= t.when_value &&
+           p.daysToTrialEnd >= t.when_value - CATCHUP_WINDOW_DAYS;
   }
 
   if (t.when_kind === 'days_after_cancel') {
     if (p.daysSinceCancel === null) return false;
-    return p.daysSinceCancel === t.when_value;
+    return p.daysSinceCancel >= t.when_value &&
+           p.daysSinceCancel <= t.when_value + CATCHUP_WINDOW_DAYS;
   }
 
   // A milestone fires the first run AFTER they get there - but only if getting
@@ -243,25 +289,56 @@ export function dueFor(
      That reads as software that has not been paying attention. Keep the
      highest milestone reached; the ones it overtakes are recorded as done
      without being sent, so they cannot surface later. */
-  const milestones = due.filter((t) => t.when_kind === 'missions_reached');
-  if (milestones.length < 2) return due;
+  let out = due;
+
+  /* !! CATCH-UP MAKES TWO TRIAL-END MESSAGES COLLIDE, AND THE WRONG ONE WINS
+     ON sort_order ALONE. Somebody whose 3-day warning was lost to a Saturday
+     reaches Monday with one day left: trial_ending is two days late and
+     last_call is due today, and both now match. sort_order would send the
+     warning that their trial ends in three days to a person whose trial ends
+     tomorrow, and hold the last call for the following day - by which point
+     the trial has ended.
+
+     Keep the most urgent instead. For days_before_trial_end the SMALLEST
+     when_value is the most urgent, and negatives are after the end, so
+     trial_ended (-2) correctly beats last_call (1) for somebody already
+     lapsed. The ones it overtakes are recorded as superseded, never sent -
+     otherwise the stale warning simply arrives tomorrow instead. */
+  const dated = out.filter((t) => t.when_kind === 'days_before_trial_end');
+  if (dated.length > 1) {
+    const soonest = dated.reduce((a, b) => (b.when_value < a.when_value ? b : a));
+    out = out.filter((t) => t.when_kind !== 'days_before_trial_end' || t.key === soonest.key);
+  }
+
+  const milestones = out.filter((t) => t.when_kind === 'missions_reached');
+  if (milestones.length < 2) return out;
   const best = milestones.reduce((a, b) => (b.when_value > a.when_value ? b : a));
-  return due.filter((t) => t.when_kind !== 'missions_reached' || t.key === best.key);
+  return out.filter((t) => t.when_kind !== 'missions_reached' || t.key === best.key);
 }
 
-/** The milestones dueFor dropped: passed, never sent, never to be sent. */
-export function supersededMilestones(
+/** Everything dueFor dropped as overtaken: matched today, never to be sent.
+ *
+ *  Both collapses feed this - the milestone one and, since catch-up, the
+ *  trial-end one. A dropped touchpoint MUST be recorded here, or it is not
+ *  dropped at all: it simply matches again tomorrow and arrives in the wrong
+ *  order. Recording it lets the once-ever unique index retire it. */
+const COLLAPSING_KINDS = ['missions_reached', 'days_before_trial_end'];
+export function supersededTouchpoints(
   touchpoints: Touchpoint[], p: Person, alreadySent: Set<string>,
   nowIso = new Date().toISOString(),
 ): string[] {
   const kept = new Set(dueFor(touchpoints, p, alreadySent, nowIso).map((t) => t.key));
   return touchpoints
-    .filter((t) => t.is_enabled && !isDraft(t) && t.when_kind === 'missions_reached')
+    .filter((t) => t.is_enabled && !isDraft(t) && COLLAPSING_KINDS.includes(t.when_kind))
     .filter((t) => !alreadySent.has(t.key))
     .filter((t) => matches(t, p, nowIso))
     .filter((t) => !kept.has(t.key))
     .map((t) => t.key);
 }
+
+/** @deprecated The old name, kept so existing tests and callers still resolve.
+ *  It never only meant milestones after catch-up shipped. */
+export const supersededMilestones = supersededTouchpoints;
 
 export function fillTemplate(text: string, p: Person): string {
   const first = (p.full_name ?? '').trim().split(/\s+/)[0] || 'there';
@@ -523,7 +600,7 @@ Deno.serve(async (req: Request) => {
         plan.push({
           p, t: due[0],
           alsoDue: due.slice(1).map((x) => x.key),
-          superseded: supersededMilestones(touchpoints, p, seen, nowIso),
+          superseded: supersededTouchpoints(touchpoints, p, seen, nowIso),
         });
       }
     }
@@ -556,26 +633,68 @@ Deno.serve(async (req: Request) => {
     const detail: unknown[] = [];
 
     for (const { p, t, superseded } of plan) {
-      /* Close off the milestones this person sailed past before we ever wrote
-         to them. Recorded, not sent - the unique index then guarantees they
-         can never surface as a stale "nice, your first one" later. */
+      /* Close off what this person sailed past before we ever wrote to them -
+         milestones reached long ago, and trial-end warnings overtaken by a
+         more urgent one. Recorded, not sent, so the unique index guarantees
+         they can never surface later as a stale "nice, your first one" or a
+         "three days left" the day after the trial ended. */
       if (superseded.length) {
         const { error: supErr } = await admin.from('trial_sends').upsert(
           superseded.map((k) => ({
             user_id: p.id, email: p.email, touchpoint_key: k,
             missions_at_send: p.missions, status: 'superseded',
-            detail: 'Passed before we had written to them; ' + t.key + ' sent instead.',
+            detail: 'Overtaken before we had written to them; ' + t.key + ' sent instead.',
           })),
           { onConflict: 'user_id,touchpoint_key', ignoreDuplicates: true },
         );
         if (supErr) console.error('trial-care: superseded write failed', p.email, supErr.message);
       }
 
+      /* Render BEFORE claiming, so the exact words can be stored with the
+         claim. Both calls are pure - no network, no writes - so doing them
+         early cannot send anything twice.
+
+         !! WHY STORE THE RENDERED TEXT AT ALL. The template in
+         trial_touchpoints is not what the person received: {{name}},
+         {{missions}}, {{days_left}} and the [[card]] branches all resolve
+         per person at send time, and the template is edited afterwards.
+         Reading the template later to find out what somebody was sent gives
+         a plausible answer that can be wrong in the details that matter -
+         "you have run 5 missions" to somebody who had run one. Keep the
+         actual text. It is a few hundred bytes per send. */
+      const subject = fillTemplate(t.subject, p);
+      const text    = fillTemplate(t.body, p);
+      const unsub   = `${SUPABASE_URL}/functions/v1/unsubscribe?t=${p.greetings_token ?? ''}&k=lifecycle`;
+
       // Claim first — the unique index is what makes a repeated run harmless.
-      const { error: claimErr } = await admin.from('trial_sends').insert({
+      const claimRow: Record<string, unknown> = {
         user_id: p.id, email: p.email, touchpoint_key: t.key,
         missions_at_send: p.missions, status: 'sent',
-      });
+        subject_sent: subject, body_sent: text,
+      };
+      let { error: claimErr } = await admin.from('trial_sends').insert(claimRow);
+
+      /* !! A MISSING COLUMN MUST NOT STOP THE MAIL.
+         PostgREST rejects the WHOLE row with PGRST204 when any key is not a
+         real column. Writing to a column the migration has not added yet is
+         exactly how every mission save in task_history was silently rejected
+         for weeks. Here it would be louder and worse: the claim is what
+         gates the send, so a forgotten migration would stop trial care
+         completely while the run still reported 200.
+
+         So: try with the text, and if the columns are not there yet, say so
+         and send anyway without recording it. Degraded, not dead. */
+      const claimCode = (claimErr as any)?.code;
+      if (claimErr && (claimCode === 'PGRST204' || claimCode === '42703')) {
+        console.error(
+          'trial-care: trial_sends is missing subject_sent/body_sent - apply ' +
+          '20260911_trial_sends_body.sql. Sending anyway, without keeping a copy.',
+        );
+        delete claimRow.subject_sent;
+        delete claimRow.body_sent;
+        ({ error: claimErr } = await admin.from('trial_sends').insert(claimRow));
+      }
+
       if (claimErr) {
         if ((claimErr as any).code !== '23505') {
           console.error('trial-care: claim failed', p.email, claimErr.message);
@@ -583,10 +702,6 @@ Deno.serve(async (req: Request) => {
         skipped++;
         continue;
       }
-
-      const subject = fillTemplate(t.subject, p);
-      const text    = fillTemplate(t.body, p);
-      const unsub   = `${SUPABASE_URL}/functions/v1/unsubscribe?t=${p.greetings_token ?? ''}&k=lifecycle`;
 
       const out = await sendEmail(p.email, subject, renderHtml(text, unsub), t.sender);
       if (out.ok) sent++;

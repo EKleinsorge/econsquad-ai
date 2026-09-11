@@ -2676,16 +2676,28 @@ function loadTrialLog(){
       tbody.innerHTML='<tr><td colspan="4" style="color:#6b7a96;padding:24px;">Nothing sent yet. The job runs each morning and only writes here when somebody is genuinely due one.</td></tr>';
       return;
     }
+    /* Keep the rows so a click can show one without going back to the
+       database. Keyed by id, because two people can be sent the same
+       touchpoint and email is not unique here. */
+    window.ESQ_SENT_LOG={};
+    rows.forEach(function(r){ window.ESQ_SENT_LOG[r.id]=r; });
     tbody.innerHTML=rows.map(function(r){
-      return '<tr>'+
+      /* 'superseded' is neither sent nor failed: it was recorded on purpose
+         so a stale milestone or an overtaken trial-end warning can never
+         surface later. It used to be drawn in red as "failed", which
+         invents an incident that never happened. */
+      var st = r.status==='sent'
+            ? '<span style="color:#4ade80;">sent</span>'
+            : r.status==='superseded'
+            ? '<span style="color:#8a97b5;">not sent</span><div style="color:#6b7a96;font-size:11px;">overtaken - recorded so it cannot arrive late</div>'
+            : '<span style="color:#ff8080;">failed</span><div style="color:#6b7a96;font-size:11px;">'+esqEsc(r.detail||'')+'</div>';
+      return '<tr style="cursor:pointer;" title="Click to read the email that was sent" onclick="esqOpenSentMail(\''+esqEsc(String(r.id))+'\')">'+
         '<td style="white-space:nowrap;color:#8a97b5;font-size:12px;">'+
           new Date(r.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
         '<td style="font-size:13px;color:#eef3fc;">'+esqEsc(r.touchpoint_key)+
           '<span style="color:#4a5568;"> ('+(r.missions_at_send==null?'?':r.missions_at_send)+')</span></td>'+
         '<td style="font-size:13px;color:#8a97b5;">'+esqEsc(r.email)+'</td>'+
-        '<td style="font-size:12px;">'+(r.status==='sent'
-            ?'<span style="color:#4ade80;">sent</span>'
-            :'<span style="color:#ff8080;">failed</span><div style="color:#6b7a96;font-size:11px;">'+esqEsc(r.detail||'')+'</div>')+'</td>'+
+        '<td style="font-size:12px;">'+st+'</td>'+
       '</tr>';
     }).join('');
   });
@@ -7434,6 +7446,82 @@ function openAffDetail(affId){
     });
 }
 
+</script>
+
+<!-- ===== What was actually sent =================================== -->
+<div class="modal-overlay" id="esq-sentmail-modal" onclick="if(event.target===this)esqCloseSentMail()">
+  <div style="background:#121826;border:1px solid #24304a;border-radius:14px;max-width:720px;width:92%;max-height:86vh;overflow:auto;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;">
+      <div>
+        <div id="esq-sentmail-subject" style="font-family:'Barlow',sans-serif;font-size:17px;font-weight:900;color:#eef3fc;line-height:1.3;"></div>
+        <div id="esq-sentmail-meta" style="color:#6b7a96;font-size:12px;margin-top:6px;"></div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="esqCloseSentMail()">Close</button>
+    </div>
+    <div id="esq-sentmail-note" style="margin-top:14px;"></div>
+    <pre id="esq-sentmail-body" style="margin-top:14px;white-space:pre-wrap;word-wrap:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;color:#c8d3e8;background:#0c111c;border:1px solid #1e2739;border-radius:10px;padding:16px;"></pre>
+  </div>
+</div>
+<script>
+/* THE EMAIL THAT WAS SENT, NOT THE TEMPLATE THAT MIGHT HAVE BEEN.
+   trial_sends.body_sent holds the rendered text: merge fields resolved for
+   that person, on that day, with the card branch they actually matched.
+   Reading trial_touchpoints.body instead would show today's template, which
+   may have been edited since and never contained their name or their
+   mission count. Where body_sent is empty we say so plainly rather than
+   showing the template and letting it pass for the real thing. */
+/* !! window, and never a bare `var ... = {}` here. This block is at the end
+   of <body> and loadTrialLog is defined further up. If the log has already
+   rendered by the time this runs, a fresh assignment would throw the cached
+   rows away and every row would open an empty window. */
+window.ESQ_SENT_LOG = window.ESQ_SENT_LOG || {};
+function esqOpenSentMail(id){
+  var r = window.ESQ_SENT_LOG[id];
+  var m = document.getElementById('esq-sentmail-modal');
+  if(!r || !m) return;
+  var when = new Date(r.sent_at).toLocaleString('en-US',
+    {weekday:'short',month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  document.getElementById('esq-sentmail-subject').textContent =
+    r.subject_sent || ('(' + r.touchpoint_key + ')');
+  document.getElementById('esq-sentmail-meta').textContent =
+    'To ' + r.email + '  |  ' + r.touchpoint_key + '  |  ' + when +
+    '  |  ' + (r.missions_at_send==null ? 'missions unknown'
+                                        : r.missions_at_send + ' missions at the time');
+
+  var note = document.getElementById('esq-sentmail-note');
+  var body = document.getElementById('esq-sentmail-body');
+
+  if(r.status === 'superseded'){
+    note.innerHTML = '<div style="color:#8a97b5;font-size:13px;background:#0f1624;border:1px solid #24304a;border-radius:8px;padding:12px;">'+
+      'This one was <strong>never sent</strong>. It was recorded as overtaken so it could not turn up later out of order - '+
+      'a milestone they had already passed, or a trial warning a more urgent one replaced. Nothing was written, so there is nothing to read.'+
+      (r.detail ? '<div style="margin-top:8px;color:#6b7a96;">' + esqEsc(r.detail) + '</div>' : '') + '</div>';
+    body.style.display = 'none';
+  } else if(r.body_sent){
+    note.innerHTML = r.status === 'failed'
+      ? '<div style="color:#ff8080;font-size:13px;">This is the text we tried to send. It did not arrive: ' + esqEsc(r.detail||'no reason recorded') + '</div>'
+      : '';
+    body.style.display = '';
+    body.textContent = r.body_sent;
+  } else {
+    /* Everything sent before 11 September 2026 - the text was not kept.
+       Saying so is better than showing the current template, which is a
+       different thing wearing the same name. */
+    note.innerHTML = '<div style="color:#e8b86d;font-size:13px;background:#1a1608;border:1px solid #3d3113;border-radius:8px;padding:12px;">'+
+      'The exact wording of this one was not kept - it went out before we started storing it. '+
+      'The template for <strong>' + esqEsc(r.touchpoint_key) + '</strong> is on the touchpoint list above, '+
+      'but it is not proof of what this person read: the merge fields resolve per person and the copy may have been edited since.</div>';
+    body.style.display = 'none';
+  }
+  m.classList.add('show');
+}
+function esqCloseSentMail(){
+  var m = document.getElementById('esq-sentmail-modal');
+  if(m) m.classList.remove('show');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') esqCloseSentMail();
+});
 </script>
 </body>
 </html>
