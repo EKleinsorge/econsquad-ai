@@ -6343,6 +6343,9 @@ var chatState={
   isTyping:false,
   lastOutput:null,
   specialistColor:null,
+  /* Who this particular mission is for, when that is not the person's own
+     organisation. Free text; it names a place, it does not look one up. */
+  workingFor:null,
   /* ⚠️ THE ROW THIS CONVERSATION ALREADY OWNS, if it has been saved once.
      Eric refined one incentive analysis three times, pressed Save each
      time, and got THREE history cards with the same question and three
@@ -6363,6 +6366,8 @@ function openSpecialistChat(id){
   chatState.lastOutput=null;
   chatState.specialistColor=s.color;
   chatState.historyId=null;   /* new conversation, not yet in history */
+  chatState.workingFor=null;  /* and it is for the person's own organisation */
+  esqRenderWorkingFor();
 
   var col=ORB_C[s.color];
 
@@ -6655,6 +6660,7 @@ function callSpecialist(userMessage){
   (function(){
     var payload={
       specialistId:Number(chatState.specialistId),
+      working_for:chatState.workingFor||null,
       messages:chatState.messages.map(function(m){
         return {role:String(m.role),content:String(m.content||'')};
       })
@@ -7024,6 +7030,10 @@ function showFinalOutput(text){
     chatState.messages=[];
     /* Otherwise the next save would overwrite the mission just finished. */
     chatState.historyId=null;
+    /* ⚠️ workingFor is deliberately KEPT. Somebody doing three pieces of work
+       for San Antonio this afternoon should not have to say so three times;
+       that repetition is the complaint this whole feature exists to answer.
+       It resets when the drawer is opened fresh from the squad. */
     msgs.innerHTML='';
     /* re-show greeting */
     var sp2=SPECIALIST_NAMES[chatState.specialistId];
@@ -7117,6 +7127,7 @@ function saveTaskToHistory(output){
 
   var fields={
     messages:transcript,
+    working_for:chatState.workingFor||null,
     specialist_name:specialistDisplayName,
     specialist_color:s.color,
     category:s.cat||'',
@@ -7441,7 +7452,8 @@ function esqHistoryApply(){
          usually in the middle of the conversation, which is exactly the
          part prompt and result never contained. */
       var hay=String(h.prompt||'')+' '+String(h.result||'')+' '+
-              String(h.specialist_name||'')+' '+String(h.category||'');
+              String(h.specialist_name||'')+' '+String(h.category||'')+' '+
+              String(h.working_for||'');
       if(Array.isArray(h.messages)){
         for(var i=0;i<h.messages.length;i++) hay+=' '+String(h.messages[i].content||'');
       }
@@ -7620,6 +7632,16 @@ function renderHistory(items){
            invisible if nothing ever mentions the organisation.
        Only shown when it IS an org seat. An individual's own work says
        nothing, because there is nothing to say. */
+    /* Which client this one was for, when it was not the person's own. */
+    if(h.working_for){
+      var wDiv=document.createElement('div');
+      wDiv.style.cssText='font-size:10.5px;color:#ffd23c;margin:-2px 0 6px 46px;font-weight:600;';
+      wDiv.textContent='for '+h.working_for;
+      wDiv.title='This mission was done for '+h.working_for+
+        ', not for your own organisation.';
+      card.appendChild(wDiv);
+    }
+
     if(h.esq_org_id && typeof ESQ_TEAM!=='undefined' && ESQ_TEAM &&
        String(ESQ_TEAM.orgId)===String(h.esq_org_id)){
       var oDiv=document.createElement('div');
@@ -7700,6 +7722,48 @@ function copyHistoryItem(id){
    engine does not read six months of history aloud. */
 var _esqReplaying=false;
 
+/* ── Who is this job for ──────────────────────────────────────────
+   ⚠️ Deliberately NOT a picker of other organisations. It is a name, typed
+   by the person, and the specialist is told it is the SUBJECT of the work
+   and that the profile on file belongs to the person rather than to it. The
+   moment this becomes "load another organisation's profile" it is a way to
+   read somebody else's file cabinet. */
+function esqRenderWorkingFor(){
+  var bar=document.getElementById('chat-for-bar');
+  var nm=document.getElementById('chat-for-name');
+  var clr=document.getElementById('chat-for-clear');
+  if(!bar||!nm) return;
+  var own=(typeof ESQ_TEAM!=='undefined' && ESQ_TEAM && ESQ_TEAM.orgName) ||
+          (currentUser&&currentUser.user_metadata&&currentUser.user_metadata.organization) || '';
+  var wf=chatState.workingFor;
+  nm.textContent = wf || own || 'not set';
+  nm.style.color = wf ? '#ffd23c' : '#aaff3e';
+  nm.title = wf
+    ? 'This mission is for ' + wf + '. Your own profile is still used for who you are and how you write.'
+    : 'Your own organisation. Click change if this job is for somebody else.';
+  if(clr) clr.style.display = wf ? 'inline' : 'none';
+  bar.style.display = 'flex';
+}
+
+function esqSetWorkingFor(){
+  var own=(typeof ESQ_TEAM!=='undefined' && ESQ_TEAM && ESQ_TEAM.orgName) || 'your organisation';
+  var v=window.prompt(
+    'Which community or client is THIS piece of work for?\n\n'+
+    'Leave it blank to use '+own+'.\n\n'+
+    'The specialist is told the work is for whatever you type here, and that '+
+    'your own profile describes you, not them.',
+    chatState.workingFor||'');
+  if(v===null) return;                 /* cancelled */
+  v=String(v).replace(/\s+/g,' ').trim().slice(0,160);
+  chatState.workingFor = v || null;
+  esqRenderWorkingFor();
+}
+
+function esqClearWorkingFor(){
+  chatState.workingFor=null;
+  esqRenderWorkingFor();
+}
+
 function reopenHistoryItem(id){
   var item=allHistory.find(function(h){return String(h.id)===String(id);});
   if(!item)return;
@@ -7711,6 +7775,8 @@ function reopenHistoryItem(id){
   /* Carrying on from a saved mission and saving again updates THAT row,
      rather than leaving a trail of near-identical cards behind. */
   chatState.historyId=item.id;
+  chatState.workingFor=item.working_for||null;
+  setTimeout(esqRenderWorkingFor,430);
 
   var turns=Array.isArray(item.messages)?item.messages:null;
   if(!turns||!turns.length){
@@ -14984,6 +15050,20 @@ function drawLogo(){if(!logoCtx)return;
     </div>
     <button onclick="expandDrawer()" id="drawer-expand-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#8a97b5;font-size:11px;font-weight:600;cursor:pointer;padding:5px 12px;border-radius:8px;transition:all .2s;margin-right:6px;font-family:'DM Sans',sans-serif;white-space:nowrap;" onmouseover="this.style.background='rgba(170,255,62,0.08)';this.style.borderColor='rgba(170,255,62,0.25)';this.style.color='#aaff3e'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='#8a97b5'">⤢ Expand</button>
     <button class="drawer-close" onclick="closeSpecialistChat()">✕</button>
+  </div>
+
+  <!-- ⚠️ WHO THIS PARTICULAR JOB IS FOR.
+       The community profile assumes one user = one community, which holds
+       for an IDA director and fails for a consultancy working across many.
+       Eric corrected Rex in words ("no, this one is for San Antonio") and
+       the correction died with the conversation. This is where it lives. -->
+  <div id="chat-for-bar" style="display:none;padding:7px 18px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(170,255,62,0.04);font-size:11.5px;color:#8a97b5;align-items:center;gap:8px;">
+    <span style="opacity:.7;">Working for</span>
+    <strong id="chat-for-name" style="color:#aaff3e;font-weight:700;"></strong>
+    <button id="chat-for-edit" type="button" onclick="esqSetWorkingFor()"
+      style="background:none;border:none;color:#6b7a96;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif;">change</button>
+    <button id="chat-for-clear" type="button" onclick="esqClearWorkingFor()"
+      style="display:none;background:none;border:none;color:#6b7a96;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;font-family:'DM Sans',sans-serif;">use my own organisation</button>
   </div>
 
   <!-- Messages -->

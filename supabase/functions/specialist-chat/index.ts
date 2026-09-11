@@ -189,7 +189,8 @@ Output: Clear written analysis with key findings, trends, notable data points, w
                          same rule recorded in claude/team-seats.md and it is
                          the reason those fields were kept off the org
                          profile in the first place. */
-function buildContext(profile: any, community: any, org: any, orgName?: string): string {
+function buildContext(profile: any, community: any, org: any, orgName?: string,
+                      workingFor?: string): string {
   const known: string[] = [];
   const missing: string[] = [];
 
@@ -241,19 +242,58 @@ function buildContext(profile: any, community: any, org: any, orgName?: string):
   add('Contact email', c.contact_email || p.email);
   add('Other notes', c.notes);
 
-  if (!known.length) return '';
+  /* Even with an empty file cabinet, being told the job is for San Antonio
+     is worth saying — it is the difference between a specialist that knows
+     what it is working on and one that does not. */
+  if (!known.length) {
+    const only = (workingFor || '').trim();
+    if (!only) return '';
+    return 'WHO THIS WORK IS FOR\n'
+      + 'This piece of work is for ' + only + '. Nothing else is on file, so '
+      + 'do not invent details about ' + only + ' — ask for what you need, '
+      + 'once.\n\nOpen with one short sentence naming ' + only + ', then '
+      + 'carry straight on. Do not turn it into a question.\n\n---\n\n';
+  }
 
   /* ⚠️ CONFIRM, DO NOT INTERROGATE, AND DO NOT SILENTLY ASSUME EITHER.
      "Use it directly, do not ask" produced a specialist that quietly acted on
      a stored fact the person could not see and might have outgrown. Eric:
      "should at least say is this for <name your community> to confirm - do
      not ask like it's clueless." One short line, then get on with it. */
-  const heading = (o.legal_name || c.org_name || orgName || p.organization || '').trim();
+  const owner = (o.legal_name || c.org_name || orgName || p.organization || '').trim();
+  const subject = (workingFor || '').trim();
+  const elsewhere = !!subject &&
+    subject.toLowerCase() !== owner.toLowerCase();
+  const heading = subject || owner;
 
-  let block = 'COMMUNITY CONTEXT\n'
-    + 'This is already on file for the person you are working with. Use it — '
-    + 'do not ask them to repeat any of it.\n\n'
-    + known.join('\n');
+  /* ⚠️ THE HAZARD THIS FEATURE CREATES, AND THE REASON FOR THE WARNING.
+     If the job is for San Antonio while the file cabinet holds Whoville's
+     address, PILOT terms and boilerplate, a specialist that treats the block
+     as "facts about this project" will confidently describe San Antonio
+     using another county's incentive programs. That is worse than asking.
+     So when the two differ, the block is explicitly relabelled: it is the
+     USER's own organisation, and it is not about the subject. */
+  let block;
+  if (elsewhere) {
+    block = 'WHO THIS WORK IS FOR\n'
+      + 'This particular piece of work is for ' + subject + '.\n\n'
+      + '⚠️ THE DETAILS BELOW DESCRIBE THE PERSON\u2019S OWN ORGANISATION, NOT '
+      + subject + '.\n'
+      + 'They are a consultant or adviser working on behalf of ' + subject + '. '
+      + 'Do NOT attribute any address, incentive program, boilerplate, '
+      + 'population, employer or asset listed below to ' + subject + ' — those '
+      + 'belong to the person\u2019s own organisation. Use the details below '
+      + 'only for who is writing, how they write, and how to sign off. '
+      + 'Anything you need about ' + subject + ' itself, ask for, or work from '
+      + 'what they give you.\n\n'
+      + 'ABOUT THE PERSON AND THEIR ORGANISATION\n'
+      + known.join('\n');
+  } else {
+    block = 'COMMUNITY CONTEXT\n'
+      + 'This is already on file for the person you are working with. Use it — '
+      + 'do not ask them to repeat any of it.\n\n'
+      + known.join('\n');
+  }
 
   block += '\n\nOPEN BY CONFIRMING, IN ONE SHORT LINE, NOT BY ASKING.\n'
     + (heading
@@ -356,6 +396,16 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Unknown specialist: ' + body.specialistId }, 400);
     }
 
+    /* ⚠️ WHO THIS PARTICULAR JOB IS FOR.
+       The community profile assumes one user = one community, which is true
+       for an IDA director and false for a consultancy working across many.
+       Free text from the person, never used to look anything up - it only
+       tells the specialist which place the work is about. Capped, control
+       characters stripped, and never interpolated anywhere but a prompt. */
+    const workingFor = String(body.working_for ?? '')
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .trim().slice(0, 160);
+
     const rawMessages = Array.isArray(body.messages) ? body.messages : [];
     if (rawMessages.length > MAX_MESSAGES) {
       return json({ error: 'This conversation has grown too long. Start a new session with this specialist and paste in what matters.' }, 400);
@@ -457,7 +507,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const context = buildContext(prof, community, org, orgName);
+      const context = buildContext(prof, community, org, orgName, workingFor);
       if (context) system = context + system;
 
     } catch (e) {
