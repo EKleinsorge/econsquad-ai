@@ -6518,8 +6518,10 @@ function addChatMessage(role, text, animate){
   var cleanText = (text||'').toString();
   chatState.messages.push({role:role==='user'?'user':'assistant',content:cleanText});
 
-  /* speak specialist replies when voice mode is on */
-  if(role==='specialist' && voiceEnabled){
+  /* Speak specialist replies when voice mode is on - but never while
+     replaying a saved conversation, or reopening a long mission would read
+     the entire thing aloud. */
+  if(role==='specialist' && voiceEnabled && !_esqReplaying){
     lastSpokenText=text;
     lastSpokenSpecialist=chatState.specialistId;
     setTimeout(function(){speakText(text, chatState.specialistId);}, 400);
@@ -7082,9 +7084,31 @@ function saveTaskToHistory(output){
   try{ localStorage.setItem('esq_last_mission_ts', String(Date.now())); }catch(e){}
   var hoursSaved = parseFloat((s.save||'2.0').replace(/[^0-9.]/g,''))||2;
   var isFirstMission = !localStorage.getItem('esq_first_mission_done');
+  /* ⚠️ THE WHOLE CONVERSATION, not just the ends of it.
+     prompt has always been every user message glued with ' | ' and cut at
+     500 characters, and result has always been the single last reply - so
+     the draft you corrected twice was thrown away at save time. That made
+     "Reopen" impossible and "what exactly did we send them" unanswerable,
+     which are the two reasons to keep history at all.
+
+     prompt and result are still written: they feed the card preview, and
+     they are all that rows saved before today will ever have.
+
+     Sliced defensively here as well as in the database trigger - a browser
+     should not be posting a megabyte at a table the ROI figures read. */
+  var transcript=null;
+  try{
+    transcript=(chatState.messages||[]).map(function(m){
+      return { role:(m.role==='user'?'user':'assistant'),
+               content:String(m.content||'').slice(0,20000) };
+    });
+    if(!transcript.length) transcript=null;
+  }catch(e){ transcript=null; }
+
   supa.from('task_history').insert({
     user_id:currentUser.id,
     user_email:currentUser.email||'',
+    messages:transcript,
     specialist_id:chatState.specialistId,
     specialist_name:specialistDisplayName,
     specialist_color:s.color,
@@ -7372,9 +7396,15 @@ function esqHistoryApply(){
   if(historyTerm){
     var q=historyTerm.toLowerCase();
     rows=rows.filter(function(h){
-      return (String(h.prompt||'')+' '+String(h.result||'')+' '+
-              String(h.specialist_name||'')+' '+String(h.category||'')
-             ).toLowerCase().indexOf(q)!==-1;
+      /* Including the transcript: the sentence somebody remembers is
+         usually in the middle of the conversation, which is exactly the
+         part prompt and result never contained. */
+      var hay=String(h.prompt||'')+' '+String(h.result||'')+' '+
+              String(h.specialist_name||'')+' '+String(h.category||'');
+      if(Array.isArray(h.messages)){
+        for(var i=0;i<h.messages.length;i++) hay+=' '+String(h.messages[i].content||'');
+      }
+      return hay.toLowerCase().indexOf(q)!==-1;
     });
   }
   renderHistory(rows);
@@ -7583,8 +7613,17 @@ function renderHistory(items){
     copyBtn.className='hist-btn';copyBtn.textContent='Copy';
     copyBtn.onclick=(function(hid){return function(){copyHistoryItem(hid);};})(h.id);
 
+    /* ⚠️ Two different buttons, because two different things are possible.
+       A row with a transcript genuinely resumes. A row saved before today
+       cannot, and calling it "Reopen" would be the same lie the label has
+       been telling since it was written. */
+    var hasTurns=Array.isArray(h.messages)&&h.messages.length>0;
     var reopenBtn=document.createElement('button');
-    reopenBtn.className='hist-btn';reopenBtn.textContent='Reopen';
+    reopenBtn.className='hist-btn';
+    reopenBtn.textContent=hasTurns?'Reopen':'Ask again';
+    reopenBtn.title=hasTurns
+      ?'Reopens the whole conversation so you can carry on from where you stopped.'
+      :'Saved before full conversations were kept, so only the final result can be carried over.';
     reopenBtn.onclick=(function(hid){return function(){reopenHistoryItem(hid);};})(h.id);
 
     actDiv.appendChild(copyBtn);actDiv.appendChild(reopenBtn);
@@ -7616,11 +7655,63 @@ function copyHistoryItem(id){
   }
 }
 
+/* Set while replaying a saved conversation into the drawer, so the voice
+   engine does not read six months of history aloud. */
+var _esqReplaying=false;
+
 function reopenHistoryItem(id){
-  var item=allHistory.find(function(h){return h.id===id;});
+  var item=allHistory.find(function(h){return String(h.id)===String(id);});
   if(!item)return;
-  /* open specialist drawer with this specialist */
+
+  /* Opens the specialist AND clears chatState.messages, which is what we
+     want - the replay below rebuilds it through the normal path. */
   deploy(item.specialist_id);
+
+  var turns=Array.isArray(item.messages)?item.messages:null;
+  if(!turns||!turns.length){
+    /* ⚠️ Saved before transcripts existed. Its middle is gone and no amount
+       of code will bring it back, so say that rather than opening an empty
+       chat that looks like a bug. The last output is still worth handing
+       over - it is usually the thing being picked up. */
+    setTimeout(function(){
+      if(item.result){
+        addChatMessage('specialist',
+          'Picking up from ' + new Date(item.created_at).toLocaleDateString() +
+          '. This mission was saved before full conversations were kept, so I ' +
+          'only have what I produced last time:\n\n' + item.result);
+      }
+      var inp=document.getElementById('chat-input');
+      if(inp) inp.placeholder='Carry on from here…';
+    },420);
+    return;
+  }
+
+  /* Wait for the drawer to finish opening, then replay. Rendering goes
+     through addChatMessage so the bubbles, markdown and avatars are
+     identical to a live conversation - and so chatState.messages is rebuilt
+     exactly, which is what makes the NEXT message a continuation rather
+     than a fresh start. */
+  setTimeout(function(){
+    _esqReplaying=true;
+    try{
+      chatState.messages=[];
+      turns.forEach(function(m){
+        addChatMessage(m.role==='user'?'user':'specialist', String(m.content||''), false);
+      });
+      chatState.lastOutput=(function(){
+        for(var i=turns.length-1;i>=0;i--){
+          if(turns[i].role!=='user') return String(turns[i].content||'');
+        }
+        return null;
+      })();
+    } finally {
+      _esqReplaying=false;
+    }
+    var msgs=document.getElementById('chat-messages');
+    if(msgs) msgs.scrollTop=msgs.scrollHeight;
+    var inp=document.getElementById('chat-input');
+    if(inp){ inp.placeholder='Carry on from here…'; inp.focus(); }
+  },420);
 }
 
 function showToastMsg(msg){
