@@ -33,6 +33,26 @@ html.text-xl .card-desc,html.text-xl .notif-body{font-size:130%;}
 #orb-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
 .shell{position:relative;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
 .sticky-top{flex-shrink:0;position:relative;z-index:1000;}
+
+/* ⚠️ A BRANDED HEADER IS A TALLER HEADER.
+   The community block used to be squeezed into the same 66px bar as the
+   EconSquad mark, at 32px with a caption under it, and it read as tucked
+   under the browser's address bar rather than as a header. Matching the
+   default block's height exactly was correct arithmetic and an invisible
+   change - 9px of clearance became 12px, which no eye can see.
+
+   The real problem was presence, not padding. When somebody turns their own
+   logo on, the bar grows and the logo grows with it. An unbranded account
+   sees no change at all: every rule here is behind .esq-branded, which only
+   applyLogoToggle sets. */
+/* ⚠️ !important is not decoration here. The <nav> carries an INLINE
+   style="...height:66px..." and an inline style beats any stylesheet rule
+   without it. The first attempt at this silently did nothing on desktop
+   while working on mobile, because the mobile rule already had !important
+   and the desktop one did not. */
+body.esq-branded .nav-bar{height:84px !important;}
+body.esq-branded #community-logo-img{height:46px !important;max-width:200px !important;}
+body.esq-branded #community-logo-by{font-size:9px !important;line-height:11px !important;margin-top:1px !important;}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(170,255,62,0.12) transparent;}
 .scroll-area::-webkit-scrollbar{width:4px;}
 .scroll-area::-webkit-scrollbar-thumb{background:rgba(170,255,62,0.15);border-radius:2px;}
@@ -1012,6 +1032,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
      than sitting 4px from the top edge. */
   #community-logo-img { height: 26px !important; max-width: 128px !important; }
   #community-logo-by  { font-size: 7.5px !important; line-height: 9px !important; }
+  /* Branded, on a phone: still taller than stock, but not desktop-tall. */
+  body.esq-branded .nav-bar        { height: 70px !important; }
+  body.esq-branded #community-logo-img { height: 36px !important; max-width: 160px !important; }
+  body.esq-branded #community-logo-by  { font-size: 8px !important; line-height: 10px !important; }
   #nav-marketing  { display: none !important; }
   #nav-dashboard  { display: none !important; }
   #nav-ctas-marketing { display: none !important; }
@@ -11277,11 +11301,17 @@ function applyLogoToggle(enabled){
     if(knob){knob.style.left='23px';knob.style.background='#aaff3e';}
     if(communityWrap)communityWrap.style.display='flex';
     if(defaultWrap)defaultWrap.style.display='none';
+    /* Everything about the taller header hangs off this one class, so there
+       is exactly one place that can get it wrong. */
+    document.body.classList.add('esq-branded');
   } else {
     if(toggle){toggle.style.background='rgba(255,255,255,0.1)';toggle.style.borderColor='rgba(255,255,255,0.12)';}
     if(knob){knob.style.left='3px';knob.style.background='#6b7a96';}
     if(communityWrap)communityWrap.style.display='none';
     if(defaultWrap)defaultWrap.style.display='flex';
+    /* ⚠️ And off again. A class that is only ever added leaves the bar
+       84px tall with the EconSquad orb floating in it. */
+    document.body.classList.remove('esq-branded');
   }
 }
 
