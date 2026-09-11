@@ -183,6 +183,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 <div class="admin-body">
   <!-- SIDEBAR -->
   <div class="admin-sidebar">
+    <div class="sidebar-section">Every day</div>
+    <div class="sidebar-item" onclick="showAdminSection('dailychecks',this);esqDailyChecksInit()">&#9989; Daily Checks</div>
     <div class="sidebar-section">Dashboard</div>
     <div class="sidebar-item active" onclick="showAdminSection('overview',this)">📊 Overview</div>
     <div class="sidebar-section">Analytics</div>
@@ -561,6 +563,59 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
           <button class="btn-lime" id="oi-go" onclick="outreachImport()">Import the new ones</button>
           <button class="btn-ghost" onclick="outreachResetImport()">Start over</button>
         </div>
+      </div>
+    </div>
+
+    <div id="section-dailychecks" class="admin-section">
+      <div class="page-title">Daily Checks</div>
+      <div class="page-sub">Ten minutes each weekday. The job is not to fix things &mdash; it is to
+        notice them, and to know which ones cannot wait. Ticks are a note to yourself, kept in this
+        browser only, and they clear overnight.</div>
+
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+                  flex-wrap:wrap;margin-bottom:14px;">
+        <div style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#6b7a96;">
+          Checklist for <span id="esq-dc-date" style="color:#eef3fc;">today</span>
+        </div>
+        <button class="btn-ghost btn-sm" onclick="esqClearDailyChecks()">Clear ticks</button>
+      </div>
+
+      <div class="admin-card" style="border-color:rgba(170,255,62,0.22);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#eef3fc;">Today&rsquo;s briefing</div>
+            <div style="font-size:12px;color:#6b7a96;margin-top:2px;max-width:62ch;line-height:1.6;">
+              Does the database half of the round for you and reports what it found. It reads the
+              real rows rather than describing them from memory, so a number here is a number.
+              The three things it cannot reach are named at the bottom &mdash; those still need your eyes.
+            </div>
+          </div>
+          <button class="btn-lime" id="esq-brief-btn" onclick="esqBuildBriefing()">Update today&rsquo;s briefing</button>
+        </div>
+        <div id="esq-brief-out" style="margin-top:14px;font-size:13px;color:#8a97b5;">
+          Not run yet today. Press the button.
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+                  color:#6b7a96;margin:22px 0 10px;">Every weekday morning &middot; in this order</div>
+      <div style="display:flex;flex-direction:column;gap:10px;"><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d1" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">1</span>Did yesterday&rsquo;s trial-care run go out?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Trial Care &rarr; Recently sent. <a href="javascript:void(0)" onclick="showAdminSection('trialcare');loadTrialCare()" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Good</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;"><span style="color:#4ade80;">Rows dated yesterday, all green <b>sent</b>.</span> Some days there are none. That is normal &mdash; it only writes when somebody is genuinely due one.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Any red <b style="color:#ff8080;">failed</b> row: click it, read the reason, tell Eric. A grey <b>not sent</b> row is correct and needs nothing.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d2" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">2</span>Is anyone about to be charged who never used it?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">All Users, sorted by trial end. <a href="javascript:void(0)" onclick="showAdminSection('users');" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Look for</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Anyone ending within 3 days whose mission count is <b>0</b> and who has a card on file</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;"><b style="color:#ff8080;">Tell Eric the same day.</b> Somebody billed for a product they never opened asks their bank for the money back, and a chargeback costs more than the subscription.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d3" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">3</span>Did any money move badly?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Stripe &rarr; Transactions &rarr; Payments</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Look for</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Anything <b>Failed</b>, <b>Disputed</b> or <b>Refunded</b> since yesterday</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">A dispute is urgent &mdash; there is a deadline to respond. Tell Eric straight away. A single failed card usually retries by itself.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Note</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">This Stripe account also carries GSLI&rsquo;s business, so most charges in it are <i>not</i> EconSquad. The descriptor <b>ECONSQUAD.AI</b> is how you tell.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d4" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">4</span>Has anyone written in?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">The <b>eric@econsquad.ai</b> inbox</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Every automated email &mdash; including the ones signed by ARIA &mdash; has its reply address set to Eric. Replies land there, not anywhere in this admin.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Answer anything simple. Money, cancelling or a complaint goes to Eric.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d5" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">5</span>Any new problem reports?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Problem Reports. <a href="javascript:void(0)" onclick="showAdminSection('reports');" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Read each one and note the person&rsquo;s email. If two people report the same thing, say so &mdash; that is the difference between a quirk and a fault.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d6" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">6</span>New signups since yesterday</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">All Users, newest first. <a href="javascript:void(0)" onclick="showAdminSection('users');" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Write down</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">How many new, and how many ran a mission on day one</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Day-one activity is the single number that predicts whether somebody ever pays. Writing it down daily is how that stops being a guess.</span></div></span></label></div>
+
+      <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+                  color:#6b7a96;margin:30px 0 10px;">Every Monday</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:26px;"><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="w1" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;">The four numbers</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Record</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">New trials &middot; trials that ran at least one mission &middot; trials that became paying &middot; cancellations</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Four numbers a week, kept in one place, answer &ldquo;is this working&rdquo; in a way no single screen can.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="w2" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;">Did the scheduled job run every weekday?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">GitHub &rarr; Actions &rarr; Trial Care &mdash; daily</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Good</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;"><span style="color:#4ade80;">A green run each weekday.</span> They arrive <b>3&ndash;4 hours later than scheduled</b> &mdash; normal, not a fault.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Two or more missing weekdays in a row: tell Eric. A single miss is absorbed automatically.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="w3" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;">Anyone stuck in a trial that already ended?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">All Users. <a href="javascript:void(0)" onclick="showAdminSection('users');" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Look for</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">A trial end date in the past, badge still <b>TRIAL</b>, no cancellation</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">List them for Eric. Usually harmless, occasionally somebody using it free forever.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="w4" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;">Read one email end to end</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Trial Care &rarr; Recently sent &rarr; click any row. <a href="javascript:void(0)" onclick="showAdminSection('trialcare');loadTrialCare()" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open it &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">It opens the real letter that person received, with their name and their numbers filled in. Once a week, read one as if you were them. Wrong tone and broken wording only show up this way.</span></div></span></label></div>
+
+      <div style="background:rgba(255,128,128,0.07);border:1px solid rgba(255,128,128,0.35);border-radius:10px;padding:16px 20px;margin-bottom:16px;"><div style="font-size:14px;font-weight:800;color:rgba(255,128,128,0.35);margin-bottom:8px;letter-spacing:.02em;">Tell Eric the same day</div><ul style="margin:0;padding-left:19px;font-size:13px;color:#8a97b5;line-height:1.6;"><li style="margin-bottom:7px;"><b style="color:#eef3fc;">A disputed charge.</b> There is a deadline to respond and missing it loses the money automatically.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">A trial ending within 3 days, zero missions, card on file.</b></li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Any red <i>failed</i> row</b> in Recently sent.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Two or more people reporting the same fault.</b></li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Anyone asking for a refund or to cancel.</b> Do not action it yourself &mdash; the two are different steps and doing only one leaves the account in a wrong state.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Anything from a .gov address that sounds like a complaint.</b> These are small professional communities and word travels.</li></ul></div><div style="background:rgba(245,197,66,0.06);border:1px solid rgba(245,197,66,0.35);border-radius:10px;padding:16px 20px;margin-bottom:16px;"><div style="font-size:14px;font-weight:800;color:rgba(245,197,66,0.35);margin-bottom:8px;letter-spacing:.02em;">Never do these</div><ul style="margin:0;padding-left:19px;font-size:13px;color:#8a97b5;line-height:1.6;"><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Never issue a refund or cancel a subscription</b> without Eric. Real money, and cancelling is the step that actually removes their access.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Never choose &ldquo;Delete account&hellip;&rdquo;</b> in the Change plan dropdown. It sits in the same menu as the harmless options. There is no undo.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Never switch on a touchpoint marked &ldquo;On, but held &mdash; unfinished draft&rdquo;.</b> Those contain notes written to Eric, not finished letters.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Never edit DNS, Cloudflare or Google Workspace admin.</b> One wrong record stops every email reaching the company, silently, for days.</li><li style="margin-bottom:7px;"><b style="color:#eef3fc;">Never re-run a workflow with dry_run set to false</b> unless Eric asked for that exact run. False means it really sends.</li></ul></div>
+
+      <div class="admin-card" style="margin-top:10px;">
+        <div style="font-size:14px;font-weight:800;color:#eef3fc;margin-bottom:2px;">What the words mean</div>
+        <div style="font-size:12px;color:#6b7a96;margin-bottom:6px;">Read once, then keep as reference.</div>
+        <div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">Mission</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;">One piece of work a customer ran with one of the 22 specialists. Missions are the whole product. Somebody with zero has not really started.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">Trial care</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;">The twelve automatic emails that go out during and just after a free trial. They are chosen by what the person has actually done, not by a calendar &mdash; which is why two people who signed up the same day get different letters.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">sent / failed / not sent</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;"><b style="color:#4ade80;">sent</b> reached them (click to read it). <b style="color:#ff8080;">failed</b> did not arrive &mdash; always report it. <b>not sent</b> was deliberately withheld because a more urgent message replaced it; correct, no action.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">The badges</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;"><b>TRIAL</b> free and time-limited &middot; <b>STARTER</b> / <b>PRO</b> paying &middot; <b>BETA / COMPED</b> free on purpose, never chased &middot; <b>NO CARD</b> will not be charged, they simply stop &middot; <b>Team seat</b> their organisation pays, never ask them to buy anything.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">The churn trap</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;">When somebody cancels, their plan goes back to <i>trial</i>. So a person who left can look exactly like a brand-new signup. A cancellation date is what tells them apart &mdash; if a &ldquo;new&rdquo; member has one, they are not new.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">Two companies, one Stripe</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;">That Stripe account also carries GSLI. Most of the money in it has nothing to do with EconSquad.</div></div><div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;"><div style="min-width:170px;flex:none;font-size:13px;font-weight:700;color:#eef3fc;">Change plan</div><div style="flex:1;min-width:240px;font-size:13px;color:#8a97b5;line-height:1.6;">The dropdown on each member row. It is an action, not a display, so it always looks empty. The coloured badge is where the current plan is shown.</div></div>
+      </div>
+
+      <div style="font-size:12px;color:#6b7a96;line-height:1.7;margin-top:6px;">
+        If something looks wrong and it is not on this list, write down what you saw and where, and
+        send it to Eric. A screenshot with the time showing is worth more than a description.
       </div>
     </div>
 
@@ -7522,6 +7577,244 @@ function esqCloseSentMail(){
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape') esqCloseSentMail();
 });
+</script>
+<script>
+/* DAILY CHECKS - tick state only, and only in this browser.
+   Keyed by today's date so the list is blank again tomorrow without anybody
+   having to clear it. Deliberately NOT written to the database: a stored
+   record that "somebody ticked the box" reads later as evidence the check
+   was actually done, which is a thing it cannot know. */
+function esqDcKey(){
+  var d = new Date();
+  return 'esq-dailychecks-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+function esqDcRead(){
+  try { return JSON.parse(localStorage.getItem(esqDcKey()) || '{}'); } catch(e){ return {}; }
+}
+function esqDcWrite(s){
+  try { localStorage.setItem(esqDcKey(), JSON.stringify(s)); } catch(e){}
+}
+function esqDailyChecksInit(){
+  var dateEl = document.getElementById('esq-dc-date');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString(undefined,
+    { weekday:'long', day:'numeric', month:'long' });
+  var state = esqDcRead();
+  var boxes = document.querySelectorAll('input[data-esqcheck]');
+  for (var i=0; i<boxes.length; i++){
+    (function(box){
+      box.checked = !!state[box.getAttribute('data-esqcheck')];
+      box.parentNode.style.opacity = box.checked ? '0.55' : '1';
+      if (box.getAttribute('data-esqbound')) return;
+      box.setAttribute('data-esqbound','1');
+      box.addEventListener('change', function(){
+        var s = esqDcRead();
+        s[box.getAttribute('data-esqcheck')] = box.checked;
+        esqDcWrite(s);
+        box.parentNode.style.opacity = box.checked ? '0.55' : '1';
+      });
+    })(boxes[i]);
+  }
+}
+function esqClearDailyChecks(){
+  esqDcWrite({});
+  esqDailyChecksInit();
+}
+
+/* ===================================================================
+   TODAY'S BRIEFING
+   ===================================================================
+   Runs the checks that can be answered from the database and says what
+   it found. Three rules it is built around, all learned the hard way:
+
+   1. A ZERO MUST NEVER BE ASSUMED TO MEAN "ALL CLEAR". Every query's
+      error is checked and reported as "could not check", never folded
+      into a count of nothing. An audit that came back clean because its
+      filter could not match anything is the most expensive kind of bug
+      in this codebase, and it has happened here already.
+
+   2. THERE IS A CANARY. profiles is known to be non-empty. If it reads
+      as empty, the reader is being blocked rather than the business
+      being empty, and the whole briefing says so instead of reporting
+      a tidy set of zeros.
+
+   3. WHAT IT CANNOT SEE IS PRINTED, NOT OMITTED. Stripe, the inbox and
+      the GitHub schedule are outside this page. A briefing that quietly
+      skipped them would read as a complete all-clear.
+   =================================================================== */
+function esqBriefRow(state, title, detail){
+  var c = state === 'ok'   ? '#4ade80'
+        : state === 'bad'  ? '#ff8080'
+        : state === 'note' ? '#f5c542' : '#8a97b5';
+  var mark = state === 'ok' ? '&#10003;' : state === 'bad' ? '!' : state === 'note' ? '?' : '&middot;';
+  return '<div style="display:flex;gap:11px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.07);">'
+       +   '<span style="color:' + c + ';font-weight:800;width:14px;flex:none;text-align:center;">' + mark + '</span>'
+       +   '<span style="flex:1;min-width:0;">'
+       +     '<span style="display:block;color:#eef3fc;font-weight:600;">' + title + '</span>'
+       +     (detail ? '<span style="display:block;color:#8a97b5;margin-top:3px;line-height:1.6;">' + detail + '</span>' : '')
+       +   '</span></div>';
+}
+
+function esqBuildBriefing(){
+  var out = document.getElementById('esq-brief-out');
+  var btn = document.getElementById('esq-brief-btn');
+  if (!out) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
+  out.innerHTML = '<span style="color:#8a97b5;">Reading the database…</span>';
+
+  var now = new Date();
+  var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var since = new Date(startOfToday.getTime() - 24*60*60*1000);   // yesterday 00:00 local
+  var sinceIso = since.toISOString();
+  var in3days = new Date(startOfToday.getTime() + 3*24*60*60*1000);
+
+  Promise.all([
+    supa.from('profiles').select('id,email,full_name,plan,subscription_status,trial_end,canceled_at,created_at,is_beta_tester,stripe_customer_id'),
+    supa.from('task_history').select('user_id,created_at'),
+    supa.from('trial_sends').select('email,touchpoint_key,status,detail,sent_at').gte('sent_at', sinceIso),
+    supa.from('problem_reports').select('id,resolved,timestamp').gte('timestamp', sinceIso)
+  ]).then(function(r){
+    var profRes = r[0], taskRes = r[1], sendRes = r[2], repRes = r[3];
+    var html = '';
+
+    /* --- the canary, before anything else is believed ------------- */
+    if (profRes.error) {
+      out.innerHTML = esqBriefRow('bad', 'Could not read members at all',
+        'The briefing is not reliable. ' + esqEsc(profRes.error.message));
+      if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
+      return;
+    }
+    var profs = profRes.data || [];
+    if (!profs.length) {
+      out.innerHTML = esqBriefRow('bad', 'Members came back empty, which cannot be true',
+        'Something is blocking the read rather than there being nobody. Do not treat anything '
+        + 'below as an all-clear. Tell Eric.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
+      return;
+    }
+
+    /* --- missions per person -------------------------------------- */
+    var missions = {}, firstDay = {};
+    if (!taskRes.error) {
+      (taskRes.data || []).forEach(function(t){
+        missions[t.user_id] = (missions[t.user_id] || 0) + 1;
+      });
+    }
+
+    var internal = function(e){
+      e = String(e || '').toLowerCase();
+      return e.indexOf('@gslisolutions.com') !== -1 || e.indexOf('.gslisolutions.com') !== -1;
+    };
+
+    /* --- 1. trial-care mail --------------------------------------- */
+    if (sendRes.error) {
+      html += esqBriefRow('note', 'Could not check trial-care mail',
+        esqEsc(sendRes.error.message) + ' &mdash; look at Recently sent yourself.');
+    } else {
+      var sends = sendRes.data || [];
+      var failed = sends.filter(function(s){ return s.status === 'failed'; });
+      var sent   = sends.filter(function(s){ return s.status === 'sent'; });
+      if (failed.length) {
+        html += esqBriefRow('bad', failed.length + ' email(s) failed to send',
+          failed.map(function(f){
+            return esqEsc(f.email) + ' &mdash; ' + esqEsc(f.touchpoint_key)
+                 + (f.detail ? ' &mdash; ' + esqEsc(f.detail) : '');
+          }).join('<br>') + '<br><b>Tell Eric.</b>');
+      } else if (sent.length) {
+        html += esqBriefRow('ok', sent.length + ' trial-care email(s) went out, none failed', '');
+      } else {
+        html += esqBriefRow('ok', 'No trial-care email was due since yesterday',
+          'Normal. It only writes when somebody is genuinely due one.');
+      }
+    }
+
+    /* --- 2. about to be charged, never used it -------------------- */
+    var risky = profs.filter(function(p){
+      if (internal(p.email) || p.is_beta_tester) return false;
+      if (p.canceled_at) return false;
+      if (p.plan !== 'trial') return false;
+      if (!p.stripe_customer_id) return false;
+      if (!p.trial_end) return false;
+      var end = new Date(p.trial_end);
+      return end >= startOfToday && end <= in3days && !(missions[p.id] > 0);
+    });
+    if (taskRes.error) {
+      html += esqBriefRow('note', 'Could not check who has run missions',
+        esqEsc(taskRes.error.message) + ' &mdash; so the charge-risk check below is incomplete.');
+    }
+    if (risky.length) {
+      html += esqBriefRow('bad', risky.length + ' person(s) will be charged and have run nothing',
+        risky.map(function(p){
+          return esqEsc(p.email) + ' &mdash; ends '
+               + new Date(p.trial_end).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+        }).join('<br>') + '<br><b>Tell Eric today.</b> A charge to somebody who never opened it '
+        + 'is how a chargeback starts.');
+    } else {
+      html += esqBriefRow('ok', 'Nobody is about to be charged who has run nothing', '');
+    }
+
+    /* --- 3. new signups ------------------------------------------- */
+    var fresh = profs.filter(function(p){
+      return p.created_at && new Date(p.created_at) >= since && !internal(p.email);
+    });
+    if (fresh.length) {
+      var started = fresh.filter(function(p){ return missions[p.id] > 0; }).length;
+      html += esqBriefRow(started === fresh.length ? 'ok' : 'note',
+        fresh.length + ' new signup(s) since yesterday, ' + started + ' already ran a mission',
+        fresh.map(function(p){
+          return esqEsc(p.email) + ' &mdash; ' + (missions[p.id] || 0) + ' mission(s)';
+        }).join('<br>') + '<br>Write both numbers down.');
+    } else {
+      html += esqBriefRow('ok', 'No new signups since yesterday', '');
+    }
+
+    /* --- 4. problem reports --------------------------------------- */
+    if (repRes.error) {
+      html += esqBriefRow('note', 'Could not check problem reports',
+        esqEsc(repRes.error.message) + ' &mdash; open the Problem Reports screen yourself.');
+    } else {
+      var open = (repRes.data || []).filter(function(x){ return !x.resolved; });
+      html += open.length
+        ? esqBriefRow('bad', open.length + ' new problem report(s)',
+            'Read each one. If two describe the same thing, say so.')
+        : esqBriefRow('ok', 'No new problem reports', '');
+    }
+
+    /* --- 5. lapsed but still on trial ----------------------------- */
+    var lapsed = profs.filter(function(p){
+      return p.plan === 'trial' && !p.canceled_at && !p.is_beta_tester && !internal(p.email)
+          && p.trial_end && new Date(p.trial_end) < startOfToday;
+    });
+    html += lapsed.length
+      ? esqBriefRow('note', lapsed.length + ' trial(s) ended but still show as TRIAL',
+          lapsed.slice(0,8).map(function(p){ return esqEsc(p.email); }).join('<br>')
+          + (lapsed.length > 8 ? '<br>&hellip;and ' + (lapsed.length-8) + ' more' : '')
+          + '<br>Usually harmless. Worth listing for Eric on Monday.')
+      : esqBriefRow('ok', 'No trials sitting past their end date', '');
+
+    /* --- what this cannot see ------------------------------------- */
+    html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);'
+         +  'font-size:12px;color:#6b7a96;line-height:1.7;">'
+         +  '<b style="color:#f5c542;">Still needs your eyes &mdash; this page cannot reach them:</b><br>'
+         +  '<b>Stripe</b> &middot; failed, disputed or refunded payments. A dispute has a deadline.<br>'
+         +  '<b>The eric@econsquad.ai inbox</b> &middot; every automated email replies to there.<br>'
+         +  '<b>GitHub Actions</b> &middot; whether the scheduled job ran. They arrive 3&ndash;4 hours late; '
+         +  'two missed weekdays in a row is worth reporting.'
+         +  '</div>';
+
+    html += '<div style="margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;'
+         +  'font-size:11px;color:#4a5568;">read at '
+         +  now.toLocaleString(undefined,{hour:'numeric',minute:'2-digit',day:'numeric',month:'short'})
+         +  ' &middot; covers everything since ' + since.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})
+         +  '</div>';
+
+    out.innerHTML = html;
+    if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
+  }).catch(function(e){
+    out.innerHTML = esqBriefRow('bad', 'The briefing could not run',
+      esqEsc(e && e.message ? e.message : String(e)) + ' &mdash; work through the checklist by hand.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
+  });
+}
 </script>
 </body>
 </html>
