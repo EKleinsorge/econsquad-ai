@@ -123,13 +123,31 @@ serve(async (req) => {
           break
         }
 
+        const invoice    = event.data.object as any
+        const customerId = invoice.customer as string
+
+        /* ⚠️ THE ONE CASE THAT FORGOT TO ASK WHOSE INVOICE THIS IS.
+           Every other branch in this switch calls isOurInvoice or
+           isOurSubscription. This one checked only for an esq_quote_id and
+           then wrote to profiles on a bare customer id match.
+
+           notOurs()'s own docstring, twenty lines below, says this Stripe
+           account carries a second business. So a failed invoice belonging
+           to the OTHER company - same person, same Stripe customer, buying
+           from both, which for this audience is likely rather than exotic -
+           would mark their EconSquad subscription past_due and then TEXT
+           THEM "Your EconSquad AI payment failed". A true statement about
+           the wrong company, sent to a paying customer.
+
+           It has not happened yet only because Twilio is still unverified.
+           That is luck, not design. */
+        if (!isOurInvoice(invoice)) return notOurs(event.type, customerId)
+
         // past_due was previously invisible: a failed card looked like nothing
         // at all in the admin panel.
         await supa.from('profiles')
           .update({ subscription_status: 'past_due' })
-          .eq('stripe_customer_id', (event.data.object as any).customer as string)
-        const invoice    = event.data.object
-        const customerId = invoice.customer as string
+          .eq('stripe_customer_id', customerId)
         console.log('Payment failed for customer', customerId)
         // Look up user by stripe_customer_id and fire SMS alert
         const { data: profile } = await supa
@@ -415,16 +433,48 @@ async function linkCustomer(supa: any, customerId: string, uid: string | null, e
       return true
     }
   }
+  /* ⚠️ THE EMAIL PATH MUST NOT OVERWRITE AN EXISTING LINK.
+     checkout.session.completed is the one branch that cannot check the price
+     - a session carries no line items unless they are expanded - so it is the
+     one way an event from the OTHER business on this Stripe account reaches a
+     profile. Stripe mints a fresh customer per payment-link checkout, so the
+     same person buying from both companies has two customer ids.
+
+     Overwriting was silent and expensive: the EconSquad customer's profile
+     would point at the other company's customer, and every later updatePlan
+     and markCanceled - which match on stripe_customer_id - would update ZERO
+     rows. A zero-row update is a success in PostgREST, so their plan changes
+     would simply stop landing, with nothing anywhere saying so.
+
+     First link by email wins; a second, different one is logged and refused.
+     The uid path above is untouched because client_reference_id is set only
+     by our own checkout, which is proof of intent rather than a coincidence
+     of addresses. */
   if (email) {
     const { data, error } = await supa
       .from('profiles')
       .update({ stripe_customer_id: customerId })
       .ilike('email', email)
+      .is('stripe_customer_id', null)
       .select('id')
     if (error) console.error('linkCustomer (email) error:', error.message)
     else if ((data?.length ?? 0) > 0) {
       console.log(`Linked ${customerId} to profile by email ${email}`)
       return true
+    } else {
+      // Zero rows means either no such profile, or one that is already linked.
+      // Those are very different, and only one of them is worth shouting about.
+      const { data: existing } = await supa
+        .from('profiles').select('id, stripe_customer_id').ilike('email', email).limit(1)
+      const held = existing?.[0]?.stripe_customer_id
+      if (held && held !== customerId) {
+        console.error(
+          `linkCustomer: REFUSED to relink ${email}. Profile ${existing[0].id} is already ` +
+          `linked to ${held}; this checkout was ${customerId}. If this is the same person ` +
+          `buying from both businesses, that is expected and nothing is wrong. If they meant ` +
+          `to switch, change it by hand - silently repointing them would stop their plan ` +
+          `updates landing.`)
+      }
     }
   }
   console.error(`linkCustomer: no profile matched uid=${uid} email=${email}`)
