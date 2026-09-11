@@ -5393,7 +5393,7 @@ function renderUsersTable(filter){
 
 function buildUserActions(u){
   var actions='';
-  actions+='<select class="inline-select" onchange="changePlan(\''+u.email+'\',this)" title="Change plan"><option value="">Plan...</option><option value="trial">Trial</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="suspended">Suspend</option><option value="__delete" style="color:#ff8080;">Delete account\u2026</option></select>';
+  actions+='<select class="inline-select" onchange="changePlan(\''+u.email+'\',this)" title="Change plan"><option value="">Change plan\u2026</option><option value="trial">Trial</option><option value="starter">Starter</option><option value="pro">Pro</option><option value="suspended">Suspend</option><option value="__delete" style="color:#ff8080;">Delete account\u2026</option></select>';
   actions+=' <button class="btn-ghost btn-sm" onclick="openExtendTrial(\''+u.email+'\',\''+escHtml(u.full_name||u.email)+'\')">+Trial</button>';
   actions+=' <button class="btn-ghost btn-sm" onclick="openQuickMsg(\''+u.email+'\')">Msg</button>';
   if(u.stripe_customer_id){
