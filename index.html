@@ -17678,13 +17678,24 @@ function esqResearchStart(){
       body: JSON.stringify({ org_id: ESQ_TEAM.orgId, website: site })
     });
   }).then(function(r){ return r.json(); }).then(function(j){
-    if(btn){ btn.disabled = false; btn.textContent = '✦ Fill this in from our website'; }
+    if(btn){ btn.disabled = false; btn.textContent = '✦ See what our website can fill in'; }
     esqRenderResearch(j);
   }).catch(function(e){
-    if(btn){ btn.disabled = false; btn.textContent = '✦ Fill this in from our website'; }
+    if(btn){ btn.disabled = false; btn.textContent = '✦ See what our website can fill in'; }
     out.innerHTML = '<div style="font-size:12px;color:#ff9b9b;padding:10px 0;">'+
       'That did not run: ' + esqEsc(String(e && e.message || e)) + '</div>';
   });
+}
+
+/* Every profile field, taken from the thing that draws the form. A list
+   typed out here would be a second source of truth that drifts - and the
+   last hard-coded field count printed "21 of ~20". */
+function esqAllProfileKeys(){
+  var out = [];
+  ESQ_PROFILE_GROUPS.forEach(function(g){
+    g[2].forEach(function(f){ out.push(f[0]); });
+  });
+  return out;
 }
 
 function esqLabelFor(key){
@@ -17753,10 +17764,58 @@ function esqRenderResearch(j){
 
   var rej = Array.isArray(j.rejected) ? j.rejected : [];
 
+  /* ⚠️ THE THIRD OUTCOME, WHICH USED TO BE INVISIBLE.
+     Each rejection reads "field_name — why", so the name is the part before
+     the dash. Anything in the form that was neither proposed nor rejected
+     was looked for and not found. Those are the boxes somebody is staring
+     at after pressing a button that said it would fill them in.
+
+     Fields already filled in are left out of the count: a field that has a
+     value is not an unanswered question, and listing it would make the
+     panel read like a complaint about work already done. */
+  var rejNames = rej.map(function(r){
+    return String(r).split('\u2014')[0].split(' - ')[0].trim();
+  });
+  var silent = esqAllProfileKeys().filter(function(k){
+    if(keys.indexOf(k) !== -1) return false;
+    if(rejNames.indexOf(k) !== -1) return false;
+    var have = ESQ_PROFILE && ESQ_PROFILE[k];
+    return !(have != null && String(have).trim() !== '');
+  });
+
+  /* ⚠️ THE FOURTH BUCKET, WITHOUT WHICH THE ARITHMETIC IS A LIE.
+     A field you have already filled in is not proposed, not refused, and
+     not missing - it is answered. The first version of this line claimed
+     all twenty were covered by three numbers that summed to sixteen, which
+     is the same species of confident wrong summary the rest of this panel
+     exists to prevent. (The old sentence is not quoted here: the patch
+     refuses if that string survives anywhere, and this comment tripped it,
+     which is the guard working - for the second time today.)
+
+     The test missed it too: its fixture's one pre-filled field was also one
+     of the proposed ones, so nothing ever sat outside the three buckets and
+     the assertion passed by coincidence. */
+  var already = esqAllProfileKeys().filter(function(k){
+    if(keys.indexOf(k) !== -1) return false;
+    if(rejNames.indexOf(k) !== -1) return false;
+    var have = ESQ_PROFILE && ESQ_PROFILE[k];
+    return (have != null && String(have).trim() !== '');
+  });
+
   out.innerHTML =
     '<div style="border:1px solid rgba(170,255,62,0.25);border-radius:10px;padding:13px 15px;margin-top:4px;">'+
       '<div style="font-size:12.5px;font-weight:700;color:#aaff3e;">'+
         keys.length+' thing'+(keys.length===1?'':'s')+' found on your website</div>'+
+      /* ⚠️ The arithmetic is the point. "6 found" beside twelve blank boxes
+         reads as a broken button; "6 found, 12 your site does not mention"
+         reads as an answer. Every field in the form is accounted for in one
+         of these three numbers. */
+      '<div style="font-size:11px;color:#6b7a96;margin:3px 0 0;">'+
+        keys.length+' found'+
+        (rej.length ? ' \u00b7 '+rej.length+' could not be backed up' : '')+
+        (silent.length ? ' \u00b7 '+silent.length+' your site does not mention' : '')+
+        (already.length ? ' \u00b7 '+already.length+' you already had' : '')+
+        ' \u00b7 that is all '+esqAllProfileKeys().length+'.</div>'+
       '<div style="font-size:11.5px;color:#8a97b5;line-height:1.55;margin:5px 0 2px;">'+
         '<strong style="color:#eef3fc;">Nothing has been saved.</strong> '+
         'Tick what is right, correct anything that is nearly right, and leave the rest. '+
@@ -17774,6 +17833,18 @@ function esqRenderResearch(j){
             rej.length+' more it tried to claim and could not back up</summary>'+
             '<div style="font-size:11px;color:#6b7a96;line-height:1.6;padding:7px 0 0;">'+
               rej.map(function(r){ return '• '+esqEsc(String(r)); }).join('<br>')+
+            '</div></details>'
+        : '')+
+      (silent.length
+        ? '<details style="margin-top:7px;"><summary style="cursor:pointer;font-size:11px;color:#6b7a96;">'+
+            silent.length+' your website does not mention</summary>'+
+            '<div style="font-size:11px;color:#6b7a96;line-height:1.7;padding:7px 0 0;">'+
+              silent.map(function(k){ return '\u2022 '+esqEsc(esqLabelFor(k)); }).join('<br>')+
+              '<div style="color:#8a97b5;padding-top:7px;">'+
+                'It looked for each of these and found nothing it could quote. '+
+                'Some of them may simply not apply to you \u2014 not every '+
+                'organisation administers incentive programmes or serves a '+
+                'list of municipalities. Type in the ones that do.</div>'+
             '</div></details>'
         : '')+
       '<div style="font-size:10.5px;color:#4a5568;margin-top:9px;">'+
@@ -17854,6 +17925,18 @@ function esqRenderProfile(){
   });
 
   var groups = ESQ_PROFILE_GROUPS.map(function(g, gi){
+    /* ⚠️ Per-group, because a single total at the top cannot tell you WHERE
+       the gaps are - and a collapsed group tells you nothing at all. The
+       placeholders in this form are realistic sentences in grey, so filled
+       and empty are genuinely hard to tell apart at a glance; Eric misread
+       his own form this way, and he built it. */
+    var gFilled = 0;
+    g[2].forEach(function(f){
+      var gv = p[f[0]];
+      if(gv !== null && gv !== undefined && String(gv).trim() !== '') gFilled++;
+    });
+    var gTotal = g[2].length;
+
     var fields = g[2].map(function(f){
       var key = f[0], label = f[1], kind = f[2], hint = f[3];
       var v = (p[key] === null || p[key] === undefined) ? '' : String(p[key]);
@@ -17869,6 +17952,9 @@ function esqRenderProfile(){
         ' style="border:1px solid rgba(255,255,255,0.08);border-radius:9px;margin-bottom:9px;">'+
         '<summary style="cursor:pointer;padding:10px 13px;font-size:12.5px;font-weight:700;color:#eef3fc;">'+
           esqEsc(g[0])+
+          '<span style="float:right;font-weight:400;font-size:11px;'+
+            'color:'+(gFilled === 0 ? '#6b7a96' : (gFilled === gTotal ? '#aaff3e' : '#e8b84b'))+';">'+
+            (gFilled === 0 ? 'none of '+gTotal+' yet' : gFilled+' of '+gTotal)+'</span>'+
           '<span style="display:block;font-weight:400;font-size:11px;color:#6b7a96;margin-top:2px;">'+
             esqEsc(g[1])+'</span></summary>'+
         '<div style="padding:4px 13px 12px;">'+fields+'</div>'+
@@ -17879,7 +17965,12 @@ function esqRenderProfile(){
     '<div style="margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);">'+
       '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">'+
         '<div style="font-size:13px;font-weight:700;color:#eef3fc;">Team profile</div>'+
-        '<div style="font-size:11.5px;color:#6b7a96;">'+filled+' of 20 filled</div>'+
+        /* ⚠️ THIS SAID "of 20". A number typed from memory beside a number
+           that is counted is how a report comes to read "21 of ~20". Exactly
+           the same mistake, in the same product, about the same table, two
+           hours after the SQL version of it. Counted now. */
+        '<div style="font-size:11.5px;color:#6b7a96;">'+
+          filled+' of '+esqProfileFieldIds().length+' filled</div>'+
       '</div>'+
       '<div style="font-size:11.5px;color:#6b7a96;line-height:1.55;margin-bottom:12px;">'+
         (may
@@ -17891,7 +17982,14 @@ function esqRenderProfile(){
             '<button class="modal-btn" type="button" id="pf-research" '+
               'style="margin:0 0 7px;background:rgba(170,255,62,0.12);'+
               'border:1px solid rgba(170,255,62,0.35);color:#aaff3e;">'+
-              '\u2726 Fill this in from our website</button>'+
+              /* ⚠️ The old label promised a filled-in form. It cannot promise
+                 that - it can only promise to look. Over-promising is what
+                 made two empty groups read as a failure rather than as an
+                 answer. (The old wording is deliberately not repeated here:
+                 the patch refuses if that string survives anywhere, and this
+                 comment tripped it the first time, which is the guard doing
+                 its job.) */
+              '\u2726 See what our website can fill in</button>'+
             '<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+
               'Reads your own site and suggests what it finds, with the sentence '+
               'it came from. <strong style="color:#8a97b5;">Nothing is saved until '+
