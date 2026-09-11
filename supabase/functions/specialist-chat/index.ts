@@ -170,8 +170,26 @@ Output: Clear written analysis with key findings, trends, notable data points, w
 /* ── Community context ─────────────────────────────────────────
    Built only from fields that actually hold something. A user with
    nothing on file gets no block at all, and therefore a prompt
-   byte-identical to what shipped before this change. */
-function buildContext(profile: any, community: any): string {
+   byte-identical to what shipped before this change.
+
+   ⚠️ THERE ARE TWO FILE CABINETS AND THIS ONLY EVER OPENED ONE.
+   community_profiles is per person. esq_org_profiles is the shared
+   organisation profile - twenty fields built in TEAM-26 explicitly so a team
+   could produce documents - and no specialist has ever read it. A member
+   joining a paid team inherited the logo and nothing else, which is most of
+   what the Team plan promises.
+
+   ⚠️ PRECEDENCE IS NOT ARBITRARY.
+     organisation facts  the ORG profile wins. It is what the team agreed on;
+                         one member's private note should not silently change
+                         the address on everybody's letterhead.
+     contact details     ALWAYS the individual. If the org profile could
+                         supply these, Clara would sign five people's cover
+                         letters with the sixth person's name. This is the
+                         same rule recorded in claude/team-seats.md and it is
+                         the reason those fields were kept off the org
+                         profile in the first place. */
+function buildContext(profile: any, community: any, org: any, orgName?: string): string {
   const known: string[] = [];
   const missing: string[] = [];
 
@@ -183,17 +201,40 @@ function buildContext(profile: any, community: any): string {
 
   const c = community ?? {};
   const p = profile ?? {};
+  const o = org ?? {};
 
-  add('Organisation', c.org_name || p.organization);
-  add('Also written as', c.org_short_name);
-  add('Website', c.website);
-  add('Region', c.region);
+  /* Organisation — shared profile first, the person's own as the fallback. */
+  add('Organisation', o.legal_name || c.org_name || orgName || p.organization);
+  add('Also written as', o.short_name || c.org_short_name);
+  add('Type of organisation', o.entity_type);
+  add('Address', o.address);
+  add('Website', o.website || c.website);
+  add('Main phone', o.phone);
+  add('General email', o.general_email);
+  add('Governing body', o.governing_body);
+  add('Established', o.founded_year);
+
+  /* Where they are and what they do. */
+  add('Region', o.region_label || c.region);
   add('County', c.county);
   add('State', c.state);
+  add('Municipalities served', o.municipalities);
   add('Population', c.population);
+  add('Access and infrastructure', o.access_notes);
+  add('Top employers', o.top_employers);
+  add('Incentive programs they administer', o.incentive_programs);
   add('Key industries', c.key_industries);
   add('Target sectors', c.target_sectors);
-  add('Standard boilerplate', c.boilerplate);
+
+  /* Voice. */
+  add('Mission', o.mission);
+  add('Tagline', o.tagline);
+  add('Standard boilerplate', o.boilerplate || c.boilerplate);
+  add('Refers to itself as', o.self_reference);
+  add('House style', o.style_notes);
+  add('Standard footer notice', o.footer_notice);
+
+  /* ⚠️ Personal, never from the organisation. */
   add('Primary contact', [c.contact_name || p.full_name, c.contact_title]
     .filter(Boolean).join(', '));
   add('Contact phone', c.contact_phone);
@@ -202,15 +243,31 @@ function buildContext(profile: any, community: any): string {
 
   if (!known.length) return '';
 
+  /* ⚠️ CONFIRM, DO NOT INTERROGATE, AND DO NOT SILENTLY ASSUME EITHER.
+     "Use it directly, do not ask" produced a specialist that quietly acted on
+     a stored fact the person could not see and might have outgrown. Eric:
+     "should at least say is this for <name your community> to confirm - do
+     not ask like it's clueless." One short line, then get on with it. */
+  const heading = (o.legal_name || c.org_name || orgName || p.organization || '').trim();
+
   let block = 'COMMUNITY CONTEXT\n'
-    + 'The person you are working with has told us the following about their '
-    + 'organisation. Use it directly — do not ask them to repeat any of it.\n\n'
+    + 'This is already on file for the person you are working with. Use it — '
+    + 'do not ask them to repeat any of it.\n\n'
     + known.join('\n');
+
+  block += '\n\nOPEN BY CONFIRMING, IN ONE SHORT LINE, NOT BY ASKING.\n'
+    + (heading
+        ? 'Begin your first reply with a single sentence naming who this is '
+          + 'for — for example "Working on this for ' + heading + '." — then '
+          + 'carry straight on. Do not turn it into a question and do not wait '
+          + 'for an answer. If they correct you, use the correction from then on.'
+        : 'Name back what you already know in one sentence before you start, '
+          + 'so they can correct you, then carry straight on.');
 
   if (missing.length) {
     block += '\n\nNOT ON FILE: ' + missing.join(', ') + '.\n'
       + 'Do not invent any of these. If you need one, ask for it, and ask for '
-      + 'it once.';
+      + 'it once. Never ask for anything listed above as known.';
   }
 
   return block + '\n\n---\n\n';
@@ -363,12 +420,44 @@ Deno.serve(async (req: Request) => {
 
     /* ── Community context ──────────────────────────────────────── */
     try {
-      const [{ data: prof }, { data: community }] = await Promise.all([
+      const [{ data: prof }, { data: community }, { data: seat }] = await Promise.all([
         admin.from('profiles').select('full_name,email,organization').eq('id', user.id).maybeSingle(),
         admin.from('community_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        /* ⚠️ Oldest live seat, tie-broken by id — IDENTICAL to
+           public.esq_my_primary_org() and to esqTeamLoad in index.html. Three
+           places now decide "which of this person's organisations", and they
+           must agree or the app, its records and its specialists will each
+           believe something different. If you change one, change all three. */
+        admin.from('esq_org_members')
+          .select('org_id')
+          .eq('user_id', user.id).is('revoked_at', null)
+          .order('granted_at', { ascending: true })
+          .order('org_id', { ascending: true })
+          .limit(1).maybeSingle(),
       ]);
 
-      const context = buildContext(prof, community);
+      let org: any = null;
+      let orgName: string | undefined;
+      if (seat && seat.org_id) {
+        /* Separate, and deliberately not fatal: these tables may not exist on
+           an older database, and a specialist must still answer. */
+        try {
+          const [{ data: op }, { data: o }] = await Promise.all([
+            admin.from('esq_org_profiles').select('*').eq('org_id', seat.org_id).maybeSingle(),
+            admin.from('esq_organizations').select('name,status').eq('id', seat.org_id).maybeSingle(),
+          ]);
+          /* A suspended organisation stops supplying its profile, the same way
+             it stops granting a seat everywhere else in the product. */
+          if (!o || o.status !== 'suspended') {
+            org = op || null;
+            orgName = (o && o.name) || undefined;
+          }
+        } catch (e) {
+          console.warn('specialist-chat: no organisation profile available', e);
+        }
+      }
+
+      const context = buildContext(prof, community, org, orgName);
       if (context) system = context + system;
 
     } catch (e) {
