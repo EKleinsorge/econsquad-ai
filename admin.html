@@ -599,6 +599,16 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
         </div>
       </div>
 
+      <div class="admin-card">
+        <div style="font-size:14px;font-weight:800;color:#eef3fc;">Recent briefings</div>
+        <div style="font-size:12px;color:#6b7a96;margin-bottom:4px;max-width:66ch;line-height:1.6;">
+          What each run found, newest first. A gap in the dates means nobody ran one &mdash; which is
+          itself worth seeing. Marked <span style="color:#f5c542;">incomplete</span> when a query
+          failed during that run, because those counts are not an all-clear.
+        </div>
+        <div id="esq-brief-log" style="margin-top:6px;font-size:12.5px;color:#8a97b5;">Loading...</div>
+      </div>
+
       <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
                   color:#6b7a96;margin:22px 0 10px;">Every weekday morning &middot; in this order</div>
       <div style="display:flex;flex-direction:column;gap:10px;"><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d1" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">1</span>Did yesterday&rsquo;s trial-care run go out?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Trial Care &rarr; Recently sent. <a href="admin.html#trialcare" target="_blank" rel="noopener" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open in a new tab &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Good</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;"><span style="color:#4ade80;">Rows dated yesterday, all green <b>sent</b>.</span> Some days there are none. That is normal &mdash; it only writes when somebody is genuinely due one.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Any red <b style="color:#ff8080;">failed</b> row: click it, read the reason, tell Eric. A grey <b>not sent</b> row is correct and needs nothing.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d2" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">2</span>Is anyone about to be charged who never used it?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">All Users, sorted by trial end. <a href="admin.html#users" target="_blank" rel="noopener" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open in a new tab &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Look for</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Anyone ending within 3 days whose mission count is <b>0</b> and who has a card on file</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;"><b style="color:#ff8080;">Tell Eric the same day.</b> Somebody billed for a product they never opened asks their bank for the money back, and a chargeback costs more than the subscription.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d3" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">3</span>Did any money move badly?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Stripe &rarr; Transactions &rarr; Payments</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Look for</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Anything <b>Failed</b>, <b>Disputed</b> or <b>Refunded</b> since yesterday</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">A dispute is urgent &mdash; there is a deadline to respond. Tell Eric straight away. A single failed card usually retries by itself.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Note</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">This Stripe account also carries GSLI&rsquo;s business, so most charges in it are <i>not</i> EconSquad. The descriptor <b>ECONSQUAD.AI</b> is how you tell.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d4" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">4</span>Has anyone written in?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">The <b>eric@econsquad.ai</b> inbox</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Every automated email &mdash; including the ones signed by ARIA &mdash; has its reply address set to Eric. Replies land there, not anywhere in this admin.</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Answer anything simple. Money, cancelling or a complaint goes to Eric.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d5" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">5</span>Any new problem reports?</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Problem Reports. <a href="admin.html#reports" target="_blank" rel="noopener" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open in a new tab &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Act</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Read each one and note the person&rsquo;s email. If two people report the same thing, say so &mdash; that is the difference between a quirk and a fault.</span></div></span></label><label style="display:flex;gap:14px;align-items:flex-start;padding:15px 17px;background:rgba(14,20,36,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;"><input type="checkbox" data-esqcheck="d6" style="width:19px;height:19px;margin:2px 0 0;accent-color:#4ade80;cursor:pointer;flex:none;"><span style="flex:1;min-width:0;"><span style="display:block;font-size:14px;font-weight:700;color:#eef3fc;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;color:#aaff3e;background:rgba(170,255,62,0.10);border-radius:4px;padding:1px 6px;margin-right:8px;">6</span>New signups since yesterday</span><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Where</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">All Users, newest first. <a href="admin.html#users" target="_blank" rel="noopener" style="color:#aaff3e;text-decoration:none;border-bottom:1px dotted #aaff3e;">open in a new tab &rsaquo;</a></span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Write down</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">How many new, and how many ran a mission on day one</span></div><div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;"><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;min-width:64px;padding-top:2px;">Why</span><span style="flex:1;min-width:220px;font-size:13px;color:#8a97b5;line-height:1.6;">Day-one activity is the single number that predicts whether somebody ever pays. Writing it down daily is how that stops being a guess.</span></div></span></label></div>
@@ -7603,6 +7613,18 @@ function esqDcKey(){
   var d = new Date();
   return 'esq-dailychecks-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
 }
+/* Yesterday's ticks are dead weight in localStorage. Nothing ever removed
+   them, so the browser would quietly accumulate one small key per working
+   day forever. Dropped on the way past. */
+function esqDcPrune(){
+  try {
+    var keep = esqDcKey();
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('esq-dailychecks-') === 0 && k !== keep) localStorage.removeItem(k);
+    }
+  } catch(e) {}
+}
 function esqDcRead(){
   try { return JSON.parse(localStorage.getItem(esqDcKey()) || '{}'); } catch(e){ return {}; }
 }
@@ -7610,6 +7632,7 @@ function esqDcWrite(s){
   try { localStorage.setItem(esqDcKey(), JSON.stringify(s)); } catch(e){}
 }
 function esqDailyChecksInit(){
+  esqDcPrune();
   var dateEl = document.getElementById('esq-dc-date');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString(undefined,
     { weekday:'long', day:'numeric', month:'long' });
@@ -7631,6 +7654,7 @@ function esqDailyChecksInit(){
     })(boxes[i]);
   }
   esqDcProgress();
+  if (typeof esqLoadBriefingLog === 'function') esqLoadBriefingLog();
 }
 
 /* WHAT A TICK MEANS, AND WHAT IT DOES NOT.
@@ -7755,12 +7779,19 @@ function esqBuildBriefing(){
   var out = document.getElementById('esq-brief-out');
   var btn = document.getElementById('esq-brief-btn');
   if (!out) return;
-  if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
-  out.innerHTML = '<span style="color:#8a97b5;">Reading the database…</span>';
+  if (btn) { btn.disabled = true; btn.textContent = 'Reading...'; }
+  out.innerHTML = '<span style="color:#8a97b5;">Reading the database...</span>';
+
+  /* What gets written to briefing_runs. A count stays NULL until a query
+     actually succeeds, so a failed read can never be stored as a zero -
+     see the note on the table. */
+  var rec = { emails_sent:null, emails_failed:null, charge_risk:null,
+              new_signups:null, new_activated:null, open_reports:null,
+              lapsed_trials:null, could_not_check:[], findings:{} };
 
   var now = new Date();
   var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  var since = new Date(startOfToday.getTime() - 24*60*60*1000);   // yesterday 00:00 local
+  var since = new Date(startOfToday.getTime() - 24*60*60*1000);
   var sinceIso = since.toISOString();
   var in3days = new Date(startOfToday.getTime() + 3*24*60*60*1000);
 
@@ -7773,24 +7804,26 @@ function esqBuildBriefing(){
     var profRes = r[0], taskRes = r[1], sendRes = r[2], repRes = r[3];
     var html = '';
 
-    /* --- the canary, before anything else is believed ------------- */
     if (profRes.error) {
+      rec.could_not_check.push('profiles: ' + profRes.error.message);
       out.innerHTML = esqBriefRow('bad', 'Could not read members at all',
         'The briefing is not reliable. ' + esqEsc(profRes.error.message));
+      esqSaveBriefing(rec, out);
       if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
       return;
     }
     var profs = profRes.data || [];
     if (!profs.length) {
+      rec.could_not_check.push('profiles: returned empty, which cannot be true');
       out.innerHTML = esqBriefRow('bad', 'Members came back empty, which cannot be true',
         'Something is blocking the read rather than there being nobody. Do not treat anything '
         + 'below as an all-clear. Tell Eric.');
+      esqSaveBriefing(rec, out);
       if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
       return;
     }
 
-    /* --- missions per person -------------------------------------- */
-    var missions = {}, firstDay = {};
+    var missions = {};
     if (!taskRes.error) {
       (taskRes.data || []).forEach(function(t){
         missions[t.user_id] = (missions[t.user_id] || 0) + 1;
@@ -7804,13 +7837,19 @@ function esqBuildBriefing(){
 
     /* --- 1. trial-care mail --------------------------------------- */
     if (sendRes.error) {
+      rec.could_not_check.push('trial_sends: ' + sendRes.error.message);
       html += esqBriefRow('note', 'Could not check trial-care mail',
         esqEsc(sendRes.error.message) + ' &mdash; look at Recently sent yourself.');
     } else {
       var sends = sendRes.data || [];
       var failed = sends.filter(function(s){ return s.status === 'failed'; });
       var sent   = sends.filter(function(s){ return s.status === 'sent'; });
+      rec.emails_sent = sent.length;
+      rec.emails_failed = failed.length;
       if (failed.length) {
+        rec.findings.failed = failed.map(function(f){
+          return { to:f.email, touchpoint:f.touchpoint_key, detail:f.detail || null };
+        });
         html += esqBriefRow('bad', failed.length + ' email(s) failed to send',
           failed.map(function(f){
             return esqEsc(f.email) + ' &mdash; ' + esqEsc(f.touchpoint_key)
@@ -7835,10 +7874,16 @@ function esqBuildBriefing(){
       return end >= startOfToday && end <= in3days && !(missions[p.id] > 0);
     });
     if (taskRes.error) {
+      rec.could_not_check.push('task_history: ' + taskRes.error.message);
       html += esqBriefRow('note', 'Could not check who has run missions',
         esqEsc(taskRes.error.message) + ' &mdash; so the charge-risk check below is incomplete.');
+    } else {
+      rec.charge_risk = risky.length;
     }
     if (risky.length) {
+      rec.findings.charge_risk = risky.map(function(p){
+        return { email:p.email, trial_end:p.trial_end };
+      });
       html += esqBriefRow('bad', risky.length + ' person(s) will be charged and have run nothing',
         risky.map(function(p){
           return esqEsc(p.email) + ' &mdash; ends '
@@ -7853,23 +7898,31 @@ function esqBuildBriefing(){
     var fresh = profs.filter(function(p){
       return p.created_at && new Date(p.created_at) >= since && !internal(p.email);
     });
+    rec.new_signups = fresh.length;
     if (fresh.length) {
       var started = fresh.filter(function(p){ return missions[p.id] > 0; }).length;
+      if (!taskRes.error) rec.new_activated = started;
+      rec.findings.new_signups = fresh.map(function(p){
+        return { email:p.email, missions: missions[p.id] || 0 };
+      });
       html += esqBriefRow(started === fresh.length ? 'ok' : 'note',
         fresh.length + ' new signup(s) since yesterday, ' + started + ' already ran a mission',
         fresh.map(function(p){
           return esqEsc(p.email) + ' &mdash; ' + (missions[p.id] || 0) + ' mission(s)';
         }).join('<br>') + '<br>Write both numbers down.');
     } else {
+      if (!taskRes.error) rec.new_activated = 0;
       html += esqBriefRow('ok', 'No new signups since yesterday', '');
     }
 
     /* --- 4. problem reports --------------------------------------- */
     if (repRes.error) {
+      rec.could_not_check.push('problem_reports: ' + repRes.error.message);
       html += esqBriefRow('note', 'Could not check problem reports',
         esqEsc(repRes.error.message) + ' &mdash; open the Problem Reports screen yourself.');
     } else {
       var open = (repRes.data || []).filter(function(x){ return !x.resolved; });
+      rec.open_reports = open.length;
       html += open.length
         ? esqBriefRow('bad', open.length + ' new problem report(s)',
             'Read each one. If two describe the same thing, say so.')
@@ -7881,6 +7934,8 @@ function esqBuildBriefing(){
       return p.plan === 'trial' && !p.canceled_at && !p.is_beta_tester && !internal(p.email)
           && p.trial_end && new Date(p.trial_end) < startOfToday;
     });
+    rec.lapsed_trials = lapsed.length;
+    if (lapsed.length) rec.findings.lapsed = lapsed.map(function(p){ return p.email; });
     html += lapsed.length
       ? esqBriefRow('note', lapsed.length + ' trial(s) ended but still show as TRIAL',
           lapsed.slice(0,8).map(function(p){ return esqEsc(p.email); }).join('<br>')
@@ -7888,7 +7943,6 @@ function esqBuildBriefing(){
           + '<br>Usually harmless. Worth listing for Eric on Monday.')
       : esqBriefRow('ok', 'No trials sitting past their end date', '');
 
-    /* --- what this cannot see ------------------------------------- */
     html += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);'
          +  'font-size:12px;color:#6b7a96;line-height:1.7;">'
          +  '<b style="color:#f5c542;">Still needs your eyes &mdash; this page cannot reach them:</b><br>'
@@ -7899,17 +7953,102 @@ function esqBuildBriefing(){
          +  '</div>';
 
     html += '<div style="margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;'
-         +  'font-size:11px;color:#4a5568;">read at '
+         +  'font-size:11px;color:#4a5568;" id="esq-brief-stamp">read at '
          +  now.toLocaleString(undefined,{hour:'numeric',minute:'2-digit',day:'numeric',month:'short'})
          +  ' &middot; covers everything since ' + since.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})
          +  '</div>';
 
     out.innerHTML = html;
+    esqSaveBriefing(rec, out);
     if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
   }).catch(function(e){
     out.innerHTML = esqBriefRow('bad', 'The briefing could not run',
       esqEsc(e && e.message ? e.message : String(e)) + ' &mdash; work through the checklist by hand.');
     if (btn) { btn.disabled = false; btn.textContent = 'Update today’s briefing'; }
+  });
+}
+
+/* Keep the result. Not "somebody ticked the boxes" - what the data said.
+   !! IF THE WRITE FAILS, SAY SO ON THE PAGE. A briefing that silently
+   stopped being recorded would leave a gap in the history that looks
+   exactly like nobody having run one. */
+function esqSaveBriefing(rec, out){
+  var row = {
+    ran_by:          (typeof adminUser !== 'undefined' && adminUser) ? adminUser.id : null,
+    ran_by_email:    (typeof adminUser !== 'undefined' && adminUser) ? adminUser.email : null,
+    emails_sent:     rec.emails_sent,
+    emails_failed:   rec.emails_failed,
+    charge_risk:     rec.charge_risk,
+    new_signups:     rec.new_signups,
+    new_activated:   rec.new_activated,
+    open_reports:    rec.open_reports,
+    lapsed_trials:   rec.lapsed_trials,
+    could_not_check: rec.could_not_check,
+    findings:        rec.findings
+  };
+  supa.from('briefing_runs').insert(row).select('id').then(function(res){
+    var note = document.createElement('div');
+    note.style.cssText = 'margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;';
+    if (res.error) {
+      note.style.color = '#ff8080';
+      note.innerHTML = 'not recorded: ' + esqEsc(res.error.message)
+        + (String(res.error.message || '').indexOf('briefing_runs') !== -1
+            ? ' &mdash; run 20260911_briefing_runs.sql' : '');
+    } else if (!res.data || !res.data.length) {
+      /* A zero-row insert is a success in PostgREST. Saying "saved" here
+         would be a guess. */
+      note.style.color = '#f5c542';
+      note.innerHTML = 'recorded nothing back - the row may not have been written';
+    } else {
+      note.style.color = '#4a5568';
+      note.innerHTML = 'recorded as briefing #' + res.data[0].id;
+    }
+    if (out) out.appendChild(note);
+    esqLoadBriefingLog();
+  });
+}
+
+/* The last ten runs. Reading it is how "did anybody look last week?"
+   gets an answer, and a gap in the dates is the answer when nobody did. */
+function esqLoadBriefingLog(){
+  var host = document.getElementById('esq-brief-log');
+  if (!host) return;
+  supa.from('briefing_runs')
+      .select('id,ran_at,ran_by_email,emails_failed,charge_risk,new_signups,new_activated,open_reports,could_not_check')
+      .order('ran_at', { ascending: false }).limit(10)
+      .then(function(res){
+    if (res.error) {
+      host.innerHTML = '<div style="font-size:12px;color:#ff8080;">Could not read the briefing history: '
+        + esqEsc(res.error.message) + '</div>';
+      return;
+    }
+    var rows = res.data || [];
+    if (!rows.length) {
+      host.innerHTML = '<div style="font-size:12px;color:#6b7a96;">No briefing has been recorded yet.</div>';
+      return;
+    }
+    host.innerHTML = rows.map(function(r){
+      var when = new Date(r.ran_at).toLocaleString(undefined,
+        { weekday:'short', day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
+      var bits = [];
+      if (r.emails_failed)  bits.push('<span style="color:#ff8080;">' + r.emails_failed + ' failed email(s)</span>');
+      if (r.charge_risk)    bits.push('<span style="color:#ff8080;">' + r.charge_risk + ' at charge risk</span>');
+      if (r.open_reports)   bits.push('<span style="color:#ff8080;">' + r.open_reports + ' report(s)</span>');
+      if (r.new_signups)    bits.push(r.new_signups + ' new signup(s)'
+                              + (r.new_activated != null ? ', ' + r.new_activated + ' active' : ''));
+      if (!bits.length)     bits.push('<span style="color:#4ade80;">nothing flagged</span>');
+      var warn = (r.could_not_check && r.could_not_check.length)
+        ? '<div style="color:#f5c542;font-size:11.5px;margin-top:2px;">incomplete &mdash; '
+          + esqEsc(r.could_not_check.join('; ')) + '</div>'
+        : '';
+      return '<div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);'
+           + 'font-size:12.5px;flex-wrap:wrap;">'
+           + '<span style="font-family:ui-monospace,Menlo,Consolas,monospace;color:#6b7a96;min-width:150px;">'
+           + when + '</span>'
+           + '<span style="flex:1;min-width:220px;color:#8a97b5;">' + bits.join(' &middot; ') + warn + '</span>'
+           + '<span style="color:#4a5568;font-size:11.5px;">' + esqEsc(r.ran_by_email || '') + '</span>'
+           + '</div>';
+    }).join('');
   });
 }
 </script>
