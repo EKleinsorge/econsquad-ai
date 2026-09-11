@@ -1008,6 +1008,10 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 
   /* NAV — mobile hamburger layout */
   .nav-bar { padding: 0 14px !important; height: 56px !important; position: relative !important; }
+  /* The bar loses 10px here, so the community logo gives some back rather
+     than sitting 4px from the top edge. */
+  #community-logo-img { height: 26px !important; max-width: 128px !important; }
+  #community-logo-by  { font-size: 7.5px !important; line-height: 9px !important; }
   #nav-marketing  { display: none !important; }
   #nav-dashboard  { display: none !important; }
   #nav-ctas-marketing { display: none !important; }
@@ -1430,9 +1434,17 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
       <!-- LEFT: Logo -->
       <div onclick="currentUser?showDashTab('home-tab',null):switchView('marketing')" style="display:flex;align-items:center;gap:12px;cursor:pointer;flex-shrink:0;">
         <!-- Community logo -->
-        <div id="community-logo-wrap" style="display:none;flex-direction:column;align-items:flex-start;">
-          <img id="community-logo-img" src="" alt="Logo" style="height:36px;max-width:140px;object-fit:contain;border-radius:6px;">
-          <div style="font-size:9px;color:#4a5568;margin-top:2px;font-family:'DM Sans',sans-serif;">powered by <span style="color:#aaff3e;font-weight:700;">EconSquad AI</span></div>
+        <!-- ⚠️ THIS BLOCK MUST BE THE SAME HEIGHT AS THE ECONSQUAD MARK IT
+             REPLACES (42px). It was 48px - a 36px logo, a 2px gap and a 9px
+             caption - inside a 66px bar, leaving 9px of clearance against the
+             12px the default mark gets, and only 4px on a phone where the bar
+             drops to 56px. Turning your own branding on should not make the
+             header look cramped; measured, not eyeballed. The logo loses 4px
+             of height and gains 20px of width, so a wide county banner is no
+             smaller than before. -->
+        <div id="community-logo-wrap" style="display:none;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1;">
+          <img id="community-logo-img" src="" alt="Logo" style="height:32px;max-width:160px;object-fit:contain;border-radius:6px;display:block;">
+          <div id="community-logo-by" style="font-size:8.5px;line-height:10px;color:#4a5568;margin-top:0;font-family:'DM Sans',sans-serif;white-space:nowrap;">powered by <span style="color:#aaff3e;font-weight:700;">EconSquad AI</span></div>
         </div>
         <!-- Default EconSquad logo -->
         <div id="default-logo-wrap" style="display:flex;align-items:center;gap:12px;">
