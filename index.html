@@ -6343,6 +6343,13 @@ var chatState={
   isTyping:false,
   lastOutput:null,
   specialistColor:null,
+  /* ⚠️ THE ROW THIS CONVERSATION ALREADY OWNS, if it has been saved once.
+     Eric refined one incentive analysis three times, pressed Save each
+     time, and got THREE history cards with the same question and three
+     versions of the answer - and three lots of hours_saved, so a single
+     piece of work reported nearly triple the time it saved, in the numbers
+     used to judge the product. One mission is one row. */
+  historyId:null,
 };
 
 function openSpecialistChat(id){
@@ -6355,6 +6362,7 @@ function openSpecialistChat(id){
   chatState.messages=[];
   chatState.lastOutput=null;
   chatState.specialistColor=s.color;
+  chatState.historyId=null;   /* new conversation, not yet in history */
 
   var col=ORB_C[s.color];
 
@@ -7014,6 +7022,8 @@ function showFinalOutput(text){
   newBtn.textContent='🔄 Start new task';
   newBtn.onclick=function(){
     chatState.messages=[];
+    /* Otherwise the next save would overwrite the mission just finished. */
+    chatState.historyId=null;
     msgs.innerHTML='';
     /* re-show greeting */
     var sp2=SPECIALIST_NAMES[chatState.specialistId];
@@ -7105,25 +7115,56 @@ function saveTaskToHistory(output){
     if(!transcript.length) transcript=null;
   }catch(e){ transcript=null; }
 
-  supa.from('task_history').insert({
-    user_id:currentUser.id,
-    user_email:currentUser.email||'',
+  var fields={
     messages:transcript,
-    specialist_id:chatState.specialistId,
     specialist_name:specialistDisplayName,
     specialist_color:s.color,
     category:s.cat||'',
     prompt:userMsgs.slice(0,500),
     result:output,
-    hours_saved:hoursSaved,
-  }).then(function(res){
+    hours_saved:hoursSaved
+  };
+
+  var q;
+  if(chatState.historyId){
+    /* ⚠️ .select('id') IS NOT OPTIONAL. PostgREST calls an UPDATE that
+       matched NO rows a success, so without asking for the affected rows
+       back a missing policy would leave the app saying "Saved!" forever
+       while changing nothing. The check is in the callback below. */
+    q=supa.from('task_history').update(fields)
+        .eq('id',chatState.historyId).eq('user_id',currentUser.id)
+        .select('id');
+  } else {
+    fields.user_id=currentUser.id;
+    fields.user_email=currentUser.email||'';
+    fields.specialist_id=chatState.specialistId;
+    q=supa.from('task_history').insert(fields).select('id');
+  }
+
+  q.then(function(res){
     /* supabase-js resolves with {data,error} either way. This callback used
        to run unconditionally, so a rejected insert still marked the user
        onboarded and reran the badge check — a failed write was
        indistinguishable from a successful one, which is why the ROI tracker
        could read empty with nobody noticing. */
+    /* An update that changed nothing is the failure mode this whole
+       mechanism is exposed to. Fall back to inserting rather than losing
+       the work, and say so in the console. */
+    if(res && !res.error && chatState.historyId &&
+       (!res.data || !res.data.length)){
+      console.warn('[task_history] update matched 0 rows for id '+
+        chatState.historyId+' — falling back to a new row. Run '+
+        '20260911_esq_task_own_update.sql if this keeps happening.');
+      chatState.historyId=null;
+      saveTaskToHistory(output);
+      return;
+    }
+    if(res && !res.error && res.data && res.data.length && res.data[0].id){
+      chatState.historyId=res.data[0].id;
+    }
+
     if(res && res.error){
-      console.error('[task_history] INSERT FAILED', res.error);
+      console.error('[task_history] SAVE FAILED', res.error);
       var w=document.getElementById('save-history-warn');
       if(!w){
         w=document.createElement('div');
@@ -7666,6 +7707,10 @@ function reopenHistoryItem(id){
   /* Opens the specialist AND clears chatState.messages, which is what we
      want - the replay below rebuilds it through the normal path. */
   deploy(item.specialist_id);
+
+  /* Carrying on from a saved mission and saving again updates THAT row,
+     rather than leaving a trail of near-identical cards behind. */
+  chatState.historyId=item.id;
 
   var turns=Array.isArray(item.messages)?item.messages:null;
   if(!turns||!turns.length){
