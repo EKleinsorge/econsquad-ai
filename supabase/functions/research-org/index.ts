@@ -48,7 +48,12 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-const TIMEOUT_MS    = 12000;
+/* !! 12000 WAS TOO TIGHT FOR MUNICIPAL HOSTING. Two of twenty-one
+   unreachable domains failed on timeout alone, and slow county and
+   small-city sites are exactly the audience here. 25s costs nothing on
+   a site that answers quickly - the timer only matters to the ones
+   that do not. */
+const TIMEOUT_MS    = 25000;
 const MAX_BYTES     = 400_000;
 const MAX_REDIRECTS = 3;
 const MAX_PAGES     = 5;
@@ -388,8 +393,18 @@ async function recordUsage(admin: any, row: Record<string, unknown>) {
       ? (inTok / 1e6) * Number(rate.input_per_mtok ?? 0) +
         (outTok / 1e6) * Number(rate.output_per_mtok ?? 0)
       : 0;
-    await admin.from('usage_events').insert({ ...row, model: MODEL,
-      provider: 'openai', cost_usd: cost });
+    if (!rate) console.warn('research-org: NO RATE CARD for', MODEL, '- cost recorded as 0');
+
+    /* ⚠️ THIS SAID usage_events, AND THERE IS NO SUCH TABLE.
+       The table is model_usage. Every research run was costing real money
+       and recording it nowhere - and it was invisible because PostgREST
+       RETURNS "relation does not exist" as an error value rather than
+       throwing it, so the try/catch below never fired and the console said
+       nothing. A swallowed error in the one function whose job is to
+       measure what things cost. Hence the explicit check. */
+    const { error } = await admin.from('model_usage').insert({ ...row, model: MODEL,
+      provider: 'openai', cost_usd: Number(cost.toFixed(6)) });
+    if (error) console.error('research-org: model_usage insert failed:', error.message);
   } catch (e) {
     /* Never let bookkeeping stop somebody getting their profile. */
     console.warn('research-org: usage not recorded', e);
