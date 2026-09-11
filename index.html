@@ -17629,6 +17629,211 @@ var ESQ_PROFILE_GROUPS = [
 
 var ESQ_PROFILE = null;   /* the row as loaded, so Save can send only what changed */
 
+/* ═══════════════════════════════════════════════════════════════════
+   FILL THIS IN FROM OUR WEBSITE — the approval screen
+   ───────────────────────────────────────────────────────────────────
+   Eric: "Couldn't most of the answers be researched and filled in for the
+   client to approve and/or change if needed so they don't have to type all
+   of the data?"
+
+   ⚠️ THE WHOLE POINT IS THAT IT IS A PROPOSAL, AND THE SCREEN HAS TO LOOK
+   LIKE ONE. Nothing arrives ticked. Every row shows the sentence it came
+   from and a link to the page, so approving is a glance rather than an act
+   of faith. Three rounds of real output justified this shape: the first run
+   confidently proposed an address of "Industrial Blvd, Plattsburgh, NY",
+   which is not an address, and a screen that hid the evidence would have
+   had somebody approve it in one click.
+
+   ⚠️ AND IT IS ALLOWED TO FIND NOTHING. About one site in three is too
+   thin. That path says so plainly and leaves the form alone, rather than
+   offering a page of half-guesses.  */
+
+var ESQ_RESEARCH = null;   /* the last set of proposals, unsaved */
+
+function esqResearchStart(){
+  if(!ESQ_TEAM || !esqCanEditProfile()) return;
+  var btn = document.getElementById('pf-research');
+  var out = document.getElementById('pf-research-out');
+  if(!out) return;
+
+  var site = '';
+  var el = document.getElementById('pf-website');
+  if(el) site = String(el.value || '').trim();
+  if(!site && ESQ_PROFILE) site = String(ESQ_PROFILE.website || '').trim();
+  if(!site){
+    out.innerHTML = '<div style="font-size:12px;color:#e8b84b;padding:10px 0;">'+
+      'Put your website in the Website field first — that is what it reads.</div>';
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Reading ' + esqEsc(site) + '…'; }
+  out.innerHTML = '<div style="font-size:12px;color:#6b7a96;padding:10px 0;">'+
+    'Reading your site and the pages it links to. Usually 10–20 seconds.</div>';
+
+  supa.auth.getSession().then(function(sres){
+    var tok = sres && sres.data && sres.data.session && sres.data.session.access_token;
+    return fetch(SUPA_URL + '/functions/v1/research-org', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + tok },
+      body: JSON.stringify({ org_id: ESQ_TEAM.orgId, website: site })
+    });
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if(btn){ btn.disabled = false; btn.textContent = '✦ Fill this in from our website'; }
+    esqRenderResearch(j);
+  }).catch(function(e){
+    if(btn){ btn.disabled = false; btn.textContent = '✦ Fill this in from our website'; }
+    out.innerHTML = '<div style="font-size:12px;color:#ff9b9b;padding:10px 0;">'+
+      'That did not run: ' + esqEsc(String(e && e.message || e)) + '</div>';
+  });
+}
+
+function esqLabelFor(key){
+  var found = key;
+  ESQ_PROFILE_GROUPS.forEach(function(g){
+    g[2].forEach(function(f){ if(f[0] === key) found = f[1]; });
+  });
+  return found;
+}
+
+function esqRenderResearch(j){
+  var out = document.getElementById('pf-research-out');
+  if(!out) return;
+  ESQ_RESEARCH = null;
+
+  if(!j || j.ok !== true){
+    out.innerHTML = '<div style="font-size:12px;color:#ff9b9b;padding:10px 0;">'+
+      esqEsc((j && (j.message || j.error)) || 'That did not work.') + '</div>';
+    return;
+  }
+
+  /* ⚠️ Nothing found is a real answer, not a failure to dress up. */
+  if(j.enough === false || !j.fields || !Object.keys(j.fields).length){
+    out.innerHTML =
+      '<div style="border:1px solid rgba(232,184,75,0.3);background:rgba(232,184,75,0.06);'+
+        'border-radius:9px;padding:12px 14px;font-size:12px;color:#e8d9a8;line-height:1.6;">'+
+        esqEsc(j.message || 'There was not enough on that site to fill anything in.')+
+        '<div style="color:#8a97b5;margin-top:8px;font-size:11.5px;">'+
+          'Nothing has been changed. Filling the fields in by hand is the way here.</div>'+
+      '</div>';
+    return;
+  }
+
+  ESQ_RESEARCH = j.fields;
+  var keys = Object.keys(j.fields);
+
+  var rows = keys.map(function(k){
+    var f = j.fields[k] || {};
+    var v = String(f.value == null ? '' : f.value);
+    var many = v.length > 90 || v.indexOf('\n') !== -1;
+    var input = many
+      ? '<textarea id="rp-v-'+k+'" rows="3" style="width:100%;box-sizing:border-box;">'+esqEsc(v)+'</textarea>'
+      : '<input id="rp-v-'+k+'" type="text" value="'+esqEsc(v)+'" style="width:100%;box-sizing:border-box;">';
+    var already = (ESQ_PROFILE && ESQ_PROFILE[k] != null && String(ESQ_PROFILE[k]).trim() !== '')
+      ? String(ESQ_PROFILE[k]) : '';
+
+    return '<div style="border-top:1px solid rgba(255,255,255,0.06);padding:11px 0;">'+
+      '<label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;">'+
+        /* ⚠️ Unticked. A pre-ticked box is a save you did not ask for. */
+        '<input type="checkbox" id="rp-k-'+k+'" style="margin-top:3px;flex-shrink:0;">'+
+        '<span style="font-size:12.5px;font-weight:700;color:#eef3fc;">'+esqEsc(esqLabelFor(k))+'</span>'+
+      '</label>'+
+      (already
+        ? '<div style="font-size:11px;color:#e8b84b;margin:5px 0 0 26px;">'+
+            '⚠ You already have: '+esqEsc(already.slice(0,120))+(already.length>120?'…':'')+
+            ' — keeping this replaces it.</div>'
+        : '')+
+      '<div style="margin:7px 0 0 26px;">'+input+'</div>'+
+      '<div style="margin:6px 0 0 26px;font-size:11px;color:#6b7a96;line-height:1.5;">'+
+        '“'+esqEsc(String(f.evidence||'').slice(0,220))+'” '+
+        '<a href="'+esqEsc(String(f.source_url||''))+'" target="_blank" rel="noopener"'+
+          ' style="color:#8a97b5;">source</a>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var rej = Array.isArray(j.rejected) ? j.rejected : [];
+
+  out.innerHTML =
+    '<div style="border:1px solid rgba(170,255,62,0.25);border-radius:10px;padding:13px 15px;margin-top:4px;">'+
+      '<div style="font-size:12.5px;font-weight:700;color:#aaff3e;">'+
+        keys.length+' thing'+(keys.length===1?'':'s')+' found on your website</div>'+
+      '<div style="font-size:11.5px;color:#8a97b5;line-height:1.55;margin:5px 0 2px;">'+
+        '<strong style="color:#eef3fc;">Nothing has been saved.</strong> '+
+        'Tick what is right, correct anything that is nearly right, and leave the rest. '+
+        'Each one shows the sentence it came from.</div>'+
+      rows+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;">'+
+        '<button class="modal-btn" type="button" id="rp-save" style="margin:0;">Keep the ticked ones</button>'+
+        '<button type="button" id="rp-all" style="background:none;border:none;color:#8a97b5;'+
+          'font-size:11.5px;text-decoration:underline;cursor:pointer;">tick all</button>'+
+        '<button type="button" id="rp-none" style="background:none;border:none;color:#8a97b5;'+
+          'font-size:11.5px;text-decoration:underline;cursor:pointer;">discard these</button>'+
+      '</div>'+
+      (rej.length
+        ? '<details style="margin-top:11px;"><summary style="cursor:pointer;font-size:11px;color:#6b7a96;">'+
+            rej.length+' more it tried to claim and could not back up</summary>'+
+            '<div style="font-size:11px;color:#6b7a96;line-height:1.6;padding:7px 0 0;">'+
+              rej.map(function(r){ return '• '+esqEsc(String(r)); }).join('<br>')+
+            '</div></details>'
+        : '')+
+      '<div style="font-size:10.5px;color:#4a5568;margin-top:9px;">'+
+        'Read '+(j.pages_read||[]).length+' page'+((j.pages_read||[]).length===1?'':'s')+
+        ' of '+esqEsc(String(j.site||''))+'.</div>'+
+    '</div>';
+
+  document.getElementById('rp-save').addEventListener('click', esqResearchKeep);
+  document.getElementById('rp-all').addEventListener('click', function(){
+    keys.forEach(function(k){ var c=document.getElementById('rp-k-'+k); if(c) c.checked = true; });
+  });
+  document.getElementById('rp-none').addEventListener('click', function(){
+    ESQ_RESEARCH = null; out.innerHTML = '';
+  });
+}
+
+function esqResearchKeep(){
+  if(!ESQ_RESEARCH || !ESQ_TEAM || !esqCanEditProfile()) return;
+  var btn = document.getElementById('rp-save');
+  var patch = { org_id: ESQ_TEAM.orgId };
+  var kept = 0;
+
+  Object.keys(ESQ_RESEARCH).forEach(function(k){
+    var box = document.getElementById('rp-k-'+k);
+    var val = document.getElementById('rp-v-'+k);
+    if(!box || !box.checked || !val) return;
+    var raw = String(val.value == null ? '' : val.value).trim();
+    if(raw === '') return;
+    patch[k] = (k === 'founded_year') ? Number(raw) : raw;
+    kept++;
+  });
+
+  if(!kept){ esqMsg('ok', 'Nothing was ticked, so nothing was saved.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  supa.from('esq_org_profiles').upsert(patch, { onConflict: 'org_id' }).select('*')
+    .then(function(res){
+      btn.disabled = false; btn.textContent = 'Keep the ticked ones';
+      /* ⚠️ A zero-row result is a refusal, not a success — the same trap as
+         esqSaveProfile. PostgREST calls an update that matched nothing a
+         success, so without asking for the row back a declined save looks
+         exactly like one that worked. */
+      if(res.error || !res.data || !res.data.length){
+        esqMsg('err', res.error
+          ? ('That did not save: ' + res.error.message)
+          : 'That did not save. Only somebody with permission can change the team profile.');
+        return;
+      }
+      ESQ_PROFILE = res.data[0];
+      ESQ_RESEARCH = null;
+      var out = document.getElementById('pf-research-out');
+      if(out) out.innerHTML = '<div style="font-size:12px;color:#aaff3e;padding:9px 0;">'+
+        'Kept '+kept+'. They are in the form below — edit any of them like anything else.</div>';
+      esqRenderProfile();
+      esqMsg('ok', 'Saved '+kept+' field'+(kept===1?'':'s')+' from your website.');
+    });
+}
+
+
+
 function esqProfileFieldIds(){
   var out = [];
   ESQ_PROFILE_GROUPS.forEach(function(g){ g[2].forEach(function(f){ out.push(f[0]); }); });
@@ -17681,6 +17886,19 @@ function esqRenderProfile(){
           ? 'Everyone on the team writes from this. Nothing here has to be finished — your specialists will ask for what they are missing when they need it.'
           : 'Everyone on the team writes from this. It is set by '+esqEsc(ESQ_TEAM.orgName)+'.')+
         ' Your own name, title, phone and email are not here and are never shared.</div>'+
+      (may
+        ? '<div style="margin-bottom:14px;">'+
+            '<button class="modal-btn" type="button" id="pf-research" '+
+              'style="margin:0 0 7px;background:rgba(170,255,62,0.12);'+
+              'border:1px solid rgba(170,255,62,0.35);color:#aaff3e;">'+
+              '\u2726 Fill this in from our website</button>'+
+            '<div style="font-size:11px;color:#6b7a96;line-height:1.5;">'+
+              'Reads your own site and suggests what it finds, with the sentence '+
+              'it came from. <strong style="color:#8a97b5;">Nothing is saved until '+
+              'you tick it.</strong></div>'+
+            '<div id="pf-research-out" style="margin-top:10px;"></div>'+
+          '</div>'
+        : '')+
       groups+
       (may
         ? '<button class="modal-btn" type="button" id="pf-save" style="margin-top:4px;">Save the team profile</button>'
@@ -17689,6 +17907,8 @@ function esqRenderProfile(){
 
   var b = document.getElementById('pf-save');
   if(b) b.addEventListener('click', esqSaveProfile);
+  var rb = document.getElementById('pf-research');
+  if(rb) rb.addEventListener('click', esqResearchStart);
 }
 
 function esqLoadProfile(){
