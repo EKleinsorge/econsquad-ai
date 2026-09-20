@@ -1608,6 +1608,13 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
                 <span style="font-size:14px;">📊</span>
                 <span style="font-size:12px;color:#eef3fc;">My Stats & ROI</span>
               </div>
+              <!-- The permanent door. The wizard step only ever fires once,
+                   and for a new signup; the eleven people already stalled on
+                   zero missions need somewhere to find this. -->
+              <div onclick="toggleProfileMenu();esqOpenImport();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size:14px;">&#128260;</span>
+                <span style="font-size:12px;color:#eef3fc;">Bring your ChatGPT setup</span>
+              </div>
               <div id="dash-nav-history" onclick="showDashTab('history-tab',null);toggleProfileMenu();" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
                 <span style="font-size:14px;">📋</span>
                 <span style="font-size:12px;color:#eef3fc;">Mission History</span>
@@ -3225,6 +3232,9 @@ body.esq-merch-on a.res-quick-card.esq-merch{display:flex !important}
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Reads a ChatGPT export in the browser. Pure, no network, no DOM -
+     so tools/test_chatgpt_zip.js runs exactly this file in node. -->
+<script src="chatgpt-import.js?v=1"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <script>
@@ -9605,6 +9615,18 @@ var SW_STEPS = [
     cta:'Open my profile →', skip:'Skip for now', action:'openProfileForSetup'
   },
   {
+    /* ⚠️ BEFORE THE SQUAD, DELIBERATELY. Seven of the nine trials
+       expiring on 15 September ran zero missions. The squad is more
+       convincing when the specialists already know who you are, and
+       this is the step that makes the first session feel like THEIR
+       EconSquad rather than an empty one. */
+    id:'import', icon:'🔄', time:'~2 min',
+    title:'Bring your ChatGPT setup',
+    body:'You have already told ChatGPT about your organisation. Paste those custom instructions in, or drop in your ChatGPT export, and every specialist here will know your community, your incentive programs and how you write \u2014 from the first task.',
+    why:'<strong>Your export is never uploaded.</strong> It is read on this computer, and you are shown exactly what will be sent before anything is. <strong>Why this matters:</strong> a specialist that already knows your letterhead saves you retyping it on every single task.',
+    cta:'Bring it across \u2192', skip:'Skip \u2014 I\'ll do this later', action:'openImportPanel'
+  },
+  {
     id:'squad', icon:'⚡', time:'~2 min',
     title:'Your AI specialist squad',
     body:'Click below to see your live squad. Each card is a different AI expert — grant writers, BRE analysts, incentive modelers, site selectors, workforce analysts, and more. Browse around, then hit <strong>✦ Continue setup</strong> (bottom-right) to come back.',
@@ -9872,6 +9894,15 @@ function _swAction(stepId){
         toggleProfileMenu();
         setTimeout(function(){ _swGlow('#profile-menu', false); }, 250);
       }, 300);
+      return;
+    }
+    if(step.action === 'openImportPanel'){
+      /* The wizard steps aside rather than stacking a modal on a modal -
+         the import panel has its own Close, and the wizard's Continue
+         setup button brings them back. */
+      _swCompleted['import'] = true;
+      _swMinimize('home', null, false);
+      setTimeout(function(){ esqOpenImport(); }, 320);
       return;
     }
     if(step.action === 'openSmsFromSetup'){
@@ -18201,5 +18232,368 @@ function esqSaveProfile(){
   </div>
 </div>
 
+
+<!-- ═══ BRING YOUR ChatGPT SETUP ═══════════════════════════════════ -->
+<div id="esq-import-modal" style="display:none;position:fixed;inset:0;background:rgba(4,5,13,0.88);backdrop-filter:blur(8px);z-index:100001;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)esqCloseImport()">
+  <div style="background:#0e1424;border:1px solid #24304a;border-radius:16px;max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:26px;">
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <div style="font-family:'Barlow',sans-serif;font-size:22px;font-weight:900;color:#eef3fc;line-height:1.2;">Bring your ChatGPT setup</div>
+        <div style="color:#8a97b5;font-size:13px;margin-top:6px;line-height:1.6;max-width:56ch;">
+          You have already told ChatGPT about your organisation. Rather than
+          type it all again, bring it across &mdash; every specialist reads it
+          from then on.
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="esqCloseImport()" style="flex:none;">Close</button>
+    </div>
+
+    <!-- ⚠️ ABOVE THE FILE PICKER, NOT IN SMALL PRINT. -->
+    <div style="margin-top:18px;background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.25);border-radius:10px;padding:14px 16px;">
+      <div style="color:#aaff3e;font-weight:800;font-size:13px;">Your export is never uploaded</div>
+      <div style="color:#8a97b5;font-size:12.5px;line-height:1.7;margin-top:5px;">
+        A ChatGPT export is your whole history with it. This reads the file
+        <b style="color:#c8d3e8;">on this computer</b>, picks out only what looks
+        like it is about your organisation, and
+        <b style="color:#c8d3e8;">shows you that text before anything is sent</b>.
+        Nothing else leaves your machine, and none of it is stored by us &mdash;
+        what you keep goes into your own profile, the rest is discarded.
+      </div>
+    </div>
+
+    <!-- ── the two ways in ───────────────────────────────────────── -->
+    <div id="esq-imp-step1">
+      <div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7a96;">Option 1 &mdash; paste</div>
+      <div style="color:#6b7a96;font-size:12px;margin:4px 0 8px;">Your ChatGPT custom instructions, or anything you have told it about your organisation.</div>
+      <textarea id="esq-imp-paste" rows="6" placeholder="Paste here&hellip;" style="width:100%;background:rgba(8,12,24,0.8);border:1px solid #24304a;border-radius:10px;padding:12px;color:#eef3fc;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+
+      <div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7a96;">Option 2 &mdash; your export file</div>
+      <div style="color:#6b7a96;font-size:12px;margin:4px 0 8px;">
+        In ChatGPT: Settings &rarr; Data controls &rarr; Export data. They email you a
+        <b>.zip</b>. Drop it here.
+      </div>
+      <label for="esq-imp-file" style="display:inline-flex;align-items:center;gap:10px;padding:11px 16px;background:rgba(8,12,24,0.8);border:1px dashed #3a4a6a;border-radius:10px;cursor:pointer;color:#c8d3e8;font-size:13px;">
+        <span style="font-size:16px;">&#128230;</span>
+        <span id="esq-imp-filename">Choose your export .zip&hellip;</span>
+        <input type="file" id="esq-imp-file" accept=".zip,application/zip" style="display:none;" onchange="esqImportPickZip(this)">
+      </label>
+      <div id="esq-imp-zipnote" style="margin-top:10px;font-size:12.5px;color:#8a97b5;line-height:1.7;"></div>
+
+      <div style="margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button id="esq-imp-go" onclick="esqImportRead()" style="background:#aaff3e;color:#1a3300;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:900;font-family:'DM Sans',sans-serif;cursor:pointer;">Read it &rarr;</button>
+        <span id="esq-imp-sending" style="display:none;color:#8a97b5;font-size:13px;">Reading&hellip; this takes a few seconds.</span>
+      </div>
+    </div>
+
+    <!-- ── what will be sent ─────────────────────────────────────── -->
+    <div id="esq-imp-preview" style="display:none;margin-top:16px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7a96;">Exactly what will be sent</div>
+      <div id="esq-imp-preview-sum" style="color:#8a97b5;font-size:12.5px;margin:6px 0;"></div>
+      <pre id="esq-imp-preview-text" style="max-height:220px;overflow:auto;background:rgba(8,12,24,0.9);border:1px solid #24304a;border-radius:10px;padding:12px;color:#8a97b5;font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;"></pre>
+    </div>
+
+    <!-- ── the proposals ─────────────────────────────────────────── -->
+    <div id="esq-imp-step2" style="display:none;margin-top:20px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6b7a96;">What it found</div>
+      <div id="esq-imp-summary" style="color:#8a97b5;font-size:12.5px;margin:6px 0 12px;line-height:1.7;"></div>
+      <div id="esq-imp-fields"></div>
+      <div id="esq-imp-where" style="color:#6b7a96;font-size:12px;margin-top:12px;line-height:1.7;"></div>
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button onclick="esqImportSave()" style="background:#aaff3e;color:#1a3300;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:900;font-family:'DM Sans',sans-serif;cursor:pointer;">Save what I ticked</button>
+        <button class="btn-ghost btn-sm" onclick="esqImportBack()">Back</button>
+      </div>
+    </div>
+
+    <div id="esq-imp-error" style="display:none;margin-top:16px;background:rgba(255,128,128,0.08);border:1px solid rgba(255,128,128,0.35);border-radius:10px;padding:12px 14px;color:#ff8080;font-size:13px;line-height:1.6;"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   BRING YOUR ChatGPT SETUP
+
+   The reading is done by chatgpt-import.js (pure, tested in node by
+   tools/test_chatgpt_zip.js). This file is the wiring: the panel, the
+   zip, the call, and the save.
+
+   ⚠️ THE ORDER OF OPERATIONS IS THE PRIVACY GUARANTEE.
+   pick file -> read locally -> build digest -> SHOW IT -> they press
+   "Read it" -> only then does anything go over the wire. Never move
+   the network call earlier to save a click.
+   ═══════════════════════════════════════════════════════════════════ */
+var ESQ_IMP = { digest: '', source: 'paste', proposals: [], importId: null, stats: null };
+
+function esqOpenImport(){
+  var m = document.getElementById('esq-import-modal');
+  if (!m) return;
+  esqImportBack();
+  document.getElementById('esq-imp-paste').value = '';
+  document.getElementById('esq-imp-filename').textContent = 'Choose your export .zip…';
+  document.getElementById('esq-imp-zipnote').innerHTML = '';
+  document.getElementById('esq-imp-preview').style.display = 'none';
+  ESQ_IMP = { digest: '', source: 'paste', proposals: [], importId: null, stats: null };
+  m.style.display = 'flex';
+}
+function esqCloseImport(){
+  var m = document.getElementById('esq-import-modal');
+  if (m) m.style.display = 'none';
+}
+function esqImportBack(){
+  document.getElementById('esq-imp-step1').style.display = 'block';
+  document.getElementById('esq-imp-step2').style.display = 'none';
+  document.getElementById('esq-imp-error').style.display = 'none';
+}
+function esqImportErr(msg){
+  var e = document.getElementById('esq-imp-error');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.display = 'block';
+}
+
+/* JSZip is fetched the moment somebody actually chooses a file, and not
+   before. index.html is already a megabyte; 100KB on every page view
+   for a feature used once would be a bad trade. */
+function esqLoadZipLib(){
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise(function(resolve, reject){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = function(){ window.JSZip ? resolve(window.JSZip) : reject(new Error('no JSZip')); };
+    s.onerror = function(){ reject(new Error('could not load the zip reader')); };
+    document.head.appendChild(s);
+  });
+}
+
+function esqImportPickZip(input){
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var note = document.getElementById('esq-imp-zipnote');
+  document.getElementById('esq-imp-filename').textContent = file.name;
+  note.innerHTML = '<span style="color:#6b7a96;">Opening it here on your computer…</span>';
+
+  esqLoadZipLib()
+    .then(function(JSZip){ return JSZip.loadAsync(file); })
+    .then(function(zip){
+      var names = Object.keys(zip.files);
+      var pick = ESQImport.pickConversationsEntry(names);
+      if (!pick) {
+        /* Said plainly rather than "something went wrong": the most
+           likely cause is the wrong file, and they can fix that. */
+        throw new Error('There is no conversations.json in that zip, so it '
+          + 'does not look like a ChatGPT export. It should be the file they '
+          + 'email you after Settings → Data controls → Export data.');
+      }
+      return zip.files[pick].async('string');
+    })
+    .then(function(text){
+      var parsed;
+      try { parsed = JSON.parse(text); }
+      catch (e) { throw new Error('conversations.json could not be read.'); }
+      var r = ESQImport.fromConversations(parsed);
+      ESQ_IMP.digest = r.digest;
+      ESQ_IMP.source = 'chatgpt_zip';
+      ESQ_IMP.stats = r.stats;
+
+      var s = r.stats;
+      var bits = '<b style="color:#c8d3e8;">' + s.conversations + '</b> conversation(s) read on this computer, '
+        + '<b style="color:#c8d3e8;">' + s.userMessages + '</b> written by you, '
+        + '<b style="color:#aaff3e;">' + s.selected + '</b> selected as being about your organisation.';
+      if (r.notes.length) bits += '<br><span style="color:#6b7a96;">' + r.notes.map(esqEscImp).join('<br>') + '</span>';
+      note.innerHTML = bits;
+
+      esqImportShowPreview();
+    })
+    .catch(function(e){
+      note.innerHTML = '';
+      esqImportErr(e && e.message ? e.message : 'That file could not be read.');
+    });
+}
+
+function esqEscImp(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+
+/* ⚠️ THEY SEE IT BEFORE IT GOES. Not a summary of it - the text. */
+function esqImportShowPreview(){
+  var box = document.getElementById('esq-imp-preview');
+  var sum = document.getElementById('esq-imp-preview-sum');
+  var txt = document.getElementById('esq-imp-preview-text');
+  if (!ESQ_IMP.digest) { box.style.display = 'none'; return; }
+  sum.innerHTML = '<b style="color:#c8d3e8;">' + ESQ_IMP.digest.length.toLocaleString()
+    + '</b> characters. This is all of it &mdash; read it, and if there is '
+    + 'anything in here you would rather not send, close this and paste in '
+    + 'just your custom instructions instead.';
+  txt.textContent = ESQ_IMP.digest;
+  box.style.display = 'block';
+}
+
+function esqImportRead(){
+  document.getElementById('esq-imp-error').style.display = 'none';
+  var pasted = (document.getElementById('esq-imp-paste').value || '').trim();
+
+  /* Pasting wins over a chosen file: it is the more deliberate act, and
+     if they have done both they almost certainly mean the thing they
+     typed. */
+  if (pasted) { ESQ_IMP.digest = pasted; ESQ_IMP.source = 'paste'; }
+  if (!ESQ_IMP.digest) {
+    esqImportErr('Paste something in, or choose your export file first.');
+    return;
+  }
+
+  var btn = document.getElementById('esq-imp-go');
+  var busy = document.getElementById('esq-imp-sending');
+  btn.disabled = true; busy.style.display = 'inline';
+
+  supa.auth.getSession().then(function(sres){
+    var token = sres && sres.data && sres.data.session
+      ? sres.data.session.access_token : null;
+    if (!token) throw new Error('Your session has expired. Sign in again.');
+    return fetch(SUPA_URL + '/functions/v1/import-context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'apikey': SUPA_KEY,
+                 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ text: ESQ_IMP.digest, source: ESQ_IMP.source }),
+    });
+  }).then(function(r){ return r.json(); }).then(function(res){
+    btn.disabled = false; busy.style.display = 'none';
+    if (res.error) { esqImportErr(res.error); return; }
+    ESQ_IMP.proposals = res.fields || [];
+    esqImportRender(res);
+  }).catch(function(e){
+    btn.disabled = false; busy.style.display = 'none';
+    esqImportErr(e && e.message ? e.message : 'That could not be sent. Nothing was saved.');
+  });
+}
+
+function esqImportRender(res){
+  var host = document.getElementById('esq-imp-fields');
+  var sum  = document.getElementById('esq-imp-summary');
+  var n = ESQ_IMP.proposals.length;
+
+  if (!n) {
+    /* ⚠️ AN EMPTY RESULT MUST EXPLAIN ITSELF. "0 fields" with no reason
+       reads as a broken feature; it is usually a thin input. */
+    sum.innerHTML = '<span style="color:#f5c542;">Nothing could be filled in from that.</span> '
+      + 'Every field has to be backed by something you actually wrote, and '
+      + 'nothing in there described your organisation clearly enough. Try '
+      + 'pasting your ChatGPT custom instructions, or a paragraph about who '
+      + 'you are and what you do.'
+      + (res.rejected ? ' <span style="color:#6b7a96;">(' + res.rejected
+          + ' suggestion(s) were discarded for having no supporting quote.)</span>' : '');
+    host.innerHTML = '';
+    document.getElementById('esq-imp-where').innerHTML = '';
+  } else {
+    sum.innerHTML = '<b style="color:#aaff3e;">' + n + '</b> field(s) found. '
+      + 'Each one shows the words it came from. '
+      + '<b style="color:#c8d3e8;">Nothing is saved until you press Save.</b> '
+      + 'Untick anything wrong, edit anything close.'
+      + (res.rejected ? ' <span style="color:#6b7a96;">' + res.rejected
+          + ' further suggestion(s) were discarded because they could not be '
+          + 'traced to anything you wrote.</span>' : '');
+
+    host.innerHTML = ESQ_IMP.proposals.map(function(f, i){
+      var low = f.confidence === 'low';
+      return '<div style="border-top:1px solid rgba(255,255,255,0.07);padding:11px 0;">'
+        + '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">'
+        +   '<input type="checkbox" data-esqimp="' + i + '"' + (low ? '' : ' checked')
+        +     ' style="width:17px;height:17px;margin-top:3px;accent-color:#aaff3e;flex:none;cursor:pointer;">'
+        +   '<span style="flex:1;min-width:0;">'
+        +     '<span style="display:block;font-size:12px;font-weight:800;color:#8a97b5;text-transform:uppercase;letter-spacing:.05em;">'
+        +       esqEscImp(f.label)
+        +       (low ? ' <span style="color:#f5c542;text-transform:none;letter-spacing:0;font-weight:600;">&mdash; unsure, so left unticked</span>' : '')
+        +     '</span>'
+        +     '<textarea data-esqimpval="' + i + '" rows="' + (f.value.length > 120 ? 3 : 1) + '"'
+        +       ' style="width:100%;margin-top:5px;background:rgba(8,12,24,0.8);border:1px solid #24304a;border-radius:8px;padding:8px 10px;color:#eef3fc;font-size:13px;font-family:inherit;resize:vertical;">'
+        +       esqEscImp(f.value) + '</textarea>'
+        +     '<span style="display:block;margin-top:5px;font-size:11.5px;color:#6b7a96;line-height:1.6;">'
+        +       'from your own words: &ldquo;' + esqEscImp(f.evidence) + '&rdquo;</span>'
+        +   '</span>'
+        + '</label>'
+        + '</div>';
+    }).join('');
+
+    /* ⚠️ SAY WHERE IT WILL LAND. A solo user's org-only fields go into
+       notes, and finding that out afterwards would feel like a bug. */
+    var hasOrg = !!(window.ESQ_TEAM && typeof esqCanEditProfile === 'function'
+                    && esqCanEditProfile());
+    var plan = ESQImport.planSave(ESQ_IMP.proposals, hasOrg);
+    var where = document.getElementById('esq-imp-where');
+    if (hasOrg) {
+      where.innerHTML = 'Organisation details go on your shared team profile, '
+        + 'where everyone benefits. Your name, title, phone and email stay '
+        + 'yours alone &mdash; they are never shared, or every letter your '
+        + 'colleagues write would be signed by you.';
+    } else if (plan.notes.length) {
+      where.innerHTML = plan.notes.length + ' of these &mdash; '
+        + esqEscImp(plan.notes.map(function(x){ return x.label; }).join(', '))
+        + ' &mdash; have no dedicated field on a personal profile, so they '
+        + 'are saved to your notes. Specialists read your notes, so they '
+        + 'still reach the work.';
+    } else {
+      where.innerHTML = '';
+    }
+  }
+  document.getElementById('esq-imp-step1').style.display = 'none';
+  document.getElementById('esq-imp-step2').style.display = 'block';
+}
+
+function esqImportSave(){
+  var accepted = [];
+  ESQ_IMP.proposals.forEach(function(f, i){
+    var box = document.querySelector('[data-esqimp="' + i + '"]');
+    var val = document.querySelector('[data-esqimpval="' + i + '"]');
+    if (box && box.checked && val && val.value.trim()) {
+      accepted.push({ key: f.key, scope: f.scope, label: f.label, value: val.value.trim() });
+    }
+  });
+  if (!accepted.length) { esqCloseImport(); return; }
+
+  var hasOrg = !!(window.ESQ_TEAM && typeof esqCanEditProfile === 'function'
+                  && esqCanEditProfile());
+  var plan = ESQImport.planSave(accepted, hasOrg);
+  var jobs = [];
+
+  if (hasOrg && Object.keys(plan.org).length) {
+    jobs.push(supa.from('esq_org_profiles')
+      .upsert(Object.assign({ org_id: ESQ_TEAM.orgId }, plan.org), { onConflict: 'org_id' })
+      .select('org_id'));
+  }
+  if (Object.keys(plan.personal).length) {
+    jobs.push(supa.from('community_profiles')
+      .upsert(Object.assign({ user_id: currentUser.id }, plan.personal), { onConflict: 'user_id' })
+      .select('user_id'));
+  }
+
+  Promise.all(jobs).then(function(results){
+    /* ⚠️ PostgREST RETURNS errors, it does not throw them, and a
+       zero-row write is a SUCCESS as far as the client is concerned.
+       So both are checked, and a failure says so instead of closing
+       the panel on a save that never happened. */
+    var bad = results.filter(function(r){
+      return r.error || !r.data || !r.data.length;
+    });
+    if (bad.length) {
+      esqImportErr('That could not be saved. Nothing has been changed. '
+        + (bad[0].error ? bad[0].error.message : 'The write affected no rows.'));
+      return;
+    }
+    try {
+      supa.from('esq_context_imports')
+        .update({ fields_accepted: accepted.length, target: hasOrg ? 'org' : 'personal' })
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false }).limit(1).then(function(){});
+    } catch (e) { /* the measurement must never break the save */ }
+
+    showToastMsg('✓ Saved — your squad knows this now');
+    esqCloseImport();
+  }).catch(function(e){
+    esqImportErr('That could not be saved. Nothing has been changed.');
+  });
+}
+</script>
 </body>
 </html>
