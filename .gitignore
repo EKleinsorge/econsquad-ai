@@ -11,3 +11,10 @@ index-backup-*.html
 
 # One-off scratch: the body fragment security.html was assembled from.
 _security_body.html
+
+# Claude's working folder: delivered SQL, .bat scripts and the screenshots
+# taken while testing. Kept on disk deliberately as a record of what was
+# handed over, but it is not repo content and it made `git status` unusable
+# by burying real untracked files - which is how a deployed edge function
+# and an applied security migration sat untracked for nine days.
+Claude outputs/

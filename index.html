@@ -5657,14 +5657,28 @@ function toggleProfileMenu(){
     var pmp=document.getElementById('pm-plan');
     if(pmn)pmn.textContent=nm;
     if(pme)pme.textContent=currentUser.email;
-    if(pmp)pmp.textContent='⚡ Trial — '+TRIAL_DAYS+' days free';
+    /* !! DO NOT WRITE A PLAN HERE. This line used to hard-code
+       '⚡ Trial — 14 days free' every time the menu opened, for everybody.
+       The nav badge above it reads the real plan, so a Pro subscriber saw
+       PRO SQUAD and, an inch below, TRIAL — 14 DAYS FREE. A paying customer
+       being told they are on a free trial is the same defect the team-seat
+       work fixed for seat holders with a MutationObserver - and an observer
+       that repairs a hard-coded lie only rescues the case somebody thought
+       of. Blank for the moment it takes to read the profile is better than
+       confidently wrong. */
+    if(pmp)pmp.textContent='';
     /* Show "Complete Your Setup" button if wizard not yet finished */
     var setupRow=document.getElementById('pm-setup-row');
     if(setupRow) setupRow.style.display=(localStorage.getItem(SW_KEY)!=='1')?'block':'none';
-    /* show admin button only for admins */
-    supa.from('profiles').select('is_admin').eq('id',currentUser.id).single().then(function(res){
+    /* show admin button only for admins, and say what they actually pay for.
+       Both come off the query that was already being made - no extra trip. */
+    supa.from('profiles')
+      .select('is_admin,plan,trial_end,is_beta_tester,beta_expires_at')
+      .eq('id',currentUser.id).single().then(function(res){
       var row=document.getElementById('pm-admin-row');
       if(row) row.style.display=(res.data&&res.data.is_admin)?'block':'none';
+      var el=document.getElementById('pm-plan');
+      if(el) el.textContent=esqPlanLabel(res.data);
     });
   }
 }
@@ -5690,21 +5704,38 @@ function handleLogoUpload(input){
   var reader=new FileReader();
   reader.onload=function(e){
     var dataUrl=e.target.result;
-    /* show in nav avatar */
-    var logo=document.getElementById('user-logo');
-    var initials=document.getElementById('user-initials');
-    if(logo){logo.src=dataUrl;logo.style.display='block';}
-    if(initials)initials.style.display='none';
-    /* show in dropdown preview */
-    var previewImg=document.getElementById('logo-preview-img');
-    var previewIcon=document.getElementById('logo-preview-icon');
-    if(previewImg){previewImg.src=dataUrl;previewImg.style.display='block';}
-    if(previewIcon)previewIcon.style.display='none';
+    /* !! CALL applyLogo, DO NOT RE-IMPLEMENT IT. This used to repeat the
+       avatar and preview lines by hand and omit the two that matter:
+
+           var toggleRow=document.getElementById('logo-toggle-row');
+           if(toggleRow)toggleRow.style.display='flex';
+
+       #logo-toggle-row ships display:none and those two lines are the only
+       thing that ever reveals it. So uploading a logo showed the thumbnail
+       and the avatar and left 'Show community logo' invisible - the switch
+       that actually puts the logo in the nav. It read as a missing feature
+       rather than a broken one, which is why nobody reported it.
+
+       The duplication was the whole cause: one copy learned about the
+       toggle and the other never did. There is now one copy. */
+    applyLogo(dataUrl);
     /* save to localStorage so it persists */
     try{localStorage.setItem('econsquad_logo',dataUrl);}catch(e){}
     /* save to Supabase profile */
     if(currentUser){
-      supa.from('profiles').update({logo_url:dataUrl}).eq('id',currentUser.id);
+      /* !! POSTGREST RETURNS ERRORS, IT DOES NOT THROW THEM. This was a bare
+         .update() with no .then and no error check, so a rejected write
+         looked exactly like a successful one - the logo sat on screen until
+         the next page load and then vanished with no explanation. Selecting
+         a row back is what proves something was actually written; a zero-row
+         update is a SUCCESS as far as the client is concerned. */
+      supa.from('profiles').update({logo_url:dataUrl}).eq('id',currentUser.id)
+        .select('id').then(function(res){
+          if(res.error || !res.data || !res.data.length){
+            showToastMsg('Logo not saved - it will disappear when you reload');
+            try{console.error('logo save failed', res.error || 'no rows updated');}catch(e){}
+          }
+        });
     }
   };
   reader.readAsDataURL(file);
@@ -7916,6 +7947,34 @@ showDashTab=function(tabId,el){
   }
 };
 
+
+/* WHAT THE PROFILE MENU SAYS YOU ARE ON.
+
+   !! THESE RULES MUST MATCH updatePlanBadge() DIRECTLY BELOW. The two
+   labels sit an inch apart on screen, so any disagreement between them is
+   visible to the user and reads as the product not knowing what it sold
+   them. That is exactly what happened while this was hard-coded.
+
+   Deliberately NOT merged into updatePlanBadge: that function owns the
+   badge's colour, class, title and click handler as well as its text, and
+   the team-seat cover watches it. This only produces a string. */
+function esqPlanLabel(d){
+  if(!d) return '';
+  var now=Date.now();
+  if(d.is_beta_tester && d.beta_expires_at &&
+     new Date(d.beta_expires_at).getTime() > now) return '🧪 Beta tester';
+  var plan=d.plan||'trial';
+  if(plan==='pro')     return '⚡ Pro Squad';
+  if(plan==='starter') return '⚡ Starter';
+  if(plan==='trial' && d.trial_end){
+    var left=Math.ceil((new Date(d.trial_end).getTime()-now)/86400000);
+    /* An expired trial must never read as a live one. Anybody past their
+       end date is being asked to subscribe everywhere else on the page. */
+    if(left>0) return '⚡ Trial — '+left+' day'+(left===1?'':'s')+' left';
+    return 'Trial ended — upgrade';
+  }
+  return '⚡ Trial';
+}
 
 /* ===== PLAN BADGE & BILLING ===== */
 function updatePlanBadge(user){
