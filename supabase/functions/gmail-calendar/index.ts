@@ -1,5 +1,47 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
+/* ============================================================
+   EVERY GMAIL LIST QUERY IS BUILT HERE, AND `in:inbox` IS WHY.
+
+   !! THE BUG THIS REPLACES. The read-mail list asked
+   `is:read -in:trash`. Gmail marks everything YOU send as read, so that
+   query returned Eric's own sent replies alongside real mail, and the
+   renderer reported their From header faithfully - which was him. The
+   office showed ten messages all apparently from Eric, including
+   automated DMARC reports and Google marketing that he had merely
+   replied to while testing the Reply button. Real Gmail showed the same
+   period correctly. Found 20 September by comparing the two side by
+   side; nothing in the office itself could have revealed it, because a
+   wrong sender looks exactly like a right one.
+
+   `in:inbox` is the fix rather than `-in:sent`, for three reasons:
+     - it asks the question actually being asked, "was this delivered to
+       me", instead of listing exceptions;
+     - a message you send to YOURSELF carries both SENT and INBOX, so
+       `-in:sent` would hide your own tests while `in:inbox` keeps them;
+     - it makes the Archive button work. Archiving drops the INBOX label
+       and nothing else, so without `in:inbox` an archived message stayed
+       in the list and the button appeared to do nothing.
+
+   `-in:trash` is gone deliberately, not forgotten: trashing a message
+   removes INBOX, so `in:inbox` already excludes it. A redundant clause
+   in a filter is a claim that something is being guarded against, and an
+   untrue claim is worse than none.
+
+   The unread list and the daily brief had the same omission. `is:unread`
+   with no `in:inbox` matches DRAFTS - your own half-written message,
+   listed as something that arrived.
+
+   !! SPACES ARE `+`. This string goes straight into a URL. A literal
+   space produces a malformed request, not an error you would notice. */
+export function gmailListQuery(kind: 'unread' | 'read' | 'sent',
+                               period: string | null): string {
+  const date = period ? `+newer_than:${period}` : ''
+  if (kind === 'sent') return `in:sent${date}`
+  if (kind === 'read') return `in:inbox+is:read${date}`
+  return `in:inbox+is:unread${date}`
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -145,10 +187,9 @@ serve(async (req) => {
     // ===== GMAIL INBOX - optimized with minimal fields =====
     if (action === 'gmail_inbox') {
       const period = (body.period !== undefined && body.period !== null) ? body.period : '7d'
-      const dateFilter = period ? `+newer_than:${period}` : ''
       // Step 1: Get list of unread message IDs (fast)
       const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:unread${dateFilter}`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${gmailListQuery('unread', period)}`,
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const listData = await listRes.json()
@@ -251,7 +292,7 @@ serve(async (req) => {
 
       // Fetch Gmail, Calendar, and Task lists all in parallel
       const [gmailListRes, calTodayRes, calWeekRes, taskListsRes] = await Promise.all([
-        fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=is:unread newer_than:1d&fields=messages,resultSizeEstimate',
+        fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=${gmailListQuery('unread', '1d')}&fields=messages,resultSizeEstimate`,
           { headers: { Authorization: `Bearer ${provider_token}` } }),
         fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfDay}&timeMax=${endOfDay}&singleEvents=true&orderBy=startTime&fields=items(summary,start)`,
           { headers: { Authorization: `Bearer ${provider_token}` } }),
@@ -341,9 +382,8 @@ serve(async (req) => {
     // ===== GMAIL READ EMAILS =====
     if (action === 'gmail_read') {
       const period = (body.period !== undefined && body.period !== null) ? body.period : '30d'
-      const dateFilter = period ? `+newer_than:${period}` : ''
       const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=is:read+-in:trash${dateFilter}`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${gmailListQuery('read', period)}`,
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const listData = await listRes.json()
@@ -371,9 +411,8 @@ serve(async (req) => {
     // ===== GMAIL SENT EMAILS =====
     if (action === 'gmail_sent') {
       const period = (body.period !== undefined && body.period !== null) ? body.period : '30d'
-      const dateFilter = period ? `+newer_than:${period}` : ''
       const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=in:sent${dateFilter}`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50&q=${gmailListQuery('sent', period)}`,
         { headers: { Authorization: `Bearer ${provider_token}` } }
       )
       const listData = await listRes.json()
