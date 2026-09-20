@@ -1803,7 +1803,7 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
 <script>
 var SUPA_URL='https://kbwcsmctwtgrjtjcghkt.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtid2NzbWN0d3Rncmp0amNnaGt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxOTQzNzIsImV4cCI6MjA5Mjc3MDM3Mn0.tOOFb3qwXuYQGVcyt__lg3WLiFxqGZnOPDZA8Zs-XP4';
-var ADMIN_EMAILS=['eric@gslisolutions.com']; /* ← add more admin emails here */
+var ADMIN_EMAILS=['eric@gslisolutions.com','eric@econsquad.ai']; /* ← add more admin emails here. This list is the way back in if the admins-table read ever fails, so keep it short and keep it real. */
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var adminUser=null;
 var allReports=[];
@@ -7830,9 +7830,22 @@ function esqBuildBriefing(){
       });
     }
 
+    /* !! HOUSE ACCOUNTS MUST NOT COUNT AS SIGNUPS. demo@econsquad.ai is
+       signed into in front of prospects, and every demo would otherwise
+       add one to "new signups" in this briefing - a number whose whole
+       job is to be trusted at a glance. Matched by domain rather than by
+       listing addresses, so the next econsquad.ai account is covered the
+       day it is made. Written as a suffix test on the domain, not
+       indexOf on the whole string: indexOf('@gslisolutions.com') also
+       matches someone@gslisolutions.com.au, a different company, and a
+       filter that quietly hides a real signup is worse than one that
+       lets a demo through. */
     var internal = function(e){
-      e = String(e || '').toLowerCase();
-      return e.indexOf('@gslisolutions.com') !== -1 || e.indexOf('.gslisolutions.com') !== -1;
+      e = String(e || '').toLowerCase().trim();
+      var d = e.split('@')[1] || '';
+      return ['gslisolutions.com','econsquad.ai'].some(function(x){
+        return d === x || d.slice(-(x.length + 1)) === '.' + x;
+      });
     };
 
     /* --- 1. trial-care mail --------------------------------------- */
@@ -8063,9 +8076,19 @@ function esqLoadBriefingLog(){
          stop clicking. */
       var hasDetail = (r.findings && Object.keys(r.findings).length > 0)
                    || (r.could_not_check && r.could_not_check.length > 0);
+      /* !! THE onclick ATTRIBUTE WAS NEVER CLOSED. This ended with
+         ...esqOpenBriefing('2')  and the '>' that followed was swallowed
+         into the attribute value, so the browser kept scanning for the
+         missing quote and the handler never bound. The row looked exactly
+         right - underlined, lime, "open" - and did nothing.
+
+         The test that should have caught it asked whether the markup
+         CONTAINED esqOpenBriefing('2'). It did. Containing the call and
+         being a well-formed attribute are different questions, and only
+         the second one makes it clickable. */
       var openable = hasDetail
         ? ' cursor:pointer;" title="Click to see what it found" onclick="esqOpenBriefing(\''
-          + r.id + '\')'
+          + r.id + '\')"'
         : '"';
       return '<div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.07);'
            + 'font-size:12.5px;flex-wrap:wrap;' + openable + '>'

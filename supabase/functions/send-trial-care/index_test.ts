@@ -62,7 +62,27 @@ ok('cindy@gslisolutions.com is internal',       isInternal('cindy@gslisolutions.
 ok('case and whitespace do not evade it',       isInternal('  Eric@GSLISolutions.COM ') === true);
 ok('a subdomain is internal too',               isInternal('a@mail.gslisolutions.com') === true);
 ok('a real member is not internal',             isInternal('isaac@steubenedc.com') === false);
-ok('econsquad.ai is NOT internal',              isInternal('someone@econsquad.ai') === false);
+/* CHANGED 20 September, and the old line is worth reading first:
+
+       ok('econsquad.ai is NOT internal', isInternal('someone@econsquad.ai') === false);
+
+   That was true when gslisolutions.com was the only address we owned.
+   It stopped being what we want the day demo@econsquad.ai started being
+   signed into in front of prospects and eric@econsquad.ai became a second
+   admin login. Neither is a prospect and neither should get a welcome
+   letter.
+
+   Nothing real is excluded by widening it: econsquad.ai is our own domain,
+   so no customer can hold an address on it. That is the test worth
+   applying before adding any domain to this list - "could a member ever
+   have one?" - and the answer here is no. */
+ok('the demo account is internal',              isInternal('demo@econsquad.ai') === true);
+ok('the second admin login is internal',        isInternal('eric@econsquad.ai') === true);
+ok('ARIA herself is internal',                  isInternal('aria@econsquad.ai') === true);
+ok('a subdomain of the new one too',            isInternal('a@mail.econsquad.ai') === true);
+ok('a lookalike of the new one is not',         isInternal('a@myeconsquad.ai') === false);
+ok('ours as a PREFIX of theirs is not',         isInternal('a@econsquad.ai.evil.com') === false);
+ok('ours in the LOCAL part is not',             isInternal('econsquad.ai@gmail.com') === false);
 ok('a lookalike domain is not internal',        isInternal('a@notgslisolutions.com') === false);
 ok('rubbish input does not throw',              isInternal('') === false && isInternal('no-at-sign') === false);
 

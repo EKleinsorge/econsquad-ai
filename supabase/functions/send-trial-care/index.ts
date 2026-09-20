@@ -49,7 +49,7 @@ const STOP_AFTER_CANCEL_DAYS = 60;
    rather than by flag, so a new staff account is covered the day it is made
    and nobody has to remember. The admin "send a test to me" path does not go
    through this - testing on yourself still works. */
-const INTERNAL_DOMAINS = ['gslisolutions.com'];
+const INTERNAL_DOMAINS = ['gslisolutions.com', 'econsquad.ai'];
 export function isInternal(email: string): boolean {
   const d = String(email ?? '').toLowerCase().trim().split('@')[1] ?? '';
   return INTERNAL_DOMAINS.some((x) => d === x || d.endsWith('.' + x));
