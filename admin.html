@@ -5361,8 +5361,9 @@ function loadUsers(){
     tasks.forEach(function(t){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
     });
-    (results[5]||[]).forEach(function(r){
-      if(r.email && r.last_sign_in_at) allUsersSignInMap[r.email]=r.last_sign_in_at;
+    var signIns = (results[5] && results[5].data) ? results[5].data : (Array.isArray(results[5]) ? results[5] : []);
+    signIns.forEach(function(r){
+      if(r && r.email && r.last_sign_in_at) allUsersSignInMap[r.email]=r.last_sign_in_at;
     });
     /* update stat counts */
     var counts={all:profiles.length,in_trial:0,no_card:0,beta:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0,team:0};
