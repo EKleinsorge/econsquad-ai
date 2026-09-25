@@ -724,8 +724,8 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
 
       <div class="admin-card" style="padding:0;overflow:hidden;">
         <table>
-          <thead><tr><th style="width:34px;"><input type="checkbox" id="usr-selall" onclick="toggleSelectAllUsers(this)" title="Select all in this filter"></th><th>Name</th><th>Email</th><th>Organization</th><th>Status</th><th>Tasks</th><th>Joined</th><th>Actions</th></tr></thead>
-          <tbody id="users-table"><tr><td colspan="7" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+          <thead><tr><th style="width:34px;"><input type="checkbox" id="usr-selall" onclick="toggleSelectAllUsers(this)" title="Select all in this filter"></th><th>Name</th><th>Email</th><th>Organization</th><th>Status</th><th>Tasks</th><th>Joined</th><th>Last Sign In</th><th>Actions</th></tr></thead>
+          <tbody id="users-table"><tr><td colspan="8" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -5184,6 +5184,7 @@ function markRequestDone(id){
 ═══════════════════════════════════════ */
 var allUsersData=[];
 var allUsersTaskMap={};
+var allUsersSignInMap={};
 var activeUserFilter='all';
 
 /* A cancelled customer used to be invisible here. The Stripe webhook records
@@ -5348,15 +5349,20 @@ function loadUsers(){
     /* Soft, so the Users page still loads before the team migrations exist. */
     esqSoft(supa.from('esq_org_members').select('user_id, org_id, role, can_manage_seats, can_edit_profile').is('revoked_at', null)),
     esqSoft(supa.from('esq_organizations').select('id, name, status')),
-    esqSoft(supa.from('community_profiles').select('user_id, org_name'))
+    esqSoft(supa.from('community_profiles').select('user_id, org_name')),
+    esqSoft(supa.rpc('admin_get_last_sign_ins'))
   ]).then(function(results){
     var profiles=results[0].data||[];
     var tasks=results[1].data||[];
     esqBuildSeatMap(results[2].data, results[3].data, results[4].data);
     allUsersData=profiles;
     allUsersTaskMap={};
+    allUsersSignInMap={};
     tasks.forEach(function(t){
       if(t.user_email)allUsersTaskMap[t.user_email]=(allUsersTaskMap[t.user_email]||0)+1;
+    });
+    (results[5]||[]).forEach(function(r){
+      if(r.email && r.last_sign_in_at) allUsersSignInMap[r.email]=r.last_sign_in_at;
     });
     /* update stat counts */
     var counts={all:profiles.length,in_trial:0,no_card:0,beta:0,starter:0,pro:0,expired:0,cancelled:0,past_due:0,suspended:0,team:0};
@@ -5450,6 +5456,10 @@ function renderUsersTable(filter){
   tbody.innerHTML=filtered.map(function(u){
     var taskCount=allUsersTaskMap[u.email]||0;
     var checked=usrSelected.indexOf(u.email)!==-1?' checked':'';
+    var signIn=allUsersSignInMap[u.email];
+    var signInCell=signIn
+      ? '<span style="font-size:12px;">'+new Date(signIn).toLocaleDateString()+'</span>'
+      : '<span style="color:#4a5568;font-size:12px;">—</span>';
     return '<tr>'+
       '<td><input type="checkbox" class="usr-pick" value="'+escHtml(u.email)+'"'+checked+' onclick="onUserPick(this)"></td>'+
       '<td>'+(u.full_name||'—')+'</td>'+
@@ -5458,6 +5468,7 @@ function renderUsersTable(filter){
       '<td>'+userStatusBadge(u)+'</td>'+
       '<td style="color:#aaff3e;">'+taskCount+'</td>'+
       '<td>'+new Date(u.created_at).toLocaleDateString()+'</td>'+
+      '<td>'+signInCell+'</td>'+
       '<td><div class="action-group">'+buildUserActions(u)+'</div></td>'+
     '</tr>';
   }).join('');
