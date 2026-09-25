@@ -1166,8 +1166,8 @@ INSERT INTO admins (email, name, added_by) VALUES ('eric@gslisolutions.com', 'Er
 
       <div class="admin-card" style="padding:0;overflow:hidden;">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Added</th><th>Added By</th><th>Action</th></tr></thead>
-          <tbody id="admins-table"><tr><td colspan="5" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
+          <thead><tr><th>Name</th><th>Email</th><th>App Access</th><th>Added</th><th>Added By</th><th>Action</th></tr></thead>
+          <tbody id="admins-table"><tr><td colspan="6" style="color:#4a5568;padding:20px;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1421,6 +1421,9 @@ CREATE POLICY "Auth write" ON book_settings FOR ALL USING (auth.role() = 'authen
     </div>
     <div class="form-field"><label>Full Name</label><input id="new-admin-name" type="text" placeholder="e.g. Jane Smith"></div>
     <div class="form-field"><label>Email Address</label><input id="new-admin-email" type="email" placeholder="e.g. jane@company.com"></div>
+    <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.2);border-radius:8px;padding:10px 12px;margin-top:4px;font-size:12px;color:#8a97b5;line-height:1.5;">
+      <span style="color:#aaff3e;font-weight:700;">Free Pro access included.</span> This person gets full Pro app access at no charge — no credit card, no paywall. If they don't have an account yet, they'll get Pro automatically when they sign up.
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
       <button class="btn-ghost" onclick="closeAddAdminModal()">Cancel</button>
       <button class="btn-lime" onclick="addAdmin()">Add Admin →</button>
@@ -6458,35 +6461,60 @@ function saveStarterPlan(){
 function loadAdmins(){
   var tbody=document.getElementById('admins-table');
   if(!tbody)return;
-  tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;"><span class="spinner"></span> Loading...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;"><span class="spinner"></span> Loading...</td></tr>';
   supa.from('admins').select('*').order('added_at',{ascending:true}).then(function(res){
     if(res.error){
-      // Table probably doesn't exist yet — show setup banner
       document.getElementById('admins-setup-banner').style.display='block';
-      tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;text-align:center;">Run the setup SQL above to create the admins table.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;text-align:center;">Run the setup SQL above to create the admins table.</td></tr>';
       return;
     }
     document.getElementById('admins-setup-banner').style.display='none';
     var rows=res.data||[];
     if(!rows.length){
-      tbody.innerHTML='<tr><td colspan="5" style="color:#4a5568;padding:20px;text-align:center;">No admins found. Add one above.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="6" style="color:#4a5568;padding:20px;text-align:center;">No admins found. Add one above.</td></tr>';
       return;
     }
-    tbody.innerHTML=rows.map(function(a){
-      var added=a.added_at?new Date(a.added_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
-      var isSelf=(adminUser&&adminUser.email===a.email);
-      var removeBtn=isSelf
-        ? '<span style="font-size:11px;color:#4a5568;">You</span>'
-        : '<button class="btn-danger btn-sm" onclick="removeAdmin(\''+a.id+'\',\''+a.email.replace(/'/g,"\\'")+'\')" title="Remove admin">Remove</button>';
-      return '<tr>'
-        +'<td><span style="font-weight:600;color:#eef3fc;">'+(a.name||'—')+'</span>'+(isSelf?' <span class="badge badge-active" style="font-size:9px;">You</span>':'')+'</td>'
-        +'<td style="font-family:monospace;font-size:12px;color:#8a97b5;">'+a.email+'</td>'
-        +'<td style="color:#6b7a96;font-size:12px;">'+added+'</td>'
-        +'<td style="color:#6b7a96;font-size:12px;">'+(a.added_by||'—')+'</td>'
-        +'<td>'+removeBtn+'</td>'
-        +'</tr>';
-    }).join('');
+    /* Fetch profiles for all admin emails to show app access status */
+    var emails=rows.map(function(r){return r.email;});
+    supa.from('profiles').select('email,plan,subscription_status,is_admin').in('email',emails).then(function(pRes){
+      var profileMap={};
+      (pRes.data||[]).forEach(function(p){profileMap[p.email.toLowerCase()]=p;});
+      tbody.innerHTML=rows.map(function(a){
+        var added=a.added_at?new Date(a.added_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+        var isSelf=(adminUser&&adminUser.email===a.email);
+        var prof=profileMap[a.email.toLowerCase()];
+        var accessCell;
+        if(!prof){
+          accessCell='<span style="font-size:11px;color:#f5c542;">No account yet</span>';
+        } else if(prof.plan==='pro'&&prof.subscription_status==='comped'){
+          accessCell='<span style="color:#aaff3e;font-size:11px;font-weight:700;">✓ Pro (comped)</span>';
+        } else {
+          accessCell='<span style="color:#ff9b41;font-size:11px;">'+escHtml(prof.plan||'trial')+'</span>'
+            +' <button class="btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="grantAdminAppAccess(\''+escHtml(a.email)+'\')" title="Grant free Pro access">Grant Pro</button>';
+        }
+        var removeBtn=isSelf
+          ? '<span style="font-size:11px;color:#4a5568;">You</span>'
+          : '<button class="btn-danger btn-sm" onclick="removeAdmin(\''+a.id+'\',\''+a.email.replace(/'/g,"\\'")+'\')" title="Remove admin">Remove</button>';
+        return '<tr>'
+          +'<td><span style="font-weight:600;color:#eef3fc;">'+(a.name||'—')+'</span>'+(isSelf?' <span class="badge badge-active" style="font-size:9px;">You</span>':'')+'</td>'
+          +'<td style="font-family:monospace;font-size:12px;color:#8a97b5;">'+a.email+'</td>'
+          +'<td>'+accessCell+'</td>'
+          +'<td style="color:#6b7a96;font-size:12px;">'+added+'</td>'
+          +'<td style="color:#6b7a96;font-size:12px;">'+(a.added_by||'—')+'</td>'
+          +'<td>'+removeBtn+'</td>'
+          +'</tr>';
+      }).join('');
+    });
   });
+}
+
+function grantAdminAppAccess(email){
+  supa.from('profiles').update({plan:'pro',subscription_status:'comped',is_admin:true})
+    .eq('email',email).then(function(r){
+      if(r.error){showToast('Error: '+r.error.message,'error');return;}
+      showToast('Pro access granted to '+email,'success');
+      loadAdmins();
+    });
 }
 
 function openAddAdminModal(){
@@ -6514,8 +6542,11 @@ function addAdmin(){
       else{showToast('Error: '+res.error.message,'error');}
       return;
     }
+    /* Also grant Pro comped on their profile if they already have an account */
+    supa.from('profiles').update({plan:'pro',subscription_status:'comped',is_admin:true})
+      .eq('email',email).then(function(){});
     closeAddAdminModal();
-    showToast(name||email+' added as admin!','success');
+    showToast((name||email)+' added as admin with free Pro access!','success');
     loadAdmins();
   });
 }
