@@ -5480,16 +5480,55 @@
 
   /* ── Resources feed renderer ────────────────────────────────────────── */
   var _resourcesFeedLoaded = false;
+  var _resourcesDrops = [];
+
+  function _renderResourcesDrops(drops) {
+    var container = document.getElementById('resources-feed');
+    if (!container) return;
+    if (!drops.length) {
+      container.innerHTML = '<div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">No matching issues found.</div>';
+      return;
+    }
+    container.innerHTML = drops.map(function(post, i) {
+      var border = i < drops.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.07);' : '';
+      return '<div style="display:flex;align-items:flex-start;gap:16px;padding:20px 24px;' + border + '">'
+        + '<div style="flex-shrink:0;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.22);border-radius:8px;padding:6px 12px;text-align:center;min-width:48px;">'
+        + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:900;color:#aaff3e;line-height:1;">#' + post.issue + '</div>'
+        + '<div style="font-size:10px;color:#6b7a96;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;">Issue</div>'
+        + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:800;color:#eef3fc;margin-bottom:5px;line-height:1.2;">'
+        + '<a href="' + post.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(post.title.replace(/^Issue #\d+:\s*/,'')) + '</a>'
+        + '</div>'
+        + '<div style="font-size:12px;color:#6b7a96;line-height:1.5;margin-bottom:8px;">' + escN(post.excerpt) + '</div>'
+        + '<div style="display:flex;align-items:center;gap:16px;">'
+        + '<span style="font-size:11px;color:#4a5568;">' + post.date + '</span>'
+        + '<a href="' + post.url + '" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:#aaff3e;text-decoration:none;">Read Issue →</a>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  window.filterResourcesFeed = function(query) {
+    var q = (query || '').toLowerCase().trim();
+    if (!q) { _renderResourcesDrops(_resourcesDrops); return; }
+    var filtered = _resourcesDrops.filter(function(p) {
+      return (p.title || '').toLowerCase().indexOf(q) !== -1
+          || (p.excerpt || '').toLowerCase().indexOf(q) !== -1;
+    });
+    _renderResourcesDrops(filtered);
+  };
+
   window.loadResourcesFeed = function() {
     if (_resourcesFeedLoaded) return;
     var container = document.getElementById('resources-feed');
     if (!container) return;
 
-    /* Use relative URL so it works both on GitHub Pages and any local dev server */
     fetch('blog-feed.json?v=' + Date.now())
       .then(function(r) { return r.json(); })
       .then(function(feed) {
-        var todayStr = new Date().toLocaleDateString('en-CA'); /* YYYY-MM-DD in local time */
+        var todayStr = new Date().toLocaleDateString('en-CA');
         var drops = ((feed && feed.monday_drops) || []).filter(function(p){
           return p.date <= todayStr;
         });
@@ -5497,26 +5536,9 @@
           container.innerHTML = '<div style="padding:32px;color:#6b7a96;font-size:13px;text-align:center;">No issues yet — check back next Monday.</div>';
           return;
         }
-        drops.sort(function(a, b) { return b.issue - a.issue; }); /* newest first */
-        container.innerHTML = drops.map(function(post, i) {
-          var border = i < drops.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.07);' : '';
-          return '<div style="display:flex;align-items:flex-start;gap:16px;padding:20px 24px;' + border + '">'
-            + '<div style="flex-shrink:0;background:rgba(170,255,62,0.1);border:1px solid rgba(170,255,62,0.22);border-radius:8px;padding:6px 12px;text-align:center;min-width:48px;">'
-            + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:900;color:#aaff3e;line-height:1;">#' + post.issue + '</div>'
-            + '<div style="font-size:10px;color:#6b7a96;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;">Issue</div>'
-            + '</div>'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:17px;font-weight:800;color:#eef3fc;margin-bottom:5px;line-height:1.2;">'
-            + '<a href="' + post.url + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">' + escN(post.title.replace(/^Issue #\d+:\s*/,'')) + '</a>'
-            + '</div>'
-            + '<div style="font-size:12px;color:#6b7a96;line-height:1.5;margin-bottom:8px;">' + escN(post.excerpt) + '</div>'
-            + '<div style="display:flex;align-items:center;gap:16px;">'
-            + '<span style="font-size:11px;color:#4a5568;">' + post.date + '</span>'
-            + '<a href="' + post.url + '" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:#aaff3e;text-decoration:none;">Read Issue →</a>'
-            + '</div>'
-            + '</div>'
-            + '</div>';
-        }).join('');
+        drops.sort(function(a, b) { return b.issue - a.issue; });
+        _resourcesDrops = drops;
+        _renderResourcesDrops(drops);
         _resourcesFeedLoaded = true;
       })
       .catch(function() {
