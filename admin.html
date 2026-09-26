@@ -777,10 +777,11 @@ label{font-size:11px;font-weight:600;color:#6b7a96;text-transform:uppercase;lett
               <th>Opens</th>
               <th>Open Rate</th>
               <th>Unsubscribed</th>
+              <th>View</th>
             </tr>
           </thead>
           <tbody id="md-issues-table">
-            <tr><td colspan="7" style="color:#4a5568;padding:20px;text-align:center;">Loading…</td></tr>
+            <tr><td colspan="8" style="color:#4a5568;padding:20px;text-align:center;">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -6603,35 +6604,45 @@ async function _loadMDStats(){
       (monthly ?? 0) + ' emails sent this month. Free tier limit is 3,000. Upgrade Resend to avoid delivery failures.';
   } else { warn.style.display = 'none'; }
 
-  // Issue performance
-  var { data: sends } = await supa.from('monday_drop_sends').select('issue_number,issue_date,issue_title,open_count,first_opened_at,subscriber_id').order('issue_number',{ascending:false});
-  if(!sends) return;
+  // Load all issues from blog-feed.json as the primary source
+  var feedRes = await fetch('blog-feed.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
+  var allDrops = (feedRes && feedRes.monday_drops) ? feedRes.monday_drops : [];
 
-  // Group by issue
-  var issues = {};
-  sends.forEach(function(s){
+  // Also load send records to merge stats
+  var { data: sends } = await supa.from('monday_drop_sends').select('issue_number,issue_date,issue_title,open_count,first_opened_at,subscriber_id').order('issue_number',{ascending:false});
+
+  // Group send data by issue number
+  var sendStats = {};
+  (sends||[]).forEach(function(s){
     var k = s.issue_number;
-    if(!issues[k]) issues[k] = { num:k, date:s.issue_date, title:s.issue_title, sent:0, opens:0, opened_subs:new Set() };
-    issues[k].sent++;
-    if(s.open_count > 0){ issues[k].opens++; issues[k].opened_subs.add(s.subscriber_id); }
+    if(!sendStats[k]) sendStats[k] = { sent:0, opened_subs:new Set() };
+    sendStats[k].sent++;
+    if(s.open_count > 0){ sendStats[k].opened_subs.add(s.subscriber_id); }
   });
 
-  // Unsubscribes per issue (rough: count unsubs after issue date)
+  // Build rows from blog-feed.json (shows all issues even before first send)
+  var today = new Date(); today.setHours(0,0,0,0);
+  var rows = allDrops
+    .filter(function(p){ return new Date(p.date + 'T00:00:00') <= today; })
+    .sort(function(a,b){ return b.issue - a.issue; });
+
   var tbody = document.getElementById('md-issues-table');
-  var rows = Object.values(issues).sort(function(a,b){ return b.num - a.num; });
-  tbody.innerHTML = rows.length ? rows.map(function(iss){
-    var rate = iss.sent ? Math.round(iss.opened_subs.size/iss.sent*100) : 0;
-    var color = rate >= 40 ? '#4ade80' : rate >= 20 ? '#f5c542' : '#ff8080';
+  tbody.innerHTML = rows.length ? rows.map(function(p){
+    var st = sendStats[p.issue] || { sent:0, opened_subs:new Set() };
+    var rate = st.sent ? Math.round(st.opened_subs.size/st.sent*100) : 0;
+    var color = st.sent === 0 ? '#4a5568' : rate >= 40 ? '#4ade80' : rate >= 20 ? '#f5c542' : '#ff8080';
+    var rateStr = st.sent === 0 ? '—' : '<span style="color:'+color+';font-weight:700;">'+rate+'%</span>';
     return '<tr>'
-      + '<td><span class="badge badge-pro">#'+iss.num+'</span></td>'
-      + '<td style="color:#eef3fc;font-weight:600;">'+escH(iss.title||'—').replace(/^Issue #\d+:\s*/,'')+'</td>'
-      + '<td>'+fmtDate(iss.date)+'</td>'
-      + '<td>'+iss.sent+'</td>'
-      + '<td>'+iss.opened_subs.size+'</td>'
-      + '<td><span style="color:'+color+';font-weight:700;">'+rate+'%</span></td>'
+      + '<td><span class="badge badge-pro">#'+p.issue+'</span></td>'
+      + '<td style="color:#eef3fc;font-weight:600;">'+escH((p.title||'—').replace(/^Issue #\d+:\s*/,''))+'</td>'
+      + '<td>'+fmtDate(p.date)+'</td>'
+      + '<td>'+(st.sent||'—')+'</td>'
+      + '<td>'+(st.sent ? st.opened_subs.size : '—')+'</td>'
+      + '<td>'+rateStr+'</td>'
       + '<td>—</td>'
+      + '<td><a href="'+escH(p.url)+'" target="_blank" rel="noopener" style="color:#aaff3e;font-size:12px;font-weight:700;text-decoration:none;">View →</a></td>'
       + '</tr>';
-  }).join('') : '<tr><td colspan="7" style="color:#4a5568;text-align:center;padding:20px;">No sends yet</td></tr>';
+  }).join('') : '<tr><td colspan="8" style="color:#4a5568;text-align:center;padding:20px;">No issues found</td></tr>';
 
   _mdStatsLoaded = true;
 }
