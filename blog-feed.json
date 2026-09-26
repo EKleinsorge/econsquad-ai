@@ -1,6 +1,125 @@
 {
   "monday_drops": [
     {
+      "issue": 21,
+      "date": "2026-09-29",
+      "title": "Issue #21: Workforce Intelligence: The New Competitive Edge in Site Selection",
+      "excerpt": "Site selectors have always cared about workforce. What has changed is the depth of analysis they expect and the speed at which communities need to deliver it. AI changes both equations.",
+      "url": "monday-drop-2026-09-29.html"
+    },
+    {
+      "issue": 20,
+      "date": "2026-09-22",
+      "title": "Issue #20: Fall Planning: Set Up Q4 Before It Arrives",
+      "excerpt": "The organizations that have a strong Q4 are the ones that did their planning in September. Here is how to use AI to build your fall strategy while there is still time to act on it.",
+      "url": "monday-drop-2026-09-22.html"
+    },
+    {
+      "issue": 19,
+      "date": "2026-09-15",
+      "title": "Issue #19: Cover Letters and Proposals That Open Doors",
+      "excerpt": "A great proposal can lose at the cover letter stage. AI helps you write letters that set context, signal competence, and make reviewers want to read more.",
+      "url": "monday-drop-2026-09-15.html"
+    },
+    {
+      "issue": 18,
+      "date": "2026-09-08",
+      "title": "Issue #18: Email Campaigns That Re-Engage the Businesses You Have Not Heard From",
+      "excerpt": "Your contact database is full of businesses you used to know. A well-crafted re-engagement campaign, built with AI, can reopen those relationships in a week.",
+      "url": "monday-drop-2026-09-08.html"
+    },
+    {
+      "issue": 17,
+      "date": "2026-09-01",
+      "title": "Issue #17: RFI Responses That Get You to the Next Round",
+      "excerpt": "Most communities get eliminated in the RFI stage not because they are not competitive, but because their response did not make the case. Here is how to fix that.",
+      "url": "monday-drop-2026-09-01.html"
+    },
+    {
+      "issue": 16,
+      "date": "2026-08-25",
+      "title": "Issue #16: Board Reports That Build Confidence and Drive Decisions",
+      "excerpt": "Your board meets quarterly and needs to understand complex work in 20 minutes. Here is how AI helps you build reports that inform, persuade, and inspire action.",
+      "url": "monday-drop-2026-08-25.html"
+    },
+    {
+      "issue": 15,
+      "date": "2026-08-18",
+      "title": "Issue #15: Market Intelligence Without a Research Department",
+      "excerpt": "You do not need a full research team to compete with the communities that have one. Here is how AI gives you research capacity on an ED budget.",
+      "url": "monday-drop-2026-08-18.html"
+    },
+    {
+      "issue": 14,
+      "date": "2026-08-11",
+      "title": "Issue #14: Site Scorecards That Make Decisions Easier",
+      "excerpt": "When multiple sites are competing for a project, a good scorecard accelerates the decision. AI helps you build ones that are rigorous, fair, and fast.",
+      "url": "monday-drop-2026-08-11.html"
+    },
+    {
+      "issue": 13,
+      "date": "2026-08-04",
+      "title": "Issue #13: Tax Credits: Finding Money You Didn't Know You Had",
+      "excerpt": "Federal and state tax credit programs are underutilized by economic developers and the businesses they serve. AI can help you find, explain, and deploy them better.",
+      "url": "monday-drop-2026-08-04.html"
+    },
+    {
+      "issue": 12,
+      "date": "2026-07-28",
+      "title": "Issue #12: Annual Reports That People Actually Read",
+      "excerpt": "Most ED annual reports are obligation documents. Here is how to make yours a marketing tool that builds stakeholder confidence and attracts new investment.",
+      "url": "monday-drop-2026-07-28.html"
+    },
+    {
+      "issue": 11,
+      "date": "2026-07-21",
+      "title": "Issue #11: Social Media for ED: What Works and What Wastes Time",
+      "excerpt": "Most ED social media looks like every other government account. Here is how to use AI to create content that builds real audience and supports real deals.",
+      "url": "monday-drop-2026-07-21.html"
+    },
+    {
+      "issue": 10,
+      "date": "2026-07-14",
+      "title": "Issue #10: SWOT Analysis That Actually Drives Strategy",
+      "excerpt": "A SWOT that lives in a slide deck is not a strategy tool. Here is how AI helps you build one worth using.",
+      "url": "monday-drop-2026-07-14.html"
+    },
+    {
+      "issue": 9,
+      "date": "2026-07-07",
+      "title": "Issue #9: Press Releases That Actually Get Covered",
+      "excerpt": "Most economic development press releases die in a journalist inbox. Here is how AI helps you write releases that earn real coverage.",
+      "url": "monday-drop-2026-07-07.html"
+    },
+    {
+      "issue": 8,
+      "date": "2026-06-30",
+      "title": "Issue #8: Building Incentive Packages That Win",
+      "excerpt": "Incentive modeling is part math, part storytelling. AI can handle the modeling so you can focus on the story that wins the deal.",
+      "url": "monday-drop-2026-06-30.html"
+    },
+    {
+      "issue": 7,
+      "date": "2026-06-23",
+      "title": "Issue #7: BRE Surveys That Businesses Actually Complete",
+      "excerpt": "Business retention surveys are only as good as your response rate. AI can help you write better questions, analyze results faster, and turn data into action.",
+      "url": "monday-drop-2026-06-23.html"
+    },
+    {
+      "issue": 6,
+      "date": "2026-06-16",
+      "title": "Issue #6: Grant Research Just Got a Whole Lot Faster",
+      "excerpt": "Federal grant cycles move fast and the opportunities are buried in dense program guides. AI can do the heavy lifting of finding, filtering, and matching.",
+      "url": "monday-drop-2026-06-16.html"
+    },
+    {
+      "issue": 5,
+      "date": "2026-06-09",
+      "title": "Issue #5: Your Community Profile Is Your AI Secret Weapon",
+      "excerpt": "Your community profile data is the most valuable thing you never fully deploy. Here is how AI turns it into a competitive advantage.",
+      "url": "monday-drop-2026-06-09.html"
+    },
+    {
       "issue": 4,
       "date": "2026-06-02",
       "title": "Issue #4: Make Your Data Work Smarter This Site Visit Season",

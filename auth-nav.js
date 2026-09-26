@@ -68,6 +68,33 @@
     if (wrap) wrap.style.filter = 'blur(4px)';
   }
 
+  function showComeBackBanner() {
+    var banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9000;'
+      + 'background:linear-gradient(135deg,#0d1a08,#1a3300);'
+      + 'border-top:2px solid #aaff3e;padding:16px 24px;'
+      + 'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;'
+      + 'box-shadow:0 -4px 32px rgba(170,255,62,0.15);';
+    banner.innerHTML = '<div style="display:flex;align-items:center;gap:14px;">'
+      + '<div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;"></div>'
+      + '<div>'
+      + '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:900;color:#aaff3e;">We\'ve missed you, EconSquad is better than ever.</div>'
+      + '<div style="font-size:12px;color:rgba(170,255,62,0.6);">Your account is on hold — reactivate and pick up right where you left off.</div>'
+      + '</div></div>'
+      + '<div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">'
+      + '<a href="' + DASH + '" style="background:#aaff3e;color:#1a3300;font-family:\'DM Sans\',sans-serif;font-size:13px;font-weight:800;padding:10px 22px;border-radius:8px;text-decoration:none;white-space:nowrap;">Reactivate My Account →</a>'
+      + '<button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:rgba(170,255,62,0.4);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;">×</button>'
+      + '</div>';
+    document.body.appendChild(banner);
+    /* Also update the in-article CTA block if present */
+    var cta = document.getElementById('page-cta');
+    if (cta) {
+      cta.innerHTML = '<h2 style="color:#aaff3e;">Welcome back.</h2>'
+        + '<p>Your EconSquad account is still here — all your settings, community profile, and specialists. Reactivate today and pick up right where you left off.</p>'
+        + '<a href="' + DASH + '">Reactivate My Account →</a>';
+    }
+  }
+
   function applyLoggedIn() {
     /* 1. Swap every "Home" nav link → Back to Dashboard */
     document.querySelectorAll('.nav-links a[href="index.html"]').forEach(function (a) {
@@ -114,9 +141,21 @@
       return;
     }
     try {
-      supabase.createClient(SUPA_URL, SUPA_KEY).auth.getSession().then(function (res) {
+      var _supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+      _supa.auth.getSession().then(function (res) {
         if (res && res.data && res.data.session) {
           applyLoggedIn();
+          /* Check subscription status — show re-engagement banner for lapsed members */
+          var uid = res.data.session.user.id;
+          _supa.from('profiles').select('plan,subscription_status').eq('id', uid).single().then(function (pr) {
+            if (!pr.data) return;
+            var plan   = pr.data.plan || '';
+            var status = pr.data.subscription_status || '';
+            var lapsed = plan === 'cancelled' || plan === 'expired'
+                      || status === 'canceled' || status === 'cancelled'
+                      || status === 'trial_expired';
+            if (lapsed) showComeBackBanner();
+          });
         } else {
           showArchiveGate();
         }
