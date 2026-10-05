@@ -1,6 +1,10 @@
 // ============================================================
 // Supabase Edge Function: send-monday-drop
-// Triggered every Monday at 8am CT via GitHub Actions
+// Triggered hourly on Mondays via GitHub Actions.
+// Sends only to subscribers where it is currently 10am in
+// their stored timezone — skips everyone else that hour.
+// The unique constraint on monday_drop_sends prevents any
+// subscriber from receiving the same issue twice.
 // ============================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -9,7 +13,7 @@ const SERVICE_KEY      = Deno.env.get('SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY   = Deno.env.get('RESEND_API_KEY')!;
 const SITE_URL         = 'https://econsquad.ai';
 const FROM_EMAIL       = 'ARIA from EconSquad <aria@econsquad.ai>';
-const WARN_THRESHOLD   = 2500; // warn in admin when monthly sends exceed this
+const WARN_THRESHOLD   = 2500;
 
 const supa = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -17,6 +21,21 @@ const supa = createClient(SUPABASE_URL, SERVICE_KEY);
 
 function todayDateStr(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+/** Returns the current hour (0-23) in the given IANA timezone. */
+function localHour(timezone: string): number {
+  try {
+    const str = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+    }).format(new Date());
+    const h = parseInt(str, 10);
+    return isNaN(h) ? -1 : h;
+  } catch {
+    return -1; // unknown timezone — skip
+  }
 }
 
 async function getTodaysIssue(): Promise<any | null> {
@@ -30,7 +49,7 @@ async function getTodaysIssue(): Promise<any | null> {
 async function getActiveSubscribers(): Promise<any[]> {
   const { data, error } = await supa
     .from('monday_drop_subscribers')
-    .select('id, email, name, unsubscribe_token')
+    .select('id, email, name, unsubscribe_token, timezone')
     .is('unsubscribed_at', null);
   if (error) throw error;
   return data ?? [];
@@ -133,26 +152,20 @@ function buildEmailHtml(subscriber: any, issue: any, trackingToken: string): str
 // ── Main handler ─────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  // Only allow POST from our GitHub Actions (auth via service key header)
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
 
   try {
-    // ── Dry run ──────────────────────────────────────────────
-    // monday-drop.yml has always passed a dry_run input, but this handler
-    // never read the request body — so "dry run" sent the real newsletter to
-    // the real list. Parse it before anything writes or sends.
     let body: any = {};
     try { body = await req.json(); } catch { /* no body is fine */ }
     const dryRun = body.dry_run === true  || body.dry_run === 'true'
                 || body.dry_run === 1     || body.dry_run === '1';
 
-    // Check monthly warning threshold
+    // Monthly warning check
     const monthlyCount = await getMonthlyCount();
     if (monthlyCount >= WARN_THRESHOLD) {
-      console.warn(`⚠️ Monthly send count ${monthlyCount} has reached warning threshold ${WARN_THRESHOLD}`);
-      // Store warning flag in DB so admin can see it (never on a dry run)
+      console.warn(`⚠️ Monthly send count ${monthlyCount} >= ${WARN_THRESHOLD}`);
       if (!dryRun) {
         await supa.from('monday_drop_sends').insert({
           subscriber_id: null,
@@ -171,15 +184,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Get active subscribers
-    const subscribers = await getActiveSubscribers();
-    if (!subscribers.length) {
+    // Get all active subscribers (includes timezone column)
+    const allSubscribers = await getActiveSubscribers();
+    if (!allSubscribers.length) {
       return new Response(JSON.stringify({ ok: true, sent: 0, message: 'No active subscribers' }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // ── Dry run: report and stop, before any insert or send ──
+    // Filter to subscribers where it is currently 10am in their timezone
+    const subscribers = allSubscribers.filter(s => localHour(s.timezone ?? 'America/Chicago') === 10);
+
+    // Dry run: report what would happen this hour
     if (dryRun) {
       const { data: already } = await supa
         .from('monday_drop_sends')
@@ -193,13 +209,15 @@ Deno.serve(async (req: Request) => {
         mode: 'dry_run',
         issue: issue.issue,
         issue_title: issue.title,
-        subscribers: subscribers.length,
+        utc_hour: new Date().getUTCHours(),
+        all_subscribers: allSubscribers.length,
+        in_10am_window: subscribers.length,
         would_send: wouldSend.length,
-        would_skip: subscribers.length - wouldSend.length,
+        would_skip_already_sent: subscribers.length - wouldSend.length,
         monthly_count: monthlyCount,
-        sample: wouldSend.slice(0, 10).map((s: any) => s.email),
+        sample: wouldSend.slice(0, 10).map((s: any) => ({ email: s.email, timezone: s.timezone })),
       };
-      console.log('Monday Drop DRY RUN — nothing sent:', report);
+      console.log('Monday Drop DRY RUN:', report);
       return new Response(JSON.stringify(report), {
         status: 200, headers: { 'Content-Type': 'application/json' },
       });
@@ -208,7 +226,7 @@ Deno.serve(async (req: Request) => {
     let sent = 0, skipped = 0, failed = 0;
 
     for (const sub of subscribers) {
-      // Create send record (skip if already sent this issue)
+      // Insert send record — unique constraint skips if already sent this issue
       const { data: sendRecord, error: insertErr } = await supa
         .from('monday_drop_sends')
         .insert({
@@ -220,24 +238,25 @@ Deno.serve(async (req: Request) => {
         .select('id, tracking_token')
         .single();
 
-      if (insertErr) {
-        // Unique constraint = already sent this issue to this subscriber
-        skipped++;
-        continue;
-      }
+      if (insertErr) { skipped++; continue; }
 
-      // Build and send email
-      const html = buildEmailHtml(sub, issue, sendRecord.tracking_token);
+      const html    = buildEmailHtml(sub, issue, sendRecord.tracking_token);
       const subject = `📬 Monday AI for ED Drop #${issue.issue}: ${issue.title.replace(/^Issue #\d+:\s*/, '')}`;
-      const ok = await sendViaResend(sub.email, subject, html);
+      const ok      = await sendViaResend(sub.email, subject, html);
 
       if (ok) { sent++; } else { failed++; }
 
-      // Small delay to stay within Resend rate limits
       await new Promise(r => setTimeout(r, 50));
     }
 
-    const result = { ok: true, issue: issue.issue, sent, skipped, failed, monthlyTotal: monthlyCount + sent };
+    const result = {
+      ok: true,
+      issue: issue.issue,
+      utc_hour: new Date().getUTCHours(),
+      in_10am_window: subscribers.length,
+      sent, skipped, failed,
+      monthlyTotal: monthlyCount + sent,
+    };
     console.log('Monday Drop send complete:', result);
 
     return new Response(JSON.stringify(result), {

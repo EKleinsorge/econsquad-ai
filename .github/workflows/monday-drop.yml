@@ -2,7 +2,11 @@ name: Monday AI for ED Drop — Weekly Send
 
 on:
   schedule:
-    - cron: '0 13 * * 1'
+    # Runs every hour on Mondays from 13:00–20:00 UTC
+    # = 9am–4pm ET / 8am–3pm CT / 7am–2pm MT / 6am–1pm PT
+    # Edge function sends only to subscribers where it is currently 10am
+    # in their stored timezone; unique constraint prevents double-sends.
+    - cron: '0 13-20 * * 1'
   workflow_dispatch:
     inputs:
       dry_run:
