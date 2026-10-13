@@ -6320,7 +6320,6 @@ function ariaFindSpecialist(){
     var handoffMsg=document.getElementById('aria-orch-handoff-msg');
     var specByline=document.getElementById('aria-orch-spec-byline');
     var orchOutput=document.getElementById('aria-orch-output');
-    var continueBtn=document.getElementById('aria-orch-continue');
     /* ARIA narrates: she handed it off, the specialist returned it */
     var handoffPhrases=[
       'just got back to me.',
@@ -6332,7 +6331,6 @@ function ariaFindSpecialist(){
     if(handoffMsg)handoffMsg.innerHTML='<strong style="color:#eef3fc;">'+best.name+'</strong> '+phrase+' Take a look:';
     if(specByline)specByline.textContent='From '+best.name+(best.role?' \u00b7 '+best.role:'');
     if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
-    if(continueBtn)continueBtn.textContent='Continue with '+best.name+' \u2192';
     /* Store exchange so deployFromAria can pre-seed the specialist chat */
     window._ariaChatSeed={task:task,reply:reply,specialistId:Number(best.id)};
     if(resultDiv)resultDiv.style.display='block';
@@ -6377,6 +6375,17 @@ function ariaNewTask(){
   if(box)box.style.maxWidth='';
   var input=document.getElementById('aria-task-input');
   if(input){input.value='';setTimeout(function(){input.focus();},50);}
+}
+
+function ariaOrchestratorCopy(){
+  var outputEl=document.getElementById('aria-orch-output');
+  if(!outputEl) return;
+  var text=outputEl.innerText||outputEl.textContent||'';
+  if(!text) return;
+  navigator.clipboard.writeText(text.trim()).then(function(){
+    var btn=document.getElementById('aria-orch-copy');
+    if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy result';},2000);}
+  }).catch(function(){});
 }
 
 function ariaFallbackMatch(task){
@@ -15528,7 +15537,7 @@ function drawLogo(){if(!logoCtx)return;
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
         <button onclick="ariaNewTask()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">← Ask something else</button>
-        <button onclick="deployFromAria()" id="aria-orch-continue" style="flex:1;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 16px;border:none;border-radius:8px;cursor:pointer;">Continue in full chat →</button>
+        <button onclick="ariaOrchestratorCopy()" id="aria-orch-copy" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">Copy result</button>
       </div>
     </div>
 
