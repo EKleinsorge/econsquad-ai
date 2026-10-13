@@ -6758,6 +6758,49 @@ function openDocumentViewer(text, specialistId){
   if(w){w.document.write(html);w.document.close();}
 }
 
+function designOutput(text, specialistId, btn){
+  if(!text||!btn)return;
+  var orig=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='⏳ Designing...';
+
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    if(!session||!session.access_token){
+      btn.disabled=false; btn.innerHTML=orig;
+      addChatMessage('specialist','Please sign in again to use this feature.');
+      return;
+    }
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPA_KEY,
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        design_mode:true,
+        specialistId:specialistId,
+        content:text,
+        messages:[{role:'user',content:'Design this.'}]
+      })
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      btn.disabled=false; btn.innerHTML=orig;
+      if(data.error){addChatMessage('specialist','Design failed: '+data.error);return;}
+      var html=data.html||'';
+      if(!html){addChatMessage('specialist','No design was returned. Please try again.');return;}
+      var w=window.open('','_blank');
+      if(w){w.document.write(html);w.document.close();}
+    })
+    .catch(function(){
+      btn.disabled=false; btn.innerHTML=orig;
+      addChatMessage('specialist','Design failed. Please try again.');
+    });
+  });
+}
+
 function sendChatMessage(){
   var input=document.getElementById('chat-input');
   if(!input||chatState.isTyping)return;
@@ -7246,6 +7289,13 @@ function showFinalOutput(text){
     docBtn.onclick=(function(t,sid){return function(){openDocumentViewer(t,sid);};})(text,chatState.specialistId);
     actions.appendChild(docBtn);
   }
+
+  /* ✨ Design it for me — available for all specialists */
+  var designBtn=document.createElement('button');
+  designBtn.className='output-btn';
+  designBtn.innerHTML='✨ Design it for me';
+  designBtn.onclick=(function(t,sid,b){return function(){designOutput(t,sid,b);};})(text,chatState.specialistId,designBtn);
+  actions.appendChild(designBtn);
 
   actions.appendChild(copyBtn);
   actions.appendChild(saveBtn);
