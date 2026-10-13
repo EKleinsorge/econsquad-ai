@@ -6293,7 +6293,7 @@ function ariaFindSpecialist(){
       },
       body:JSON.stringify({
         specialistId:Number(best.id),
-        messages:[{role:'user',content:task}]
+        messages:[{role:'user',content:task+'\n\n[Via ARIA Chief of Staff: Produce your best complete response based on this request. Make reasonable assumptions where details are missing and note them at the end. Do not ask clarifying questions \u2014 deliver a full draft now.]'}]
       })
     });
   })
@@ -6333,6 +6333,8 @@ function ariaFindSpecialist(){
     if(specByline)specByline.textContent='From '+best.name+(best.role?' \u00b7 '+best.role:'');
     if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
     if(continueBtn)continueBtn.textContent='Continue with '+best.name+' \u2192';
+    /* Store exchange so deployFromAria can pre-seed the specialist chat */
+    window._ariaChatSeed={task:task,reply:reply,specialistId:Number(best.id)};
     if(resultDiv)resultDiv.style.display='block';
   })
   .catch(function(err){
@@ -6461,9 +6463,23 @@ function deployFromAria(){
      did nothing but close the panel. openSpecialistChat(id) is what the squad
      cards themselves call. Fixed 2026-09-01. */
   switchView('dashboard');
+  var seed=window._ariaChatSeed||null;
+  window._ariaChatSeed=null;
   setTimeout(function(){
     try{
-      if(typeof openSpecialistChat === 'function'){ openSpecialistChat(id); return; }
+      if(typeof openSpecialistChat === 'function'){
+        openSpecialistChat(id);
+        /* Inject the ARIA exchange so the specialist sees the full context */
+        if(seed&&seed.task&&seed.reply&&typeof addChatMessage==='function'){
+          /* Remove greeting display and replace with the ARIA exchange */
+          var msgs=document.getElementById('chat-messages');
+          if(msgs) msgs.innerHTML='';
+          /* These push to chatState.messages AND render bubbles */
+          addChatMessage('user',seed.task);
+          addChatMessage('specialist',seed.reply,true);
+        }
+        return;
+      }
       if(typeof deploy === 'function'){ deploy(id); return; }
     }catch(e){}
     /* Last resort: land them on the squad grid rather than nowhere. */
