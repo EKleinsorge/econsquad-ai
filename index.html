@@ -6306,7 +6306,7 @@ function ariaActivateSpecialist(spec){
   var standby=document.getElementById('aria-spec-standby');
   var card=document.getElementById('aria-spec-card');
   if(standby)standby.style.display='none';
-  if(card)card.style.display='flex';
+  if(card){card.style.display='flex';card.classList.add('sp-visible');}
   var orbEl=document.getElementById('aria-spec-orb-el');
   if(orbEl){
     var cat=spec.cat||'grants';
@@ -6489,14 +6489,14 @@ function ariaCallSpecialistWithContext(spec,task,answers){
     _ariaQList.forEach(function(q,i){if(answers[i])contextBlock+='- '+q+'\n  '+answers[i]+'\n';});
   }
   var specId=spec.id||spec.specialist_id;
-  var supaUrl=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'')||'';
-  var anonKey=(typeof SUPABASE_ANON_KEY!=='undefined'?SUPABASE_ANON_KEY:'')||'';
-  var authToken=anonKey;
-  try{var sess=supabase.auth.session?supabase.auth.session():null;if(sess&&sess.access_token)authToken=sess.access_token;}catch(e){}
-  fetch(supaUrl+'/functions/v1/specialist-chat',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken,'apikey':anonKey},
-    body:JSON.stringify({specialist_id:specId,message:contextBlock,history:[],phase:'final'})
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    var token=session&&session.access_token?session.access_token:SUPA_KEY;
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token},
+      body:JSON.stringify({specialist_id:specId,message:contextBlock,history:[],phase:'final'})
+    });
   }).then(function(r){return r.json();}).then(function(data){
     var reply=data.reply||data.message||data.content||'';
     if(!reply&&data.error)reply='Something went wrong: '+data.error;
