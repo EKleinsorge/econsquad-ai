@@ -6278,6 +6278,7 @@ function openAriaRouting(){
 function closeAriaRouting(){
   var m=document.getElementById('aria-cmd-modal');
   if(m)m.style.display='none';
+  ariaOrbitStop();
 }
 
 function _ariaSetState(state){
@@ -6285,6 +6286,13 @@ function _ariaSetState(state){
     var el=document.getElementById('aria-state-'+s);
     if(el)el.style.display=(s===state)?'':'none';
   });
+  if(state==='thinking'&&!_ariaCmdSpec){
+    var oc=document.getElementById('aria-orbit-cv');
+    if(oc)oc.style.display='';
+    var sb=document.getElementById('aria-spec-standby');
+    if(sb)sb.style.display='none';
+    ariaOrbitStart();
+  }
 }
 
 function ariaChooseHandle(){
@@ -6303,26 +6311,138 @@ function ariaChooseSpecialist(){
 
 function ariaActivateSpecialist(spec){
   _ariaCmdSpec=spec;
-  var standby=document.getElementById('aria-spec-standby');
-  var card=document.getElementById('aria-spec-card');
-  if(standby)standby.style.display='none';
-  if(card){card.style.display='flex';card.classList.add('sp-visible');}
-  var orbEl=document.getElementById('aria-spec-orb-el');
-  if(orbEl){
-    var cat=spec.cat||'grants';
-    var colors=ARIA_ORB_COLORS[cat]||ARIA_ORB_COLORS.grants;
-    orbEl.style.cssText='width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,'+colors.c1+','+colors.c2+' 50%,'+colors.c3+');box-shadow:0 0 16px '+colors.glow+';flex-shrink:0;';
+  var specId=Number(spec.id||spec.specialist_id||0);
+  function _showCard(){
+    var standby=document.getElementById('aria-spec-standby');
+    var card=document.getElementById('aria-spec-card');
+    if(standby)standby.style.display='none';
+    if(card){card.style.display='flex';card.classList.add('sp-visible');}
+    var orbEl=document.getElementById('aria-spec-orb-el');
+    if(orbEl){
+      var cat=spec.cat||'grants';
+      var colors=ARIA_ORB_COLORS[cat]||ARIA_ORB_COLORS.grants;
+      orbEl.style.cssText='width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,'+colors.c1+','+colors.c2+' 50%,'+colors.c3+');box-shadow:0 0 16px '+colors.glow+';flex-shrink:0;';
+    }
+    var nameEl=document.getElementById('aria-spec-name-el');
+    var roleEl=document.getElementById('aria-spec-role-el');
+    if(nameEl)nameEl.textContent=spec.name||'';
+    if(roleEl)roleEl.textContent=spec.role||'';
+    ariaSetSpecStatus('Standing by');
   }
-  var nameEl=document.getElementById('aria-spec-name-el');
-  var roleEl=document.getElementById('aria-spec-role-el');
-  if(nameEl)nameEl.textContent=spec.name||'';
-  if(roleEl)roleEl.textContent=spec.role||'';
-  ariaSetSpecStatus('Standing by');
+  if(_ariaOrbitSt.phase==='orbiting'){
+    ariaOrbitSelect(specId,_showCard);
+  } else {
+    _showCard();
+  }
 }
 
 function ariaSetSpecStatus(text){
   var el=document.getElementById('aria-spec-status-txt');
   if(el)el.textContent=text;
+}
+
+/* ---- ORBIT ANIMATION ---- */
+var _ariaOrbitSt={raf:null,phase:'idle',orbs:[],selectedIdx:-1,selStart:0,selDur:620,onDone:null,canvas:null,ctx:null,t0:0};
+var _ARIA_SPEC_CAT_MAP={1:'grants',2:'grants',3:'grants',4:'site',5:'site',6:'BRE',7:'BRE',8:'data',9:'data',10:'data',11:'incentives',12:'incentives',13:'marketing',14:'marketing',15:'workforce',16:'workforce',17:'reporting',18:'reporting',19:'marketing',20:'marketing',21:'grants',22:'data'};
+
+function ariaOrbitStart(){
+  var cv=document.getElementById('aria-orbit-cv');
+  if(!cv)return;
+  var pnl=document.getElementById('aria-spec-pnl');
+  if(!pnl)return;
+  var r=pnl.getBoundingClientRect();
+  cv.width=r.width||636; cv.height=r.height||110;
+  cv.style.display='';
+  var ctx=cv.getContext('2d');
+  _ariaOrbitSt.canvas=cv; _ariaOrbitSt.ctx=ctx;
+  _ariaOrbitSt.phase='orbiting'; _ariaOrbitSt.selectedIdx=-1; _ariaOrbitSt.onDone=null; _ariaOrbitSt.t0=performance.now();
+
+  var specList=(typeof squad!=='undefined'&&squad.length)?squad.map(function(x){return{id:x.id,cat:(_ARIA_SPEC_CAT_MAP[x.id]||x.cat||'grants')};}):Object.keys(_ARIA_SPEC_CAT_MAP).map(function(k){return{id:Number(k),cat:_ARIA_SPEC_CAT_MAP[k]};});
+  var cx=cv.width/2, cy=cv.height/2;
+  var rx=cv.width*0.41, ry=cv.height*0.3;
+  var n=specList.length;
+  _ariaOrbitSt.orbs=specList.map(function(s,i){
+    var a=(i/n)*Math.PI*2;
+    var spd=0.00085+(i%7)*0.000055;
+    var col=ARIA_ORB_COLORS[s.cat]||ARIA_ORB_COLORS.grants;
+    return{id:s.id,angle:a,speed:spd,r:6,color:col.c2,glow:col.glow,alpha:0,x:cx,y:cy,cx:cx,cy:cy,rx:rx,ry:ry};
+  });
+  if(_ariaOrbitSt.raf)cancelAnimationFrame(_ariaOrbitSt.raf);
+  _ariaOrbitSt.raf=requestAnimationFrame(_ariaOrbitLoop);
+}
+
+function _ariaOrbitLoop(now){
+  var st=_ariaOrbitSt;
+  if(st.phase==='idle'||st.phase==='done')return;
+  var ctx=st.ctx, cv=st.canvas;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var elapsed=now-st.t0;
+
+  if(st.phase==='orbiting'){
+    st.orbs.forEach(function(o,i){
+      o.angle+=o.speed;
+      o.x=o.cx+Math.cos(o.angle)*o.rx;
+      o.y=o.cy+Math.sin(o.angle)*o.ry;
+      o.alpha=Math.min(1,Math.max(0,(elapsed-i*22)/280));
+      _ariaDrawOrb(ctx,o.x,o.y,o.r,o.color,o.glow,o.alpha);
+    });
+  } else if(st.phase==='selecting'){
+    var prog=Math.min(1,(now-st.selStart)/st.selDur);
+    var ease=prog<0.5?2*prog*prog:1-Math.pow(-2*prog+2,2)/2;
+    var sel=st.orbs[st.selectedIdx];
+    var tx=cv.width/2, ty=cv.height/2;
+    st.orbs.forEach(function(o,i){
+      o.angle+=o.speed*(1-ease*0.9);
+      o.x=o.cx+Math.cos(o.angle)*o.rx;
+      o.y=o.cy+Math.sin(o.angle)*o.ry;
+      if(i===st.selectedIdx){
+        var ox=o.x+(tx-o.x)*ease, oy=o.y+(ty-o.y)*ease;
+        var or2=o.r+(40-o.r)*ease;
+        _ariaDrawOrb(ctx,ox,oy,or2,o.color,o.glow,1);
+      } else {
+        var oa=o.alpha*(1-ease);
+        if(oa>0.01)_ariaDrawOrb(ctx,o.x,o.y,o.r*(1-ease*0.5),o.color,o.glow,oa);
+      }
+    });
+    if(prog>=1){
+      st.phase='done';
+      ctx.clearRect(0,0,cv.width,cv.height);
+      cv.style.display='none';
+      if(st.onDone)st.onDone();
+      return;
+    }
+  }
+  st.raf=requestAnimationFrame(_ariaOrbitLoop);
+}
+
+function _ariaDrawOrb(ctx,x,y,r,color,glow,alpha){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.shadowColor=glow; ctx.shadowBlur=r*3;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.globalAlpha=alpha*0.75;
+  ctx.beginPath(); ctx.arc(x-r*0.28,y-r*0.28,r*0.42,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+  ctx.restore();
+}
+
+function ariaOrbitSelect(specId,onDone){
+  var st=_ariaOrbitSt;
+  if(st.phase!=='orbiting'){if(onDone)onDone();return;}
+  var idx=-1;
+  st.orbs.forEach(function(o,i){if(o.id===specId)idx=i;});
+  if(idx===-1){if(onDone)onDone();return;}
+  st.selectedIdx=idx; st.selStart=performance.now();
+  st.phase='selecting'; st.onDone=onDone;
+}
+
+function ariaOrbitStop(){
+  var st=_ariaOrbitSt;
+  if(st.raf){cancelAnimationFrame(st.raf);st.raf=null;}
+  st.phase='idle';
+  if(st.canvas){st.ctx.clearRect(0,0,st.canvas.width,st.canvas.height);st.canvas.style.display='none';}
 }
 
 function ariaFireParticles(direction,onDone){
@@ -6537,6 +6657,7 @@ function ariaCallSpecialistWithContext(spec,task,answers){
 }
 
 function _ariaShowResult(spec,reply){
+  ariaOrbitStop();
   ariaSetSpecStatus('Done \u2713');
   var hm=document.getElementById('aria-result-handoff-msg');
   var bl=document.getElementById('aria-result-byline');
@@ -6571,6 +6692,7 @@ function deployFromAriaCmd(){
 }
 
 function ariaNewTask(){
+  ariaOrbitStop();
   _ariaCmdSpec=null;_ariaCmdTask='';
   _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
   var standby=document.getElementById('aria-spec-standby');
@@ -15729,6 +15851,7 @@ function drawLogo(){if(!logoCtx)return;
 
     <!-- SPECIALIST PANEL (top) -->
     <div class="aria-spec-pnl" id="aria-spec-pnl">
+      <canvas id="aria-orbit-cv" style="position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:20px 20px 0 0;display:none;"></canvas>
       <div id="aria-spec-standby">
         <div class="aria-spec-standby-label">Specialist Workspace</div>
         <div class="aria-spec-standby-dots">
