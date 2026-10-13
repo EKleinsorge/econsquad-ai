@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6191,8 +6191,17 @@ var ariaRecommendedId=null;
 function openAriaRouting(){
   var m=document.getElementById('aria-routing-modal');
   if(m)m.classList.add('show');
-  var result=document.getElementById('aria-result');
-  if(result)result.style.display='none';
+  /* Reset all states: show only input panel */
+  var inputDiv=document.getElementById('aria-input-state');
+  var consultDiv=document.getElementById('aria-consulting-state');
+  var resultDiv=document.getElementById('aria-orchestrator-result');
+  var oldResult=document.getElementById('aria-result');
+  var box=document.getElementById('aria-routing-box');
+  if(inputDiv)inputDiv.style.display='block';
+  if(consultDiv)consultDiv.style.display='none';
+  if(resultDiv)resultDiv.style.display='none';
+  if(oldResult)oldResult.style.display='none';
+  if(box)box.style.maxWidth='';
   var input=document.getElementById('aria-task-input');
   if(input){input.value='';input.focus();}
   /* Init animated orb on first open */
@@ -6224,42 +6233,138 @@ function ariaFindSpecialist(){
   var input=document.getElementById('aria-task-input');
   if(!input||!input.value.trim())return;
   var task=input.value.trim();
-  var btn=document.getElementById('aria-find-btn');
-  if(btn){btn.textContent='ARIA is thinking...';btn.disabled=true;}
 
-  /* Build list of available specialists */
-  var specList=Object.values(ttSpecData).map(function(s){
-    return s.id+': '+s.name+' ('+s.cat+') — '+s.description;
-  }).join('\n');
+  var inputDiv=document.getElementById('aria-input-state');
+  var consultDiv=document.getElementById('aria-consulting-state');
+  var resultDiv=document.getElementById('aria-orchestrator-result');
+  var oldResult=document.getElementById('aria-result');
 
-  /* Keyword-based specialist routing */
-  if(btn){btn.textContent='Find my specialist →';btn.disabled=false;}
+  /* Hide all panels */
+  if(inputDiv)inputDiv.style.display='none';
+  if(consultDiv)consultDiv.style.display='none';
+  if(resultDiv)resultDiv.style.display='none';
+  if(oldResult)oldResult.style.display='none';
+
   var best=ariaFallbackMatch(task);
-  var recBtn=document.getElementById('aria-rec-btn');
   if(!best){
-    /* Say we do not know rather than name a specialist we did not match. */
+    /* No confident match — restore input + show helper */
+    if(inputDiv)inputDiv.style.display='block';
     ariaRecommendedId=null;
-    document.getElementById('aria-rec-name').textContent='Not sure yet';
-    document.getElementById('aria-rec-role').textContent='';
-    document.getElementById('aria-rec-reason').textContent=
-      'I could not match that to a specialist confidently. Try naming the document \u2014 grant, RFP, RFI, BRE survey, press release, cover letter, board report, workforce or market analysis \u2014 or browse all 22 in Meet the Squad.';
+    var nameEl=document.getElementById('aria-rec-name');
+    var roleEl=document.getElementById('aria-rec-role');
+    var reasonEl=document.getElementById('aria-rec-reason');
     var orb0=document.getElementById('aria-rec-orb');
+    var recBtn=document.getElementById('aria-rec-btn');
+    if(nameEl)nameEl.textContent='Not sure yet';
+    if(roleEl)roleEl.textContent='';
+    if(reasonEl)reasonEl.textContent="I couldn\u2019t match that to a specialist. Try naming the output you need \u2014 grant, RFI response, BRE survey, press release, cover letter, board report, workforce analysis \u2014 and I\u2019ll get the right person on it.";
     if(orb0)orb0.style.background='radial-gradient(circle at 36% 32%,#8a97b5,rgba(0,0,0,0.8))';
     if(recBtn)recBtn.style.display='none';
-    document.getElementById('aria-result').style.display='block';
+    if(oldResult)oldResult.style.display='block';
     return;
   }
-  if(recBtn)recBtn.style.display='';
-  if(best){
-    ariaRecommendedId=best.id;
-    var col=CAT_COLORS[best.cat]||'#aaff3e';
-    document.getElementById('aria-rec-name').textContent=best.name;
-    document.getElementById('aria-rec-role').textContent=best.role;
-    document.getElementById('aria-rec-reason').textContent='Based on your task description, '+best.name+' is your best match. '+best.description;
-    var orb=document.getElementById('aria-rec-orb');
-    if(orb)orb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.8))';
-    document.getElementById('aria-result').style.display='block';
-  }
+
+  ariaRecommendedId=best.id;
+
+  /* Show consulting animation */
+  var consultMsg=document.getElementById('aria-consulting-msg');
+  if(consultMsg)consultMsg.innerHTML='Pulling in <strong style="color:#aaff3e;">'+best.name+'</strong> on this\u2026 give me a moment.';
+  if(consultDiv)consultDiv.style.display='block';
+
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    if(!session||!session.access_token){
+      if(consultDiv)consultDiv.style.display='none';
+      if(inputDiv)inputDiv.style.display='block';
+      openAuth('signup');
+      return Promise.reject(new Error('no_session'));
+    }
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPA_KEY,
+        'Authorization':'Bearer '+session.access_token
+      },
+      body:JSON.stringify({
+        specialistId:Number(best.id),
+        messages:[{role:'user',content:task}]
+      })
+    });
+  })
+  .then(function(r){ return r&&r.json ? r.json() : null; })
+  .then(function(data){
+    if(!data) return;
+    if(consultDiv)consultDiv.style.display='none';
+    if(data.error){
+      if(inputDiv)inputDiv.style.display='block';
+      var errName=document.getElementById('aria-rec-name');
+      var errReason=document.getElementById('aria-rec-reason');
+      var errBtn=document.getElementById('aria-rec-btn');
+      if(errName)errName.textContent='Something went wrong';
+      if(errReason)errReason.textContent=data.error;
+      if(errBtn)errBtn.style.display='none';
+      if(oldResult)oldResult.style.display='block';
+      return;
+    }
+    var reply=data.reply||'';
+    if(!reply){ if(inputDiv)inputDiv.style.display='block'; return; }
+    /* Widen box for result */
+    var box=document.getElementById('aria-routing-box');
+    if(box)box.style.maxWidth='680px';
+    var orchName=document.getElementById('aria-orch-spec-name');
+    var orchOrb=document.getElementById('aria-orch-orb');
+    var orchOutput=document.getElementById('aria-orch-output');
+    var continueBtn=document.getElementById('aria-orch-continue');
+    if(orchName)orchName.textContent=best.name;
+    if(orchOrb){
+      var col=(typeof CAT_COLORS!=='undefined'&&CAT_COLORS[best.cat])?CAT_COLORS[best.cat]:'#aaff3e';
+      orchOrb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.7))';
+    }
+    if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
+    if(continueBtn)continueBtn.textContent='Continue with '+best.name+' \u2192';
+    if(resultDiv)resultDiv.style.display='block';
+  })
+  .catch(function(err){
+    if(err&&err.message==='no_session') return;
+    if(consultDiv)consultDiv.style.display='none';
+    if(inputDiv)inputDiv.style.display='block';
+    var errName2=document.getElementById('aria-rec-name');
+    var errReason2=document.getElementById('aria-rec-reason');
+    var errBtn2=document.getElementById('aria-rec-btn');
+    if(errName2)errName2.textContent='Connection error';
+    if(errReason2)errReason2.textContent='Something went wrong. Please try again.';
+    if(errBtn2)errBtn2.style.display='none';
+    if(oldResult)oldResult.style.display='block';
+  });
+}
+
+function ariaMarkdownToHtml(text){
+  if(!text) return '';
+  var s=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/^### (.+)$/gm,'<div style="font-family:\'Barlow\',sans-serif;font-size:12px;font-weight:800;color:#aaff3e;margin:14px 0 5px;text-transform:uppercase;letter-spacing:.05em;">$1</div>');
+  s=s.replace(/^## (.+)$/gm,'<div style="font-family:\'Barlow\',sans-serif;font-size:15px;font-weight:900;color:#eef3fc;margin:16px 0 7px;">$1</div>');
+  s=s.replace(/^# (.+)$/gm,'<div style="font-family:\'Barlow\',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;margin:0 0 12px;">$1</div>');
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong style="color:#eef3fc;">$1</strong>');
+  s=s.replace(/^[-*] (.+)$/gm,'<div style="padding-left:14px;margin-bottom:5px;"><span style="color:#aaff3e;margin-right:6px;">&#x2022;</span>$1</div>');
+  s=s.replace(/\n\n/g,'</p><p style="margin:10px 0;">');
+  s=s.replace(/\n/g,'<br>');
+  return '<p style="margin:0;">'+s+'</p>';
+}
+
+function ariaNewTask(){
+  var inputDiv=document.getElementById('aria-input-state');
+  var consultDiv=document.getElementById('aria-consulting-state');
+  var resultDiv=document.getElementById('aria-orchestrator-result');
+  var oldResult=document.getElementById('aria-result');
+  var box=document.getElementById('aria-routing-box');
+  if(inputDiv)inputDiv.style.display='block';
+  if(consultDiv)consultDiv.style.display='none';
+  if(resultDiv)resultDiv.style.display='none';
+  if(oldResult)oldResult.style.display='none';
+  if(box)box.style.maxWidth='';
+  var input=document.getElementById('aria-task-input');
+  if(input){input.value='';setTimeout(function(){input.focus();},50);}
 }
 
 function ariaFallbackMatch(task){
@@ -15351,7 +15456,7 @@ function drawLogo(){if(!logoCtx)return;
 
 <!-- ARIA ROUTING MODAL -->
 <div id="aria-routing-modal">
-  <div class="aria-routing-box">
+  <div class="aria-routing-box" id="aria-routing-box">
     <button onclick="closeAriaRouting()" style="float:right;background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
       <div style="width:48px;height:48px;border-radius:50%;position:relative;flex-shrink:0;overflow:hidden;">
@@ -15360,11 +15465,43 @@ function drawLogo(){if(!logoCtx)return;
       </div>
       <div>
         <div style="font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;">Ask ARIA</div>
-        <div style="font-size:12px;color:#6b7a96;">Tell me what you need — I'll find your specialist</div>
+        <div id="aria-routing-subtitle" style="font-size:12px;color:#6b7a96;">Tell me what you need — I'll get the right specialist on it</div>
       </div>
     </div>
-    <textarea id="aria-task-input" class="aria-routing-input" rows="3" placeholder="e.g. I need to write a grant for a broadband infrastructure project in my county..."></textarea>
-    <button onclick="ariaFindSpecialist()" id="aria-find-btn" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:12px;">Find my specialist →</button>
+
+    <!-- Input state -->
+    <div id="aria-input-state">
+      <textarea id="aria-task-input" class="aria-routing-input" rows="3" placeholder="e.g. I need to write a grant for a broadband infrastructure project in my county..."></textarea>
+      <button onclick="ariaFindSpecialist()" id="aria-find-btn" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:12px;">Ask ARIA →</button>
+    </div>
+
+    <!-- Consulting state -->
+    <div id="aria-consulting-state" style="display:none;padding:28px 0 16px;text-align:center;">
+      <div style="display:flex;justify-content:center;gap:7px;margin-bottom:16px;">
+        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:0s;"></span>
+        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:.22s;"></span>
+        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:.44s;"></span>
+      </div>
+      <div id="aria-consulting-msg" style="font-size:14px;color:#b8c8e0;line-height:1.5;"></div>
+    </div>
+
+    <!-- Orchestrator result state -->
+    <div id="aria-orchestrator-result" style="display:none;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div id="aria-orch-orb" style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#aaff3e,#5a9900);flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:2px;">Via your squad</div>
+          <div id="aria-orch-spec-name" style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#aaff3e;"></div>
+        </div>
+      </div>
+      <div id="aria-orch-output" style="max-height:46vh;overflow-y:auto;font-size:13px;color:#b8c8e0;line-height:1.7;padding-right:4px;"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+        <button onclick="ariaNewTask()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">← Ask something else</button>
+        <button onclick="deployFromAria()" id="aria-orch-continue" style="flex:1;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 16px;border:none;border-radius:8px;cursor:pointer;">Continue in full chat →</button>
+      </div>
+    </div>
+
+    <!-- No-match / error fallback -->
     <div id="aria-result" class="aria-result-card">
       <div style="font-size:11px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">ARIA recommends</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
