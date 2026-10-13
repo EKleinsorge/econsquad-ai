@@ -543,7 +543,7 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .aria-cmd-close{position:absolute;top:13px;right:15px;z-index:60;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:#4a5568;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;line-height:1;}
 .aria-cmd-close:hover{background:rgba(255,255,255,0.1);color:#c0cce0;}
 /* Specialist panel */
-.aria-spec-pnl{min-height:110px;background:rgba(6,10,22,0.97);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 22px;position:relative;transition:background .5s;flex-shrink:0;}
+.aria-spec-pnl{min-height:130px;background:rgba(6,10,22,0.97);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 22px;position:relative;transition:background .5s;flex-shrink:0;overflow:hidden;}
 .aria-spec-pnl.sp-active{background:rgba(5,8,18,0.99);}
 .aria-spec-standby-label{font-size:10px;color:#1e2a42;font-weight:800;text-transform:uppercase;letter-spacing:.12em;text-align:center;padding-bottom:8px;}
 .aria-spec-standby-dots{display:flex;justify-content:center;gap:9px;}
@@ -6244,7 +6244,7 @@ function rebuildSquadFromDB(specs){
 }
 
 /* ===== ARIA COMMAND CENTER ===== */
-var _ariaCmdSpec=null,_ariaCmdTask='',_ariaQList=[],_ariaQAnswers=[],_ariaQIdx=0;
+var _ariaCmdSpec=null,_ariaCmdTask='',_ariaQList=[],_ariaQAnswers=[],_ariaQIdx=0,_ariaConvHistory=[];
 var ARIA_ORB_COLORS={
   grants:    {c1:'#9de6ff',c2:'#4aa8ff',c3:'#1a5090',glow:'rgba(74,168,255,0.6)'},
   site:      {c1:'#ffdd80',c2:'#f0a020',c3:'#7a4800',glow:'rgba(240,160,32,0.6)'},
@@ -6266,7 +6266,7 @@ function openAriaRouting(){
   if(card)card.style.display='none';
   var openBtn=document.getElementById('aria-spec-open-btn');
   if(openBtn)openBtn.style.display='none';
-  _ariaCmdSpec=null;_ariaCmdTask='';
+  _ariaCmdSpec=null;_ariaCmdTask='';_ariaConvHistory=[];
   _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
   m.style.display='flex';
   requestAnimationFrame(function(){
@@ -6350,8 +6350,9 @@ function ariaOrbitStart(){
   if(!cv)return;
   var pnl=document.getElementById('aria-spec-pnl');
   if(!pnl)return;
-  var r=pnl.getBoundingClientRect();
-  cv.width=r.width||636; cv.height=r.height||110;
+  var pw=pnl.offsetWidth||pnl.getBoundingClientRect().width||636;
+  var ph=pnl.offsetHeight||pnl.getBoundingClientRect().height||130;
+  cv.width=pw; cv.height=ph;
   cv.style.display='';
   var ctx=cv.getContext('2d');
   _ariaOrbitSt.canvas=cv; _ariaOrbitSt.ctx=ctx;
@@ -6359,13 +6360,13 @@ function ariaOrbitStart(){
 
   var specList=(typeof squad!=='undefined'&&squad.length)?squad.map(function(x){return{id:x.id,cat:(_ARIA_SPEC_CAT_MAP[x.id]||x.cat||'grants')};}):Object.keys(_ARIA_SPEC_CAT_MAP).map(function(k){return{id:Number(k),cat:_ARIA_SPEC_CAT_MAP[k]};});
   var cx=cv.width/2, cy=cv.height/2;
-  var rx=cv.width*0.41, ry=cv.height*0.3;
+  var rx=cv.width*0.43, ry=cv.height*0.27;
   var n=specList.length;
   _ariaOrbitSt.orbs=specList.map(function(s,i){
     var a=(i/n)*Math.PI*2;
-    var spd=0.00085+(i%7)*0.000055;
+    var spd=0.0009+(i%7)*0.00007;
     var col=ARIA_ORB_COLORS[s.cat]||ARIA_ORB_COLORS.grants;
-    return{id:s.id,angle:a,speed:spd,r:6,color:col.c2,glow:col.glow,alpha:0,x:cx,y:cy,cx:cx,cy:cy,rx:rx,ry:ry};
+    return{id:s.id,angle:a,speed:spd,r:9,color:col.c2,glow:col.glow,alpha:0,x:cx,y:cy,cx:cx,cy:cy,rx:rx,ry:ry};
   });
   if(_ariaOrbitSt.raf)cancelAnimationFrame(_ariaOrbitSt.raf);
   _ariaOrbitSt.raf=requestAnimationFrame(_ariaOrbitLoop);
@@ -6397,7 +6398,7 @@ function _ariaOrbitLoop(now){
       o.y=o.cy+Math.sin(o.angle)*o.ry;
       if(i===st.selectedIdx){
         var ox=o.x+(tx-o.x)*ease, oy=o.y+(ty-o.y)*ease;
-        var or2=o.r+(40-o.r)*ease;
+        var or2=o.r+(48-o.r)*ease;
         _ariaDrawOrb(ctx,ox,oy,or2,o.color,o.glow,1);
       } else {
         var oa=o.alpha*(1-ease);
@@ -6417,14 +6418,18 @@ function _ariaOrbitLoop(now){
 
 function _ariaDrawOrb(ctx,x,y,r,color,glow,alpha){
   ctx.save();
+  ctx.globalAlpha=alpha*0.35;
+  ctx.shadowColor=glow; ctx.shadowBlur=r*5;
+  ctx.beginPath(); ctx.arc(x,y,r*1.6,0,Math.PI*2);
+  ctx.fillStyle=glow; ctx.fill();
   ctx.globalAlpha=alpha;
   ctx.shadowColor=glow; ctx.shadowBlur=r*3;
   ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=color; ctx.fill();
   ctx.shadowBlur=0;
-  ctx.globalAlpha=alpha*0.75;
-  ctx.beginPath(); ctx.arc(x-r*0.28,y-r*0.28,r*0.42,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+  ctx.globalAlpha=alpha*0.85;
+  ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.3,r*0.4,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.fill();
   ctx.restore();
 }
 
@@ -6638,6 +6643,7 @@ function ariaCallSpecialistWithContext(spec,task,answers){
     contextBlock+='\n\nAdditional context:\n';
     _ariaQList.forEach(function(q,i){if(answers[i])contextBlock+='- '+q+'\n  '+answers[i]+'\n';});
   }
+  _ariaConvHistory=[{role:'user',content:contextBlock}];
   var specId=spec.id||spec.specialist_id;
   supa.auth.getSession().then(function(res){
     var session=res&&res.data&&res.data.session;
@@ -6645,14 +6651,44 @@ function ariaCallSpecialistWithContext(spec,task,answers){
     return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token},
-      body:JSON.stringify({specialistId:Number(specId),messages:[{role:'user',content:contextBlock}],working_for:null})
+      body:JSON.stringify({specialistId:Number(specId),messages:_ariaConvHistory,working_for:null})
     });
   }).then(function(r){return r.json();}).then(function(data){
     var reply=data.reply||data.message||data.content||'';
     if(!reply&&data.error)reply='Something went wrong: '+data.error;
+    _ariaConvHistory.push({role:'assistant',content:reply});
     ariaFireParticles('toAria',function(){_ariaShowResult(spec,reply);});
   }).catch(function(){
     ariaFireParticles('toAria',function(){_ariaShowResult(spec,'Connection error. Please try again.');});
+  });
+}
+
+function ariaResultReply(){
+  var inp=document.getElementById('aria-result-reply-input');
+  var text=inp?inp.value.trim():'';
+  if(!text||!_ariaCmdSpec)return;
+  if(inp)inp.value='';
+  _ariaConvHistory.push({role:'user',content:text});
+  _ariaSetState('thinking');
+  var tm=document.getElementById('aria-thinking-msg');
+  if(tm)tm.textContent='Sending your reply...';
+  ariaSetSpecStatus('Working on it...');
+  var specId=_ariaCmdSpec.id||_ariaCmdSpec.specialist_id;
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    var token=session&&session.access_token?session.access_token:SUPA_KEY;
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token},
+      body:JSON.stringify({specialistId:Number(specId),messages:_ariaConvHistory,working_for:null})
+    });
+  }).then(function(r){return r.json();}).then(function(data){
+    var reply=data.reply||data.message||data.content||'';
+    if(!reply&&data.error)reply='Something went wrong: '+data.error;
+    _ariaConvHistory.push({role:'assistant',content:reply});
+    _ariaShowResult(_ariaCmdSpec,reply);
+  }).catch(function(){
+    _ariaShowResult(_ariaCmdSpec,'Connection error. Please try again.');
   });
 }
 
@@ -6693,7 +6729,7 @@ function deployFromAriaCmd(){
 
 function ariaNewTask(){
   ariaOrbitStop();
-  _ariaCmdSpec=null;_ariaCmdTask='';
+  _ariaCmdSpec=null;_ariaCmdTask='';_ariaConvHistory=[];
   _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
   var standby=document.getElementById('aria-spec-standby');
   var card=document.getElementById('aria-spec-card');
@@ -15945,6 +15981,11 @@ function drawLogo(){if(!logoCtx)return;
           <div style="border-left:2px solid rgba(255,255,255,0.07);padding-left:14px;margin-bottom:6px;">
             <div style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:8px;" id="aria-result-byline"></div>
             <div class="aria-result-output" id="aria-result-output"></div>
+          </div>
+          <!-- Follow-up reply box -->
+          <div style="margin:8px 0 6px;display:flex;gap:8px;align-items:flex-end;">
+            <textarea id="aria-result-reply-input" class="aria-routing-input" rows="2" placeholder="Reply to the specialist..." style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))ariaResultReply();"></textarea>
+            <button onclick="ariaResultReply()" class="aria-rac-btn" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#eef3fc;white-space:nowrap;align-self:flex-end;">Send &#x2192;</button>
           </div>
           <div class="aria-result-actions">
             <button onclick="ariaNewTask()" class="aria-rac-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;">&larr; New task</button>
