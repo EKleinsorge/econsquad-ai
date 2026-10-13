@@ -334,6 +334,57 @@ async function fetchBrandHints(url: string): Promise<string> {
   }
 }
 
+/* ── Structured brand data for the client-side document viewer ──
+   Returns { logoUrl, accentColor } without calling any AI model.
+   Used by fetch_brand_hints mode so View as Document can show the
+   community logo and colors without spending tokens. */
+async function fetchBrandStructured(url: string): Promise<{ logoUrl: string; accentColor: string }> {
+  const empty = { logoUrl: '', accentColor: '' };
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'EconSquad-AI/1.0 (document design; contact: hi@econsquad.ai)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return empty;
+    const html = await resp.text().then(h => h.slice(0, 120000));
+    const base = new URL(url);
+
+    // Logo: prefer <img> with "logo" in tag, then apple-touch-icon, then OG image
+    let logoUrl = '';
+    for (const m of html.matchAll(/<img[^>]+>/gi)) {
+      const tag = m[0];
+      if (/logo/i.test(tag)) {
+        const src = tag.match(/src=["']([^"']+)["']/i)?.[1];
+        if (src) { try { logoUrl = new URL(src, base).href; break; } catch {} }
+      }
+    }
+    if (!logoUrl) {
+      const ti = html.match(/<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]+href=["']([^"']+)["']/i)?.[1];
+      if (ti) { try { logoUrl = new URL(ti, base).href; } catch {} }
+    }
+    if (!logoUrl) {
+      const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+               ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1];
+      if (og) { try { logoUrl = new URL(og, base).href; } catch {} }
+    }
+
+    // Accent color: CSS variable named *primary/brand/accent/color* first, then first mid-range hex
+    const styleText = (html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || []).join(' ').slice(0, 6000);
+    let accentColor = '';
+    const cssVar = styleText.match(/--[a-zA-Z-]*(?:color|primary|brand|accent|main)[a-zA-Z-]*\s*:\s*(#[0-9a-fA-F]{6})\b/);
+    if (cssVar) { accentColor = cssVar[1]; }
+    if (!accentColor) {
+      const hexes = [...new Set((styleText.match(/#[0-9a-fA-F]{6}\b/g) || []))]
+        .filter(h => { const lum = (parseInt(h.slice(1,3),16)+parseInt(h.slice(3,5),16)+parseInt(h.slice(5,7),16))/3; return lum > 30 && lum < 220; });
+      if (hexes.length) accentColor = hexes[0];
+    }
+
+    return { logoUrl, accentColor };
+  } catch {
+    return empty;
+  }
+}
+
 /* ── Fetch community website for research-mode specialists ────
    Used by Stella (id=9) to pull the EDC website as raw context.
    Strips tags, collapses whitespace, caps at 8000 chars.
@@ -614,6 +665,34 @@ Deno.serve(async (req: Request) => {
     let body: any;
     try { body = JSON.parse(text); }
     catch { return json({ error: 'Malformed request' }, 400); }
+
+    /* ── Brand hints mode ─────────────────────────────────────────
+       Returns logo URL and accent color scraped from the community
+       website. No AI call — used by the client document viewer so
+       it can brand the page without spending tokens. */
+    if (body.fetch_brand_hints === true) {
+      let logoUrl = '', accentColor = '';
+      try {
+        const [{ data: commD }, { data: seatD }] = await Promise.all([
+          admin.from('community_profiles').select('website').eq('user_id', user.id).maybeSingle(),
+          admin.from('esq_org_members').select('org_id').eq('user_id', user.id).is('revoked_at', null)
+            .order('granted_at', { ascending: true }).order('org_id', { ascending: true }).limit(1).maybeSingle(),
+        ]);
+        let orgWebsite = (commD?.website || '') as string;
+        if (!orgWebsite && seatD?.org_id) {
+          const { data: op } = await admin.from('esq_org_profiles').select('website').eq('org_id', seatD.org_id).maybeSingle();
+          orgWebsite = (op?.website || '') as string;
+        }
+        const websiteUrl = orgWebsite.trim();
+        if (websiteUrl && /^https?:\/\//i.test(websiteUrl)) {
+          const b = await fetchBrandStructured(websiteUrl);
+          logoUrl = b.logoUrl; accentColor = b.accentColor;
+        }
+      } catch (e) {
+        console.warn('specialist-chat: fetch_brand_hints failed', e instanceof Error ? e.message : String(e));
+      }
+      return json({ logo_url: logoUrl, accent_color: accentColor });
+    }
 
     /* ── Design mode ──────────────────────────────────────────────
        Takes existing specialist output (markdown) and returns a
