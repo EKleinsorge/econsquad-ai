@@ -634,13 +634,15 @@ Deno.serve(async (req: Request) => {
       if (!aRes.ok || aData.error) {
         const errType = aData.error?.type ?? aRes.status;
         const errMsg  = aData.error?.message ?? 'HTTP ' + aRes.status;
-        console.error('specialist-chat: anthropic error', errType, errMsg, JSON.stringify(aData).slice(0, 600));
+        console.error('specialist-chat: anthropic error', errType, errMsg);
         return json({ error: 'The specialist could not complete that request. Please try again — your message was not lost.' }, 502);
       }
 
-      const reply = aData?.content?.[0]?.text ?? '';
+      // Model may return a thinking block before the text block — find the text block.
+      const textBlock = (aData?.content ?? []).find((c: any) => c.type === 'text');
+      const reply = textBlock?.text ?? '';
       if (!reply) {
-        console.error('specialist-chat: anthropic empty response', JSON.stringify(aData).slice(0, 600));
+        console.error('specialist-chat: anthropic no text block', JSON.stringify(aData).slice(0, 400));
         return json({ error: 'The specialist returned nothing. Please try again.' }, 502);
       }
 
