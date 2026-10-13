@@ -6187,6 +6187,11 @@ function rebuildSquadFromDB(specs){
 
 /* ===== ARIA ROUTING ===== */
 var ariaRecommendedId=null;
+var ariaQList=[];
+var ariaQAnswers=[];
+var ariaQIdx=0;
+var ariaQBest=null;
+var ariaQTask='';
 
 function openAriaRouting(){
   var m=document.getElementById('aria-routing-modal');
@@ -6197,11 +6202,14 @@ function openAriaRouting(){
   var resultDiv=document.getElementById('aria-orchestrator-result');
   var oldResult=document.getElementById('aria-result');
   var box=document.getElementById('aria-routing-box');
+  var qDiv=document.getElementById('aria-questions-state');
   if(inputDiv)inputDiv.style.display='block';
   if(consultDiv)consultDiv.style.display='none';
   if(resultDiv)resultDiv.style.display='none';
+  if(qDiv)qDiv.style.display='none';
   if(oldResult)oldResult.style.display='none';
   if(box)box.style.maxWidth='';
+  ariaQList=[];ariaQAnswers=[];ariaQIdx=0;ariaQBest=null;ariaQTask='';
   var input=document.getElementById('aria-task-input');
   if(input){input.value='';input.focus();}
   /* Init animated orb on first open */
@@ -6237,17 +6245,18 @@ function ariaFindSpecialist(){
   var inputDiv=document.getElementById('aria-input-state');
   var consultDiv=document.getElementById('aria-consulting-state');
   var resultDiv=document.getElementById('aria-orchestrator-result');
+  var qDiv=document.getElementById('aria-questions-state');
   var oldResult=document.getElementById('aria-result');
 
   /* Hide all panels */
   if(inputDiv)inputDiv.style.display='none';
   if(consultDiv)consultDiv.style.display='none';
   if(resultDiv)resultDiv.style.display='none';
+  if(qDiv)qDiv.style.display='none';
   if(oldResult)oldResult.style.display='none';
 
   var best=ariaFallbackMatch(task);
   if(!best){
-    /* No confident match — restore input + show helper */
     if(inputDiv)inputDiv.style.display='block';
     ariaRecommendedId=null;
     var nameEl=document.getElementById('aria-rec-name');
@@ -6265,16 +6274,140 @@ function ariaFindSpecialist(){
   }
 
   ariaRecommendedId=best.id;
+  ariaQBest=best;
+  ariaQTask=task;
+  ariaQList=[];
+  ariaQAnswers=[];
+  ariaQIdx=0;
+
+  /* Show consulting animation — preflight: checking what questions specialist needs */
+  var consultMsg=document.getElementById('aria-consulting-msg');
+  var preflightPhrases=[
+    'Checking in with <strong style="color:#aaff3e;">'+best.name+'</strong> now...',
+    'Let me see what <strong style="color:#aaff3e;">'+best.name+'</strong> needs to get started...',
+    'Connecting with <strong style="color:#aaff3e;">'+best.name+'</strong>. One moment...'
+  ];
+  if(consultMsg)consultMsg.innerHTML=preflightPhrases[Math.floor(Math.random()*preflightPhrases.length)];
+  if(consultDiv)consultDiv.style.display='block';
+
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    if(!session||!session.access_token){
+      if(consultDiv)consultDiv.style.display='none';
+      if(inputDiv)inputDiv.style.display='block';
+      openAuth('signup');
+      return Promise.reject(new Error('no_session'));
+    }
+    /* Preflight: ask specialist what clarifying questions they need */
+    var preflightMsg=task+'\n\n[ARIA PREFLIGHT \u2014 Do not answer the task yet. List 1\u20133 short clarifying questions you need answered to produce the most accurate response. Format each as:\nQ: [question]\nIf no clarification is needed, respond with exactly: NO_QUESTIONS]';
+    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({specialistId:Number(best.id),messages:[{role:'user',content:preflightMsg}]})
+    });
+  })
+  .then(function(r){ return r&&r.json ? r.json() : null; })
+  .then(function(data){
+    if(!data) return;
+    if(consultDiv)consultDiv.style.display='none';
+    if(data.error){ ariaCallSpecialistWithContext(); return; }
+    var reply=(data.reply||'').trim();
+    /* Parse Q: lines from the preflight response */
+    var questions=[];
+    if(reply&&reply!=='NO_QUESTIONS'&&!/^no_questions/i.test(reply)){
+      reply.split('\n').forEach(function(line){
+        var m=line.match(/^Q:\s*(.+)/i);
+        if(m&&m[1].trim()) questions.push(m[1].trim());
+      });
+    }
+    if(questions.length>0){
+      ariaQList=questions;
+      ariaQIdx=0;
+      ariaShowQuestion(0);
+    } else {
+      ariaCallSpecialistWithContext();
+    }
+  })
+  .catch(function(err){
+    if(err&&err.message==='no_session') return;
+    if(consultDiv)consultDiv.style.display='none';
+    /* On preflight error, fall through to direct specialist call */
+    ariaCallSpecialistWithContext();
+  });
+}
+
+function ariaShowQuestion(idx){
+  var qDiv=document.getElementById('aria-questions-state');
+  var qtxt=document.getElementById('aria-q-text');
+  var qprog=document.getElementById('aria-q-progress');
+  var qinput=document.getElementById('aria-q-answer');
+  if(!qDiv||!qtxt) return;
+  var q=ariaQList[idx];
+  var specName=ariaQBest?ariaQBest.name:'Your specialist';
+  qtxt.innerHTML='<strong style="color:#eef3fc;">'+specName+'</strong> wants to know: <em style="color:#d0e8ff;">'+q+'</em>';
+  if(ariaQList.length>1){
+    qprog.textContent='Question '+(idx+1)+' of '+ariaQList.length;
+  } else {
+    qprog.textContent='';
+  }
+  if(qinput){qinput.value='';setTimeout(function(){qinput.focus();},50);}
+  var box=document.getElementById('aria-routing-box');
+  if(box)box.style.maxWidth='560px';
+  qDiv.style.display='block';
+}
+
+function ariaSubmitAnswer(){
+  var qinput=document.getElementById('aria-q-answer');
+  var answer=qinput?qinput.value.trim():'';
+  if(!answer) return;
+  ariaQAnswers.push({q:ariaQList[ariaQIdx],a:answer});
+  ariaQIdx++;
+  var qDiv=document.getElementById('aria-questions-state');
+  if(ariaQIdx<ariaQList.length){
+    ariaShowQuestion(ariaQIdx);
+  } else {
+    if(qDiv)qDiv.style.display='none';
+    ariaCallSpecialistWithContext();
+  }
+}
+
+function ariaSkipQuestions(){
+  ariaQAnswers=[];
+  var qDiv=document.getElementById('aria-questions-state');
+  if(qDiv)qDiv.style.display='none';
+  ariaCallSpecialistWithContext();
+}
+
+function ariaCallSpecialistWithContext(){
+  var consultDiv=document.getElementById('aria-consulting-state');
+  var inputDiv=document.getElementById('aria-input-state');
+  var resultDiv=document.getElementById('aria-orchestrator-result');
+  var oldResult=document.getElementById('aria-result');
+  var best=ariaQBest;
+  var task=ariaQTask;
+  if(!best||!task) return;
 
   /* Show consulting animation */
   var consultMsg=document.getElementById('aria-consulting-msg');
-  var consultPhrases=[
-    'I\u2019m handing this to <strong style="color:#aaff3e;">'+best.name+'</strong> now. Give me a moment.',
-    'On it \u2014 sending this to <strong style="color:#aaff3e;">'+best.name+'</strong>. Just a sec.',
-    'Routing to <strong style="color:#aaff3e;">'+best.name+'</strong>. They\u2019re on it.'
+  var workPhrases=[
+    '<strong style="color:#aaff3e;">'+best.name+'</strong> is putting it together now...',
+    'Getting your answer from <strong style="color:#aaff3e;">'+best.name+'</strong>...',
+    '<strong style="color:#aaff3e;">'+best.name+'</strong> is on it. Almost there...'
   ];
-  if(consultMsg)consultMsg.innerHTML=consultPhrases[Math.floor(Math.random()*consultPhrases.length)];
+  if(consultMsg)consultMsg.innerHTML=workPhrases[Math.floor(Math.random()*workPhrases.length)];
   if(consultDiv)consultDiv.style.display='block';
+
+  /* Build enriched prompt with any Q&A context */
+  var enriched=task;
+  if(ariaQAnswers.length>0){
+    enriched+='\n\n[Context from clarifying questions answered before this request:]\n';
+    ariaQAnswers.forEach(function(qa){
+      enriched+='Q: '+qa.q+'\nA: '+qa.a+'\n';
+    });
+    enriched+='\n[Via ARIA Chief of Staff: Deliver a complete, polished response using the above context. Do not ask further questions.]';
+  } else {
+    enriched+='\n\n[Via ARIA Chief of Staff: Produce your best complete response. Make reasonable assumptions where details are missing and note them at the end. Do not ask clarifying questions \u2014 deliver a full draft now.]';
+  }
 
   supa.auth.getSession().then(function(res){
     var session=res&&res.data&&res.data.session;
@@ -6286,15 +6419,8 @@ function ariaFindSpecialist(){
     }
     return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':SUPA_KEY,
-        'Authorization':'Bearer '+session.access_token
-      },
-      body:JSON.stringify({
-        specialistId:Number(best.id),
-        messages:[{role:'user',content:task+'\n\n[Via ARIA Chief of Staff: Produce your best complete response based on this request. Make reasonable assumptions where details are missing and note them at the end. Do not ask clarifying questions \u2014 deliver a full draft now.]'}]
-      })
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({specialistId:Number(best.id),messages:[{role:'user',content:enriched}]})
     });
   })
   .then(function(r){ return r&&r.json ? r.json() : null; })
@@ -6314,24 +6440,16 @@ function ariaFindSpecialist(){
     }
     var reply=data.reply||'';
     if(!reply){ if(inputDiv)inputDiv.style.display='block'; return; }
-    /* Widen box for result */
     var box=document.getElementById('aria-routing-box');
     if(box)box.style.maxWidth='680px';
     var handoffMsg=document.getElementById('aria-orch-handoff-msg');
     var specByline=document.getElementById('aria-orch-spec-byline');
     var orchOutput=document.getElementById('aria-orch-output');
-    /* ARIA narrates: she handed it off, the specialist returned it */
-    var handoffPhrases=[
-      'just got back to me.',
-      'came back with this.',
-      'put this together for you.',
-      'sent this right over.'
-    ];
+    var handoffPhrases=['just got back to me.','came back with this.','put this together for you.','sent this right over.'];
     var phrase=handoffPhrases[Math.floor(Math.random()*handoffPhrases.length)];
     if(handoffMsg)handoffMsg.innerHTML='<strong style="color:#eef3fc;">'+best.name+'</strong> '+phrase+' Take a look:';
     if(specByline)specByline.textContent='From '+best.name+(best.role?' \u00b7 '+best.role:'');
     if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
-    /* Store exchange so deployFromAria can pre-seed the specialist chat */
     window._ariaChatSeed={task:task,reply:reply,specialistId:Number(best.id)};
     if(resultDiv)resultDiv.style.display='block';
   })
@@ -6345,10 +6463,10 @@ function ariaFindSpecialist(){
     if(errName2)errName2.textContent='Connection error';
     if(errReason2)errReason2.textContent='Something went wrong. Please try again.';
     if(errBtn2)errBtn2.style.display='none';
-    if(oldResult)oldResult.style.display='block';
+    var oldRes=document.getElementById('aria-result');
+    if(oldRes)oldRes.style.display='block';
   });
 }
-
 function ariaMarkdownToHtml(text){
   if(!text) return '';
   var s=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -6366,13 +6484,16 @@ function ariaNewTask(){
   var inputDiv=document.getElementById('aria-input-state');
   var consultDiv=document.getElementById('aria-consulting-state');
   var resultDiv=document.getElementById('aria-orchestrator-result');
+  var qDiv=document.getElementById('aria-questions-state');
   var oldResult=document.getElementById('aria-result');
   var box=document.getElementById('aria-routing-box');
   if(inputDiv)inputDiv.style.display='block';
   if(consultDiv)consultDiv.style.display='none';
   if(resultDiv)resultDiv.style.display='none';
+  if(qDiv)qDiv.style.display='none';
   if(oldResult)oldResult.style.display='none';
   if(box)box.style.maxWidth='';
+  ariaQList=[];ariaQAnswers=[];ariaQIdx=0;ariaQBest=null;ariaQTask='';
   var input=document.getElementById('aria-task-input');
   if(input){input.value='';setTimeout(function(){input.focus();},50);}
 }
@@ -6921,6 +7042,64 @@ function openDocumentViewer(text, specialistId){
   });
 }
 
+function openDesignedDocument(html, logoUrl, accentColor){
+  var w=window.open('','_blank');
+  if(!w) return;
+
+  /* Inject brand CSS variable overrides before </head> */
+  var brandStyle='';
+  if(accentColor){
+    brandStyle='<style id="brand-overrides">:root{--brand-accent:'+accentColor+';}</style>';
+  }
+
+  /* Build editing toolbar (hidden from print) */
+  var toolbar='<div id="doc-edit-toolbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#1a2533;border-bottom:2px solid #aaff3e;padding:8px 16px;display:flex;align-items:center;gap:10px;font-family:Arial,sans-serif;font-size:13px;print-color-adjust:exact;" class="no-print">'
+    +'<span style="font-weight:700;color:#aaff3e;margin-right:4px;">✎ Editing Mode</span>'
+    +'<button id="btn-toggle-edit" onclick="toggleDocEdit()" style="background:#aaff3e;color:#0a1a00;border:none;padding:5px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">Enable Editing</button>'
+    +'<button onclick="window.print()" style="background:rgba(255,255,255,0.1);color:#eef3fc;border:1px solid rgba(255,255,255,0.2);padding:5px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px;">🖨 Print / Save PDF</button>'
+    +'<button onclick="downloadDocHtml()" style="background:rgba(255,255,255,0.1);color:#eef3fc;border:1px solid rgba(255,255,255,0.2);padding:5px 14px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px;">⬇ Download HTML</button>'
+    +'</div>'
+    +'<div style="height:50px;" class="no-print"></div>';
+
+  var toolbarScript='<script>'
+    +'function toggleDocEdit(){'
+    +'  var on=document.body.getAttribute("contenteditable")==="true";'
+    +'  document.body.setAttribute("contenteditable",on?"false":"true");'
+    +'  var btn=document.getElementById("btn-toggle-edit");'
+    +'  if(btn){btn.textContent=on?"Enable Editing":"Done Editing";btn.style.background=on?"#aaff3e":"rgba(170,255,62,0.15)";btn.style.color=on?"#0a1a00":"#aaff3e";}'
+    +'}'
+    +'function downloadDocHtml(){'
+    +'  var blob=new Blob([document.documentElement.outerHTML],{type:"text/html"});'
+    +'  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="document.html";a.click();'
+    +'}'
+    +'<\/script>';
+
+  var printStyle='<style>@media print{.no-print{display:none!important;}body{margin-top:0!important;}}</style>';
+
+  /* Inject logo into header if we have one — look for first img in header or inject before first h1 */
+  var logoHtml='';
+  if(logoUrl){
+    logoHtml='<img src="'+logoUrl+'" style="max-height:48px;max-width:180px;object-fit:contain;" onerror="this.style.display=\'none\'" alt="Logo">';
+  }
+
+  /* Inject into HTML */
+  var out=html;
+  /* Brand styles into <head> */
+  out=out.replace('</head>', brandStyle+printStyle+'</head>');
+  /* Toolbar at top of <body> */
+  out=out.replace('<body', '<body');
+  out=out.replace(/(<body[^>]*>)/, '$1'+toolbar);
+  /* Logo injection: insert before first <h1 if no img already in first 800 chars of body */
+  if(logoUrl&&out.indexOf('<img')===-1){
+    out=out.replace(/(<body[^>]*>[\s\S]{0,200}?)(<h1)/i,'$1<div style="margin-bottom:16px;">'+logoHtml+'</div>$2');
+  }
+  /* Script at end of body */
+  out=out.replace('</body>',toolbarScript+'</body>');
+
+  w.document.write(out);
+  w.document.close();
+}
+
 function designOutput(text, specialistId, btn){
   if(!text||!btn)return;
 
@@ -6971,49 +7150,52 @@ function designOutput(text, specialistId, btn){
       addChatMessage('specialist','Please sign in again to use this feature.');
       return;
     }
-    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':SUPA_KEY,
-        'Authorization':'Bearer '+session.access_token
-      },
-      body:JSON.stringify({
-        design_mode:true,
-        specialistId:specialistId,
-        working_for:chatState.workingFor||null,
-        content:text,
-        messages:[{role:'user',content:'Design this.'}]
-      })
-    })
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(msgEl)msgEl.remove();
-      if(data.error){
-        btn.disabled=false; btn.innerHTML='✨ Design it for me';
-        addChatMessage('specialist','Design failed: '+data.error);
-        return;
-      }
-      var html=data.html||'';
-      if(!html){
-        btn.disabled=false; btn.innerHTML='✨ Design it for me';
-        addChatMessage('specialist','No design was returned. Please try again.');
-        return;
-      }
-      /* Transform button into "View Designed Document" */
-      btn.disabled=false;
-      btn.innerHTML='📄 View Designed Document';
-      btn.style.cssText+='background:rgba(170,255,62,0.12);border-color:rgba(170,255,62,0.5);color:#aaff3e;';
-      btn.onclick=function(){
-        var w=window.open('','_blank');
-        if(w){w.document.write(html);w.document.close();}
-      };
-    })
-    .catch(function(){
-      if(msgEl)msgEl.remove();
+    var headers={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+session.access_token};
+    var EDGE='https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat';
+    /* Fetch design + brand hints in parallel */
+    var designP=fetch(EDGE,{method:'POST',headers:headers,
+      body:JSON.stringify({design_mode:true,specialistId:specialistId,working_for:chatState.workingFor||null,content:text,messages:[{role:'user',content:'Design this.'}]})
+    }).then(function(r){return r.json();});
+    var brandP=fetch(EDGE,{method:'POST',headers:headers,
+      body:JSON.stringify({fetch_brand_hints:true,working_for:chatState.workingFor||null})
+    }).then(function(r){return r.json();}).catch(function(){return {};});
+    return Promise.all([designP,brandP]);
+  })
+  .then(function(results){
+    if(!results) return;
+    var data=results[0]; var brand=results[1]||{};
+    if(msgEl)msgEl.remove();
+    if(!data||data.error){
       btn.disabled=false; btn.innerHTML='✨ Design it for me';
-      addChatMessage('specialist','Design failed. Please try again.');
-    });
+      addChatMessage('specialist','Design failed: '+(data&&data.error||'unknown error'));
+      return;
+    }
+    var html=data.html||'';
+    if(!html){
+      btn.disabled=false; btn.innerHTML='✨ Design it for me';
+      addChatMessage('specialist','No design was returned. Please try again.');
+      return;
+    }
+    var logoUrl=brand.logo_url||null;
+    var accentColor=brand.accent_color||null;
+    /* Try Clearbit logo if brand hints didn't return one */
+    if(!logoUrl&&currentUser&&currentUser.email){
+      var domain=currentUser.email.split('@')[1];
+      if(domain&&domain!=='gmail.com'&&domain!=='yahoo.com'&&domain!=='hotmail.com'&&domain!=='outlook.com'){
+        logoUrl='https://logo.clearbit.com/'+domain;
+      }
+    }
+    /* Transform button into "View Designed Document" */
+    btn.disabled=false;
+    btn.innerHTML='📄 View Designed Document';
+    btn.style.cssText+='background:rgba(170,255,62,0.12);border-color:rgba(170,255,62,0.5);color:#aaff3e;';
+    var savedHtml=html; var savedLogo=logoUrl; var savedAccent=accentColor;
+    btn.onclick=function(){ openDesignedDocument(savedHtml,savedLogo,savedAccent); };
+  })
+  .catch(function(){
+    if(msgEl)msgEl.remove();
+    btn.disabled=false; btn.innerHTML='✨ Design it for me';
+    addChatMessage('specialist','Design failed. Please try again.');
   });
 }
 
@@ -15518,6 +15700,21 @@ function drawLogo(){if(!logoCtx)return;
         <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:.44s;"></span>
       </div>
       <div id="aria-consulting-msg" style="font-size:14px;color:#b8c8e0;line-height:1.5;"></div>
+    </div>
+
+    <!-- Questions state -->
+    <div id="aria-questions-state" style="display:none;">
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;box-shadow:0 0 8px rgba(170,255,62,0.4);"></div>
+        <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:10px 14px;flex:1;">
+          <div style="font-size:11px;font-weight:800;color:#aaff3e;margin-bottom:4px;letter-spacing:.04em;">ARIA</div>
+          <div id="aria-q-text" style="font-size:13px;color:#b8c8e0;line-height:1.55;"></div>
+        </div>
+      </div>
+      <div id="aria-q-progress" style="font-size:11px;color:#4a5568;text-align:right;margin-bottom:6px;"></div>
+      <textarea id="aria-q-answer" class="aria-routing-input" rows="2" placeholder="Your answer..."></textarea>
+      <button onclick="ariaSubmitAnswer()" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:10px;">Answer →</button>
+      <button onclick="ariaSkipQuestions()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:8px;border-radius:10px;cursor:pointer;margin-top:6px;">Skip — just get the draft →</button>
     </div>
 
     <!-- Orchestrator result state -->
