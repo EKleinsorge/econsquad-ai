@@ -6858,6 +6858,7 @@ function callSpecialist(userMessage, attachments){
 
   function applyReply(data){
     if(watchdog){ clearTimeout(watchdog); watchdog = null; }
+    if(nudge){ clearTimeout(nudge); nudge=null; }
     /* Was once conditional on it not being the first message, which left
        the dots on screen under the first reply. The dots always go up now,
        so they always come down. */
@@ -6874,8 +6875,20 @@ function callSpecialist(userMessage, attachments){
   }
 
   /* Never strand a reply or leave the input locked. Nothing gates the reply
-     any more, so this only fires if the request itself never comes back. */
+     any more, so this only fires if the request itself never comes back.
+     PDF/document analysis via Claude can take 60-90s, so use a longer
+     timeout when attachments are present. */
+  var hasAttachments = (attachments||[]).some(function(a){
+    return a.type==='application/pdf'||String(a.type).indexOf('image/')===0;
+  });
+  /* For document analysis, show a reassurance at 30s so the user knows
+     Claude is still reading and writing — not frozen. */
+  var nudge = hasAttachments ? setTimeout(function(){
+    if(!chatState.isTyping) return;
+    addChatMessage('specialist','Still working — reading the document and drafting your full response. This usually takes 60–90 seconds for a complete submission.');
+  }, 30000) : null;
   watchdog = setTimeout(function(){
+    if(nudge){ clearTimeout(nudge); nudge = null; }
     if(!chatState.isTyping) return;
     animDone = true;
     if(pendingData !== null){
@@ -6885,7 +6898,7 @@ function callSpecialist(userMessage, attachments){
       unlockInput();
       addChatMessage('specialist','That is taking longer than expected. Your message was not lost — please try again.');
     }
-  }, 45000);
+  }, hasAttachments ? 150000 : 45000);
 
   (function(){
     var payload={
