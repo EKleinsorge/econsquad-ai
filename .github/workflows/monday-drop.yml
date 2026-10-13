@@ -12,11 +12,15 @@ on:
       dry_run:
         description: 'Dry run — check only, do not send'
         required: false
-        default: 'true'
+        default: 'false'
       force:
         description: 'Force send to all subscribers regardless of their local time'
         required: false
         default: 'false'
+      date_override:
+        description: 'Send a specific issue by date (YYYY-MM-DD). Leave blank for today.'
+        required: false
+        default: ''
 
 jobs:
   send-monday-drop:
@@ -28,11 +32,16 @@ jobs:
       - name: Trigger send-monday-drop Edge Function
         run: |
           echo "Triggering Monday Drop send at $(date -u)"
+          PAYLOAD="{\"dry_run\": \"$DRY_RUN\", \"force\": \"$FORCE\""
+          if [ -n "$DATE_OVERRIDE" ]; then
+            PAYLOAD="$PAYLOAD, \"date_override\": \"$DATE_OVERRIDE\""
+          fi
+          PAYLOAD="$PAYLOAD}"
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "$SUPABASE_URL/functions/v1/send-monday-drop" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"dry_run\": \"$DRY_RUN\", \"force\": \"$FORCE\"}")
+            -d "$PAYLOAD")
           BODY=$(echo "$RESPONSE" | head -n -1)
           HTTP=$(echo "$RESPONSE" | tail -n1)
           echo "HTTP $HTTP"
@@ -41,5 +50,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'false' }}
           FORCE: ${{ github.event.inputs.force || 'false' }}
+          DATE_OVERRIDE: ${{ github.event.inputs.date_override || '' }}

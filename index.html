@@ -527,13 +527,71 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .spec-tooltip-save{font-size:11px;color:#aaff3e;font-weight:700;}
 .spec-tooltip-cta{background:#aaff3e;color:#0a1a00;font-size:11px;font-weight:800;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Barlow',sans-serif;pointer-events:all;}
 
-/* ===== ARIA ROUTING MODAL ===== */
-#aria-routing-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
-#aria-routing-modal.show{display:flex;}
+/* ===== ARIA ROUTING MODAL (legacy — keep for aria-routing-input class) ===== */
+#aria-routing-modal{display:none;}
 .aria-routing-box{background:rgba(8,12,24,0.98);border:1px solid rgba(170,255,62,0.2);border-radius:20px;padding:28px;width:500px;max-width:90vw;box-shadow:0 24px 64px rgba(0,0,0,0.6);}
-.aria-routing-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;color:#eef3fc;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;transition:border-color .2s;}
+.aria-routing-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 16px;color:#eef3fc;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;transition:border-color .2s;box-sizing:border-box;}
 .aria-routing-input:focus{border-color:rgba(170,255,62,0.4);}
-.aria-result-card{background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.2);border-radius:12px;padding:16px;margin-top:16px;display:none;}
+.aria-result-card{display:none;}
+/* ===== ARIA COMMAND CENTER ===== */
+#aria-cmd-modal{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(18px);}
+#aria-cmd-modal.show{display:flex;}
+@keyframes ariaCmdIn{from{opacity:0;transform:scale(.93) translateY(24px)}to{opacity:1;transform:none}}
+.aria-cmd-wrap{position:relative;width:680px;max-width:96vw;max-height:94vh;display:flex;flex-direction:column;background:rgba(4,6,14,0.99);border:1px solid rgba(170,255,62,0.16);border-radius:24px;overflow:hidden;box-shadow:0 48px 120px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.04);}
+#aria-cmd-modal.show .aria-cmd-wrap{animation:ariaCmdIn .42s cubic-bezier(.22,1,.36,1);}
+#aria-cmd-canvas{position:absolute;inset:0;pointer-events:none;z-index:50;border-radius:24px;}
+.aria-cmd-close{position:absolute;top:13px;right:15px;z-index:60;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:#4a5568;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;line-height:1;}
+.aria-cmd-close:hover{background:rgba(255,255,255,0.1);color:#c0cce0;}
+/* Specialist panel */
+.aria-spec-pnl{min-height:110px;background:rgba(6,10,22,0.97);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 22px;position:relative;transition:background .5s;flex-shrink:0;}
+.aria-spec-pnl.sp-active{background:rgba(5,8,18,0.99);}
+.aria-spec-standby-label{font-size:10px;color:#1e2a42;font-weight:800;text-transform:uppercase;letter-spacing:.12em;text-align:center;padding-bottom:8px;}
+.aria-spec-standby-dots{display:flex;justify-content:center;gap:9px;}
+@keyframes ariaStandbyWave{0%,100%{opacity:.05}60%{opacity:.16}}
+.aria-spec-standby-dot{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.05);}
+.aria-spec-standby-dot:nth-child(1){animation:ariaStandbyWave 2.8s 0.0s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(2){animation:ariaStandbyWave 2.8s 0.35s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(3){animation:ariaStandbyWave 2.8s 0.7s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(4){animation:ariaStandbyWave 2.8s 1.05s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(5){animation:ariaStandbyWave 2.8s 1.4s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(6){animation:ariaStandbyWave 2.8s 1.75s ease-in-out infinite;}
+.aria-spec-standby-dot:nth-child(7){animation:ariaStandbyWave 2.8s 2.1s ease-in-out infinite;}
+@keyframes ariaSpecCardIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.aria-spec-card{display:flex;align-items:center;gap:14px;opacity:0;transition:opacity .35s;}
+.aria-spec-card.sp-visible{opacity:1;animation:ariaSpecCardIn .4s ease-out forwards;}
+.aria-spec-orb-el{width:54px;height:54px;border-radius:50%;flex-shrink:0;transition:box-shadow .3s,transform .3s;}
+@keyframes ariaStatusPulse{0%,100%{opacity:.45;transform:scale(.8)}55%{opacity:1;transform:scale(1.15)}}
+.aria-status-dot{width:7px;height:7px;border-radius:50%;background:#aaff3e;animation:ariaStatusPulse 1.4s ease-in-out infinite;flex-shrink:0;display:inline-block;}
+.aria-spec-status-row{display:flex;align-items:center;gap:5px;margin-top:5px;}
+.aria-spec-status-txt{font-size:11px;color:#4a6080;}
+/* ARIA ops panel */
+.aria-ops-pnl{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+.aria-ops-hdr{display:flex;align-items:center;gap:14px;padding:13px 22px 11px;border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0;}
+.aria-ops-orb-wrap{width:48px;height:48px;position:relative;flex-shrink:0;overflow:hidden;border-radius:50%;}
+.aria-ops-body{flex:1;overflow-y:auto;padding:16px 22px;scroll-behavior:smooth;min-height:0;}
+.aria-ops-footer{padding:10px 18px 14px;border-top:1px solid rgba(255,255,255,0.05);flex-shrink:0;}
+.aria-msg-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+.aria-msg-orb{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;box-shadow:0 0 8px rgba(170,255,62,0.35);margin-top:2px;}
+.aria-msg-bubble{background:rgba(170,255,62,0.05);border:1px solid rgba(170,255,62,0.1);border-radius:0 12px 12px 12px;padding:11px 14px;font-size:13px;color:#b8c8e0;line-height:1.65;flex:1;}
+.aria-two-btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.aria-btn-primary{padding:12px 22px;background:#aaff3e;color:#0a1600;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;border:none;border-radius:12px;cursor:pointer;transition:all .18s;flex:1;min-width:140px;}
+.aria-btn-primary:hover{background:#c5ff70;transform:translateY(-1px);}
+.aria-btn-secondary{padding:12px 22px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;border-radius:12px;cursor:pointer;transition:all .18s;flex:1;min-width:140px;}
+.aria-btn-secondary:hover{border-color:rgba(255,255,255,0.2);color:#c0cce0;}
+@keyframes ariaDot{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-7px);opacity:1}}
+.aria-dot{width:8px;height:8px;border-radius:50%;background:#aaff3e;display:inline-block;}
+.aria-dot:nth-child(1){animation:ariaDot 1.1s ease-in-out 0s infinite;}
+.aria-dot:nth-child(2){animation:ariaDot 1.1s ease-in-out .2s infinite;}
+.aria-dot:nth-child(3){animation:ariaDot 1.1s ease-in-out .4s infinite;}
+.aria-result-output{max-height:34vh;overflow-y:auto;font-size:13px;color:#b8c8e0;line-height:1.7;padding-right:4px;}
+.aria-result-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.aria-rac-btn{padding:8px 14px;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;transition:all .18s;border:none;}
+@keyframes ariaOrbSend{0%,100%{box-shadow:0 0 8px rgba(170,255,62,0.35)}50%{box-shadow:0 0 22px rgba(170,255,62,1),0 0 50px rgba(170,255,62,0.5)}}
+@keyframes ariaOrbRcv{0%{transform:scale(1)}30%{transform:scale(1.2)}65%{transform:scale(.95)}100%{transform:scale(1)}}
+.aria-orb-sending{animation:ariaOrbSend .5s ease-out forwards!important;}
+.aria-orb-receiving{animation:ariaOrbRcv .6s ease-out forwards!important;}
+@media(prefers-reduced-motion:reduce){.aria-orb-sending,.aria-orb-receiving{animation:none!important;}}
+@media(max-width:640px){.aria-cmd-wrap{max-height:98vh;border-radius:16px 16px 0 0;align-self:flex-end;}.aria-result-output{max-height:28vh;}}
 
 /* ===== CUSTOM SPECIALIST MODAL ===== */
 #custom-spec-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
@@ -6185,288 +6243,321 @@ function rebuildSquadFromDB(specs){
   setTimeout(attachTooltips,800);
 }
 
-/* ===== ARIA ROUTING ===== */
-var ariaRecommendedId=null;
-var ariaQList=[];
-var ariaQAnswers=[];
-var ariaQIdx=0;
-var ariaQBest=null;
-var ariaQTask='';
+/* ===== ARIA COMMAND CENTER ===== */
+var _ariaCmdSpec=null,_ariaCmdTask='',_ariaQList=[],_ariaQAnswers=[],_ariaQIdx=0;
+var ARIA_ORB_COLORS={
+  grants:    {c1:'#9de6ff',c2:'#4aa8ff',c3:'#1a5090',glow:'rgba(74,168,255,0.6)'},
+  site:      {c1:'#ffdd80',c2:'#f0a020',c3:'#7a4800',glow:'rgba(240,160,32,0.6)'},
+  BRE:       {c1:'#ff9a9a',c2:'#e04040',c3:'#700000',glow:'rgba(224,64,64,0.6)'},
+  data:      {c1:'#c8a0ff',c2:'#8050e0',c3:'#3a1880',glow:'rgba(128,80,224,0.6)'},
+  incentives:{c1:'#80ffe0',c2:'#20c0a0',c3:'#005040',glow:'rgba(32,192,160,0.6)'},
+  marketing: {c1:'#ffb0d0',c2:'#e04080',c3:'#700030',glow:'rgba(224,64,128,0.6)'},
+  workforce: {c1:'#ffc880',c2:'#e08020',c3:'#703800',glow:'rgba(224,128,32,0.6)'},
+  reporting: {c1:'#a0c8ff',c2:'#4070c0',c3:'#102060',glow:'rgba(64,112,192,0.6)'}
+};
 
 function openAriaRouting(){
-  var m=document.getElementById('aria-routing-modal');
-  if(m)m.classList.add('show');
-  /* Reset all states: show only input panel */
-  var inputDiv=document.getElementById('aria-input-state');
-  var consultDiv=document.getElementById('aria-consulting-state');
-  var resultDiv=document.getElementById('aria-orchestrator-result');
-  var oldResult=document.getElementById('aria-result');
-  var box=document.getElementById('aria-routing-box');
-  var qDiv=document.getElementById('aria-questions-state');
-  if(inputDiv)inputDiv.style.display='block';
-  if(consultDiv)consultDiv.style.display='none';
-  if(resultDiv)resultDiv.style.display='none';
-  if(qDiv)qDiv.style.display='none';
-  if(oldResult)oldResult.style.display='none';
-  if(box)box.style.maxWidth='';
-  ariaQList=[];ariaQAnswers=[];ariaQIdx=0;ariaQBest=null;ariaQTask='';
-  var input=document.getElementById('aria-task-input');
-  if(input){input.value='';input.focus();}
-  /* Init animated orb on first open */
-  if(!window._ariaRoutingOrbDone && window.initDashOrb){
-    window._ariaRoutingOrbDone = true;
-    setTimeout(function(){
-      window.initDrawerOrb('aria-routing-orb','lime');
-      var st=window.dashOrbStates&&window.dashOrbStates['aria-routing-orb'];
-      if(!st) return;
-      st.targetEnergy=0.9;
-      var col=st.col; var r=col.r;
-      var sph=document.getElementById('aria-routing-sph');
-      if(sph){
-        st.sphereEl=sph;
-        st.sphBg='radial-gradient(circle at 36% 32%,rgba('+r[0]+','+r[1]+','+r[2]+',.16),rgba('+r[0]+','+r[1]+','+r[2]+',.06) 55%,rgba(0,0,0,.5))';
-        sph.style.background='radial-gradient(circle at 36% 32%,'+col.hi+','+col.mid+' 48%,'+col.lo+')';
-        sph.style.boxShadow='0 0 10px rgba('+r[0]+','+r[1]+','+r[2]+',0.8),0 0 20px rgba('+r[0]+','+r[1]+','+r[2]+',0.4)';
-      }
-      if(!window.dashAnimRunning&&window.runDashAnim) window.runDashAnim();
-    },150);
-  }
-}
-function closeAriaRouting(){
-  var m=document.getElementById('aria-routing-modal');
-  if(m)m.classList.remove('show');
-}
-
-function ariaFindSpecialist(){
-  var input=document.getElementById('aria-task-input');
-  if(!input||!input.value.trim())return;
-  var task=input.value.trim();
-
-  var inputDiv=document.getElementById('aria-input-state');
-  var consultDiv=document.getElementById('aria-consulting-state');
-  var resultDiv=document.getElementById('aria-orchestrator-result');
-  var qDiv=document.getElementById('aria-questions-state');
-  var oldResult=document.getElementById('aria-result');
-
-  /* Hide all panels */
-  if(inputDiv)inputDiv.style.display='none';
-  if(consultDiv)consultDiv.style.display='none';
-  if(resultDiv)resultDiv.style.display='none';
-  if(qDiv)qDiv.style.display='none';
-  if(oldResult)oldResult.style.display='none';
-
-  var best=ariaFallbackMatch(task);
-  if(!best){
-    if(inputDiv)inputDiv.style.display='block';
-    ariaRecommendedId=null;
-    var nameEl=document.getElementById('aria-rec-name');
-    var roleEl=document.getElementById('aria-rec-role');
-    var reasonEl=document.getElementById('aria-rec-reason');
-    var orb0=document.getElementById('aria-rec-orb');
-    var recBtn=document.getElementById('aria-rec-btn');
-    if(nameEl)nameEl.textContent='Not sure yet';
-    if(roleEl)roleEl.textContent='';
-    if(reasonEl)reasonEl.textContent="I couldn\u2019t match that to a specialist. Try naming the output you need \u2014 grant, RFI response, BRE survey, press release, cover letter, board report, workforce analysis \u2014 and I\u2019ll get the right person on it.";
-    if(orb0)orb0.style.background='radial-gradient(circle at 36% 32%,#8a97b5,rgba(0,0,0,0.8))';
-    if(recBtn)recBtn.style.display='none';
-    if(oldResult)oldResult.style.display='block';
-    return;
-  }
-
-  ariaRecommendedId=best.id;
-  ariaQBest=best;
-  ariaQTask=task;
-  ariaQList=[];
-  ariaQAnswers=[];
-  ariaQIdx=0;
-
-  /* Show consulting animation — preflight: checking what questions specialist needs */
-  var consultMsg=document.getElementById('aria-consulting-msg');
-  var preflightPhrases=[
-    'Checking in with <strong style="color:#aaff3e;">'+best.name+'</strong> now...',
-    'Let me see what <strong style="color:#aaff3e;">'+best.name+'</strong> needs to get started...',
-    'Connecting with <strong style="color:#aaff3e;">'+best.name+'</strong>. One moment...'
-  ];
-  if(consultMsg)consultMsg.innerHTML=preflightPhrases[Math.floor(Math.random()*preflightPhrases.length)];
-  if(consultDiv)consultDiv.style.display='block';
-
-  supa.auth.getSession().then(function(res){
-    var session=res&&res.data&&res.data.session;
-    if(!session||!session.access_token){
-      if(consultDiv)consultDiv.style.display='none';
-      if(inputDiv)inputDiv.style.display='block';
-      openAuth('signup');
-      return Promise.reject(new Error('no_session'));
-    }
-    /* Preflight: ask specialist what clarifying questions they need */
-    var preflightMsg=task+'\n\n[ARIA PREFLIGHT \u2014 Do not answer the task yet. List 1\u20133 short clarifying questions you need answered to produce the most accurate response. Format each as:\nQ: [question]\nIf no clarification is needed, respond with exactly: NO_QUESTIONS]';
-    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+session.access_token},
-      body:JSON.stringify({specialistId:Number(best.id),messages:[{role:'user',content:preflightMsg}]})
-    });
-  })
-  .then(function(r){ return r&&r.json ? r.json() : null; })
-  .then(function(data){
-    if(!data) return;
-    if(consultDiv)consultDiv.style.display='none';
-    if(data.error){ ariaCallSpecialistWithContext(); return; }
-    var reply=(data.reply||'').trim();
-    /* Parse Q: lines from the preflight response */
-    var questions=[];
-    if(reply&&reply!=='NO_QUESTIONS'&&!/^no_questions/i.test(reply)){
-      reply.split('\n').forEach(function(line){
-        var m=line.match(/^Q:\s*(.+)/i);
-        if(m&&m[1].trim()) questions.push(m[1].trim());
-      });
-    }
-    if(questions.length>0){
-      ariaQList=questions;
-      ariaQIdx=0;
-      ariaShowQuestion(0);
-    } else {
-      ariaCallSpecialistWithContext();
-    }
-  })
-  .catch(function(err){
-    if(err&&err.message==='no_session') return;
-    if(consultDiv)consultDiv.style.display='none';
-    /* On preflight error, fall through to direct specialist call */
-    ariaCallSpecialistWithContext();
+  var m=document.getElementById('aria-cmd-modal');
+  if(!m)return;
+  _ariaSetState('greeting');
+  var standby=document.getElementById('aria-spec-standby');
+  var card=document.getElementById('aria-spec-card');
+  if(standby)standby.style.display='';
+  if(card)card.style.display='none';
+  var openBtn=document.getElementById('aria-spec-open-btn');
+  if(openBtn)openBtn.style.display='none';
+  _ariaCmdSpec=null;_ariaCmdTask='';
+  _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
+  m.style.display='flex';
+  requestAnimationFrame(function(){
+    var cv=document.getElementById('aria-cmd-orb-cv');
+    if(cv&&window.initDrawerOrb)window.initDrawerOrb(cv);
   });
 }
 
-function ariaShowQuestion(idx){
-  var qDiv=document.getElementById('aria-questions-state');
-  var qtxt=document.getElementById('aria-q-text');
-  var qprog=document.getElementById('aria-q-progress');
-  var qinput=document.getElementById('aria-q-answer');
-  if(!qDiv||!qtxt) return;
-  var q=ariaQList[idx];
-  var specName=ariaQBest?ariaQBest.name:'Your specialist';
-  qtxt.innerHTML='<strong style="color:#eef3fc;">'+specName+'</strong> wants to know: <em style="color:#d0e8ff;">'+q+'</em>';
-  if(ariaQList.length>1){
-    qprog.textContent='Question '+(idx+1)+' of '+ariaQList.length;
-  } else {
-    qprog.textContent='';
+function closeAriaRouting(){
+  var m=document.getElementById('aria-cmd-modal');
+  if(m)m.style.display='none';
+}
+
+function _ariaSetState(state){
+  ['greeting','input','thinking','questions','result'].forEach(function(s){
+    var el=document.getElementById('aria-state-'+s);
+    if(el)el.style.display=(s===state)?'':'none';
+  });
+}
+
+function ariaChooseHandle(){
+  _ariaSetState('input');
+  setTimeout(function(){var ta=document.getElementById('aria-task-input');if(ta)ta.focus();},100);
+}
+
+function ariaChooseSpecialist(){
+  closeAriaRouting();
+  showTab('squad');
+  setTimeout(function(){
+    var sp=document.getElementById('page-squad');
+    if(sp)sp.scrollIntoView({behavior:'smooth'});
+  },200);
+}
+
+function ariaActivateSpecialist(spec){
+  _ariaCmdSpec=spec;
+  var standby=document.getElementById('aria-spec-standby');
+  var card=document.getElementById('aria-spec-card');
+  if(standby)standby.style.display='none';
+  if(card)card.style.display='flex';
+  var orbEl=document.getElementById('aria-spec-orb-el');
+  if(orbEl){
+    var cat=spec.cat||'grants';
+    var colors=ARIA_ORB_COLORS[cat]||ARIA_ORB_COLORS.grants;
+    orbEl.style.cssText='width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,'+colors.c1+','+colors.c2+' 50%,'+colors.c3+');box-shadow:0 0 16px '+colors.glow+';flex-shrink:0;';
   }
-  if(qinput){qinput.value='';setTimeout(function(){qinput.focus();},50);}
-  var box=document.getElementById('aria-routing-box');
-  if(box)box.style.maxWidth='560px';
-  qDiv.style.display='block';
+  var nameEl=document.getElementById('aria-spec-name-el');
+  var roleEl=document.getElementById('aria-spec-role-el');
+  if(nameEl)nameEl.textContent=spec.name||'';
+  if(roleEl)roleEl.textContent=spec.role||'';
+  ariaSetSpecStatus('Standing by');
+}
+
+function ariaSetSpecStatus(text){
+  var el=document.getElementById('aria-spec-status-txt');
+  if(el)el.textContent=text;
+}
+
+function ariaFireParticles(direction,onDone){
+  var canvas=document.getElementById('aria-cmd-canvas');
+  if(!canvas){if(onDone)onDone();return;}
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches){if(onDone)setTimeout(onDone,50);return;}
+  var wrap=document.getElementById('aria-cmd-wrap');
+  var wRect=wrap.getBoundingClientRect();
+  canvas.width=wRect.width;canvas.height=wRect.height;
+  var ctx=canvas.getContext('2d');
+  var opsHdr=document.querySelector('.aria-ops-hdr');
+  var specCard=document.getElementById('aria-spec-card');
+  var specStandby=document.getElementById('aria-spec-standby');
+  var opsRect=opsHdr?opsHdr.getBoundingClientRect():{left:wRect.left+40,top:wRect.bottom-60,width:48,height:48};
+  var specTarget=(specCard&&specCard.style.display!=='none')?specCard:specStandby;
+  var specRect=specTarget?specTarget.getBoundingClientRect():{left:wRect.left+40,top:wRect.top+60,width:48,height:48};
+  var ariaX=opsRect.left-wRect.left+24,ariaY=opsRect.top-wRect.top+24;
+  var specX=specRect.left-wRect.left+(specRect.width/2),specY=specRect.top-wRect.top+(specRect.height/2);
+  var fromX=direction==='toSpec'?ariaX:specX,fromY=direction==='toSpec'?ariaY:specY;
+  var toX=direction==='toSpec'?specX:ariaX,toY=direction==='toSpec'?specY:ariaY;
+  var NUM=20,DURATION=700,startTime=performance.now();
+  var particles=[];
+  for(var i=0;i<NUM;i++){
+    var delay=i*28,spread=(Math.random()-0.5)*60;
+    var midX=(fromX+toX)/2+spread;
+    var midY=(fromY+toY)/2+(direction==='toSpec'?-80:80)+(Math.random()-0.5)*40;
+    var size=2+Math.random()*3,hue=direction==='toSpec'?85:195;
+    particles.push({delay:delay,cp1x:fromX+(midX-fromX)*0.4,cp1y:fromY+(midY-fromY)*0.4,cp2x:midX+(toX-midX)*0.4,cp2y:midY+(toY-midY)*0.4,size:size,hue:hue,done:false});
+  }
+  if(direction==='toSpec'){
+    var w=document.querySelector('.aria-ops-orb-wrap');
+    if(w){w.classList.remove('aria-orb-sending','aria-orb-receiving');void w.offsetWidth;w.classList.add('aria-orb-sending');}
+  } else {
+    var so=document.getElementById('aria-spec-orb-el');
+    if(so){so.classList.remove('aria-orb-sending','aria-orb-receiving');void so.offsetWidth;so.classList.add('aria-orb-receiving');}
+  }
+  function bez(t,p0,p1,p2,p3){var u=1-t;return u*u*u*p0+3*u*u*t*p1+3*u*t*t*p2+t*t*t*p3;}
+  var allDone=false;
+  function animate(now){
+    if(allDone)return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    var elapsed=now-startTime,living=0;
+    particles.forEach(function(p){
+      if(p.done)return;
+      var t=(elapsed-p.delay)/DURATION;
+      if(t<0){living++;return;}
+      if(t>=1){p.done=true;return;}
+      living++;
+      var x=bez(t,fromX,p.cp1x,p.cp2x,toX),y=bez(t,fromY,p.cp1y,p.cp2y,toY);
+      var alpha=t<0.1?t*10:(t>0.8?(1-t)*5:1);
+      var grad=ctx.createRadialGradient(x,y,0,x,y,p.size*2);
+      grad.addColorStop(0,'hsla('+p.hue+',100%,80%,'+alpha+')');
+      grad.addColorStop(0.5,'hsla('+p.hue+',90%,60%,'+(alpha*0.6)+')');
+      grad.addColorStop(1,'hsla('+p.hue+',80%,40%,0)');
+      ctx.beginPath();ctx.arc(x,y,p.size*2,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+    });
+    if(living>0){requestAnimationFrame(animate);}
+    else{
+      ctx.clearRect(0,0,canvas.width,canvas.height);allDone=true;
+      if(direction==='toSpec'){
+        var so2=document.getElementById('aria-spec-orb-el');
+        if(so2){so2.classList.remove('aria-orb-sending','aria-orb-receiving');void so2.offsetWidth;so2.classList.add('aria-orb-receiving');}
+      } else {
+        var w2=document.querySelector('.aria-ops-orb-wrap');
+        if(w2){w2.classList.remove('aria-orb-sending','aria-orb-receiving');void w2.offsetWidth;w2.classList.add('aria-orb-receiving');}
+      }
+      if(onDone)setTimeout(onDone,150);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function ariaFindSpecialist(){
+  var ta=document.getElementById('aria-task-input');
+  var task=ta?ta.value.trim():'';
+  if(!task)return;
+  _ariaCmdTask=task;
+  _ariaSetState('thinking');
+  var thinkMsg=document.getElementById('aria-thinking-msg');
+  if(thinkMsg)thinkMsg.textContent='Reading your request...';
+  var fallback=ariaFallbackMatch(task);
+  var apiKey=(typeof currentProfile!=='undefined'&&currentProfile)?currentProfile.anthropic_key:null;
+  if(!apiKey){
+    if(fallback){
+      var spec=ttSpecData[fallback.id]||fallback;
+      ariaActivateSpecialist(spec);
+      ariaFireParticles('toSpec',function(){
+        ariaSetSpecStatus('Working on it...');
+        ariaCallSpecialistWithContext(spec,task,[]);
+      });
+    } else {_ariaSetState('input');}
+    return;
+  }
+  var specNames='Grant Writer AI, Grant Discovery Engine, RFP Responder, Site Selection Pro, Site Comparison Analyst, BRE Survey Builder, BRE Report Pro, Economic Impact Modeler, SWOT Analyst, Market Analyst, Incentive Package Architect, Tax Credit Navigator, Press Release Pro, Social Content AI, Workforce Intelligence, Talent Availability Report, Annual Report Writer, Board Report Builder, Email Regenerator, Cover Letter Writer, RFI Responder, Data Analyzer, Riley';
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Pick the best specialist and list up to 2 short clarifying questions (or none if the request is already clear).\n\nRespond ONLY as JSON: {"specialist":"<name>","questions":["q1","q2"]}\n\nSpecialists: '+specNames}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    var text=(data.content&&data.content[0]&&data.content[0].text)||'{}';
+    var jm=text.match(/\{[\s\S]*\}/);
+    var parsed={};try{if(jm)parsed=JSON.parse(jm[0]);}catch(e){}
+    var qs=Array.isArray(parsed.questions)?parsed.questions.filter(Boolean):[];
+    var specName=(parsed.specialist||'').toLowerCase();
+    var chosenSpec=null;
+    var specArr=(typeof squad!=='undefined'&&squad.length?squad:[]).map(function(x){return ttSpecData[x.id]||x;});
+    for(var k=0;k<specArr.length;k++){if(specArr[k].name&&specArr[k].name.toLowerCase().indexOf(specName)!==-1){chosenSpec=specArr[k];break;}}
+    if(!chosenSpec&&fallback)chosenSpec=ttSpecData[fallback.id]||fallback;
+    if(!chosenSpec&&specArr.length)chosenSpec=specArr[0];
+    ariaActivateSpecialist(chosenSpec);
+    if(qs.length>0){
+      _ariaQList=qs;_ariaQAnswers=[];_ariaQIdx=0;
+      ariaFireParticles('toSpec',function(){ariaSetSpecStatus('A few quick questions...');ariaShowQuestion();});
+    } else {
+      ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(chosenSpec,task,[]);});
+    }
+  }).catch(function(){
+    if(fallback){var spec2=ttSpecData[fallback.id]||fallback;ariaActivateSpecialist(spec2);ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(spec2,task,[]);});}
+    else{_ariaSetState('input');}
+  });
+}
+
+function ariaShowQuestion(){
+  var q=_ariaQList[_ariaQIdx];
+  if(!q){ariaSkipQuestions();return;}
+  _ariaSetState('questions');
+  var qText=document.getElementById('aria-q-text');
+  var qProg=document.getElementById('aria-q-progress');
+  if(qText)qText.textContent=q;
+  if(qProg)qProg.textContent='Question '+(_ariaQIdx+1)+' of '+_ariaQList.length;
+  var qa=document.getElementById('aria-q-answer');
+  if(qa){qa.value='';qa.focus();}
 }
 
 function ariaSubmitAnswer(){
-  var qinput=document.getElementById('aria-q-answer');
-  var answer=qinput?qinput.value.trim():'';
-  if(!answer) return;
-  ariaQAnswers.push({q:ariaQList[ariaQIdx],a:answer});
-  ariaQIdx++;
-  var qDiv=document.getElementById('aria-questions-state');
-  if(ariaQIdx<ariaQList.length){
-    ariaShowQuestion(ariaQIdx);
-  } else {
-    if(qDiv)qDiv.style.display='none';
-    ariaCallSpecialistWithContext();
+  var qa=document.getElementById('aria-q-answer');
+  var ans=qa?qa.value.trim():'';
+  _ariaQAnswers.push(ans);_ariaQIdx++;
+  if(_ariaQIdx<_ariaQList.length){ariaShowQuestion();}
+  else{
+    _ariaSetState('thinking');
+    var tm=document.getElementById('aria-thinking-msg');
+    if(tm)tm.textContent='Got it — briefing the specialist...';
+    ariaFireParticles('toAria',function(){ariaCallSpecialistWithContext(_ariaCmdSpec,_ariaCmdTask,_ariaQAnswers);});
   }
 }
 
 function ariaSkipQuestions(){
-  ariaQAnswers=[];
-  var qDiv=document.getElementById('aria-questions-state');
-  if(qDiv)qDiv.style.display='none';
-  ariaCallSpecialistWithContext();
+  _ariaSetState('thinking');
+  var tm=document.getElementById('aria-thinking-msg');
+  if(tm)tm.textContent='On it...';
+  ariaCallSpecialistWithContext(_ariaCmdSpec,_ariaCmdTask,[]);
 }
 
-function ariaCallSpecialistWithContext(){
-  var consultDiv=document.getElementById('aria-consulting-state');
-  var inputDiv=document.getElementById('aria-input-state');
-  var resultDiv=document.getElementById('aria-orchestrator-result');
-  var oldResult=document.getElementById('aria-result');
-  var best=ariaQBest;
-  var task=ariaQTask;
-  if(!best||!task) return;
-
-  /* Show consulting animation */
-  var consultMsg=document.getElementById('aria-consulting-msg');
-  var workPhrases=[
-    '<strong style="color:#aaff3e;">'+best.name+'</strong> is putting it together now...',
-    'Getting your answer from <strong style="color:#aaff3e;">'+best.name+'</strong>...',
-    '<strong style="color:#aaff3e;">'+best.name+'</strong> is on it. Almost there...'
-  ];
-  if(consultMsg)consultMsg.innerHTML=workPhrases[Math.floor(Math.random()*workPhrases.length)];
-  if(consultDiv)consultDiv.style.display='block';
-
-  /* Build enriched prompt with any Q&A context */
-  var enriched=task;
-  if(ariaQAnswers.length>0){
-    enriched+='\n\n[Context from clarifying questions answered before this request:]\n';
-    ariaQAnswers.forEach(function(qa){
-      enriched+='Q: '+qa.q+'\nA: '+qa.a+'\n';
-    });
-    enriched+='\n[Via ARIA Chief of Staff: Deliver a complete, polished response using the above context. Do not ask further questions.]';
-  } else {
-    enriched+='\n\n[Via ARIA Chief of Staff: Produce your best complete response. Make reasonable assumptions where details are missing and note them at the end. Do not ask clarifying questions \u2014 deliver a full draft now.]';
+function ariaCallSpecialistWithContext(spec,task,answers){
+  if(!spec){_ariaSetState('input');return;}
+  ariaSetSpecStatus('Working on it...');
+  var tm=document.getElementById('aria-thinking-msg');
+  if(tm)tm.textContent='Drafting your response...';
+  _ariaSetState('thinking');
+  var contextBlock=task;
+  if(answers&&answers.length>0){
+    contextBlock+='\n\nAdditional context:\n';
+    _ariaQList.forEach(function(q,i){if(answers[i])contextBlock+='- '+q+'\n  '+answers[i]+'\n';});
   }
-
-  supa.auth.getSession().then(function(res){
-    var session=res&&res.data&&res.data.session;
-    if(!session||!session.access_token){
-      if(consultDiv)consultDiv.style.display='none';
-      if(inputDiv)inputDiv.style.display='block';
-      openAuth('signup');
-      return Promise.reject(new Error('no_session'));
-    }
-    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+session.access_token},
-      body:JSON.stringify({specialistId:Number(best.id),messages:[{role:'user',content:enriched}]})
-    });
-  })
-  .then(function(r){ return r&&r.json ? r.json() : null; })
-  .then(function(data){
-    if(!data) return;
-    if(consultDiv)consultDiv.style.display='none';
-    if(data.error){
-      if(inputDiv)inputDiv.style.display='block';
-      var errName=document.getElementById('aria-rec-name');
-      var errReason=document.getElementById('aria-rec-reason');
-      var errBtn=document.getElementById('aria-rec-btn');
-      if(errName)errName.textContent='Something went wrong';
-      if(errReason)errReason.textContent=data.error;
-      if(errBtn)errBtn.style.display='none';
-      if(oldResult)oldResult.style.display='block';
-      return;
-    }
-    var reply=data.reply||'';
-    if(!reply){ if(inputDiv)inputDiv.style.display='block'; return; }
-    var box=document.getElementById('aria-routing-box');
-    if(box)box.style.maxWidth='680px';
-    var handoffMsg=document.getElementById('aria-orch-handoff-msg');
-    var specByline=document.getElementById('aria-orch-spec-byline');
-    var orchOutput=document.getElementById('aria-orch-output');
-    var handoffPhrases=['just got back to me.','came back with this.','put this together for you.','sent this right over.'];
-    var phrase=handoffPhrases[Math.floor(Math.random()*handoffPhrases.length)];
-    if(handoffMsg)handoffMsg.innerHTML='<strong style="color:#eef3fc;">'+best.name+'</strong> '+phrase+' Take a look:';
-    if(specByline)specByline.textContent='From '+best.name+(best.role?' \u00b7 '+best.role:'');
-    if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
-    window._ariaChatSeed={task:task,reply:reply,specialistId:Number(best.id)};
-    if(resultDiv)resultDiv.style.display='block';
-  })
-  .catch(function(err){
-    if(err&&err.message==='no_session') return;
-    if(consultDiv)consultDiv.style.display='none';
-    if(inputDiv)inputDiv.style.display='block';
-    var errName2=document.getElementById('aria-rec-name');
-    var errReason2=document.getElementById('aria-rec-reason');
-    var errBtn2=document.getElementById('aria-rec-btn');
-    if(errName2)errName2.textContent='Connection error';
-    if(errReason2)errReason2.textContent='Something went wrong. Please try again.';
-    if(errBtn2)errBtn2.style.display='none';
-    var oldRes=document.getElementById('aria-result');
-    if(oldRes)oldRes.style.display='block';
+  var specId=spec.id||spec.specialist_id;
+  var supaUrl=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'')||'';
+  var anonKey=(typeof SUPABASE_ANON_KEY!=='undefined'?SUPABASE_ANON_KEY:'')||'';
+  var authToken=anonKey;
+  try{var sess=supabase.auth.session?supabase.auth.session():null;if(sess&&sess.access_token)authToken=sess.access_token;}catch(e){}
+  fetch(supaUrl+'/functions/v1/specialist-chat',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken,'apikey':anonKey},
+    body:JSON.stringify({specialist_id:specId,message:contextBlock,history:[],phase:'final'})
+  }).then(function(r){return r.json();}).then(function(data){
+    var reply=data.reply||data.message||data.content||'';
+    if(!reply&&data.error)reply='Something went wrong: '+data.error;
+    ariaFireParticles('toAria',function(){_ariaShowResult(spec,reply);});
+  }).catch(function(){
+    ariaFireParticles('toAria',function(){_ariaShowResult(spec,'Connection error. Please try again.');});
   });
 }
+
+function _ariaShowResult(spec,reply){
+  ariaSetSpecStatus('Done \u2713');
+  var hm=document.getElementById('aria-result-handoff-msg');
+  var bl=document.getElementById('aria-result-byline');
+  var out=document.getElementById('aria-result-output');
+  var openBtn=document.getElementById('aria-spec-open-btn');
+  if(hm)hm.textContent='Here\u2019s what '+(spec.name||'the specialist')+' came up with:';
+  if(bl)bl.textContent=(spec.name||'')+(spec.role?' \u2014 '+spec.role:'');
+  if(out)out.innerHTML=ariaMarkdownToHtml(reply);
+  if(openBtn)openBtn.style.display='';
+  _ariaSetState('result');
+  window._ariaLastReply=reply;
+  window._ariaLastSpecId=spec.id||spec.specialist_id;
+}
+
+function ariaResultCopy(){
+  var text=window._ariaLastReply||'';
+  if(!text)return;
+  navigator.clipboard.writeText(text).then(function(){
+    var btn=document.getElementById('aria-copy-btn');
+    if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},2000);}
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+function deployFromAriaCmd(){
+  var id=window._ariaLastSpecId;
+  if(id){closeAriaRouting();setTimeout(function(){deploySpec(id);},100);}
+}
+
+function ariaNewTask(){
+  _ariaCmdSpec=null;_ariaCmdTask='';
+  _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
+  var standby=document.getElementById('aria-spec-standby');
+  var card=document.getElementById('aria-spec-card');
+  if(standby)standby.style.display='';
+  if(card)card.style.display='none';
+  var openBtn=document.getElementById('aria-spec-open-btn');
+  if(openBtn)openBtn.style.display='none';
+  _ariaSetState('greeting');
+  var ta=document.getElementById('aria-task-input');
+  if(ta)ta.value='';
+}
+
+// Legacy aliases
+function ariaOrchestratorCopy(){ariaResultCopy();}
+function deployFromAria(){deployFromAriaCmd();}
+
 function ariaMarkdownToHtml(text){
   if(!text) return '';
   var s=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -6478,35 +6569,6 @@ function ariaMarkdownToHtml(text){
   s=s.replace(/\n\n/g,'</p><p style="margin:10px 0;">');
   s=s.replace(/\n/g,'<br>');
   return '<p style="margin:0;">'+s+'</p>';
-}
-
-function ariaNewTask(){
-  var inputDiv=document.getElementById('aria-input-state');
-  var consultDiv=document.getElementById('aria-consulting-state');
-  var resultDiv=document.getElementById('aria-orchestrator-result');
-  var qDiv=document.getElementById('aria-questions-state');
-  var oldResult=document.getElementById('aria-result');
-  var box=document.getElementById('aria-routing-box');
-  if(inputDiv)inputDiv.style.display='block';
-  if(consultDiv)consultDiv.style.display='none';
-  if(resultDiv)resultDiv.style.display='none';
-  if(qDiv)qDiv.style.display='none';
-  if(oldResult)oldResult.style.display='none';
-  if(box)box.style.maxWidth='';
-  ariaQList=[];ariaQAnswers=[];ariaQIdx=0;ariaQBest=null;ariaQTask='';
-  var input=document.getElementById('aria-task-input');
-  if(input){input.value='';setTimeout(function(){input.focus();},50);}
-}
-
-function ariaOrchestratorCopy(){
-  var outputEl=document.getElementById('aria-orch-output');
-  if(!outputEl) return;
-  var text=outputEl.innerText||outputEl.textContent||'';
-  if(!text) return;
-  navigator.clipboard.writeText(text.trim()).then(function(){
-    var btn=document.getElementById('aria-orch-copy');
-    if(btn){btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy result';},2000);}
-  }).catch(function(){});
 }
 
 function ariaFallbackMatch(task){
@@ -6577,48 +6639,6 @@ function ariaFallbackMatch(task){
     if(score>bestScore){bestScore=score;best=s;}
   });
   return bestScore>0 ? best : null;      /* null = say so, do not guess */
-}
-
-function deployFromAria(){
-  /* Capture before closing — the panel resets ariaRecommendedId. */
-  var id = ariaRecommendedId;
-  closeAriaRouting();
-  if(!currentUser){ openAuth('signup'); return; }
-  if(!id) return;
-
-  /* This used to hunt for a card with document.querySelector('[data-sid=...]')
-     and .click() it. Nothing in this document has ever carried a data-sid
-     attribute — the string appeared exactly once in the whole file, inside
-     that selector — so the query always returned null and the button silently
-     did nothing but close the panel. openSpecialistChat(id) is what the squad
-     cards themselves call. Fixed 2026-09-01. */
-  switchView('dashboard');
-  var seed=window._ariaChatSeed||null;
-  window._ariaChatSeed=null;
-  setTimeout(function(){
-    try{
-      if(typeof openSpecialistChat === 'function'){
-        openSpecialistChat(id);
-        /* Inject the ARIA exchange so the specialist sees the full context */
-        if(seed&&seed.task&&seed.reply&&typeof addChatMessage==='function'){
-          /* Remove greeting display and replace with the ARIA exchange */
-          var msgs=document.getElementById('chat-messages');
-          if(msgs) msgs.innerHTML='';
-          /* These push to chatState.messages AND render bubbles */
-          addChatMessage('user',seed.task);
-          addChatMessage('specialist',seed.reply,true);
-        }
-        return;
-      }
-      if(typeof deploy === 'function'){ deploy(id); return; }
-    }catch(e){}
-    /* Last resort: land them on the squad grid rather than nowhere. */
-    try{
-      showDashTab('home-tab', document.getElementById('dash-nav-home'));
-      var grid=document.getElementById('squad-tab-all');
-      if(grid) grid.scrollIntoView({behavior:'smooth',block:'start'});
-    }catch(e){}
-  },350);
 }
 
 /* ===== CUSTOM SPECIALIST ===== */
@@ -7103,7 +7123,7 @@ function openDesignedDocument(html, logoUrl, accentColor){
 function designOutput(text, specialistId, btn){
   if(!text||!btn)return;
 
-  var spNames={1:'Gary',2:'Fiona',3:'Rex',4:'Scott',5:'Cara',6:'Blake',7:'Rita',
+  var spNames={1:'Gary',2:'Fiona',4:'Scott',5:'Cara',6:'Blake',7:'Rita',
                8:'Ivan',9:'Stella',10:'Marcus',11:'Ivy',12:'Ted',13:'Parker',
                14:'Suzie',15:'Wade',16:'Tara',17:'Annie',18:'Brett',19:'Emma',
                20:'Clara',21:'Riley',22:'Nova'};
@@ -10560,7 +10580,7 @@ var BADGES={
   'funded':         {icon:'💰',name:'Funded!',             desc:'Completed your first grant with Gary',        cat:'Grant Writing'},
   'grant_machine':  {icon:'🏭',name:'Grant Machine',       desc:'Completed 10 grants with Gary',               cat:'Grant Writing'},
   'funding_finder': {icon:'🔍',name:'Funding Finder',      desc:'Discovered grants with Fiona',                cat:'Grant Writing'},
-  'rfp_slayer':     {icon:'⚔️', name:'RFP Slayer',          desc:'Completed 5 RFP responses with Rex',         cat:'Grant Writing'},
+  'rfp_slayer':     {icon:'⚔️', name:'RFP Slayer',          desc:'Completed 5 RFI responses with Riley',       cat:'Site Selection'},
 
   /* Strategy & Data */
   'swot_master':    {icon:'♟️', name:'SWOT Master',         desc:'Completed a SWOT analysis with Stella',      cat:'Strategy'},
@@ -11461,7 +11481,7 @@ function checkBadges(taskHistory,totalHours,specCounts){
   /* Grant Writing — specialist IDs */
   var garyCt=(specCounts[1]||0);
   var fionaCt=(specCounts[2]||0);
-  var rexCt=(specCounts[3]||0);
+  var rexCt=(specCounts[21]||0);
   if(garyCt>=1)awardBadge('funded');
   if(garyCt>=10)awardBadge('grant_machine');
   if(fionaCt>=1)awardBadge('funding_finder');
@@ -15671,88 +15691,121 @@ function drawLogo(){if(!logoCtx)return;
 
 
 
-<!-- ARIA ROUTING MODAL -->
-<div id="aria-routing-modal">
-  <div class="aria-routing-box" id="aria-routing-box">
-    <button onclick="closeAriaRouting()" style="float:right;background:none;border:none;color:#6b7a96;font-size:18px;cursor:pointer;">✕</button>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-      <div style="width:48px;height:48px;border-radius:50%;position:relative;flex-shrink:0;overflow:hidden;">
-        <canvas id="aria-routing-cv" width="48" height="48" data-dorb="aria-routing-orb" style="position:absolute;top:0;left:0;width:48px;height:48px;"></canvas>
-        <div id="aria-routing-sph" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;z-index:2;pointer-events:none;"></div>
-      </div>
-      <div>
-        <div style="font-family:'Barlow',sans-serif;font-size:18px;font-weight:900;color:#eef3fc;">Ask ARIA</div>
-        <div id="aria-routing-subtitle" style="font-size:12px;color:#6b7a96;">Tell me what you need — I'll get the right specialist on it</div>
-      </div>
-    </div>
+<!-- ARIA COMMAND CENTER -->
+<div id="aria-cmd-modal">
+  <div class="aria-cmd-wrap" id="aria-cmd-wrap">
+    <canvas id="aria-cmd-canvas"></canvas>
+    <button class="aria-cmd-close" onclick="closeAriaRouting()">&#x2715;</button>
 
-    <!-- Input state -->
-    <div id="aria-input-state">
-      <textarea id="aria-task-input" class="aria-routing-input" rows="3" placeholder="e.g. I need to write a grant for a broadband infrastructure project in my county..."></textarea>
-      <button onclick="ariaFindSpecialist()" id="aria-find-btn" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:12px;">Ask ARIA →</button>
-    </div>
-
-    <!-- Consulting state -->
-    <div id="aria-consulting-state" style="display:none;padding:28px 0 16px;text-align:center;">
-      <div style="display:flex;justify-content:center;gap:7px;margin-bottom:16px;">
-        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:0s;"></span>
-        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:.22s;"></span>
-        <span style="width:9px;height:9px;border-radius:50%;background:#aaff3e;display:inline-block;animation:ariaTypeDot 1.2s ease-in-out infinite;animation-delay:.44s;"></span>
-      </div>
-      <div id="aria-consulting-msg" style="font-size:14px;color:#b8c8e0;line-height:1.5;"></div>
-    </div>
-
-    <!-- Questions state -->
-    <div id="aria-questions-state" style="display:none;">
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;">
-        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;box-shadow:0 0 8px rgba(170,255,62,0.4);"></div>
-        <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:10px 14px;flex:1;">
-          <div style="font-size:11px;font-weight:800;color:#aaff3e;margin-bottom:4px;letter-spacing:.04em;">ARIA</div>
-          <div id="aria-q-text" style="font-size:13px;color:#b8c8e0;line-height:1.55;"></div>
+    <!-- SPECIALIST PANEL (top) -->
+    <div class="aria-spec-pnl" id="aria-spec-pnl">
+      <div id="aria-spec-standby">
+        <div class="aria-spec-standby-label">Specialist Workspace</div>
+        <div class="aria-spec-standby-dots">
+          <div class="aria-spec-standby-dot"></div><div class="aria-spec-standby-dot"></div>
+          <div class="aria-spec-standby-dot"></div><div class="aria-spec-standby-dot"></div>
+          <div class="aria-spec-standby-dot"></div><div class="aria-spec-standby-dot"></div>
+          <div class="aria-spec-standby-dot"></div>
         </div>
       </div>
-      <div id="aria-q-progress" style="font-size:11px;color:#4a5568;text-align:right;margin-bottom:6px;"></div>
-      <textarea id="aria-q-answer" class="aria-routing-input" rows="2" placeholder="Your answer..."></textarea>
-      <button onclick="ariaSubmitAnswer()" style="width:100%;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:10px;">Answer →</button>
-      <button onclick="ariaSkipQuestions()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:8px;border-radius:10px;cursor:pointer;margin-top:6px;">Skip — just get the draft →</button>
-    </div>
-
-    <!-- Orchestrator result state -->
-    <div id="aria-orchestrator-result" style="display:none;">
-      <!-- ARIA narrating the handoff return -->
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;">
-        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;box-shadow:0 0 8px rgba(170,255,62,0.4);"></div>
-        <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:10px 14px;flex:1;">
-          <div style="font-size:11px;font-weight:800;color:#aaff3e;margin-bottom:4px;letter-spacing:.04em;">ARIA</div>
-          <div id="aria-orch-handoff-msg" style="font-size:13px;color:#b8c8e0;line-height:1.55;"></div>
+      <div class="aria-spec-card" id="aria-spec-card">
+        <div class="aria-spec-orb-el" id="aria-spec-orb-el"></div>
+        <div class="aria-spec-info" style="flex:1;">
+          <div style="font-family:'Barlow',sans-serif;font-size:17px;font-weight:900;color:#eef3fc;margin-bottom:2px;" id="aria-spec-name-el"></div>
+          <div style="font-size:11px;color:#3a5070;margin-bottom:2px;" id="aria-spec-role-el"></div>
+          <div class="aria-spec-status-row">
+            <div class="aria-status-dot"></div>
+            <div class="aria-spec-status-txt" id="aria-spec-status-txt">Standing by</div>
+          </div>
         </div>
-      </div>
-      <!-- Specialist output -->
-      <div style="border-left:2px solid rgba(255,255,255,0.08);padding-left:14px;margin-bottom:4px;">
-        <div style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:8px;" id="aria-orch-spec-byline"></div>
-        <div id="aria-orch-output" style="max-height:42vh;overflow-y:auto;font-size:13px;color:#b8c8e0;line-height:1.7;padding-right:4px;"></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
-        <button onclick="ariaNewTask()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">← Ask something else</button>
-        <button onclick="ariaOrchestratorCopy()" id="aria-orch-copy" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">Copy result</button>
+        <button onclick="deployFromAriaCmd()" id="aria-spec-open-btn" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8a97b5;font-size:11px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif;flex-shrink:0;">Open &#x2197;</button>
       </div>
     </div>
 
-    <!-- No-match / error fallback -->
-    <div id="aria-result" class="aria-result-card">
-      <div style="font-size:11px;color:#aaff3e;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">ARIA recommends</div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-        <div id="aria-rec-orb" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;"></div>
+    <!-- ARIA OPERATIONS PANEL (bottom) -->
+    <div class="aria-ops-pnl">
+      <div class="aria-ops-hdr">
+        <div class="aria-ops-orb-wrap">
+          <canvas id="aria-cmd-orb-cv" width="48" height="48" data-dorb="aria-cmd-orb" style="position:absolute;top:0;left:0;width:48px;height:48px;"></canvas>
+          <div id="aria-ops-orb-el" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;z-index:2;pointer-events:none;"></div>
+        </div>
         <div>
-          <div id="aria-rec-name" style="font-family:'Barlow',sans-serif;font-size:16px;font-weight:900;color:#eef3fc;"></div>
-          <div id="aria-rec-role" style="font-size:11px;color:#6b7a96;"></div>
+          <div style="font-family:'Barlow',sans-serif;font-size:17px;font-weight:900;color:#eef3fc;line-height:1;">ARIA</div>
+          <div style="font-size:11px;color:#3a4a60;margin-top:2px;">Chief of Operations</div>
         </div>
       </div>
-      <div id="aria-rec-reason" style="font-size:13px;color:#b8c8e0;line-height:1.6;margin-bottom:14px;"></div>
-      <button id="aria-rec-btn" onclick="deployFromAria()" style="background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;">Deploy this specialist →</button>
+
+      <div class="aria-ops-body" id="aria-ops-body">
+
+        <!-- STATE: Greeting -->
+        <div id="aria-state-greeting">
+          <div class="aria-msg-row">
+            <div class="aria-msg-orb"></div>
+            <div class="aria-msg-bubble">Hi! I&rsquo;m Aria, your Chief of Operations. I can handle just about anything you need &mdash; I&rsquo;ll bring in the right expert from our EconSquad team automatically. Or you can go straight to any specialist yourself. What would you like to do?</div>
+          </div>
+          <div class="aria-two-btns">
+            <button class="aria-btn-primary" onclick="ariaChooseHandle()">&#10022; Let Aria Handle It</button>
+            <button class="aria-btn-secondary" onclick="ariaChooseSpecialist()">Choose a Specialist &rarr;</button>
+          </div>
+        </div>
+
+        <!-- STATE: Input -->
+        <div id="aria-state-input" style="display:none;">
+          <div class="aria-msg-row">
+            <div class="aria-msg-orb"></div>
+            <div class="aria-msg-bubble">What would you like to accomplish?</div>
+          </div>
+          <textarea id="aria-task-input" class="aria-routing-input" rows="3" placeholder="e.g. Write a grant for broadband infrastructure, respond to an RFI from Toyota, build a SWOT analysis for our region..."></textarea>
+          <button onclick="ariaFindSpecialist()" style="width:100%;background:#aaff3e;color:#0a1600;font-family:'Barlow',sans-serif;font-size:14px;font-weight:800;padding:12px;border:none;border-radius:10px;cursor:pointer;margin-top:10px;">Ask ARIA &rarr;</button>
+        </div>
+
+        <!-- STATE: Thinking -->
+        <div id="aria-state-thinking" style="display:none;text-align:center;padding:28px 0 18px;">
+          <div style="display:flex;justify-content:center;gap:9px;margin-bottom:14px;">
+            <span class="aria-dot"></span><span class="aria-dot"></span><span class="aria-dot"></span>
+          </div>
+          <div id="aria-thinking-msg" style="font-size:13px;color:#8a97b5;line-height:1.6;"></div>
+        </div>
+
+        <!-- STATE: Questions -->
+        <div id="aria-state-questions" style="display:none;">
+          <div class="aria-msg-row">
+            <div class="aria-msg-orb"></div>
+            <div class="aria-msg-bubble">
+              <div id="aria-q-text"></div>
+              <div id="aria-q-progress" style="font-size:10px;color:#4a5568;margin-top:5px;"></div>
+            </div>
+          </div>
+          <textarea id="aria-q-answer" class="aria-routing-input" rows="2" placeholder="Your answer..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button onclick="ariaSubmitAnswer()" class="aria-btn-primary" style="flex:2;">Answer &rarr;</button>
+            <button onclick="ariaSkipQuestions()" style="flex:1;padding:10px 12px;background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;border-radius:10px;cursor:pointer;">Skip</button>
+          </div>
+        </div>
+
+        <!-- STATE: Result -->
+        <div id="aria-state-result" style="display:none;">
+          <div class="aria-msg-row">
+            <div class="aria-msg-orb"></div>
+            <div class="aria-msg-bubble" id="aria-result-handoff-msg"></div>
+          </div>
+          <div style="border-left:2px solid rgba(255,255,255,0.07);padding-left:14px;margin-bottom:6px;">
+            <div style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:8px;" id="aria-result-byline"></div>
+            <div class="aria-result-output" id="aria-result-output"></div>
+          </div>
+          <div class="aria-result-actions">
+            <button onclick="ariaNewTask()" class="aria-rac-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;">&larr; New task</button>
+            <button onclick="ariaResultCopy()" class="aria-rac-btn" id="aria-copy-btn" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;">Copy</button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>
+<!-- legacy: keep id targets alive for any stray references -->
+<div id="aria-routing-modal" style="display:none!important;"></div>
+<div id="aria-routing-box" style="display:none!important;"></div>
 
 <!-- CUSTOM SPECIALIST MODAL -->
 <div id="custom-spec-modal">

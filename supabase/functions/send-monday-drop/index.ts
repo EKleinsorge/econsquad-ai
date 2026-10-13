@@ -38,12 +38,12 @@ function localHour(timezone: string): number {
   }
 }
 
-async function getTodaysIssue(): Promise<any | null> {
+async function getTodaysIssue(dateOverride?: string): Promise<any | null> {
   const res  = await fetch(`${SITE_URL}/blog-feed.json?v=${Date.now()}`);
   const feed = await res.json();
-  const today = todayDateStr();
+  const target = dateOverride || todayDateStr();
   const drops: any[] = feed?.monday_drops ?? [];
-  return drops.find((d: any) => d.date === today) ?? null;
+  return drops.find((d: any) => d.date === target) ?? null;
 }
 
 async function getActiveSubscribers(): Promise<any[]> {
@@ -163,6 +163,8 @@ Deno.serve(async (req: Request) => {
                 || body.dry_run === 1     || body.dry_run === '1';
     const force  = body.force  === true  || body.force  === 'true'
                 || body.force  === 1     || body.force  === '1';
+    const dateOverride = typeof body.date_override === 'string' && body.date_override.trim()
+      ? body.date_override.trim() : undefined;
 
     // Monthly warning check
     const monthlyCount = await getMonthlyCount();
@@ -178,8 +180,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Find today's issue
-    const issue = await getTodaysIssue();
+    // Find today's issue (or the overridden date's issue)
+    const issue = await getTodaysIssue(dateOverride);
     if (!issue) {
       return new Response(JSON.stringify({ ok: false, message: 'No issue scheduled for today' }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
