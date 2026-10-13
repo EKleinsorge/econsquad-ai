@@ -760,29 +760,113 @@ BRANDING RULES:
 - Use professional default colors: dark navy header (#1a2744), accent #c0392b or #1a5276.
 - FOOTER: Keep "Prepared with EconSquad AI · econsquad.ai" in small muted text (10px #888).`;
 
-      const designSystem = `You are a senior web designer producing premium print-ready documents for economic development professionals. Transform the content below into a stunning, complete, self-contained HTML document.
+      const designSystem = `You are a senior designer at a top economic development consulting firm. Transform the content below into a premium, print-ready HTML document that looks like it came from a professional ED consultancy — the kind that gets submitted to Fortune 500 site selectors, federal agencies, or state economic development authorities.
 
 ${brandSection}
 
-LAYOUT (apply to all documents regardless of brand colors)
-- max-width 850px, centered, white card, box-shadow 0 2px 24px rgba(0,0,0,0.12), border-radius 4px, overflow hidden
-- Header (padding 28px 40px, bg = community's primary color or dark navy): left = logo OR org name in white bold Arial 18px; right = document type badge (pill border in accent color) + date (11px, muted)
-- Body (padding 40px, bg #ffffff)
-- Footer (bg #f0f0ea, border-top 2px solid accent, padding 16px 40px): "Prepared with EconSquad AI · econsquad.ai" 10px #888 left; Print button right
+════════════════════════════════════════
+① COVER PAGE (always produce one)
+════════════════════════════════════════
+- Full-width section: background = community primary color or #0d1b3e; padding: 80px 64px 64px; min-height: 420px; display:flex; flex-direction:column; justify-content:flex-end
+- Project/document title: extract the main project or document name from the content. Style: font-size 54px; font-weight 900; color #ffffff; letter-spacing -0.02em; line-height 1.1; margin-bottom 18px
+- Community/org name below title: font-size 24px; font-weight 700; color = accent color (community brand or #aaff3e or #4fc3f7); margin-bottom 8px
+- Subtitle line (document type + date if available): font-size 16px; color rgba(255,255,255,0.55); margin-bottom 40px
+- Bottom accent stripe: border-bottom: 5px solid accent-color
+- Submission metadata table at bottom of cover (2-col, no visible borders): left col = label (font-size 11px; uppercase; letter-spacing .08em; color rgba(255,255,255,0.45); padding 6px 20px 6px 0); right col = value (font-size 13px; color #fff; font-weight 600). Rows: Prepared by, Organization, Date, Document Type. Leave blank if unknown — do not invent values.
+- css class: "cover-page"; @media print: page-break-after: always
 
-TYPOGRAPHY
-- h1: Arial 900 24px heading color margin-bottom 6px
-- h2: Arial 800 15px heading color uppercase letter-spacing 0.05em, padding-bottom 6px, border-bottom 2px solid accent, margin-top 28px
-- h3: Arial 700 12px #555 uppercase letter-spacing 0.04em margin-top 18px
-- p: Georgia 14px line-height 1.8 color #2a2a2a margin 8px 0
-- li: Georgia 14px line-height 1.7 color #2a2a2a margin 3px 0
+════════════════════════════════════════
+② STICKY DOC HEADER (screen + print)
+════════════════════════════════════════
+- Place immediately after the cover page: <div class="doc-header">
+- position: sticky; top: 0; z-index: 100; background = community primary or #0d1b3e; padding: 10px 48px; display:flex; justify-content:space-between; align-items:center
+- Left: org/community name (font-size 11px; font-weight 700; color rgba(255,255,255,0.8); letter-spacing .06em; text-transform uppercase)
+- Right: document type label e.g. "RFI RESPONSE" or "SWOT ANALYSIS" (font-size 11px; color rgba(255,255,255,0.55); letter-spacing .06em)
+- @media print: position:fixed; top:0; width:100%
+
+════════════════════════════════════════
+③ BODY
+════════════════════════════════════════
+- max-width 900px; margin: 0 auto; background #ffffff; padding: 0
+- Content sections: padding 52px 64px
+- @media print: padding 0 48px
+
+════════════════════════════════════════
+TYPOGRAPHY HIERARCHY
+════════════════════════════════════════
+
+SECTION LETTER HEADERS (A. Community Profile, B. Workforce, etc.):
+- Detect lines that ARE a section: single letter + ". " + title text, OR markdown ## headings that represent top-level sections
+- Style the letter + rest as: display:flex; align-items:baseline; gap:14px; margin: 52px 0 24px
+  · Letter part: font-size 42px; font-weight 900; color accent-color; line-height 1; flex-shrink 0
+  · Title part: font-size 22px; font-weight 800; color #0d1b3e or heading-color; letter-spacing -.01em
+- Below the header: a 2px solid accent-color line (border-bottom) spanning full width
+
+QUESTION SUBHEADERS (Q1. What is...? or just numbered questions):
+- Detect: "Q" + digit(s) + "." or ":" patterns, OR bold numbered items from the content
+- Style: font-size 14px; font-weight 800; color: accent-color; margin: 28px 0 6px; display:block; font-family: Arial, sans-serif
+
+HEADINGS:
+- h1: 30px; font-weight 900; color heading-color; margin-bottom 10px
+- h2: 18px; font-weight 800; color heading-color; border-bottom: 2px solid accent; padding-bottom 7px; margin-top 40px
+- h3: 13px; font-weight 700; color #444; text-transform uppercase; letter-spacing .06em; margin-top 22px
+
+BODY TEXT:
+- p, li: font-family Georgia, 'Times New Roman', serif; font-size 14.5px; line-height 1.85; color #2a2a2a
+- li: margin 5px 0
 - strong: color #1a1a1a
 
-COMPONENTS
-- Table: th bg = community primary color, color #fff, Arial 11px uppercase letter-spacing 0.05em padding 10px 14px; td padding 9px 14px border-bottom 1px #e8e8e8; even rows bg #f9f9f7
-- Callout box: border-left 4px accent color, bg rgba of accent at 6% opacity, padding 12px 16px, italic Georgia 14px, margin 16px 0
-- For SWOT content: use a 2×2 CSS grid for the four quadrants; Strengths bg rgba(170,255,62,0.07); Weaknesses bg rgba(255,160,0,0.06); Opportunities bg rgba(40,120,255,0.05); Threats bg rgba(255,60,60,0.05)
-- @media print { box-shadow: none; .no-print { display: none; } }
+════════════════════════════════════════
+STATUS BADGE SYSTEM
+════════════════════════════════════════
+Detect these patterns in the content and render as styled inline chips:
+
+• "Verified" or "✅ Verified" or "Status: Verified"
+  → <span style="display:inline-block;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:2px 9px;font-size:11px;font-weight:700;font-family:Arial,sans-serif;letter-spacing:.03em">✓ Verified</span>
+
+• "Draft" or "🟡 Draft" or "Status: Draft" or "Unverified"
+  → <span style="display:inline-block;background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:4px;padding:2px 9px;font-size:11px;font-weight:700;font-family:Arial,sans-serif;letter-spacing:.03em">◎ Draft — Unverified</span>
+
+• "Needs staff confirmation" or "Needs verification" or "Needs Confirmation"
+  → <span style="display:inline-block;background:#fff3e0;color:#bf360c;border:1px solid #ffcc80;border-radius:4px;padding:2px 9px;font-size:11px;font-weight:700;font-family:Arial,sans-serif;letter-spacing:.03em">⚑ Needs Staff Confirmation</span>
+
+• "Not Publicly Available" or "🔴 Not Public" or "Not available"
+  → <span style="display:inline-block;background:#fce4ec;color:#b71c1c;border:1px solid #ef9a9a;border-radius:4px;padding:2px 9px;font-size:11px;font-weight:700;font-family:Arial,sans-serif;letter-spacing:.03em">✕ Not Publicly Available</span>
+
+════════════════════════════════════════
+TABLES
+════════════════════════════════════════
+- Wrapper: border: 1px solid #d0d8e8; border-radius: 6px; overflow:hidden; margin: 20px 0
+- thead: background = community primary or #0d1b3e; color #fff; font-family Arial; font-size 11.5px; font-weight 700; text-transform uppercase; letter-spacing .05em
+- th: padding 12px 18px; text-align left
+- tbody tr (even): background #f7f9fc
+- td: padding 10px 18px; border-bottom: 1px solid #e4e8f0; font-family Georgia; font-size 14px; color #2a2a2a
+- Last row: no border-bottom
+
+════════════════════════════════════════
+STAFF NOTES & CITATIONS
+════════════════════════════════════════
+- Lines beginning with "Staff note:", "Note:", "⚠️", "*Note" or clearly italic/parenthetical notes:
+  <div style="font-style:italic;font-size:13px;color:#666;margin:8px 0 8px 18px;padding-left:14px;border-left:3px solid #d0d8e8;line-height:1.7">⟐ [text]</div>
+
+- Source citations (lines with "Source:", "Sources:", "Data from", "per ", "—"):
+  <div style="background:#f7f9fc;border:1px solid #e4e8f0;border-radius:4px;padding:8px 16px;font-size:12px;color:#555;margin-top:10px;font-family:Arial,sans-serif">📎 [text]</div>
+
+- For SWOT content: 2×2 CSS grid, quadrant colors:
+  Strengths bg rgba(46,125,50,0.06); Weaknesses bg rgba(230,81,0,0.06); Opportunities bg rgba(13,71,161,0.05); Threats bg rgba(183,28,28,0.05)
+
+════════════════════════════════════════
+FOOTER & PRINT
+════════════════════════════════════════
+- Page footer: background #f4f5f7; border-top: 2px solid accent; padding 14px 48px; display:flex; justify-content:space-between; align-items:center
+  · Left: "Prepared with EconSquad AI · econsquad.ai" — font-size 10px; color #aaa
+  · Right: Print button (class="no-print") — styled in accent color
+- @media print:
+  @page { margin: 0.7in 0.75in 0.85in; }
+  .cover-page { page-break-after: always; }
+  .doc-header { position: fixed; top: 0; width: 100%; }
+  .no-print { display: none; }
+  * { box-shadow: none !important; }
 
 CONTENT TYPE: ${spName}${workingForDesign ? ' — for ' + workingForDesign : ''}
 
@@ -790,8 +874,12 @@ OUTPUT RULES:
 - Output ONLY the complete HTML document. Start with <!DOCTYPE html> and end with </html>.
 - Inline CSS only — no external stylesheets or CDN links.
 - No markdown code fences. No explanations. Pure HTML.
-- Do not truncate — the full document must be complete.
-- The <img> logo tag (if used) must have onerror="this.style.display='none'" so a broken image degrades gracefully.
+- Do not truncate — full document must be complete.
+- Apply section-letter and Q-number detection even if the content uses markdown headers (##, ###, **Q1.**).
+- The <img> logo tag (if any) must have onerror="this.style.display='none'".
+- For RFI/RFP responses: always use cover page + section letter headers + question subheaders + status badges.
+- For SWOT: cover page + 2×2 quadrant grid layout.
+- For all other documents: cover page + doc-header + clean section hierarchy.
 
 --- CONTENT TO DESIGN ---
 ${content}`;
@@ -805,7 +893,7 @@ ${content}`;
         },
         body: JSON.stringify({
           model: 'claude-sonnet-5-5',
-          max_tokens: 8192,
+          max_tokens: 16000,
           messages: [{ role: 'user', content: designSystem }],
         }),
       });
