@@ -6268,7 +6268,12 @@ function ariaFindSpecialist(){
 
   /* Show consulting animation */
   var consultMsg=document.getElementById('aria-consulting-msg');
-  if(consultMsg)consultMsg.innerHTML='Pulling in <strong style="color:#aaff3e;">'+best.name+'</strong> on this\u2026 give me a moment.';
+  var consultPhrases=[
+    'I\u2019m handing this to <strong style="color:#aaff3e;">'+best.name+'</strong> now. Give me a moment.',
+    'On it \u2014 sending this to <strong style="color:#aaff3e;">'+best.name+'</strong>. Just a sec.',
+    'Routing to <strong style="color:#aaff3e;">'+best.name+'</strong>. They\u2019re on it.'
+  ];
+  if(consultMsg)consultMsg.innerHTML=consultPhrases[Math.floor(Math.random()*consultPhrases.length)];
   if(consultDiv)consultDiv.style.display='block';
 
   supa.auth.getSession().then(function(res){
@@ -6312,15 +6317,20 @@ function ariaFindSpecialist(){
     /* Widen box for result */
     var box=document.getElementById('aria-routing-box');
     if(box)box.style.maxWidth='680px';
-    var orchName=document.getElementById('aria-orch-spec-name');
-    var orchOrb=document.getElementById('aria-orch-orb');
+    var handoffMsg=document.getElementById('aria-orch-handoff-msg');
+    var specByline=document.getElementById('aria-orch-spec-byline');
     var orchOutput=document.getElementById('aria-orch-output');
     var continueBtn=document.getElementById('aria-orch-continue');
-    if(orchName)orchName.textContent=best.name;
-    if(orchOrb){
-      var col=(typeof CAT_COLORS!=='undefined'&&CAT_COLORS[best.cat])?CAT_COLORS[best.cat]:'#aaff3e';
-      orchOrb.style.background='radial-gradient(circle at 36% 32%,'+col+',rgba(0,0,0,0.7))';
-    }
+    /* ARIA narrates: she handed it off, the specialist returned it */
+    var handoffPhrases=[
+      'just got back to me.',
+      'came back with this.',
+      'put this together for you.',
+      'sent this right over.'
+    ];
+    var phrase=handoffPhrases[Math.floor(Math.random()*handoffPhrases.length)];
+    if(handoffMsg)handoffMsg.innerHTML='<strong style="color:#eef3fc;">'+best.name+'</strong> '+phrase+' Take a look:';
+    if(specByline)specByline.textContent='From '+best.name+(best.role?' \u00b7 '+best.role:'');
     if(orchOutput)orchOutput.innerHTML=ariaMarkdownToHtml(reply);
     if(continueBtn)continueBtn.textContent='Continue with '+best.name+' \u2192';
     if(resultDiv)resultDiv.style.display='block';
@@ -15487,14 +15497,19 @@ function drawLogo(){if(!logoCtx)return;
 
     <!-- Orchestrator result state -->
     <div id="aria-orchestrator-result" style="display:none;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div id="aria-orch-orb" style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#aaff3e,#5a9900);flex-shrink:0;"></div>
-        <div>
-          <div style="font-size:10px;color:#6b7a96;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:2px;">Via your squad</div>
-          <div id="aria-orch-spec-name" style="font-family:'Barlow',sans-serif;font-size:15px;font-weight:900;color:#aaff3e;"></div>
+      <!-- ARIA narrating the handoff return -->
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d4ff70,#aaff3e 50%,#5a9900);flex-shrink:0;margin-top:2px;box-shadow:0 0 8px rgba(170,255,62,0.4);"></div>
+        <div style="background:rgba(170,255,62,0.06);border:1px solid rgba(170,255,62,0.15);border-radius:10px;padding:10px 14px;flex:1;">
+          <div style="font-size:11px;font-weight:800;color:#aaff3e;margin-bottom:4px;letter-spacing:.04em;">ARIA</div>
+          <div id="aria-orch-handoff-msg" style="font-size:13px;color:#b8c8e0;line-height:1.55;"></div>
         </div>
       </div>
-      <div id="aria-orch-output" style="max-height:46vh;overflow-y:auto;font-size:13px;color:#b8c8e0;line-height:1.7;padding-right:4px;"></div>
+      <!-- Specialist output -->
+      <div style="border-left:2px solid rgba(255,255,255,0.08);padding-left:14px;margin-bottom:4px;">
+        <div style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:8px;" id="aria-orch-spec-byline"></div>
+        <div id="aria-orch-output" style="max-height:42vh;overflow-y:auto;font-size:13px;color:#b8c8e0;line-height:1.7;padding-right:4px;"></div>
+      </div>
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
         <button onclick="ariaNewTask()" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;">← Ask something else</button>
         <button onclick="deployFromAria()" id="aria-orch-continue" style="flex:1;background:#aaff3e;color:#0a1a00;font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;padding:9px 16px;border:none;border-radius:8px;cursor:pointer;">Continue in full chat →</button>
