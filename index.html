@@ -6408,14 +6408,13 @@ function ariaFindSpecialist(){
   function _specWithId(id){var db=ttSpecData[id]||{};return Object.assign({},db,{id:id});}
   function _firstSpec(){var s=typeof squad!=='undefined'&&squad.length?squad:[];return s.length?_specWithId(s[0].id):null;}
   if(!apiKey){
-    var spec=fallback?_specWithId(fallback.id):_firstSpec();
-    if(spec){
+    if(fallback){
+      var spec=_specWithId(fallback.id);
       ariaActivateSpecialist(spec);
-      ariaFireParticles('toSpec',function(){
-        ariaSetSpecStatus('Working on it...');
-        ariaCallSpecialistWithContext(spec,task,[]);
-      });
-    } else {_ariaSetState('input');}
+      ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(spec,task,[]);});
+    } else {
+      _ariaAnswerDirectly(task,null);
+    }
     return;
   }
   var specNames='Grant Writer AI, Grant Discovery Engine, RFP Responder, Site Selection Pro, Site Comparison Analyst, BRE Survey Builder, BRE Report Pro, Economic Impact Modeler, SWOT Analyst, Market Analyst, Incentive Package Architect, Tax Credit Navigator, Press Release Pro, Social Content AI, Workforce Intelligence, Talent Availability Report, Annual Report Writer, Board Report Builder, Email Regenerator, Cover Letter Writer, RFI Responder, Data Analyzer, Riley';
@@ -6436,18 +6435,43 @@ function ariaFindSpecialist(){
       if(db.name&&db.name.toLowerCase().indexOf(specName)!==-1){chosenSpec=_specWithId(squadArr[k].id);break;}
     }
     if(!chosenSpec&&fallback)chosenSpec=_specWithId(fallback.id);
-    if(!chosenSpec&&squadArr.length)chosenSpec=_specWithId(squadArr[0].id);
-    ariaActivateSpecialist(chosenSpec);
-    if(qs.length>0){
-      _ariaQList=qs;_ariaQAnswers=[];_ariaQIdx=0;
-      ariaFireParticles('toSpec',function(){ariaSetSpecStatus('A few quick questions...');ariaShowQuestion();});
+    if(chosenSpec){
+      ariaActivateSpecialist(chosenSpec);
+      if(qs.length>0){
+        _ariaQList=qs;_ariaQAnswers=[];_ariaQIdx=0;
+        ariaFireParticles('toSpec',function(){ariaSetSpecStatus('A few quick questions...');ariaShowQuestion();});
+      } else {
+        ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(chosenSpec,task,[]);});
+      }
     } else {
-      ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(chosenSpec,task,[]);});
+      _ariaAnswerDirectly(task,apiKey);
     }
   }).catch(function(){
-    var spec2=fallback?_specWithId(fallback.id):_firstSpec();
+    var spec2=fallback?_specWithId(fallback.id):null;
     if(spec2){ariaActivateSpecialist(spec2);ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(spec2,task,[]);});}
-    else{_ariaSetState('input');}
+    else{_ariaAnswerDirectly(task,apiKey);}
+  });
+}
+
+function _ariaAnswerDirectly(task,apiKey){
+  _ariaSetState('thinking');
+  var tm=document.getElementById('aria-thinking-msg');
+  if(tm)tm.textContent='On it...';
+  var ariaSpec={id:null,name:'ARIA',role:'Chief of Operations',cat:'grants'};
+  if(!apiKey){
+    _ariaShowResult(ariaSpec,'I can help with economic development tasks — try asking me to write a grant, respond to an RFI, build a site selection report, or anything else your team needs. Just describe the task and I\'ll get the right specialist on it.');
+    return;
+  }
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:800,system:'You are ARIA, the AI Chief of Operations for an economic development team using EconSquad AI. You are smart, direct, and focused on helping economic developers succeed. Answer the user\'s question helpfully. If it is a task that one of your specialists could do better (grant writing, RFI responses, site selection, BRE surveys, economic impact analysis, workforce reports, press releases, social content, incentive packages), mention that briefly at the end.',messages:[{role:'user',content:task}]})
+  }).then(function(r){return r.json();}).then(function(data){
+    var reply=(data.content&&data.content[0]&&data.content[0].text)||'';
+    if(!reply&&data.error)reply='Something went wrong. Please try again.';
+    _ariaShowResult(ariaSpec,reply);
+  }).catch(function(){
+    _ariaShowResult(ariaSpec,'Connection error. Please try again.');
   });
 }
 
@@ -6501,7 +6525,7 @@ function ariaCallSpecialistWithContext(spec,task,answers){
     return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token},
-      body:JSON.stringify({specialist_id:specId,message:contextBlock,history:[],phase:'final'})
+      body:JSON.stringify({specialistId:Number(specId),messages:[{role:'user',content:contextBlock}],working_for:null})
     });
   }).then(function(r){return r.json();}).then(function(data){
     var reply=data.reply||data.message||data.content||'';
