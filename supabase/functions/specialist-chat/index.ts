@@ -38,7 +38,8 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
+const OPENAI_KEY     = Deno.env.get('OPENAI_API_KEY')     ?? '';
+const ANTHROPIC_KEY  = Deno.env.get('ANTHROPIC_API_KEY')  ?? '';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -166,6 +167,73 @@ Questions: 1) What data do you have or what do you want to analyze? (paste data,
 
 Output: Clear written analysis with key findings, trends, notable data points, what it means in plain language, and recommended actions. Include a summary table if appropriate. No jargon — write for a city council member or board, not a data scientist.`,
 };
+
+/* ── Document-mode system addition ────────────────────────────
+   Prepended to the specialist's prompt when a file is attached.
+   Rex (3) and Riley (21) get the full RFP/RFI writing instructions;
+   all other specialists get a lighter "read and answer" version. */
+const DOC_MODE_RFP = `DOCUMENT ANALYSIS MODE — A document has been attached. Read it in full before responding.
+
+INSTRUCTIONS:
+1. Open with ONE sentence confirming what you read: document type, project/company name, and due date if visible.
+2. Immediately follow with: "I have everything I need — here is your complete response."
+3. Do NOT ask clarifying questions unless the organization name is completely absent from both the document and the context block below. If you must ask, ask for ONE thing only.
+
+PRODUCE A COMPLETE, SUBMISSION-READY RESPONSE structured as follows:
+
+## Cover Letter
+Three focused paragraphs: (1) who you are and why you are the right fit, (2) your strongest assets for this specific project, (3) a confident call to action. Use the organization name and contact from context.
+
+## [Repeat every section heading from the document, verbatim]
+Address every numbered item, every sub-question, every data request in the RFP/RFI. Use the exact section titles and numbering from the document. Do not skip or combine sections.
+
+## Data Summary (if the document asks for quantitative data)
+Present key numbers in a markdown table. Include: metric name, value, source/note.
+
+## Conclusion & Next Steps
+2-3 sentences. Restate fit. Name the next step (site visit, call, portal submission).
+
+## Signature Block
+Organization name, primary contact name and title, phone, email, website — from community context. If any are missing, leave a [PLACEHOLDER] so the user can fill it in.
+
+QUALITY STANDARDS:
+- Write at a confident, professional 8th-grade reading level — clear and persuasive, never bureaucratic
+- Every claim must be specific: use numbers, place names, program names from the context
+- Bold (**) the single most important phrase in each major section
+- This must be the best RFP/RFI response this economic developer has ever submitted
+
+`;
+
+const DOC_MODE_GENERIC = `A document has been attached. Read it carefully and completely before responding.
+Base your response on the document's actual content. Be specific. Do not invent details not present in the document or the community context.\n\n`;
+
+/* ── Build Anthropic messages with file attachments ────────────
+   Attachments go on the last user message — that is when they were uploaded.
+   Earlier turns are plain text (follow-up messages never re-send the file). */
+type Attachment = { name: string; type: string; data_base64: string };
+
+function buildAnthropicMessages(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  attachments: Attachment[],
+) {
+  return messages.map((m, i) => {
+    if (i === messages.length - 1 && m.role === 'user' && attachments.length > 0) {
+      const content: unknown[] = [];
+      for (const att of attachments) {
+        if (att.type === 'application/pdf') {
+          content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: att.data_base64 } });
+        } else if (att.type.startsWith('image/')) {
+          const mediaType = att.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+          content.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: att.data_base64 } });
+        }
+        // Other formats (docx, etc.) are not supported natively — skip
+      }
+      if (m.content.trim()) content.push({ type: 'text', text: m.content });
+      return { role: 'user', content };
+    }
+    return { role: m.role, content: m.content };
+  });
+}
 
 /* ── Community context ─────────────────────────────────────────
    Built only from fields that actually hold something. A user with
@@ -422,6 +490,27 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'That is more text than a specialist can hold at once. Try sending the key sections rather than the whole document.' }, 400);
     }
 
+    /* ── File attachments ──────────────────────────────────────────
+       Accepted from the browser as {name, type, data_base64} objects.
+       Max 5 files; max 5 MB base64 each (~3.75 MB decoded).
+       Only PDF and image types are forwarded to the AI — other formats
+       are silently dropped here; the browser already warned the user. */
+    const rawAtt = Array.isArray(body.attachments) ? body.attachments : [];
+    const attachments: Attachment[] = rawAtt
+      .slice(0, 5)
+      .map((a: any): Attachment => ({
+        name: String(a.name ?? 'file').slice(0, 200),
+        type: String(a.type ?? 'application/octet-stream').slice(0, 100),
+        data_base64: String(a.data_base64 ?? ''),
+      }))
+      .filter((a: Attachment) => {
+        const len = a.data_base64.length;
+        return len > 0 && len < 5_000_000;
+      });
+    const hasAttachments = attachments.some(a =>
+      a.type === 'application/pdf' || a.type.startsWith('image/'));
+    const useAnthropic = hasAttachments && !!ANTHROPIC_KEY;
+
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -514,7 +603,56 @@ Deno.serve(async (req: Request) => {
       console.error('specialist-chat: context step failed, continuing without it', e);
     }
 
-    /* ── OpenAI ───────────────────────────────────────────────── */
+    /* ── Document mode: prepend file-handling instructions ─────── */
+    if (hasAttachments) {
+      const docAddition = (id === 3 || id === 21) ? DOC_MODE_RFP : DOC_MODE_GENERIC;
+      system = docAddition + system;
+    }
+
+    /* ── Route: Anthropic when files attached, OpenAI otherwise ── */
+    if (useAnthropic) {
+      const anthropicMessages = buildAnthropicMessages(messages, attachments);
+      const aRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-beta': 'pdfs-2024-09-25',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-5-5',
+          max_tokens: 4096,
+          system,
+          messages: anthropicMessages,
+        }),
+      });
+
+      const aData = await aRes.json();
+      if (aData.error) {
+        console.error('specialist-chat: anthropic error', aData.error?.type, aData.error?.message);
+        return json({ error: 'The specialist could not complete that request. Please try again — your message was not lost.' }, 502);
+      }
+
+      const reply = aData?.content?.[0]?.text ?? '';
+      if (!reply) {
+        console.error('specialist-chat: anthropic empty response', JSON.stringify(aData).slice(0, 400));
+        return json({ error: 'The specialist returned nothing. Please try again.' }, 502);
+      }
+
+      const u = aData?.usage ?? {};
+      await recordUsage(admin, {
+        user_id: user.id, user_email: user.email ?? null,
+        feature: 'specialist-chat', specialist_id: id,
+        provider: 'anthropic', model: 'claude-sonnet-5-5',
+        input_tokens: Number(u.input_tokens ?? 0),
+        output_tokens: Number(u.output_tokens ?? 0),
+      });
+
+      return json({ reply, powered_by: 'claude' });
+    }
+
+    /* ── OpenAI (no attachments) ──────────────────────────────── */
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

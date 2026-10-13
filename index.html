@@ -689,6 +689,16 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 }
 #chat-send-btn:disabled{opacity:0.5;cursor:not-allowed;}
 .drawer-hint{font-size:10px;color:#4a5568;text-align:center;margin-top:8px;}
+/* File attachment */
+#chat-attach-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:0 12px;height:44px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;color:#6b7a96;}
+#chat-attach-btn:hover{border-color:rgba(170,255,62,0.3);color:#aaff3e;}
+#chat-file-input{display:none;}
+#chat-attachments{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 6px;min-height:0;}
+#chat-attachments:empty{padding:0;}
+.attach-chip{display:flex;align-items:center;gap:6px;background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.2);border-radius:8px;padding:4px 8px 4px 10px;font-size:11px;color:#aaff3e;font-family:'DM Sans',sans-serif;}
+.attach-chip-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.attach-chip-remove{background:none;border:none;color:#6b7a96;cursor:pointer;font-size:14px;padding:0;line-height:1;transition:color .15s;margin-left:2px;}
+.attach-chip-remove:hover{color:#ff8080;}
 
 /* ===== HISTORY TAB ===== */
 .hist-card{
@@ -6437,6 +6447,8 @@ var chatState={
      piece of work reported nearly triple the time it saved, in the numbers
      used to judge the product. One mission is one row. */
   historyId:null,
+  /* Pending file attachments for the next send. Cleared after each send. */
+  attachedFiles:[],
 };
 
 function openSpecialistChat(id){
@@ -6451,7 +6463,9 @@ function openSpecialistChat(id){
   chatState.specialistColor=s.color;
   chatState.historyId=null;   /* new conversation, not yet in history */
   chatState.workingFor=null;  /* and it is for the person's own organisation */
+  chatState.attachedFiles=[];
   esqRenderWorkingFor();
+  renderAttachmentChips();
 
   var col=ORB_C[s.color];
 
@@ -6663,18 +6677,107 @@ function autoResizeChat(el){
   el.style.height=Math.min(el.scrollHeight,120)+'px';
 }
 
+function handleChatFileSelect(evt){
+  var files=evt.target.files;
+  if(!files||!files.length)return;
+  var allowed=['application/pdf','image/jpeg','image/png','image/webp','image/gif'];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(!allowed.includes(f.type)){
+      alert(f.name+' is not supported. Please attach a PDF or image (JPG, PNG, WebP, GIF).');
+      continue;
+    }
+    if(f.size>5*1024*1024){
+      alert(f.name+' is over 5 MB. Please attach a smaller file.');
+      continue;
+    }
+    (function(file){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        var b64=e.target.result.split(',')[1];
+        chatState.attachedFiles.push({name:file.name,type:file.type,data_base64:b64});
+        renderAttachmentChips();
+      };
+      reader.readAsDataURL(file);
+    })(f);
+  }
+  evt.target.value='';
+}
+
+function removeAttachment(idx){
+  chatState.attachedFiles.splice(idx,1);
+  renderAttachmentChips();
+}
+
+function renderAttachmentChips(){
+  var el=document.getElementById('chat-attachments');
+  if(!el)return;
+  el.innerHTML='';
+  (chatState.attachedFiles||[]).forEach(function(att,i){
+    var chip=document.createElement('div');
+    chip.className='attach-chip';
+    var icon=att.type==='application/pdf'?'📄':'🖼️';
+    var nm=document.createElement('span');
+    nm.className='attach-chip-name';
+    nm.textContent=icon+' '+att.name;
+    var rm=document.createElement('button');
+    rm.className='attach-chip-remove';
+    rm.title='Remove';
+    rm.innerHTML='&times;';
+    rm.onclick=(function(idx){return function(){removeAttachment(idx);};})(i);
+    chip.appendChild(nm);
+    chip.appendChild(rm);
+    el.appendChild(chip);
+  });
+}
+
+function openDocumentViewer(text, specialistId){
+  var orgName=(typeof ESQ_TEAM!=='undefined'&&ESQ_TEAM&&ESQ_TEAM.orgName)||'';
+  var spName='';
+  var spNames={3:'Rex — RFP Responder',21:'Riley — RFI Responder'};
+  spName=spNames[specialistId]||'EconSquad AI';
+
+  /* Convert markdown to clean HTML for the document */
+  var body=esqTablesToHtml(text,false)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+  body='<p>'+body+'</p>';
+  body=body.replace(/<p><(h[123]|ul|li)>/g,'<$1>').replace(/<\/(h[123]|ul|li)><\/p>/g,'</$1>');
+
+  var today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  var html='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+spName+(orgName?' — '+orgName:'')+'</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Georgia,serif;background:#f7f6f2;color:#1a1a1a;padding:40px 20px;}@media print{body{background:#fff;padding:0;}}.doc-wrap{max-width:800px;margin:0 auto;background:#fff;box-shadow:0 2px 24px rgba(0,0,0,0.12);border-radius:4px;overflow:hidden;}.doc-header{background:#04050d;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;gap:16px;}.doc-brand{display:flex;align-items:center;gap:10px;}.doc-brand-dot{width:32px;height:32px;background:#aaff3e;border-radius:6px;flex-shrink:0;}.doc-brand-name{font-family:Arial,sans-serif;font-size:18px;font-weight:900;color:#aaff3e;letter-spacing:.02em;}.doc-header-right{text-align:right;}.doc-org{font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#eef3fc;}.doc-date{font-size:11px;color:#6b7a96;margin-top:3px;}.doc-badge{display:inline-block;background:rgba(170,255,62,0.12);border:1px solid rgba(170,255,62,0.3);color:#aaff3e;font-family:Arial,sans-serif;font-size:10px;font-weight:700;padding:3px 12px;border-radius:16px;letter-spacing:.06em;text-transform:uppercase;margin-top:8px;}.doc-body{padding:40px;}.doc-body h1{font-family:Arial,sans-serif;font-size:22px;font-weight:900;color:#04050d;margin:24px 0 10px;}.doc-body h2{font-family:Arial,sans-serif;font-size:16px;font-weight:800;color:#04050d;margin:20px 0 8px;padding-bottom:5px;border-bottom:2px solid #aaff3e;}.doc-body h3{font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 6px;}.doc-body p{font-size:14px;line-height:1.8;color:#2a2a2a;margin:8px 0;}.doc-body ul{margin:8px 0 8px 20px;}.doc-body li{font-size:14px;line-height:1.7;color:#2a2a2a;margin:3px 0;}.doc-body strong{color:#1a1a1a;}.doc-body table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}.doc-body th{background:#04050d;color:#aaff3e;font-family:Arial,sans-serif;font-weight:700;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}.doc-body td{padding:9px 14px;border-bottom:1px solid #e8e8e8;color:#2a2a2a;}.doc-body tr:nth-child(even) td{background:#f9f9f7;}.doc-footer{background:#f0f0ea;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;border-top:2px solid #aaff3e;}.doc-footer-text{font-family:Arial,sans-serif;font-size:10px;color:#888;}.print-btn{background:#aaff3e;color:#1a3300;border:none;border-radius:8px;padding:8px 20px;font-family:Arial,sans-serif;font-size:12px;font-weight:900;cursor:pointer;}@media print{.print-btn{display:none;}}</style></head><body><div class="doc-wrap"><div class="doc-header"><div class="doc-brand"><div class="doc-brand-dot"></div><span class="doc-brand-name">EconSquad<sup style="font-size:10px;">AI</sup></span></div><div class="doc-header-right">'+(orgName?'<div class="doc-org">'+orgName+'</div>':'')+'<div class="doc-date">'+today+'</div><div class="doc-badge">'+spName+'</div></div></div><div class="doc-body">'+body+'</div><div class="doc-footer"><span class="doc-footer-text">Generated by EconSquad AI &bull; econsquad.ai</span><button class="print-btn" onclick="window.print()">Print / Save PDF</button></div></div></body></html>';
+
+  var w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+}
+
 function sendChatMessage(){
   var input=document.getElementById('chat-input');
-  if(!input||!input.value.trim()||chatState.isTyping)return;
+  if(!input||chatState.isTyping)return;
   var text=input.value.trim();
+  var atts=chatState.attachedFiles||[];
+  if(!text&&!atts.length)return;
   input.value='';
   input.style.height='44px';
 
-  addChatMessage('user',text);
-  callSpecialist(text);
+  if(text) addChatMessage('user',text);
+  if(atts.length&&!text){
+    addChatMessage('user','[Attached: '+atts.map(function(a){return a.name;}).join(', ')+']');
+  }
+  var attsCopy=atts.slice();
+  chatState.attachedFiles=[];
+  renderAttachmentChips();
+  callSpecialist(text||'', attsCopy);
 }
 
-function callSpecialist(userMessage){
+function callSpecialist(userMessage, attachments){
   chatState.isTyping=true;
   var btn=document.getElementById('chat-send-btn');
   if(btn){btn.disabled=true;btn.style.opacity='0.5';}
@@ -6747,6 +6850,9 @@ function callSpecialist(userMessage){
       working_for:chatState.workingFor||null,
       messages:chatState.messages.map(function(m){
         return {role:String(m.role),content:String(m.content||'')};
+      }),
+      attachments:(attachments||[]).map(function(a){
+        return {name:String(a.name),type:String(a.type),data_base64:String(a.data_base64)};
       })
     };
     /* userId used to be sent in the body, and the function believed it - so it
@@ -7131,6 +7237,15 @@ function showFinalOutput(text){
       w.appendChild(a);w.appendChild(b);msgs.appendChild(w);
     }
   };
+
+  /* View as Document — Rex (3) and Riley (21) produce submission-ready docs */
+  if(chatState.specialistId===3||chatState.specialistId===21){
+    var docBtn=document.createElement('button');
+    docBtn.className='output-btn primary';
+    docBtn.innerHTML='📄 View as Document';
+    docBtn.onclick=(function(t,sid){return function(){openDocumentViewer(t,sid);};})(text,chatState.specialistId);
+    actions.appendChild(docBtn);
+  }
 
   actions.appendChild(copyBtn);
   actions.appendChild(saveBtn);
@@ -15232,7 +15347,14 @@ function drawLogo(){if(!logoCtx)return;
       <div id="voice-status" style="font-size:10px;color:#4a5568;">Voice mode off</div>
     </div>
 
+    <!-- File attachment chips -->
+    <div id="chat-attachments"></div>
+
     <div class="drawer-input-row">
+      <input type="file" id="chat-file-input" accept=".pdf,image/*" multiple onchange="handleChatFileSelect(event)">
+      <button id="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach PDF or image">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
       <button id="mic-btn" onclick="toggleMic()" title="Click to speak" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:0 12px;height:44px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a97b5" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10c0 4 3 7 7 7s7-3 7-7"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
       </button>
@@ -15240,7 +15362,7 @@ function drawLogo(){if(!logoCtx)return;
         onkeydown="chatKeydown(event)" oninput="autoResizeChat(this)"></textarea>
       <button id="chat-send-btn" onclick="sendChatMessage()">Send</button>
     </div>
-    <div class="drawer-hint">Press Enter to send · Shift+Enter for new line</div>
+    <div class="drawer-hint">Press Enter to send · Shift+Enter for new line · 📎 Attach PDF or image</div>
   </div>
 
 </div>
