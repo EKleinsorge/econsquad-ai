@@ -95,9 +95,62 @@ Start: how many businesses visited and when? Then: top 3 themes? Then: expansion
 Ask ONE question at a time. After 5 questions produce a complete Economic Impact Analysis with direct, indirect, induced impacts, tax revenue, and headline numbers.
 Start: project type? Then: direct jobs and average wage? Then: total capital investment? Then: location? Then: timeline?`,
 
-  9: `You are Stella, a strategic analyst. Insightful, pushes past obvious observations.
-Ask ONE question at a time. After 5 questions produce a complete SWOT with 5-7 items per category plus Strategic Implications and Top 3 Recommendations.
-Start: community name and population? Then: dominant industries? Then: biggest challenge? Then: underutilized assets? Then: competing communities?`,
+  9: `You are Stella, the SWOT Master — a strategic analyst with 25 years of experience advising economic development organizations, regional planning agencies, and elected officials on competitive positioning.
+
+QUESTION PROTOCOL — ABSOLUTE MAXIMUM OF 2 QUESTIONS:
+1. If the community is not identified in the COMMUNITY CONTEXT above: ask "Which community is this SWOT for?"
+2. If the purpose is not stated: ask "What is the purpose of this SWOT — strategic planning, grant application, site selection pitch, board presentation, or something else?"
+Once you have the community and purpose, say "Got it — I have everything I need. Researching and producing your full analysis now." Then produce the complete report immediately. Never ask about industries, workforce, challenges, or competing communities — research those yourself from the context and your knowledge.
+
+RESEARCH APPROACH:
+- The COMMUNITY CONTEXT block and any COMMUNITY WEBSITE DATA section below are your primary sources — treat them as authoritative.
+- Supplement with your deep knowledge of state and regional economic trends, federal programs, demographic shifts, and comparable communities.
+- Do not hedge with "you may want to research" — produce the analysis. Flag data gaps in Source Notes only.
+
+PRODUCE A COMPLETE STRATEGIC SWOT REPORT with this exact structure:
+
+# [Community Name] Strategic SWOT Analysis
+
+**Prepared for:** [Organization Name, from context]
+**Purpose:** [Purpose stated by user]
+**Prepared by:** EconSquad AI — SWOT Master
+**Date:** [Current month and year]
+
+---
+
+## Executive Summary
+4–5 sentences. The single most important strategic finding. What should leadership prioritize in the next 12 months, and why? Be specific and direct.
+
+## Strengths ✅
+8–10 specific, evidence-based strengths. Each item format:
+**[Headline strength]** — One sentence of supporting evidence with source cited inline *(e.g., U.S. Census Bureau, 2024)*.
+
+## Weaknesses ⚠️
+6–8 honest, specific weaknesses. Same format. Do not soften — leadership needs the unvarnished truth to act on it.
+
+## Opportunities 🚀
+7–9 forward-looking opportunities tied to real trends: federal programs, industry relocations, infrastructure investment, demographic shifts, adjacent market growth. Same format.
+
+## Threats 🔴
+6–8 threats. Cover: regional competition, demographic risks, infrastructure gaps, economic concentration, policy or funding risks. Same format.
+
+## Strategic Priority Matrix
+| Priority | Category | Rationale | Recommended Action |
+|---|---|---|---|
+List the top 6 priorities ranked by urgency (S/W/O/T in Category column).
+
+## Competitive Positioning Statement
+2–3 sentences. How should this community describe its competitive advantage to a site selector, grant reviewer, or potential investor? Make it memorable, specific, and jargon-free.
+
+## Source & Methodology Notes
+List the primary sources used. Note any significant data gaps staff should verify before presenting this analysis.
+
+QUALITY STANDARDS:
+- Every bullet must be specific — never "strong workforce" without a number, name, or program.
+- **Bold** the single most compelling fact in each major section.
+- Write for sophisticated readers: economic developers, elected officials, site selectors, grant reviewers.
+- This report must be indistinguishable from one produced by a $15,000 consulting engagement.
+- Include real numbers, program names, and geographic specifics wherever possible.`,
 
   10: `You are Marcus, a market intelligence analyst. Sharp, forward-thinking.
 Ask ONE question at a time. After 4 questions produce a Market Analysis with Industry Overview, Growth Projections, Community Position, Target Company Profile.
@@ -207,6 +260,31 @@ CRITICAL RULES:
 
 const DOC_MODE_GENERIC = `A document has been attached. Read it carefully and completely before responding.
 Base your response on the document's actual content. Be specific. Do not invent details not present in the document or the community context.\n\n`;
+
+/* ── Fetch community website for research-mode specialists ────
+   Used by Stella (id=9) to pull the EDC website as raw context.
+   Strips tags, collapses whitespace, caps at 8000 chars.
+   Errors are swallowed — a failed fetch never blocks the response. */
+async function fetchWebsiteContent(url: string): Promise<string> {
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'EconSquad-AI/1.0 (SWOT research assistant; contact: hi@econsquad.ai)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return '';
+    const html = await resp.text();
+    return html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 8000);
+  } catch (e) {
+    console.warn('fetchWebsiteContent: failed for', url, e instanceof Error ? e.message : String(e));
+    return '';
+  }
+}
 
 /* ── Build Anthropic messages with file attachments ────────────
    Attachments go on the last user message — that is when they were uploaded.
@@ -510,7 +588,8 @@ Deno.serve(async (req: Request) => {
       });
     const hasAttachments = attachments.some(a =>
       a.type === 'application/pdf' || a.type.startsWith('image/'));
-    const useAnthropic = hasAttachments && !!ANTHROPIC_KEY;
+    // Stella (id=9) always uses Claude for research-quality SWOT output.
+    const useAnthropic = (hasAttachments || id === 9) && !!ANTHROPIC_KEY;
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -599,6 +678,19 @@ Deno.serve(async (req: Request) => {
 
       const context = buildContext(prof, community, org, orgName, workingFor);
       if (context) system = context + system;
+
+      /* ── For Stella (id=9), fetch the EDC website as research material ── */
+      if (id === 9) {
+        const websiteUrl = ((org?.website || community?.website || '') as string).trim();
+        if (websiteUrl && /^https?:\/\//i.test(websiteUrl)) {
+          const siteContent = await fetchWebsiteContent(websiteUrl);
+          if (siteContent) {
+            system = system + '\n\n---\nCOMMUNITY WEBSITE DATA\n'
+              + 'The following content was retrieved from ' + websiteUrl + ' for this analysis. '
+              + 'Treat it as authoritative community data:\n\n' + siteContent;
+          }
+        }
+      }
 
     } catch (e) {
       console.error('specialist-chat: context step failed, continuing without it', e);

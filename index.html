@@ -6734,7 +6734,7 @@ function renderAttachmentChips(){
 function openDocumentViewer(text, specialistId){
   var orgName=(typeof ESQ_TEAM!=='undefined'&&ESQ_TEAM&&ESQ_TEAM.orgName)||'';
   var spName='';
-  var spNames={3:'Rex — RFP Responder',21:'Riley — RFI Responder'};
+  var spNames={3:'Rex — RFP Responder',9:'Stella — SWOT Master',21:'Riley — RFI Responder'};
   spName=spNames[specialistId]||'EconSquad AI';
 
   /* Convert markdown to clean HTML for the document */
@@ -7238,8 +7238,8 @@ function showFinalOutput(text){
     }
   };
 
-  /* View as Document — Rex (3) and Riley (21) produce submission-ready docs */
-  if(chatState.specialistId===3||chatState.specialistId===21){
+  /* View as Document — Rex (3), Stella (9), and Riley (21) produce submission-ready docs */
+  if(chatState.specialistId===3||chatState.specialistId===9||chatState.specialistId===21){
     var docBtn=document.createElement('button');
     docBtn.className='output-btn primary';
     docBtn.innerHTML='📄 View as Document';
