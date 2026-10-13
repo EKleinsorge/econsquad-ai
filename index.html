@@ -6783,14 +6783,51 @@ function openDocumentViewer(text, specialistId){
 
 function designOutput(text, specialistId, btn){
   if(!text||!btn)return;
-  var orig=btn.innerHTML;
+
+  var spNames={1:'Gary',2:'Fiona',3:'Rex',4:'Scott',5:'Cara',6:'Blake',7:'Rita',
+               8:'Ivan',9:'Stella',10:'Marcus',11:'Ivy',12:'Ted',13:'Parker',
+               14:'Suzie',15:'Wade',16:'Tara',17:'Annie',18:'Brett',19:'Emma',
+               20:'Clara',21:'Riley',22:'Nova'};
+  var spName=spNames[specialistId]||'Your specialist';
+
   btn.disabled=true;
-  btn.innerHTML='⏳ Designing...';
+  btn.innerHTML='✨ Designing...';
+
+  /* Inject animation keyframes once */
+  if(!document.getElementById('design-anim-style')){
+    var s=document.createElement('style');
+    s.id='design-anim-style';
+    s.textContent='@keyframes designDot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1.2)}}@keyframes designPulse{0%,100%{opacity:.7}50%{opacity:1}}';
+    document.head.appendChild(s);
+  }
+
+  /* Show in-chat designing message */
+  var msgId='design-progress-'+Date.now();
+  var msgs=document.getElementById('chat-messages');
+  var msgEl=null;
+  if(msgs){
+    msgEl=document.createElement('div');
+    msgEl.id=msgId;
+    msgEl.className='chat-msg';
+    msgEl.innerHTML=
+      '<div class="chat-avatar" style="background:radial-gradient(circle at 36% 32%,#d4ff70,#aaff3e 50%,#5a9900);">✨</div>'
+      +'<div class="chat-bubble specialist" style="display:flex;flex-direction:column;gap:6px;">'
+      +'<span style="font-size:13px;color:#c8e6a0;animation:designPulse 1.8s ease-in-out infinite;">'+spName+' is designing your document</span>'
+      +'<span style="display:inline-flex;gap:5px;align-items:center;">'
+      +'<span style="width:5px;height:5px;border-radius:50%;background:#aaff3e;animation:designDot 1.4s ease-in-out infinite;"></span>'
+      +'<span style="width:5px;height:5px;border-radius:50%;background:#aaff3e;animation:designDot 1.4s ease-in-out .2s infinite;"></span>'
+      +'<span style="width:5px;height:5px;border-radius:50%;background:#aaff3e;animation:designDot 1.4s ease-in-out .4s infinite;"></span>'
+      +'</span>'
+      +'</div>';
+    msgs.appendChild(msgEl);
+    msgs.scrollTop=msgs.scrollHeight;
+  }
 
   supa.auth.getSession().then(function(res){
     var session=res&&res.data&&res.data.session;
     if(!session||!session.access_token){
-      btn.disabled=false; btn.innerHTML=orig;
+      btn.disabled=false; btn.innerHTML='✨ Design it for me';
+      if(msgEl)msgEl.remove();
       addChatMessage('specialist','Please sign in again to use this feature.');
       return;
     }
@@ -6811,15 +6848,30 @@ function designOutput(text, specialistId, btn){
     })
     .then(function(r){return r.json();})
     .then(function(data){
-      btn.disabled=false; btn.innerHTML=orig;
-      if(data.error){addChatMessage('specialist','Design failed: '+data.error);return;}
+      if(msgEl)msgEl.remove();
+      if(data.error){
+        btn.disabled=false; btn.innerHTML='✨ Design it for me';
+        addChatMessage('specialist','Design failed: '+data.error);
+        return;
+      }
       var html=data.html||'';
-      if(!html){addChatMessage('specialist','No design was returned. Please try again.');return;}
-      var w=window.open('','_blank');
-      if(w){w.document.write(html);w.document.close();}
+      if(!html){
+        btn.disabled=false; btn.innerHTML='✨ Design it for me';
+        addChatMessage('specialist','No design was returned. Please try again.');
+        return;
+      }
+      /* Transform button into "View Designed Document" */
+      btn.disabled=false;
+      btn.innerHTML='📄 View Designed Document';
+      btn.style.cssText+='background:rgba(170,255,62,0.12);border-color:rgba(170,255,62,0.5);color:#aaff3e;';
+      btn.onclick=function(){
+        var w=window.open('','_blank');
+        if(w){w.document.write(html);w.document.close();}
+      };
     })
     .catch(function(){
-      btn.disabled=false; btn.innerHTML=orig;
+      if(msgEl)msgEl.remove();
+      btn.disabled=false; btn.innerHTML='✨ Design it for me';
       addChatMessage('specialist','Design failed. Please try again.');
     });
   });
@@ -7318,18 +7370,9 @@ function showFinalOutput(text){
     }
   };
 
-  /* View as Document — Riley (21) and Stella (9) produce submission-ready docs */
-  if(chatState.specialistId===9||chatState.specialistId===21){
-    var docBtn=document.createElement('button');
-    docBtn.className='output-btn primary';
-    docBtn.innerHTML='📄 View as Document';
-    docBtn.onclick=(function(t,sid){return function(){openDocumentViewer(t,sid);};})(text,chatState.specialistId);
-    actions.appendChild(docBtn);
-  }
-
   /* ✨ Design it for me — available for all specialists */
   var designBtn=document.createElement('button');
-  designBtn.className='output-btn';
+  designBtn.className='output-btn primary';
   designBtn.innerHTML='✨ Design it for me';
   designBtn.onclick=(function(t,sid,b){return function(){designOutput(t,sid,b);};})(text,chatState.specialistId,designBtn);
   actions.appendChild(designBtn);
