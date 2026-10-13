@@ -161,6 +161,8 @@ Deno.serve(async (req: Request) => {
     try { body = await req.json(); } catch { /* no body is fine */ }
     const dryRun = body.dry_run === true  || body.dry_run === 'true'
                 || body.dry_run === 1     || body.dry_run === '1';
+    const force  = body.force  === true  || body.force  === 'true'
+                || body.force  === 1     || body.force  === '1';
 
     // Monthly warning check
     const monthlyCount = await getMonthlyCount();
@@ -192,8 +194,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Filter to subscribers where it is currently 10am in their timezone
-    const subscribers = allSubscribers.filter(s => localHour(s.timezone ?? 'America/Chicago') === 10);
+    // Filter to subscribers where it is currently 10am in their timezone (skip when force=true)
+    const subscribers = force
+      ? allSubscribers
+      : allSubscribers.filter(s => localHour(s.timezone ?? 'America/Chicago') === 10);
 
     // Dry run: report what would happen this hour
     if (dryRun) {
@@ -210,8 +214,9 @@ Deno.serve(async (req: Request) => {
         issue: issue.issue,
         issue_title: issue.title,
         utc_hour: new Date().getUTCHours(),
+        force,
         all_subscribers: allSubscribers.length,
-        in_10am_window: subscribers.length,
+        in_10am_window: force ? allSubscribers.length : subscribers.length,
         would_send: wouldSend.length,
         would_skip_already_sent: subscribers.length - wouldSend.length,
         monthly_count: monthlyCount,
@@ -253,6 +258,7 @@ Deno.serve(async (req: Request) => {
       ok: true,
       issue: issue.issue,
       utc_hour: new Date().getUTCHours(),
+      force,
       in_10am_window: subscribers.length,
       sent, skipped, failed,
       monthlyTotal: monthlyCount + sent,

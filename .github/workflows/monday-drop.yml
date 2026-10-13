@@ -10,9 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Dry run - check only, do not send'
+        description: 'Dry run — check only, do not send'
         required: false
         default: 'true'
+      force:
+        description: 'Force send to all subscribers regardless of their local time'
+        required: false
+        default: 'false'
 
 jobs:
   send-monday-drop:
@@ -28,7 +32,7 @@ jobs:
             "$SUPABASE_URL/functions/v1/send-monday-drop" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"dry_run\": \"$DRY_RUN\"}")
+            -d "{\"dry_run\": \"$DRY_RUN\", \"force\": \"$FORCE\"}")
           BODY=$(echo "$RESPONSE" | head -n -1)
           HTTP=$(echo "$RESPONSE" | tail -n1)
           echo "HTTP $HTTP"
@@ -38,3 +42,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || github.event.inputs.dry_run || 'true' }}
+          FORCE: ${{ github.event.inputs.force || 'false' }}
