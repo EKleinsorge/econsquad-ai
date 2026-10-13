@@ -618,25 +618,29 @@ Deno.serve(async (req: Request) => {
           'x-api-key': ANTHROPIC_KEY,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
-          'anthropic-beta': 'pdfs-2024-09-25',
+          // PDF + image support is GA for Claude 5 — no beta header needed.
+          // Leaving the old pdfs-2024-09-25 header causes empty responses on
+          // newer models; remove it entirely.
         },
         body: JSON.stringify({
           model: 'claude-sonnet-5-5',
-          max_tokens: 4096,
+          max_tokens: 8192,
           system,
           messages: anthropicMessages,
         }),
       });
 
       const aData = await aRes.json();
-      if (aData.error) {
-        console.error('specialist-chat: anthropic error', aData.error?.type, aData.error?.message);
+      if (!aRes.ok || aData.error) {
+        const errType = aData.error?.type ?? aRes.status;
+        const errMsg  = aData.error?.message ?? 'HTTP ' + aRes.status;
+        console.error('specialist-chat: anthropic error', errType, errMsg, JSON.stringify(aData).slice(0, 600));
         return json({ error: 'The specialist could not complete that request. Please try again — your message was not lost.' }, 502);
       }
 
       const reply = aData?.content?.[0]?.text ?? '';
       if (!reply) {
-        console.error('specialist-chat: anthropic empty response', JSON.stringify(aData).slice(0, 400));
+        console.error('specialist-chat: anthropic empty response', JSON.stringify(aData).slice(0, 600));
         return json({ error: 'The specialist returned nothing. Please try again.' }, 502);
       }
 
