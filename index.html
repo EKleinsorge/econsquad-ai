@@ -6405,9 +6405,10 @@ function ariaFindSpecialist(){
   if(thinkMsg)thinkMsg.textContent='Reading your request...';
   var fallback=ariaFallbackMatch(task);
   var apiKey=(typeof currentProfile!=='undefined'&&currentProfile)?currentProfile.anthropic_key:null;
+  function _specWithId(id){var db=ttSpecData[id]||{};return Object.assign({},db,{id:id});}
   if(!apiKey){
     if(fallback){
-      var spec=ttSpecData[fallback.id]||fallback;
+      var spec=_specWithId(fallback.id);
       ariaActivateSpecialist(spec);
       ariaFireParticles('toSpec',function(){
         ariaSetSpecStatus('Working on it...');
@@ -6428,10 +6429,13 @@ function ariaFindSpecialist(){
     var qs=Array.isArray(parsed.questions)?parsed.questions.filter(Boolean):[];
     var specName=(parsed.specialist||'').toLowerCase();
     var chosenSpec=null;
-    var specArr=(typeof squad!=='undefined'&&squad.length?squad:[]).map(function(x){return ttSpecData[x.id]||x;});
-    for(var k=0;k<specArr.length;k++){if(specArr[k].name&&specArr[k].name.toLowerCase().indexOf(specName)!==-1){chosenSpec=specArr[k];break;}}
-    if(!chosenSpec&&fallback)chosenSpec=ttSpecData[fallback.id]||fallback;
-    if(!chosenSpec&&specArr.length)chosenSpec=specArr[0];
+    var squadArr=(typeof squad!=='undefined'&&squad.length?squad:[]);
+    for(var k=0;k<squadArr.length;k++){
+      var db=ttSpecData[squadArr[k].id]||squadArr[k];
+      if(db.name&&db.name.toLowerCase().indexOf(specName)!==-1){chosenSpec=_specWithId(squadArr[k].id);break;}
+    }
+    if(!chosenSpec&&fallback)chosenSpec=_specWithId(fallback.id);
+    if(!chosenSpec&&squadArr.length)chosenSpec=_specWithId(squadArr[0].id);
     ariaActivateSpecialist(chosenSpec);
     if(qs.length>0){
       _ariaQList=qs;_ariaQAnswers=[];_ariaQIdx=0;
@@ -6440,7 +6444,7 @@ function ariaFindSpecialist(){
       ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(chosenSpec,task,[]);});
     }
   }).catch(function(){
-    if(fallback){var spec2=ttSpecData[fallback.id]||fallback;ariaActivateSpecialist(spec2);ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(spec2,task,[]);});}
+    if(fallback){var spec2=_specWithId(fallback.id);ariaActivateSpecialist(spec2);ariaFireParticles('toSpec',function(){ariaSetSpecStatus('Working on it...');ariaCallSpecialistWithContext(spec2,task,[]);});}
     else{_ariaSetState('input');}
   });
 }
