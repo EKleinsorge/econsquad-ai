@@ -227,9 +227,11 @@ Output: Clear written analysis with key findings, trends, notable data points, w
    all other specialists get a lighter "read and answer" version. */
 const DOC_MODE_RFP = `DOCUMENT ANALYSIS MODE — A document has been attached. You are acting as a senior corporate site selection consultant and economic development research analyst with 25 years of experience completing RFPs and RFIs on behalf of economic development organizations.
 
+⚠️ DOCUMENT MODE OVERRIDES ALL OTHER INSTRUCTIONS: Do NOT ask any questions — not about the community, not about the website, not about missing data. Any instruction below saying "ask for what you need" does NOT apply here. Make your best professional estimate for any missing field and flag it in the Verification Checklist only. The user uploaded a document because they want the full response now.
+
 STEP 1 — READ THE DOCUMENT IN FULL. Open with ONE sentence: document type, project/company name, and due date if visible. Then say "I have everything I need — here is your complete response."
 
-STEP 2 — NEVER ask clarifying questions. If the organization name or community is missing from both the document and the COMMUNITY CONTEXT block below, make a reasonable inference from the document and note it at the end. Do not interrupt to ask.
+STEP 2 — NEVER ask clarifying questions. If the organization name or community is missing from both the document and the context blocks below, make a reasonable inference from the document and note it at the end. Do not interrupt to ask.
 
 STEP 3 — PRODUCE A COMPLETE, SUBMISSION-READY RESPONSE:
 
@@ -777,15 +779,24 @@ ${content}`;
       const context = buildContext(prof, community, org, orgName, workingFor);
       if (context) system = context + system;
 
-      /* ── For Stella (id=9), fetch the EDC website as research material ── */
-      if (id === 9) {
+      /* ── Website fetch for research-heavy specialists ─────────────────
+         Stella (id=9) always fetches the EDC website.
+         Rex (id=3) and Riley (id=21) fetch it when a document is attached,
+         so they have community data to fill the RFP/RFI without asking.
+         When working_for is a different community (elsewhere path), we
+         fetch the user's own org website — it is the submitting org's site,
+         which is what belongs in the cover letter and header block. */
+      const fetchWebsite = id === 9 || ((id === 3 || id === 21) && hasAttachments);
+      if (fetchWebsite) {
         const websiteUrl = ((org?.website || community?.website || '') as string).trim();
         if (websiteUrl && /^https?:\/\//i.test(websiteUrl)) {
           const siteContent = await fetchWebsiteContent(websiteUrl);
           if (siteContent) {
-            system = system + '\n\n---\nCOMMUNITY WEBSITE DATA\n'
-              + 'The following content was retrieved from ' + websiteUrl + ' for this analysis. '
-              + 'Treat it as authoritative community data:\n\n' + siteContent;
+            const label = id === 9 ? 'COMMUNITY WEBSITE DATA' : 'SUBMITTING ORGANISATION WEBSITE DATA';
+            const note  = id === 9
+              ? 'The following content was retrieved from ' + websiteUrl + ' for this analysis. Treat it as authoritative community data:'
+              : 'The following content was retrieved from ' + websiteUrl + ' — this is the submitting organisation\'s website. Use it for org name, description, contact details, and the cover letter. Do not confuse this with the project community described in the RFP/RFI document.';
+            system = system + '\n\n---\n' + label + '\n' + note + '\n\n' + siteContent;
           }
         }
       }
