@@ -263,6 +263,77 @@ CRITICAL RULES:
 const DOC_MODE_GENERIC = `A document has been attached. Read it carefully and completely before responding.
 Base your response on the document's actual content. Be specific. Do not invent details not present in the document or the community context.\n\n`;
 
+/* ── Extract brand assets from a community website ────────────
+   Used by design mode to brand documents for the right org.
+   Returns logo URL, accent color(s), and site title.
+   Errors are swallowed — missing brand info degrades to defaults. */
+async function fetchBrandHints(url: string): Promise<string> {
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'EconSquad-AI/1.0 (document design; contact: hi@econsquad.ai)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return '';
+    const html = await resp.text().then(h => h.slice(0, 120000));
+    const base = new URL(url);
+    const hints: string[] = [];
+
+    // Site title
+    const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim();
+    if (title) hints.push('Site title: ' + title);
+
+    // OG image — often the org's banner or logo
+    const ogImg = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1]
+                ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)?.[1];
+    if (ogImg) {
+      try { hints.push('OG/Banner image URL: ' + new URL(ogImg, base).href); } catch {}
+    }
+
+    // Apple touch icon (high-res favicon, good proxy for logo)
+    const touchIcon = html.match(/<link[^>]+rel=["'][^"']*apple-touch-icon[^"']*["'][^>]+href=["']([^"']+)["']/i)?.[1];
+    if (touchIcon) {
+      try { hints.push('Apple touch icon (use as logo fallback): ' + new URL(touchIcon, base).href); } catch {}
+    }
+
+    // First favicon
+    const favicon = html.match(/<link[^>]+rel=["'][^"']*(?:shortcut )?icon[^"']*["'][^>]+href=["']([^"']+)["']/i)?.[1];
+    if (favicon && !touchIcon) {
+      try { hints.push('Favicon: ' + new URL(favicon, base).href); } catch {}
+    }
+
+    // <img> tags where src/alt/class/id contains "logo"
+    const logoMatches = [...html.matchAll(/<img[^>]+>/gi)];
+    for (const m of logoMatches) {
+      const tag = m[0];
+      if (/logo/i.test(tag)) {
+        const src = tag.match(/src=["']([^"']+)["']/i)?.[1];
+        if (src) {
+          try { hints.push('Logo image: ' + new URL(src, base).href); break; } catch {}
+        }
+      }
+    }
+
+    // CSS hex colors from <style> blocks (exclude very light and very dark)
+    const styleText = (html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || []).join(' ').slice(0, 6000);
+    const cssVarColors = styleText.match(/--[a-zA-Z-]*(?:color|primary|brand|accent|main)[a-zA-Z-]*\s*:\s*(#[0-9a-fA-F]{3,6}|rgba?\([^)]+\))/g) || [];
+    if (cssVarColors.length) hints.push('Brand CSS color variables: ' + cssVarColors.slice(0, 6).join('; '));
+
+    // All hex colors in CSS (deduplicated, excluding near-white and near-black)
+    const allHex = [...new Set((styleText.match(/#[0-9a-fA-F]{6}\b/g) || []))]
+      .filter(h => {
+        const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+        const lum = (r + g + b) / 3;
+        return lum > 30 && lum < 220; // skip near-black and near-white
+      });
+    if (allHex.length) hints.push('Colors in CSS (most likely brand colors): ' + allHex.slice(0, 8).join(', '));
+
+    return hints.join('\n');
+  } catch (e) {
+    console.warn('fetchBrandHints: failed for', url, e instanceof Error ? e.message : String(e));
+    return '';
+  }
+}
+
 /* ── Fetch community website for research-mode specialists ────
    Used by Stella (id=9) to pull the EDC website as raw context.
    Strips tags, collapses whitespace, caps at 8000 chars.
@@ -554,6 +625,7 @@ Deno.serve(async (req: Request) => {
       }
       const content = String(body.content ?? '').slice(0, 80000);
       const sid = Number(body.specialistId) || 0;
+      const workingForDesign = String(body.working_for ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160);
       const spNames: Record<number, string> = {
         1:'Gary — Grant Writer', 2:'Fiona — Grant Researcher', 3:'Rex — RFP Responder',
         4:'Scott — Site Selection', 5:'Cara — Location Comparison', 6:'Blake — BRE Survey',
@@ -567,41 +639,80 @@ Deno.serve(async (req: Request) => {
       };
       const spName = spNames[sid] ?? 'EconSquad AI';
 
+      /* ── Look up the community website for brand assets ── */
+      let brandHints = '';
+      let websiteUrlForBrand = '';
+      try {
+        const [{ data: profD }, { data: commD }, { data: seatD }] = await Promise.all([
+          admin.from('profiles').select('organization').eq('id', user.id).maybeSingle(),
+          admin.from('community_profiles').select('website,org_name').eq('user_id', user.id).maybeSingle(),
+          admin.from('esq_org_members').select('org_id').eq('user_id', user.id).is('revoked_at', null)
+            .order('granted_at', { ascending: true }).order('org_id', { ascending: true }).limit(1).maybeSingle(),
+        ]);
+        let orgWebsite = (commD?.website || '') as string;
+        if (!orgWebsite && seatD?.org_id) {
+          const { data: op } = await admin.from('esq_org_profiles').select('website').eq('org_id', seatD.org_id).maybeSingle();
+          orgWebsite = (op?.website || '') as string;
+        }
+        websiteUrlForBrand = orgWebsite.trim();
+        if (websiteUrlForBrand && /^https?:\/\//i.test(websiteUrlForBrand)) {
+          brandHints = await fetchBrandHints(websiteUrlForBrand);
+        }
+      } catch (e) {
+        console.warn('specialist-chat: design brand lookup failed, continuing without brand assets', e);
+      }
+
+      const brandSection = brandHints
+        ? `COMMUNITY BRAND ASSETS (extracted from ${websiteUrlForBrand})
+${brandHints}
+
+BRANDING RULES:
+- This document is FROM the community above — brand it for THEM, not for EconSquad.
+- HEADER: Show the community/org name prominently (extract it from the content below). If a Logo image URL is listed above, use <img src="[url]" style="max-height:48px"> in the header instead of the name text.
+- ACCENT COLOR: Use the community's primary brand color from the CSS colors above. If none found, use a professional default (#1a5276 navy or #c0392b red — never EconSquad's lime green #aaff3e).
+- HEADER BACKGROUND: Use a dark version of their primary color, or #1a2744 as a safe default.
+- h2 divider lines: use their accent color instead of lime.
+- Table headers: use their primary color.
+- Print button: use their accent color.
+- FOOTER: Keep "Prepared with EconSquad AI · econsquad.ai" in small muted text (10px #888) — this is product attribution, not the document's brand.`
+        : `BRANDING RULES:
+- Brand this document for the organization that produced it (extract their name from the content).
+- Do NOT brand it as "EconSquad AI" — EconSquad is the tool, not the author.
+- Use professional default colors: dark navy header (#1a2744), accent #c0392b or #1a5276.
+- FOOTER: Keep "Prepared with EconSquad AI · econsquad.ai" in small muted text (10px #888).`;
+
       const designSystem = `You are a senior web designer producing premium print-ready documents for economic development professionals. Transform the content below into a stunning, complete, self-contained HTML document.
 
-BRAND DESIGN SYSTEM
-- Page background: #f7f6f2; Doc background: #ffffff; Header/footer: #04050d; Accent: #aaff3e
-- Heading font: Arial, sans-serif; Body font: Georgia, serif
-- Text: #1a1a1a; Muted: #6b7a96; Border: #e8e8e8
+${brandSection}
 
-LAYOUT
+LAYOUT (apply to all documents regardless of brand colors)
 - max-width 850px, centered, white card, box-shadow 0 2px 24px rgba(0,0,0,0.12), border-radius 4px, overflow hidden
-- Header (dark navy #04050d, padding 28px 40px): left = lime square (32px, border-radius 6px, bg #aaff3e) + "EconSquad AI" bold Arial 18px lime; right = specialist badge (lime pill border, lime text, 10px uppercase) + date (11px #6b7a96)
-- Body (padding 40px)
-- Footer (#f0f0ea, border-top 2px #aaff3e, padding 16px 40px): "Generated by EconSquad AI · econsquad.ai" in 10px #888 left; lime Print button (bg #aaff3e, color #1a3300, bold Arial 12px) right
+- Header (padding 28px 40px, bg = community's primary color or dark navy): left = logo OR org name in white bold Arial 18px; right = document type badge (pill border in accent color) + date (11px, muted)
+- Body (padding 40px, bg #ffffff)
+- Footer (bg #f0f0ea, border-top 2px solid accent, padding 16px 40px): "Prepared with EconSquad AI · econsquad.ai" 10px #888 left; Print button right
 
 TYPOGRAPHY
-- h1: Arial 900 24px #04050d margin-bottom 6px
-- h2: Arial 800 15px #04050d uppercase letter-spacing 0.05em, padding-bottom 6px, border-bottom 2px solid #aaff3e, margin-top 28px
+- h1: Arial 900 24px heading color margin-bottom 6px
+- h2: Arial 800 15px heading color uppercase letter-spacing 0.05em, padding-bottom 6px, border-bottom 2px solid accent, margin-top 28px
 - h3: Arial 700 12px #555 uppercase letter-spacing 0.04em margin-top 18px
 - p: Georgia 14px line-height 1.8 color #2a2a2a margin 8px 0
-- li: Georgia 14px line-height 1.7 color #2a2a2a margin 3px 0; bullet: use ▸ or lime CSS ::before square
+- li: Georgia 14px line-height 1.7 color #2a2a2a margin 3px 0
 - strong: color #1a1a1a
 
 COMPONENTS
-- Table: th bg #04050d color #aaff3e font Arial 11px uppercase letter-spacing 0.05em padding 10px 14px; td padding 9px 14px border-bottom 1px #e8e8e8; even rows bg #f9f9f7
-- Callout box: border-left 4px #aaff3e, bg rgba(170,255,62,0.06), padding 12px 16px, italic Georgia 14px, margin 16px 0
+- Table: th bg = community primary color, color #fff, Arial 11px uppercase letter-spacing 0.05em padding 10px 14px; td padding 9px 14px border-bottom 1px #e8e8e8; even rows bg #f9f9f7
+- Callout box: border-left 4px accent color, bg rgba of accent at 6% opacity, padding 12px 16px, italic Georgia 14px, margin 16px 0
 - For SWOT content: use a 2×2 CSS grid for the four quadrants; Strengths bg rgba(170,255,62,0.07); Weaknesses bg rgba(255,160,0,0.06); Opportunities bg rgba(40,120,255,0.05); Threats bg rgba(255,60,60,0.05)
-- For press releases: use a centered italic dateline before the body
 - @media print { box-shadow: none; .no-print { display: none; } }
 
-CONTENT TYPE: ${spName}
+CONTENT TYPE: ${spName}${workingForDesign ? ' — for ' + workingForDesign : ''}
 
 OUTPUT RULES:
 - Output ONLY the complete HTML document. Start with <!DOCTYPE html> and end with </html>.
 - Inline CSS only — no external stylesheets or CDN links.
 - No markdown code fences. No explanations. Pure HTML.
 - Do not truncate — the full document must be complete.
+- The <img> logo tag (if used) must have onerror="this.style.display='none'" so a broken image degrades gracefully.
 
 --- CONTENT TO DESIGN ---
 ${content}`;

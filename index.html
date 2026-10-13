@@ -6781,6 +6781,7 @@ function designOutput(text, specialistId, btn){
       body:JSON.stringify({
         design_mode:true,
         specialistId:specialistId,
+        working_for:chatState.workingFor||null,
         content:text,
         messages:[{role:'user',content:'Design this.'}]
       })
