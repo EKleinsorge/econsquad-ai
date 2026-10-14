@@ -6445,27 +6445,11 @@ function ariaChooseSpecialist(){
 function ariaActivateSpecialist(spec){
   _ariaCmdSpec=spec;
   var specId=Number(spec.id||spec.specialist_id||0);
-  function _showCard(){
-    var standby=document.getElementById('aria-spec-standby');
-    var card=document.getElementById('aria-spec-card');
-    if(standby)standby.style.display='none';
-    if(card){card.style.display='flex';card.classList.add('sp-visible');}
-    var orbEl=document.getElementById('aria-spec-orb-el');
-    if(orbEl){
-      var cat=spec.cat||'grants';
-      var colors=ARIA_ORB_COLORS[cat]||ARIA_ORB_COLORS.grants;
-      orbEl.style.cssText='width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,'+colors.c1+','+colors.c2+' 50%,'+colors.c3+');box-shadow:0 0 16px '+colors.glow+';flex-shrink:0;';
-    }
-    var nameEl=document.getElementById('aria-spec-name-el');
-    var roleEl=document.getElementById('aria-spec-role-el');
-    if(nameEl)nameEl.textContent=spec.name||'';
-    if(roleEl)roleEl.textContent=spec.role||'';
-    ariaSetSpecStatus('Standing by');
-  }
+  // Don't show the card yet — _ariaShowResult handles it when the reply arrives.
+  // Keeping the spec panel in standby avoids the overlap where a card and the
+  // ops-panel working state are both visible at the same time.
   if(_ariaOrbitSt.phase==='orbiting'){
-    ariaOrbitSelect(specId,_showCard);
-  } else {
-    _showCard();
+    ariaOrbitSelect(specId,null);
   }
 }
 
@@ -6706,9 +6690,9 @@ function ariaFindSpecialist(){
   if(!task)return;
   _ariaActiveSessionId=Date.now();
   _ariaCmdTask=task;
-  // Fade out any existing specialist card before routing new task
+  // Hide any existing specialist card immediately so the spec panel returns to standby
   var _oldSpecCard=document.getElementById('aria-spec-card');
-  if(_oldSpecCard&&_oldSpecCard.style.display!=='none'){_oldSpecCard.classList.remove('sp-visible');setTimeout(function(){if(_oldSpecCard.classList.contains('sp-visible'))return;_oldSpecCard.style.display='none';},380);}
+  if(_oldSpecCard){_oldSpecCard.classList.remove('sp-visible');_oldSpecCard.style.display='none';}
   var _specStdby=document.getElementById('aria-spec-standby');
   if(_specStdby)_specStdby.style.display='';
   _ariaSetState('thinking');
@@ -6732,7 +6716,7 @@ function ariaFindSpecialist(){
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Decide if this is a specialist task or a general/conversational request.\n\n- If the task clearly needs a specialist deliverable (grant, RFP, site selection, survey, report, analysis, press release, etc.), pick the best specialist.\n- If this is a general question, personal use, casual conversation, advice, or anything that does NOT require a specific specialist deliverable, respond with specialist "ARIA".\n\nAsk at most ONE clarifying question — only if the PURPOSE or goal of a specialist task is genuinely unclear. NEVER ask for data available in public sources.\n\nRespond ONLY as JSON: {"specialist":"<name or ARIA>","questions":["optional single question"]}\n\nSpecialists: '+specNames}]})
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Decide if this is a specialist task or a general/conversational request.\n\n- If the task clearly needs a specialist deliverable (grant, RFP, site selection, survey, report, analysis, press release, etc.), pick the best specialist.\n- If this is a general question, personal use, casual conversation, advice, or anything that does NOT require a specific specialist deliverable, respond with specialist "ARIA".\n- IMPORTANT: If the user asks ARIA to "ask me questions", "quiz me", "interview me", or otherwise wants a BACK-AND-FORTH CONVERSATION rather than a finished document or report, respond with specialist "ARIA" even if the topic could go to a specialist. The user wants to talk, not get a deliverable.\n\nAsk at most ONE clarifying question — only if the PURPOSE or goal of a specialist task is genuinely unclear. NEVER ask for data available in public sources.\n\nRespond ONLY as JSON: {"specialist":"<name or ARIA>","questions":["optional single question"]}\n\nSpecialists: '+specNames}]})
   }).then(function(r){return r.json();}).then(function(data){
     var text=(data.content&&data.content[0]&&data.content[0].text)||'{}';
     var jm=text.match(/\{[\s\S]*\}/);
