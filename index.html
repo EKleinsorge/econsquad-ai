@@ -6361,10 +6361,13 @@ function _ariaOpenSession(id){
     var out=document.getElementById('aria-result-output');
     var openBtn=document.getElementById('aria-spec-open-btn');
     var specId=window._ariaLastSpecId;
-    if(hm)hm.textContent='Here\'s what '+(_ariaCmdSpec?(_ariaCmdSpec.name||'the specialist'):'ARIA')+' came up with:';
+    var isAriaReply=!(_ariaCmdSpec&&(_ariaCmdSpec.id||_ariaCmdSpec.specialist_id));
+    if(hm)hm.textContent=isAriaReply?'Here\'s what ARIA says:':'Here\'s what '+(_ariaCmdSpec?(_ariaCmdSpec.name||'the specialist'):'ARIA')+' came up with:';
     if(bl)bl.textContent=_ariaCmdSpec?((_ariaCmdSpec.name||'')+(_ariaCmdSpec.role?' — '+_ariaCmdSpec.role:'')):'' ;
     if(out)out.innerHTML=ariaMarkdownToHtml(data.reply);
     if(openBtn)openBtn.style.display=specId?'':'none';
+    var replyInp=document.getElementById('aria-result-reply-input');
+    if(replyInp)replyInp.placeholder=isAriaReply?'Reply to ARIA...':'Reply to the specialist...';
     _ariaSetState('result');
   }
   _ariaRenderSessions();
@@ -6703,6 +6706,11 @@ function ariaFindSpecialist(){
   if(!task)return;
   _ariaActiveSessionId=Date.now();
   _ariaCmdTask=task;
+  // Fade out any existing specialist card before routing new task
+  var _oldSpecCard=document.getElementById('aria-spec-card');
+  if(_oldSpecCard&&_oldSpecCard.style.display!=='none'){_oldSpecCard.classList.remove('sp-visible');setTimeout(function(){if(_oldSpecCard.classList.contains('sp-visible'))return;_oldSpecCard.style.display='none';},380);}
+  var _specStdby=document.getElementById('aria-spec-standby');
+  if(_specStdby)_specStdby.style.display='';
   _ariaSetState('thinking');
   var thinkMsg=document.getElementById('aria-thinking-msg');
   if(thinkMsg)thinkMsg.textContent='Reading your request...';
@@ -6724,13 +6732,15 @@ function ariaFindSpecialist(){
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Pick the best specialist. Ask at most ONE clarifying question — only if the PURPOSE or goal of the task is genuinely unclear (e.g. "What is this SWOT analysis being developed for? Business attraction, tourism, BRE, workforce development, etc."). NEVER ask for data that can be found in public sources (population, employment stats, demographics, industry data, economic indicators, company info, etc.) — the specialist will research that themselves.\n\nRespond ONLY as JSON: {"specialist":"<name>","questions":["optional single question"]}\n\nSpecialists: '+specNames}]})
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Decide if this is a specialist task or a general/conversational request.\n\n- If the task clearly needs a specialist deliverable (grant, RFP, site selection, survey, report, analysis, press release, etc.), pick the best specialist.\n- If this is a general question, personal use, casual conversation, advice, or anything that does NOT require a specific specialist deliverable, respond with specialist "ARIA".\n\nAsk at most ONE clarifying question — only if the PURPOSE or goal of a specialist task is genuinely unclear. NEVER ask for data available in public sources.\n\nRespond ONLY as JSON: {"specialist":"<name or ARIA>","questions":["optional single question"]}\n\nSpecialists: '+specNames}]})
   }).then(function(r){return r.json();}).then(function(data){
     var text=(data.content&&data.content[0]&&data.content[0].text)||'{}';
     var jm=text.match(/\{[\s\S]*\}/);
     var parsed={};try{if(jm)parsed=JSON.parse(jm[0]);}catch(e){}
     var qs=Array.isArray(parsed.questions)?parsed.questions.filter(Boolean):[];
-    var specName=(parsed.specialist||'').toLowerCase();
+    var specName=(parsed.specialist||'').trim().toLowerCase();
+    // "ARIA" means handle directly — no specialist needed
+    if(specName==='aria'){_ariaAnswerDirectly(task,apiKey);return;}
     var chosenSpec=null;
     var squadArr=(typeof squad!=='undefined'&&squad.length?squad:[]);
     for(var k=0;k<squadArr.length;k++){
@@ -6761,17 +6771,35 @@ function _ariaAnswerDirectly(task,apiKey){
   var tm=document.getElementById('aria-thinking-msg');
   if(tm)tm.textContent='On it...';
   var ariaSpec={id:null,name:'ARIA',role:'Chief of Operations',cat:'grants'};
-  if(!apiKey){
-    _ariaShowResult(ariaSpec,'I can help with economic development tasks — try asking me to write a grant, respond to an RFI, build a site selection report, or anything else your team needs. Just describe the task and I\'ll get the right specialist on it.');
-    return;
-  }
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:800,system:'You are ARIA, the AI Chief of Operations for an economic development team using EconSquad AI. You are smart, direct, and focused on helping economic developers succeed. Answer the user\'s question helpfully. If it is a task that one of your specialists could do better (grant writing, RFI responses, site selection, BRE surveys, economic impact analysis, workforce reports, press releases, social content, incentive packages), mention that briefly at the end.',messages:[{role:'user',content:task}]})
-  }).then(function(r){return r.json();}).then(function(data){
-    var reply=(data.content&&data.content[0]&&data.content[0].text)||'';
-    if(!reply&&data.error)reply='Something went wrong. Please try again.';
+  _ariaCmdSpec=ariaSpec;
+  // Build multi-turn history — include current task as the last user message
+  var msgs=_ariaConvHistory.slice();
+  if(!msgs.length||msgs[msgs.length-1].content!==task)msgs.push({role:'user',content:task});
+  // Primary path: use edge function (works for all logged-in users, no user API key needed)
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    var token=session&&session.access_token?session.access_token:SUPA_KEY;
+    var headers={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+    var EDGE='https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat';
+    return fetch(EDGE,{method:'POST',headers:headers,
+      body:JSON.stringify({aria_chat:true,messages:msgs})
+    }).then(function(r){return r.json();});
+  }).then(function(data){
+    var reply=data&&data.reply?data.reply:'';
+    if(!reply&&data&&data.error)reply='Sorry, I ran into an issue. Please try again.';
+    if(!reply&&apiKey){
+      // Fallback to direct API if edge function failed and user has their own key
+      return fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:1500,system:'You are ARIA, the AI Chief of Operations for EconSquad AI — a platform for economic development professionals. You are smart, direct, warm, and genuinely helpful. You can assist with anything: answer questions, conversations, writing, analysis, brainstorming, personal tasks, or anything else. You are not limited to economic development — if someone wants to chat or get advice on any topic, you are here for them. Keep responses appropriately concise.',messages:msgs})
+      }).then(function(r){return r.json();}).then(function(d){return(d.content&&d.content[0]&&d.content[0].text)||'';});
+    }
+    return reply;
+  }).then(function(reply){
+    if(!reply)reply='Sorry, something went wrong. Please try again.';
+    // Store assistant reply in conversation history
+    if(msgs.length&&msgs[msgs.length-1].role==='user')_ariaConvHistory=msgs.concat([{role:'assistant',content:reply}]);
     _ariaShowResult(ariaSpec,reply);
   }).catch(function(){
     _ariaShowResult(ariaSpec,'Connection error. Please try again.');
@@ -6870,14 +6898,16 @@ function ariaResultReply(){
   if(tm)tm.textContent='Sending your reply...';
   ariaSetSpecStatus('Working on it...');
   var specId=_ariaCmdSpec.id||_ariaCmdSpec.specialist_id;
+  var isAriaDirectMode=!specId||Number(specId)<1;
   supa.auth.getSession().then(function(res){
     var session=res&&res.data&&res.data.session;
     var token=session&&session.access_token?session.access_token:SUPA_KEY;
-    return fetch('https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token},
-      body:JSON.stringify({specialistId:Number(specId),messages:_ariaConvHistory,working_for:null})
-    });
+    var EDGE='https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat';
+    var headers={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+    var body=isAriaDirectMode
+      ?JSON.stringify({aria_chat:true,messages:_ariaConvHistory})
+      :JSON.stringify({specialistId:Number(specId),messages:_ariaConvHistory,working_for:null});
+    return fetch(EDGE,{method:'POST',headers:headers,body:body});
   }).then(function(r){return r.json();}).then(function(data){
     var reply=data.reply||data.message||data.content||'';
     if(!reply&&data.error)reply='Something went wrong: '+data.error;

@@ -920,6 +920,50 @@ ${content}`;
       return json({ html });
     }
 
+    /* ── ARIA direct chat mode ──────────────────────────────────
+       Used when the user wants to chat directly with ARIA rather
+       than routing to a specialist. ARIA can answer anything. */
+    if (body.aria_chat === true) {
+      if (!ANTHROPIC_KEY) {
+        return json({ error: 'ARIA is not configured. Please contact support.' }, 500);
+      }
+      const rawAriaMsgs = Array.isArray(body.messages) ? body.messages : [];
+      type AriaMsg = { role: 'user' | 'assistant'; content: string };
+      const ariaMsgs: AriaMsg[] = rawAriaMsgs.map((m: any): AriaMsg => ({
+        role: m && m.role === 'assistant' ? 'assistant' : 'user',
+        content: String((m && m.content) ?? ''),
+      }));
+      if (!ariaMsgs.length) return json({ error: 'No messages provided.' }, 400);
+      const ariaSystem = `You are ARIA, the AI Chief of Operations for EconSquad AI — a platform that helps economic development professionals work faster and smarter. You are intelligent, direct, warm, and genuinely helpful. You can help with anything: answer questions, have conversations, help with writing, analysis, brainstorming, personal tasks, or anything else the user needs. You are not limited to economic development topics — if someone wants to chat, get advice, or just talk, you are here for that too. The specialists on the EconSquad platform handle specific deliverables like grant writing, site selection reports, and workforce analysis; you are ARIA, and you can assist with anything at all. Keep responses conversational and appropriately concise.`;
+      const ariaRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5',
+          max_tokens: 1500,
+          system: ariaSystem,
+          messages: ariaMsgs,
+        }),
+      });
+      const ariaData = await ariaRes.json();
+      if (!ariaRes.ok || ariaData.error) {
+        return json({ error: 'ARIA is having trouble right now. Please try again.' }, 502);
+      }
+      const ariaReply = ariaData?.content?.[0]?.text ?? '';
+      await recordUsage(admin, {
+        user_id: user.id, user_email: user.email ?? null,
+        feature: 'aria-chat', specialist_id: null,
+        provider: 'anthropic', model: 'claude-haiku-4-5',
+        input_tokens: Number(ariaData?.usage?.input_tokens ?? 0),
+        output_tokens: Number(ariaData?.usage?.output_tokens ?? 0),
+      });
+      return json({ reply: ariaReply });
+    }
+
     const id = Number(body.specialistId);
     if (!Number.isInteger(id) || id < 1) {
       return json({ error: 'Unknown specialist: ' + body.specialistId }, 400);
