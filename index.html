@@ -6496,7 +6496,9 @@ function ariaOrbitStart(){
     var a=(i/n)*Math.PI*2;
     var spd=0.0009+(i%7)*0.00007;
     var col=ARIA_ORB_COLORS[s.cat]||ARIA_ORB_COLORS.grants;
-    return{id:s.id,angle:a,speed:spd,r:11,col:col,color:col.c2,glow:col.glow,alpha:0,locked:false,x:cx,y:cy,cx:cx,cy:cy,rx:rx,ry:ry};
+    return{id:s.id,angle:a,speed:spd,r:11,col:col,color:col.c2,glow:col.glow,alpha:0,locked:false,
+      phase:Math.random()*Math.PI*2,phaseSpd:0.007+Math.random()*0.007,
+      x:cx,y:cy,cx:cx,cy:cy,rx:rx,ry:ry};
   });
   if(_ariaOrbitSt.raf)cancelAnimationFrame(_ariaOrbitSt.raf);
   _ariaOrbitSt.raf=requestAnimationFrame(_ariaOrbitLoop);
@@ -6515,24 +6517,27 @@ function _ariaOrbitLoop(now){
       o.x=o.cx+Math.cos(o.angle)*o.rx;
       o.y=o.cy+Math.sin(o.angle)*o.ry;
       if(!o.locked)o.alpha=Math.min(1,Math.max(0,(elapsed-i*22)/280));
-      _ariaDrawOrb(ctx,o.x,o.y,o.r,o.col||o.color,o.glow,o.alpha);
+      o.phase=(o.phase||0)+(o.phaseSpd||0.01);
+      var drv=o.locked?0:(Math.sin(o.phase)*0.5+0.5); /* 0=dormant 1=hover */
+      _ariaDrawOrb(ctx,o.x,o.y,o.r,o.col||o.color,o.glow,o.alpha,drv);
     });
   } else if(st.phase==='selecting'){
     var prog=Math.min(1,(now-st.selStart)/st.selDur);
     var ease=prog<0.5?2*prog*prog:1-Math.pow(-2*prog+2,2)/2;
     var sel=st.orbs[st.selectedIdx];
     var tx=cv.width/2, ty=cv.height/2;
+    var tx=st.targetX||44, ty=st.targetY||38, tr=st.targetR||22;
     st.orbs.forEach(function(o,i){
       o.angle+=o.speed*(1-ease*0.9);
       o.x=o.cx+Math.cos(o.angle)*o.rx;
       o.y=o.cy+Math.sin(o.angle)*o.ry;
       if(i===st.selectedIdx){
         var ox=o.x+(tx-o.x)*ease, oy=o.y+(ty-o.y)*ease;
-        var or2=o.r+(48-o.r)*ease;
-        _ariaDrawOrb(ctx,ox,oy,or2,o.col||o.color,o.glow,1);
+        var or2=o.r+(tr-o.r)*ease;
+        _ariaDrawOrb(ctx,ox,oy,or2,o.col||o.color,o.glow,1,1);
       } else {
         var oa=o.alpha*(1-ease);
-        if(oa>0.01)_ariaDrawOrb(ctx,o.x,o.y,o.r*(1-ease*0.5),o.col||o.color,o.glow,oa);
+        if(oa>0.01)_ariaDrawOrb(ctx,o.x,o.y,o.r,o.col||o.color,o.glow,oa,0);
       }
     });
     if(prog>=1){
@@ -6547,32 +6552,58 @@ function _ariaOrbitLoop(now){
   st.raf=requestAnimationFrame(_ariaOrbitLoop);
 }
 
-function _ariaDrawOrb(ctx,x,y,r,col,glow,alpha){
-  /* col can be a color string (legacy) or {c1,c2,c3,glow} object */
-  var c1,c2,c3;
-  if(col&&typeof col==='object'){c1=col.c1;c2=col.c2;c3=col.c3;glow=col.glow;}
-  else{c1=col;c2=col;c3=col;}
+function _ariaDrawOrb(ctx,x,y,r,col,glow,alpha,driver){
+  /* driver: 0=dormant (squad off-hover), 1=hover/active (squad hover), 0-1=blend
+     Matches the two states the squad page orbs use. */
+  var d=typeof driver==='boolean'?(driver?1:0):(driver||0); /* normalize */
+  var rgb=[100,150,200];
+  var m=glow&&glow.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if(m)rgb=[+m[1],+m[2],+m[3]];
   ctx.save();
-  /* outer glow halo */
-  ctx.globalAlpha=alpha*0.28;
-  ctx.shadowColor=glow; ctx.shadowBlur=r*4.5;
-  ctx.beginPath(); ctx.arc(x,y,r*1.5,0,Math.PI*2);
-  ctx.fillStyle=glow; ctx.fill();
-  /* sphere body — radial gradient matching CSS: circle at 35% 35% */
   ctx.globalAlpha=alpha;
-  ctx.shadowColor=glow; ctx.shadowBlur=r*2.5;
-  var grd=ctx.createRadialGradient(x-r*0.3,y-r*0.3,0,x,y,r);
-  grd.addColorStop(0,c1);
-  grd.addColorStop(0.5,c2);
-  grd.addColorStop(1,c3);
+  /* Glow halo — grows with driver (hover mode: strong; dormant: faint) */
+  var haloA=0.10+d*0.28; var haloBlur=r*(1.8+d*2.5);
+  ctx.shadowColor=glow; ctx.shadowBlur=haloBlur;
   ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=grd; ctx.fill();
-  /* specular highlight */
+  ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+haloA.toFixed(2)+')'; ctx.fill();
   ctx.shadowBlur=0;
-  ctx.globalAlpha=alpha*0.7;
-  ctx.beginPath(); ctx.arc(x-r*0.28,y-r*0.28,r*0.38,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fill();
+  /* Dark sphere base */
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(6,9,20,0.94)'; ctx.fill();
+  /* Color overlay: blends from dormant (.16/.07 opacity) to active (bright hi/mid/lo) */
+  var grd=ctx.createRadialGradient(x-r*0.36,y-r*0.32,0,x,y,r);
+  var dormA0=0.18, dormA1=0.07; /* dormant stop opacities */
+  var a0=(dormA0+(d*(1-dormA0))).toFixed(2);
+  var a1=(dormA1+(d*(1-dormA1))).toFixed(2);
+  if(d>0.05&&col&&col.c1){
+    /* Blend towards bright squad active gradient */
+    grd.addColorStop(0,_blendOrbColor(col.c1,rgb,d));
+    grd.addColorStop(0.48,_blendOrbColor(col.c2||col.c1,rgb,d));
+    grd.addColorStop(1,_blendOrbColor(col.c3||'rgba(0,0,0,0.5)',rgb,Math.max(0,d-0.2)));
+  }else{
+    grd.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a0+')');
+    grd.addColorStop(0.55,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a1+')');
+    grd.addColorStop(1,'rgba(0,0,0,.5)');
+  }
+  ctx.fillStyle=grd; ctx.fill();
+  /* Rim glow — thicker/brighter at hover */
+  ctx.globalAlpha=alpha*(0.15+d*0.45);
+  ctx.strokeStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(0.3+d*0.5).toFixed(2)+')';
+  ctx.lineWidth=0.7+d*0.8;
+  ctx.stroke();
   ctx.restore();
+}
+function _blendOrbColor(hexOrRgba,rgb,d){
+  /* Interpolate towards the hex/rgba color at driver d (d=1 = full hex color) */
+  var tr=rgb[0],tg=rgb[1],tb=rgb[2]; /* fallback: use glow rgb */
+  var m=hexOrRgba&&hexOrRgba.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i);
+  if(m){tr=parseInt(m[1],16);tg=parseInt(m[2],16);tb=parseInt(m[3],16);}
+  else{var m2=hexOrRgba&&hexOrRgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if(m2){tr=+m2[1];tg=+m2[2];tb=+m2[3];}}
+  var rr=Math.round(rgb[0]+(tr-rgb[0])*d);
+  var rg=Math.round(rgb[1]+(tg-rgb[1])*d);
+  var rb=Math.round(rgb[2]+(tb-rgb[2])*d);
+  return 'rgba('+rr+','+rg+','+rb+','+(0.16+d*0.84).toFixed(2)+')';
 }
 
 function ariaOrbitSelect(specId,onDone){
@@ -6581,6 +6612,8 @@ function ariaOrbitSelect(specId,onDone){
   var idx=-1;
   st.orbs.forEach(function(o,i){if(o.id===specId)idx=i;});
   if(idx===-1){if(onDone)onDone();return;}
+  /* Target = spec card orb slot: panel padding 22px left, 16px top, orb 44×44px */
+  st.targetX=44; st.targetY=38; st.targetR=22;
   st.selectedIdx=idx; st.selStart=performance.now();
   st.phase='selecting'; st.onDone=onDone;
 }
