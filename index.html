@@ -543,7 +543,8 @@ hr.div{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:2px 0 18px
 .aria-cmd-close{position:absolute;top:13px;right:15px;z-index:60;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:#4a5568;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;line-height:1;}
 .aria-cmd-close:hover{background:rgba(255,255,255,0.1);color:#c0cce0;}
 /* Specialist panel */
-.aria-spec-pnl{min-height:130px;background:rgba(6,10,22,0.97);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 22px;position:relative;transition:background .5s;flex-shrink:0;overflow:hidden;}
+.aria-spec-pnl{min-height:130px;background:rgba(6,10,22,0.97);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 22px;position:relative;transition:background .5s,height .3s;flex-shrink:0;overflow:hidden;}
+.aria-spec-pnl.orbiting{height:160px;min-height:160px;}
 .aria-spec-pnl.sp-active{background:rgba(5,8,18,0.99);}
 .aria-spec-standby-label{font-size:10px;color:#1e2a42;font-weight:800;text-transform:uppercase;letter-spacing:.12em;text-align:center;padding-bottom:8px;}
 .aria-spec-standby-dots{display:flex;justify-content:center;gap:9px;}
@@ -6292,7 +6293,9 @@ function _ariaSetState(state){
     if(oc)oc.style.display='';
     var sb=document.getElementById('aria-spec-standby');
     if(sb)sb.style.display='none';
-    ariaOrbitStart();
+    var pnlOb=document.getElementById('aria-spec-pnl');
+    if(pnlOb)pnlOb.classList.add('orbiting');
+    requestAnimationFrame(function(){requestAnimationFrame(ariaOrbitStart);});
   }
 }
 
@@ -6410,6 +6413,8 @@ function _ariaOrbitLoop(now){
       st.phase='done';
       ctx.clearRect(0,0,cv.width,cv.height);
       cv.style.display='none';
+      var _pnlC=document.getElementById('aria-spec-pnl');
+      if(_pnlC)_pnlC.classList.remove('orbiting');
       if(st.onDone)st.onDone();
       return;
     }
@@ -6449,6 +6454,8 @@ function ariaOrbitStop(){
   if(st.raf){cancelAnimationFrame(st.raf);st.raf=null;}
   st.phase='idle';
   if(st.canvas){st.ctx.clearRect(0,0,st.canvas.width,st.canvas.height);st.canvas.style.display='none';}
+  var pnlOb=document.getElementById('aria-spec-pnl');
+  if(pnlOb)pnlOb.classList.remove('orbiting');
 }
 
 function ariaFireParticles(direction,onDone){
