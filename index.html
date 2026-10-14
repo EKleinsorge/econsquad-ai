@@ -6699,13 +6699,16 @@ function _ariaShowResult(spec,reply){
   var bl=document.getElementById('aria-result-byline');
   var out=document.getElementById('aria-result-output');
   var openBtn=document.getElementById('aria-spec-open-btn');
+  var designBtn=document.getElementById('aria-design-btn');
+  var specId=spec.id||spec.specialist_id||null;
   if(hm)hm.textContent='Here\u2019s what '+(spec.name||'the specialist')+' came up with:';
   if(bl)bl.textContent=(spec.name||'')+(spec.role?' \u2014 '+spec.role:'');
   if(out)out.innerHTML=ariaMarkdownToHtml(reply);
-  if(openBtn)openBtn.style.display='';
+  if(openBtn)openBtn.style.display=specId?'':'none';
+  if(designBtn)designBtn.style.display=specId?'':'none';
   _ariaSetState('result');
   window._ariaLastReply=reply;
-  window._ariaLastSpecId=spec.id||spec.specialist_id;
+  window._ariaLastSpecId=specId;
 }
 
 function ariaResultCopy(){
@@ -15988,8 +15991,9 @@ function drawLogo(){if(!logoCtx)return;
             <button onclick="ariaResultReply()" class="aria-rac-btn" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#eef3fc;white-space:nowrap;align-self:flex-end;">Send &#x2192;</button>
           </div>
           <div class="aria-result-actions">
-            <button onclick="ariaNewTask()" class="aria-rac-btn" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#6b7a96;">&larr; New task</button>
-            <button onclick="ariaResultCopy()" class="aria-rac-btn" id="aria-copy-btn" style="background:rgba(170,255,62,0.08);border:1px solid rgba(170,255,62,0.25);color:#aaff3e;">Copy</button>
+            <button onclick="deployFromAriaCmd()" class="output-btn primary" id="aria-design-btn" style="display:none;">&#x2728; Design it for me</button>
+            <button onclick="ariaResultCopy()" class="output-btn primary" id="aria-copy-btn">Copy</button>
+            <button onclick="ariaNewTask()" class="output-btn">&larr; New task</button>
           </div>
         </div>
 
