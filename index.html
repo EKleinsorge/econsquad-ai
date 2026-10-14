@@ -6769,8 +6769,53 @@ function ariaSaveToHistory(){
 }
 
 function deployFromAriaCmd(){
-  var id=window._ariaLastSpecId;
-  if(id){closeAriaRouting();setTimeout(function(){deploy(id);},100);}
+  var text=window._ariaLastReply||'';
+  var specId=window._ariaLastSpecId;
+  if(!text||!specId)return;
+  var btn=document.getElementById('aria-design-btn');
+  if(btn){btn.disabled=true;btn.innerHTML='&#x2728; Designing...';}
+
+  /* Show a designing-in-progress message in the spec panel status */
+  ariaSetSpecStatus('Designing your document...');
+
+  supa.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    var token=session&&session.access_token?session.access_token:SUPA_KEY;
+    var headers={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+    var EDGE='https://kbwcsmctwtgrjtjcghkt.supabase.co/functions/v1/specialist-chat';
+    var designP=fetch(EDGE,{method:'POST',headers:headers,
+      body:JSON.stringify({design_mode:true,specialistId:Number(specId),working_for:null,content:text,messages:[{role:'user',content:'Design this.'}]})
+    }).then(function(r){return r.json();});
+    var brandP=fetch(EDGE,{method:'POST',headers:headers,
+      body:JSON.stringify({fetch_brand_hints:true,working_for:null})
+    }).then(function(r){return r.json();}).catch(function(){return{};});
+    return Promise.all([designP,brandP]);
+  }).then(function(results){
+    var data=results&&results[0]||{};
+    var brand=results&&results[1]||{};
+    ariaSetSpecStatus('Done ✓');
+    if(!data.html){
+      if(btn){btn.disabled=false;btn.innerHTML='&#x2728; Design it for me';}
+      return;
+    }
+    var logoUrl=brand.logo_url||null;
+    var accentColor=brand.accent_color||null;
+    if(!logoUrl&&currentUser&&currentUser.email){
+      var domain=currentUser.email.split('@')[1];
+      if(domain&&domain!=='gmail.com'&&domain!=='yahoo.com'&&domain!=='hotmail.com'&&domain!=='outlook.com')
+        logoUrl='https://logo.clearbit.com/'+domain;
+    }
+    if(btn){
+      btn.disabled=false;
+      btn.innerHTML='&#x1F4C4; View Designed Document';
+      btn.style.background='rgba(170,255,62,0.15)';btn.style.borderColor='rgba(170,255,62,0.5)';
+      var h=data.html,l=logoUrl,a=accentColor;
+      btn.onclick=function(){openDesignedDocument(h,l,a);};
+    }
+  }).catch(function(){
+    ariaSetSpecStatus('Done ✓');
+    if(btn){btn.disabled=false;btn.innerHTML='&#x2728; Design it for me';}
+  });
 }
 
 function ariaNewTask(){
