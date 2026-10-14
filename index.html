@@ -6268,6 +6268,7 @@ function openAriaRouting(){
   if(openBtn)openBtn.style.display='none';
   _ariaCmdSpec=null;_ariaCmdTask='';_ariaConvHistory=[];
   _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
+  var qh=document.getElementById('aria-q-history');if(qh)qh.innerHTML='';
   m.style.display='flex';
   requestAnimationFrame(function(){
     var cv=document.getElementById('aria-cmd-orb-cv');
@@ -6546,7 +6547,7 @@ function ariaFindSpecialist(){
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Pick the best specialist and list up to 2 short clarifying questions (or none if the request is already clear).\n\nRespond ONLY as JSON: {"specialist":"<name>","questions":["q1","q2"]}\n\nSpecialists: '+specNames}]})
+    body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:300,messages:[{role:'user',content:'Task: "'+task+'"\n\nYou are ARIA, Chief of Operations for an economic development AI team. Pick the best specialist. Ask at most ONE clarifying question — only if the PURPOSE or goal of the task is genuinely unclear (e.g. "What is this SWOT analysis being developed for? Business attraction, tourism, BRE, workforce development, etc."). NEVER ask for data that can be found in public sources (population, employment stats, demographics, industry data, economic indicators, company info, etc.) — the specialist will research that themselves.\n\nRespond ONLY as JSON: {"specialist":"<name>","questions":["optional single question"]}\n\nSpecialists: '+specNames}]})
   }).then(function(r){return r.json();}).then(function(data){
     var text=(data.content&&data.content[0]&&data.content[0].text)||'{}';
     var jm=text.match(/\{[\s\S]*\}/);
@@ -6604,10 +6605,10 @@ function ariaShowQuestion(){
   var q=_ariaQList[_ariaQIdx];
   if(!q){ariaSkipQuestions();return;}
   _ariaSetState('questions');
+  var designBtn=document.getElementById('aria-design-btn');
+  if(designBtn)designBtn.style.display='none';
   var qText=document.getElementById('aria-q-text');
-  var qProg=document.getElementById('aria-q-progress');
   if(qText)qText.textContent=q;
-  if(qProg)qProg.textContent='Question '+(_ariaQIdx+1)+' of '+_ariaQList.length;
   var qa=document.getElementById('aria-q-answer');
   if(qa){qa.value='';qa.focus();}
 }
@@ -6615,6 +6616,23 @@ function ariaShowQuestion(){
 function ariaSubmitAnswer(){
   var qa=document.getElementById('aria-q-answer');
   var ans=qa?qa.value.trim():'';
+  var q=_ariaQList[_ariaQIdx]||'';
+  if(ans){
+    var hist=document.getElementById('aria-q-history');
+    if(hist){
+      var row=document.createElement('div');
+      row.style.cssText='padding:6px 10px;margin-bottom:4px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:2px solid rgba(170,255,62,0.3);';
+      var qEl=document.createElement('div');
+      qEl.style.cssText='font-size:10px;color:#4a6080;margin-bottom:2px;';
+      qEl.textContent=q;
+      var aEl=document.createElement('div');
+      aEl.style.cssText='font-size:13px;color:#b8c8e0;';
+      aEl.textContent=ans;
+      row.appendChild(qEl);row.appendChild(aEl);
+      hist.appendChild(row);
+      hist.scrollTop=hist.scrollHeight;
+    }
+  }
   _ariaQAnswers.push(ans);_ariaQIdx++;
   if(_ariaQIdx<_ariaQList.length){ariaShowQuestion();}
   else{
@@ -6643,6 +6661,7 @@ function ariaCallSpecialistWithContext(spec,task,answers){
     contextBlock+='\n\nAdditional context:\n';
     _ariaQList.forEach(function(q,i){if(answers[i])contextBlock+='- '+q+'\n  '+answers[i]+'\n';});
   }
+  contextBlock+='\n\n[Specialist note: Research all quantitative or factual data needed (population, economic indicators, industry stats, demographics, major employers, etc.) using your own knowledge. Do not ask the user for information available from public sources — provide the complete deliverable.]';
   _ariaConvHistory=[{role:'user',content:contextBlock}];
   var specId=spec.id||spec.specialist_id;
   supa.auth.getSession().then(function(res){
@@ -6727,12 +6746,13 @@ function ariaResultCopy(){
 
 function deployFromAriaCmd(){
   var id=window._ariaLastSpecId;
-  if(id){closeAriaRouting();setTimeout(function(){deploySpec(id);},100);}
+  if(id){closeAriaRouting();setTimeout(function(){deploy(id);},100);}
 }
 
 function ariaNewTask(){
   ariaOrbitStop();
   _ariaCmdSpec=null;_ariaCmdTask='';_ariaConvHistory=[];
+  var qh=document.getElementById('aria-q-history');if(qh)qh.innerHTML='';
   _ariaQList=[];_ariaQAnswers=[];_ariaQIdx=0;
   var standby=document.getElementById('aria-spec-standby');
   var card=document.getElementById('aria-spec-card');
@@ -15961,14 +15981,14 @@ function drawLogo(){if(!logoCtx)return;
 
         <!-- STATE: Questions -->
         <div id="aria-state-questions" style="display:none;">
+          <!-- Answered Q&A history -->
+          <div id="aria-q-history" style="max-height:100px;overflow-y:auto;margin-bottom:8px;"></div>
+          <!-- Current question -->
           <div class="aria-msg-row">
             <div class="aria-msg-orb"></div>
-            <div class="aria-msg-bubble">
-              <div id="aria-q-text"></div>
-              <div id="aria-q-progress" style="font-size:10px;color:#4a5568;margin-top:5px;"></div>
-            </div>
+            <div class="aria-msg-bubble" id="aria-q-text" style="flex:1;"></div>
           </div>
-          <textarea id="aria-q-answer" class="aria-routing-input" rows="2" placeholder="Your answer..."></textarea>
+          <textarea id="aria-q-answer" class="aria-routing-input" rows="2" placeholder="Your answer..." style="margin-top:8px;" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))ariaSubmitAnswer();"></textarea>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <button onclick="ariaSubmitAnswer()" class="aria-btn-primary" style="flex:2;">Answer &rarr;</button>
             <button onclick="ariaSkipQuestions()" style="flex:1;padding:10px 12px;background:none;border:1px solid rgba(255,255,255,0.08);color:#6b7a96;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;border-radius:10px;cursor:pointer;">Skip</button>
